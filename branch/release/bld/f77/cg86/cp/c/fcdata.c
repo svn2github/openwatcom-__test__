@@ -24,15 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  DATA statement processor.
 *
 ****************************************************************************/
 
-
-//
-// FCDATA    : DATA statement processor
-//
 
 #include "ftnstd.h"
 #include "global.h"
@@ -89,6 +84,9 @@ extern  void            DtFiniSequence(void);
 extern  void            (* __FAR FCJmpTab[])();
 extern  void            (* __FAR DataJmpTab[])();
 extern  char            *StmtKeywords[];
+
+static  void            InitStructArr( sym_id fd, act_dim_list *dim );
+static  void            StructInit( sym_id fd );
 
 #define CONST_TYPES     9
 
@@ -1314,7 +1312,7 @@ void    DtInpStructArray() {
 
     InitVar = GetPtr();
     DtOffset = 0;
-    InitStructArr( InitVar->ns.xt.record->fields, InitVar->ns.si.va.dim_ext );
+    InitStructArr( InitVar->ns.xt.record->fl.sym_fields, InitVar->ns.si.va.dim_ext );
 }
 
 
@@ -1359,7 +1357,7 @@ void    DtInpStruct() {
 
 // Initialize a struct.
 
-    StructInit( ((sym_id)GetPtr())->sd.fields );
+    StructInit( ((sym_id)GetPtr())->sd.fl.sym_fields );
 }
 
 
@@ -1368,7 +1366,7 @@ static  void    StructInit( sym_id fd ) {
 
     while( fd != NULL ) {
         if( fd->fd.typ == TY_STRUCTURE ) {
-            StructInit( fd->fd.xt.record->fields );
+            StructInit( fd->fd.xt.record->fl.sym_fields );
         } else {
             StructInitItem( fd );
             if( fd->fd.dim_ext == NULL ) {

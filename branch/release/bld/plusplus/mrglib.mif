@@ -1,6 +1,9 @@
+proj_name = cpplib
+
+!include cproj.mif
+
 !include $(plusplus_dir)/ppdirs.mif
 !include $(define_library_include)
-!include cproj.mif
 
 !ifndef source_libs
 source_libs = $(libs)
@@ -11,18 +14,25 @@ source_libs_x = $(libx)
 !endif
 
 lib_flags = -b -c -n -t
-!ifdef on_build_machine
+!ifeq release 1
 !ifeq host_CPU axp
 !else
 lib_flags += -s
 !endif
 !endif
 
-!ifdef on_JWW_machine
-lib_page_size = -p=64
-!else ifndef on_build_machine
-lib_page_size = -p=64
+!ifndef lib_page_size
+!ifeq release 0
+!ifdef debug_lib_page_size
+lib_page_size = $(debug_lib_page_size)
 !else
+lib_page_size = -p=64
+!endif
+!else
+!ifdef release_lib_page_size
+lib_page_size = $(release_lib_page_size)
+!endif
+!endif
 !endif
 !ifndef lib_page_size
 lib_page_size = -p=16

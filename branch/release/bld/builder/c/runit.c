@@ -33,10 +33,10 @@
 #include <ctype.h>
 #include <time.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #ifdef __UNIX__
 #include <unistd.h>
 #include <dirent.h>
-#include <sys/stat.h>
 #else
 #include <direct.h>
 #include <dos.h>
@@ -46,6 +46,7 @@
 #endif
 #include "watcom.h"
 #include "builder.h"
+#include "pmake.h"
 
 #define BSIZE   256
 #define SCREEN  79
@@ -371,7 +372,20 @@ static unsigned ProcCopy( char *cmd, bool test_abit )
     return( 0 );
 }
 
-#if 0
+static unsigned ProcMkdir( char *cmd )
+{
+    struct stat sb;
+
+    if ( -1 == stat( cmd, &sb ) )
+#ifdef __UNIX__
+        return( mkdir( cmd, S_IRWXU | S_IRWXG | S_IRWXO ) );
+#else
+        return( mkdir( cmd ) );
+#endif
+    else
+        return( 0 );
+}
+
 void PMakeOutput( char *str )
 {
     Log( FALSE, "%s\n", str );
@@ -414,7 +428,6 @@ static unsigned ProcPMake( char *cmd )
     PMakeCleanup( data );
     return( res );
 }
-#endif
 
 unsigned RunIt( char *cmd )
 {
@@ -442,10 +455,10 @@ unsigned RunIt( char *cmd )
         res = ProcCopy( SkipBlanks( cmd + sizeof( "COPY" ) ), FALSE );
     } else if( BUILTIN( "ACOPY" ) ) {
         res = ProcCopy( SkipBlanks( cmd + sizeof( "ACOPY" ) ), TRUE );
-#if 0
+    } else if( BUILTIN( "MKDIR" ) ) {
+        res = ProcMkdir( SkipBlanks( cmd + sizeof( "MKDIR" ) ) );
     } else if( BUILTIN( "PMAKE" ) ) {
         res = ProcPMake( SkipBlanks( cmd + sizeof( "PMAKE" ) ) );
-#endif
     } else {
         res = SysRunCommand( cmd );
     }

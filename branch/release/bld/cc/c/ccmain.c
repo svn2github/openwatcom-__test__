@@ -117,6 +117,7 @@ void ClearGlobals()
     ErrFile = NULL;
     DefFile = NULL;
     CppFile = NULL;
+    DepFile = NULL;
     SymLoc  = NULL;
     HFileList = NULL;
     IncFileDepth = 255;
@@ -284,6 +285,10 @@ void CloseFiles()
         fclose( DefFile );
         DefFile = NULL;
     }
+    if( ErrFile != NULL ) {
+        fclose( ErrFile );
+        ErrFile = NULL;
+    } 
     if( PageFile != NULL ) {
         fclose( PageFile );
         #if (_OS != _QNX) && (_OS != _LINUX)
@@ -319,6 +324,70 @@ static bool ParseCmdLine( char **cmdline )
     return( TRUE );
 }
 
+void OpenDepFile()
+{
+    char        *name;
+
+    if( CompFlags.generate_auto_depend ) {                        /* 15-dec-88 */
+        name = DepFileName();
+        if( name != NULL ) {
+            DepFile = fopen( name, "w" );
+            if( DepFile != NULL ) {
+                setvbuf( DepFile, CPermAlloc( 32 ), _IOFBF, 32 );
+            }
+        }
+     }
+}
+
+char *ForceSlash( char *name, char slash )
+{
+    char *save = name;
+    if( !slash || !save )
+        return name;
+    while( name[0] )
+    {
+        if( name[0] == '\\' || name[0] == '/' )
+            name[0] = slash;
+        name++;
+    }
+    return save;
+}
+
+void DumpDepFile( void )
+{
+    FNAMEPTR curr;
+    if( CompFlags.generate_auto_depend && FNames ) {
+        curr = FNames;
+        if( !DepFile )
+        {
+            return;
+        }
+        fprintf( DepFile, "%s :"
+               , ForceSlash( CreateFileName( DependTarget, OBJ_EXT, FALSE )
+                          , DependForceSlash ) );
+        if( curr )
+            if( curr->rwflag && !SrcFileInRDir( curr ) )
+                fprintf( DepFile, " %s"
+                        , ForceSlash( GetSourceDepName()
+                                    , DependForceSlash ) );
+        curr = curr->next;
+        for( ; curr; curr = curr->next )
+        {
+            if( curr->rwflag && !SrcFileInRDir( curr ) )
+                fprintf( DepFile, " %s", ForceSlash( curr->name, DependForceSlash ) );
+        }
+        fprintf( DepFile, "\n" );
+        /*
+        for( curr = FNames; curr; curr = curr->next )
+        {
+            if( curr->rwflag && !SrcFileInRDir( curr ) )
+                continue;
+            //fprintf( DepFile, "#Skipped file...%s\n", curr->name );
+        }
+        */
+    }
+}
+
 void DoCCompile( char **cmdline )
 /******************************/
 {
@@ -343,6 +412,7 @@ void DoCCompile( char **cmdline )
         }
         DelErrFile();               /* delete old error file */
         OpenErrFile();              /* open error file just in case */
+        OpenDepFile();
         MergeInclude();             /* merge INCLUDE= with HFileList */
         CPragmaInit();              /* memory model is known now */
         #if _CPU == 370
@@ -362,6 +432,17 @@ void DoCCompile( char **cmdline )
             } else {
                 FreeMacroSegments();
             }
+        }
+        if( ErrCount == 0 ){
+            DumpDepFile();
+        }
+        else {
+            if( DepFile )
+            {
+                fclose( DepFile );
+                DepFile = NULL;
+            }
+            DelDepFile();
         }
         SymFini();
         PragmaFini();
@@ -455,7 +536,7 @@ int OpenPgmFile()
 }
 
 
-static char *CreateFileName( char *template, char *extension, bool forceext )
+char *CreateFileName( char *template, char *extension, bool forceext )
 {
     #if _OS != _CMS
         char buff[ _MAX_PATH2 ];
@@ -482,7 +563,6 @@ static char *CreateFileName( char *template, char *extension, bool forceext )
         _makepath( Buffer, drive, dir, fname, ext );
     #else
         char    *p;
-
         if( template == NULL )  template = WholeFName;
         strcpy( Buffer, template  );
         p = Buffer;
@@ -492,9 +572,28 @@ static char *CreateFileName( char *template, char *extension, bool forceext )
     return( Buffer );
 }
 
+char *GetSourceDepName( void )
+{
+    char buff[ _MAX_PATH2 ];
+    char *drive;
+    char *dir;
+    char *fname;
+    char *ext;
+
+    _splitpath2( WholeFName, buff, &drive, &dir, &fname, &ext );
+
+    return CreateFileName( SrcDepName, ext, FALSE );
+}
+
+
 char *ObjFileName( char *ext )
 {
     return( CreateFileName( ObjectFileName, ext, FALSE ) );
+}
+
+char *DepFileName()
+{
+    return( CreateFileName( DependFileName, DEP_EXT, FALSE ) );
 }
 
 char *ErrFileName()
@@ -669,6 +768,13 @@ void DelErrFile()
     if( name != NULL ) remove( name );
 }
 
+void DelDepFile()
+{
+    char        *name;
+
+    name = DepFileName();
+    if( name != NULL ) remove( name );
+}
 
 int OpenSrcFile( char *filename, int delimiter )
 {
@@ -940,6 +1046,20 @@ char *FNameFullPath( FNAMEPTR flist )
         fullpath = flist->fullpath;
     }
     return( fullpath );
+}
+
+char *FileIndexToCorrectName( unsigned file_index )
+{
+    FNAMEPTR flist;
+    char *name;
+
+    flist = FileIndexToFName( file_index );
+    if( CompFlags.ef_switch_used ){
+        name = FNameFullPath( flist );
+    }else{
+        name = flist->name;
+    }
+    return ( name );
 }
 
 static bool IsFNameOnce( char const *filename )

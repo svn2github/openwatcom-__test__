@@ -83,7 +83,7 @@ static BOOL     WdeHdrGetWindowClass    ( WdeHdrObject *, char **, void *);
 static BOOL     WdeHdrDefine            ( WdeHdrObject *, POINT *, void *);
 static void     WdeHdrSetDefineInfo     ( WdeDefineObjectInfo *, HWND );
 static void     WdeHdrGetDefineInfo     ( WdeDefineObjectInfo *, HWND );
-static BOOL     WdeHdrDefineHook        ( HWND, WORD, WPARAM, LPARAM,
+static BOOL     WdeHdrDefineHook        ( HWND, UINT, WPARAM, LPARAM,
                                           DialogStyle );
 
 /****************************************************************************/
@@ -255,7 +255,7 @@ Bool WdeHdrInit( Bool first )
     SETCTL_SIZEW( WdeDefaultHdr, 0 );
     SETCTL_SIZEH( WdeDefaultHdr, 0 );
     SETCTL_TEXT( WdeDefaultHdr, NULL );
-    SETCTL_CLASSID( WdeDefaultHdr, WdeStrDup( WWC_HEADER ) );
+    SETCTL_CLASSID( WdeDefaultHdr, WdeStrToControlClass( WWC_HEADER ) );
 
     WdeHdrDispatch = MakeProcInstance((FARPROC)WdeHdrDispatcher,
                                            WdeGetAppInstance());
@@ -423,7 +423,7 @@ void WdeHdrGetDefineInfo ( WdeDefineObjectInfo *o_info, HWND hDlg )
 #endif
 }
 
-BOOL WdeHdrDefineHook( HWND hDlg, WORD message,
+BOOL WdeHdrDefineHook( HWND hDlg, UINT message,
                         WPARAM wParam, LPARAM lParam, DialogStyle mask )
 {
     BOOL processed;

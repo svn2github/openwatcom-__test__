@@ -1,7 +1,6 @@
-#pmake: os_dos cpu_i86 i86 intel
-os      = dos
-bin     = bin
-form    = dos
+#pmake: build os_dos cpu_i86 i86 intel
 
-!include deftarg.mif
-!include ../makefile
+host_os = dos
+host_cpu = i86
+
+!include ../master.mif

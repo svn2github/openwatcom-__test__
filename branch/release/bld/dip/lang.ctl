@@ -15,72 +15,72 @@ cdsay .
 [ BLOCK <1> rel2 cprel2 ]
 #========================
 #       OS2
-#       <CPCMD> <devdir>/bin/binp/dll/dwarf.dll         <relroot>/rel2/binp/dll/
-#       <CPCMD> <devdir>/bin/binp/dll/codeview.dll      <relroot>/rel2/binp/dll/
-#       <CPCMD> <devdir>/bin/binp/dll/export.dll        <relroot>/rel2/binp/dll/
-#       <CPCMD> <devdir>/bin/binp/dll/watcom.dll        <relroot>/rel2/binp/dll/
-        <CPCMD> <devdir>/bin/binp/dll/dwarf.sym         <relroot>/rel2/binp/dll/
-        <CPCMD> <devdir>/bin/binp/dll/codeview.sym      <relroot>/rel2/binp/dll/
-        <CPCMD> <devdir>/bin/binp/dll/export.sym        <relroot>/rel2/binp/dll/
-        <CPCMD> <devdir>/bin/binp/dll/watcom.sym        <relroot>/rel2/binp/dll/
-        <CPCMD> <devdir>/bin/binp/dll/dwarf.d32         <relroot>/rel2/binp/
-        <CPCMD> <devdir>/bin/binp/dll/codeview.d32      <relroot>/rel2/binp/
-        <CPCMD> <devdir>/bin/binp/dll/export.d32        <relroot>/rel2/binp/
-        <CPCMD> <devdir>/bin/binp/dll/watcom.d32        <relroot>/rel2/binp/
+#        <CPCMD> <DEVDIR>/dip/dwarf/os2i86/dwarf.dll         <RELROOT>/rel2/binp/dll/
+#        <CPCMD> <DEVDIR>/dip/dwarf/os2i86/dwarf.sym         <RELROOT>/rel2/binp/dll/
+#        <CPCMD> <DEVDIR>/dip/codeview/os2i86/codeview.dll   <RELROOT>/rel2/binp/dll/
+#        <CPCMD> <DEVDIR>/dip/codeview/os2i86/codeview.sym   <RELROOT>/rel2/binp/dll/
+#        <CPCMD> <DEVDIR>/dip/export/os2i86/export.dll       <RELROOT>/rel2/binp/dll/
+#        <CPCMD> <DEVDIR>/dip/export/os2i86/export.sym       <RELROOT>/rel2/binp/dll/
+#        <CPCMD> <DEVDIR>/dip/watcom/os2i86/watcom.dll       <RELROOT>/rel2/binp/dll/
+#        <CPCMD> <DEVDIR>/dip/watcom/os2i86/watcom.sym       <RELROOT>/rel2/binp/dll/
+        <CPCMD> <DEVDIR>/dip/dwarf/os2386/dwarf.d32         <RELROOT>/rel2/binp/
+        <CPCMD> <DEVDIR>/dip/codeview/os2386/codeview.d32   <RELROOT>/rel2/binp/
+        <CPCMD> <DEVDIR>/dip/export/os2386/export.d32       <RELROOT>/rel2/binp/
+        <CPCMD> <DEVDIR>/dip/watcom/os2386/watcom.d32       <RELROOT>/rel2/binp/
 #       NT
-        <CPCMD> <devdir>/bin/binnt/dwarf.dll    <relroot>/rel2/binnt/
-        <CPCMD> <devdir>/bin/binnt/codeview.dll <relroot>/rel2/binnt/
-        <CPCMD> <devdir>/bin/binnt/export.dll   <relroot>/rel2/binnt/
-        <CPCMD> <devdir>/bin/binnt/watcom.dll   <relroot>/rel2/binnt/
-        <CPCMD> <devdir>/bin/binnt/dwarf.sym    <relroot>/rel2/binnt/
-        <CPCMD> <devdir>/bin/binnt/codeview.sym <relroot>/rel2/binnt/
-        <CPCMD> <devdir>/bin/binnt/export.sym   <relroot>/rel2/binnt/
-        <CPCMD> <devdir>/bin/binnt/watcom.sym   <relroot>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/dwarf/nt386/dwarf.dll          <RELROOT>/rel2/binnt/
+#        <CPCMD> <DEVDIR>/dip/dwarf/nt386/dwarf.sym          <RELROOT>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/codeview/nt386/codeview.dll    <RELROOT>/rel2/binnt/
+#        <CPCMD> <DEVDIR>/dip/codeview/nt386/codeview.sym    <RELROOT>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/export/nt386/export.dll        <RELROOT>/rel2/binnt/
+#        <CPCMD> <DEVDIR>/dip/export/nt386/export.sym        <RELROOT>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/watcom/nt386/watcom.dll        <RELROOT>/rel2/binnt/
+#        <CPCMD> <DEVDIR>/dip/watcom/nt386/watcom.sym        <RELROOT>/rel2/binnt/
 #       WINDOWS
-        <CPCMD> <devdir>/bin/bin/dwarf.dll      <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/codeview.dll   <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/export.dll     <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/watcom.dll     <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/dwarf.sym      <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/codeview.sym   <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/export.sym     <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/watcom.sym     <relroot>/rel2/binw/
+        <CPCMD> <DEVDIR>/dip/dwarf/wini86/dwarf.dll         <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/dwarf/wini86/dwarf.sym         <RELROOT>/rel2/binw/
+        <CPCMD> <DEVDIR>/dip/codeview/wini86/codeview.dll   <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/codeview/wini86/codeview.sym   <RELROOT>/rel2/binw/
+        <CPCMD> <DEVDIR>/dip/export/wini86/export.dll       <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/export/wini86/export.sym       <RELROOT>/rel2/binw/
+        <CPCMD> <DEVDIR>/dip/watcom/wini86/watcom.dll       <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/watcom/wini86/watcom.sym       <RELROOT>/rel2/binw/
 #       DOS
-        <CPCMD> <devdir>/bin/bin/dwarf.dip      <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/codeview.dip   <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/export.dip     <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/watcom.dip     <relroot>/rel2/binw/
-        <CPCMD> <devdir>/bin/bin/dwarf.sym      <relroot>/rel2/binw/dwarf.dsy
-        <CPCMD> <devdir>/bin/bin/codeview.sym   <relroot>/rel2/binw/codeview.dsy
-        <CPCMD> <devdir>/bin/bin/export.sym     <relroot>/rel2/binw/export.dsy
-        <CPCMD> <devdir>/bin/bin/watcom.sym     <relroot>/rel2/binw/watcom.dsy
+        <CPCMD> <DEVDIR>/dip/dwarf/dos386/dwarf.dip         <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/dwarf/dos386/dwarf.sym         <RELROOT>/rel2/binw/dwarf.dsy
+        <CPCMD> <DEVDIR>/dip/codeview/dos386/codeview.dip   <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/codeview/dos386/codeview.sym   <RELROOT>/rel2/binw/codeview.dsy
+        <CPCMD> <DEVDIR>/dip/export/dos386/export.dip       <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/export/dos386/export.sym       <RELROOT>/rel2/binw/export.dsy
+        <CPCMD> <DEVDIR>/dip/watcom/dos386/watcom.dip       <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/watcom/dos386/watcom.sym       <RELROOT>/rel2/binw/watcom.dsy
 #       QNX
-#       <CPCMD> <devdir>/bin/qnx/dwarf.dip      <relroot>/rel2/qnx/watcom/wd/
-#       <CPCMD> <devdir>/bin/qnx/codeview.dip   <relroot>/rel2/qnx/watcom/wd/
-#       <CPCMD> <devdir>/bin/qnx/export.dip     <relroot>/rel2/qnx/watcom/wd/
-#       <CPCMD> <devdir>/bin/qnx/watcom.dip     <relroot>/rel2/qnx/watcom/wd/
-#       <CPCMD> <devdir>/bin/qnx/dwarf.sym      <relroot>/rel2/qnx/sym/
-#       <CPCMD> <devdir>/bin/qnx/codeview.sym   <relroot>/rel2/qnx/sym/
-#       <CPCMD> <devdir>/bin/qnx/export.sym     <relroot>/rel2/qnx/sym/
-#       <CPCMD> <devdir>/bin/qnx/watcom.sym     <relroot>/rel2/qnx/sym/
+#        <CPCMD> <DEVDIR>/dip/dwarf/qnx386/dwarf.dip         <RELROOT>/rel2/qnx/watcom/wd/
+#        <CPCMD> <DEVDIR>/dip/dwarf/qnx386/dwarf.sym         <RELROOT>/rel2/qnx/sym/
+#        <CPCMD> <DEVDIR>/dip/codeview/qnx386/codeview.dip   <RELROOT>/rel2/qnx/watcom/wd/
+#        <CPCMD> <DEVDIR>/dip/codeview/qnx386/codeview.sym   <RELROOT>/rel2/qnx/sym/
+#        <CPCMD> <DEVDIR>/dip/export/qnx386/export.dip       <RELROOT>/rel2/qnx/watcom/wd/
+#        <CPCMD> <DEVDIR>/dip/export/qnx386/export.sym       <RELROOT>/rel2/qnx/sym/
+#        <CPCMD> <DEVDIR>/dip/watcom/qnx386/watcom.dip       <RELROOT>/rel2/qnx/watcom/wd/
+#        <CPCMD> <DEVDIR>/dip/watcom/qnx386/watcom.sym       <RELROOT>/rel2/qnx/sym/
 #       ALPHA
-#       <CPCMD> <devdir>/bin/axpnt/dwarf.dll    <relroot>/rel2/axpnt/
-#       <CPCMD> <devdir>/bin/axpnt/codeview.dll <relroot>/rel2/axpnt/
-#       <CPCMD> <devdir>/bin/axpnt/export.dll   <relroot>/rel2/axpnt/
-#       <CPCMD> <devdir>/bin/axpnt/watcom.dll   <relroot>/rel2/axpnt/
-#       <CPCMD> <devdir>/bin/axpnt/dwarf.sym    <relroot>/rel2/axpnt/
-#       <CPCMD> <devdir>/bin/axpnt/codeview.sym <relroot>/rel2/axpnt/
-#       <CPCMD> <devdir>/bin/axpnt/export.sym   <relroot>/rel2/axpnt/
-#       <CPCMD> <devdir>/bin/axpnt/watcom.sym   <relroot>/rel2/axpnt/
+#        <CPCMD> <DEVDIR>/dip/dwarf/ntaxp/dwarf.dll          <RELROOT>/rel2/axpnt/
+#        <CPCMD> <DEVDIR>/dip/dwarf/ntaxp/dwarf.sym          <RELROOT>/rel2/axpnt/
+#        <CPCMD> <DEVDIR>/dip/codeview/ntaxp/codeview.dll    <RELROOT>/rel2/axpnt/
+#        <CPCMD> <DEVDIR>/dip/codeview/ntaxp/codeview.sym    <RELROOT>/rel2/axpnt/
+#        <CPCMD> <DEVDIR>/dip/export/ntaxp/export.dll        <RELROOT>/rel2/axpnt/
+#        <CPCMD> <DEVDIR>/dip/export/ntaxp/export.sym        <RELROOT>/rel2/axpnt/
+#        <CPCMD> <DEVDIR>/dip/watcom/ntaxp/watcom.dll        <RELROOT>/rel2/axpnt/
+#        <CPCMD> <DEVDIR>/dip/watcom/ntaxp/watcom.sym        <RELROOT>/rel2/axpnt/
 #       LINUX
-        <CPCMD> <devdir>/bin/linux/dwarf.dip      <relroot>/rel2/binl/
-        <CPCMD> <devdir>/bin/linux/watcom.dip     <relroot>/rel2/binl/
-#        <CPCMD> <devdir>/bin/linux/codeview.dip   <relroot>/rel2/binl/
-#        <CPCMD> <devdir>/bin/linux/export.dip     <relroot>/rel2/binl/
-        <CPCMD> <devdir>/bin/linux/dwarf.sym      <relroot>/rel2/binl/
-        <CPCMD> <devdir>/bin/linux/watcom.sym     <relroot>/rel2/binl/
-#        <CPCMD> <devdir>/bin/linux/codeview.sym   <relroot>/rel2/binl/
-#        <CPCMD> <devdir>/bin/linux/export.sym     <relroot>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/dwarf/linux386/dwarf.dip       <RELROOT>/rel2/binl/
+#        <CPCMD> <DEVDIR>/dip/dwarf/linux386/dwarf.sym       <RELROOT>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/watcom/linux386/watcom.dip     <RELROOT>/rel2/binl/
+#        <CPCMD> <DEVDIR>/dip/watcom/linux386/watcom.sym     <RELROOT>/rel2/binl/
+#        <CPCMD> <DEVDIR>/dip/codeview/linux386/codeview.dip <RELROOT>/rel2/binl/
+#        <CPCMD> <DEVDIR>/dip/codeview/linux386/codeview.sym <RELROOT>/rel2/binl/
+#        <CPCMD> <DEVDIR>/dip/export/linux386/export.dip     <RELROOT>/rel2/binl/
+#        <CPCMD> <DEVDIR>/dip/export/linux386/export.sym     <RELROOT>/rel2/binl/
 
 
 [ BLOCK <1> clean ]

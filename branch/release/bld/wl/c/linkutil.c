@@ -24,16 +24,11 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Utility routines for wlink.
 *
 ****************************************************************************/
 
 
-/*
-   LINKUTILS : utility routines for wlink
-
-*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,8 +54,8 @@
 #include "wressetr.h"   // from wres project
 
 #if _LINKER != _WATFOR77
-static int ResWrite( int dummy, const void *buff, int size )
-/**********************************************************/
+static int ResWrite( int dummy, const void *buff, size_t size )
+/*************************************************************/
 /* redirect wres write to writeload */
 {
     dummy = dummy;
@@ -238,10 +233,10 @@ extern void WalkMods( void (*rtn)( mod_entry * ) )
 /************************************************/
 {
     CurrSect = Root;
-    WalkList( (node *) Root->mods, rtn );
+    WalkList( (node *) Root->mods, (void (*)(void *))rtn );
     ParmWalkOvl( WalkModList, rtn );
     CurrSect = Root;
-    WalkList( (node *) LibModules, rtn );
+    WalkList( (node *) LibModules, (void (*)(void *))rtn );
 }
 
 static void WalkClass( class_entry *class, void (*rtn)(seg_leader *) )

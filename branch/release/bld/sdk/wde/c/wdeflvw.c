@@ -83,7 +83,7 @@ static BOOL     WdeLViewGetWindowClass  ( WdeLViewObject *, char **, void *);
 static BOOL     WdeLViewDefine          ( WdeLViewObject *, POINT *, void *);
 static void     WdeLViewSetDefineInfo   ( WdeDefineObjectInfo *, HWND );
 static void     WdeLViewGetDefineInfo   ( WdeDefineObjectInfo *, HWND );
-static BOOL     WdeLViewDefineHook      ( HWND, WORD, WPARAM, LPARAM,
+static BOOL     WdeLViewDefineHook      ( HWND, UINT, WPARAM, LPARAM,
                                           DialogStyle );
 
 /****************************************************************************/
@@ -255,7 +255,7 @@ Bool WdeLViewInit( Bool first )
     SETCTL_SIZEW( WdeDefaultLView, 0 );
     SETCTL_SIZEH( WdeDefaultLView, 0 );
     SETCTL_TEXT( WdeDefaultLView, NULL );
-    SETCTL_CLASSID( WdeDefaultLView, WdeStrDup( WWC_LISTVIEW ) );
+    SETCTL_CLASSID( WdeDefaultLView, WdeStrToControlClass( WWC_LISTVIEW ) );
 
     WdeLViewDispatch = MakeProcInstance((FARPROC)WdeLViewDispatcher,
                                            WdeGetAppInstance());
@@ -523,7 +523,7 @@ void WdeLViewGetDefineInfo ( WdeDefineObjectInfo *o_info, HWND hDlg )
 #endif
 }
 
-BOOL WdeLViewDefineHook( HWND hDlg, WORD message,
+BOOL WdeLViewDefineHook( HWND hDlg, UINT message,
                         WPARAM wParam, LPARAM lParam, DialogStyle mask )
 {
     BOOL processed;

@@ -108,7 +108,7 @@ bool ObjInit( char *fname ) {
 //***************************
 
     owl_client_funcs    funcs = {
-        (int (*)( owl_client_file, const char *, int ))write,
+        (int (*)( owl_client_file, const char *, uint ))write,
         (long (*)( owl_client_file ))tell,
         (long (*)( owl_client_file, long, int ))lseek,
         MemAlloc,
@@ -228,8 +228,8 @@ void ObjEmitLabel( sym_handle sym ) {
     doStackLabel( sym, type, linkage );
 }
 
-void ObjEmitNumericLabel( int_32 label_num ) {
-//********************************************
+void ObjEmitNumericLabel( uint_32 label_num ) {
+//*********************************************
 // Stacks up the numeric label in the list for ObjEmitData to emit
 
     owl_sym_type        type;

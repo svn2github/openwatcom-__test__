@@ -42,8 +42,9 @@ common_objs += analyse.obj
 common_objs += arglist.obj
 common_objs += ascii.obj
 common_objs += asmstmt.obj
+common_objs += autodep.obj
 
-!ifndef plusplus_release
+!ifeq release 0
 common_objs += b_write.obj
 common_objs += brinfdep.obj
 common_objs += brinfmac.obj
@@ -225,7 +226,7 @@ common_objs += proepitm.obj
 !endif
 
 # debugging objects
-!ifndef plusplus_release
+!ifeq release 0
 common_objs += dbg.obj
 common_objs += dbgcomma.obj
 common_objs += dbgheap.obj

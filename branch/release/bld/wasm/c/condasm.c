@@ -37,8 +37,7 @@
 #include <stdio.h>
 
 #include "asmglob.h"
-#include "asmops1.h"
-#include "asmins1.h"
+#include "asmins.h"
 #include "directiv.h"
 #include "asmerr.h"
 #include "myassert.h"
@@ -46,13 +45,11 @@
 #include "expand.h"
 #include "asmdefs.h"
 
-extern struct asm_tok   *AsmBuffer[];
-extern struct AsmCodeName AsmOpcode[];
-extern const struct asm_ins ASMFAR AsmOpTable[];
-
 extern void             AsmError( int );
 
 extern int              get_instruction_position( char *string );
+
+extern int              MacroExitState;
 
 enum if_state CurState = ACTIVE;
 // fixme char *IfSymbol;        /* save symbols in IFDEF's so they don't get expanded */
@@ -96,7 +93,9 @@ void prep_line_for_conditional_assembly( char *line )
     *end = fix;
     if( count == EMPTY ) {
         /* if it is not in the table */
-        if( CurState == LOOKING_FOR_TRUE_COND || CurState == DONE ) {
+        if(( CurState == LOOKING_FOR_TRUE_COND )
+            || ( CurState == DONE )
+            || MacroExitState ) {
             *line = '\0';
         }
         return;
@@ -122,7 +121,9 @@ void prep_line_for_conditional_assembly( char *line )
     case T_IFIDNI:
         break;
     default:
-        if( CurState == LOOKING_FOR_TRUE_COND || CurState == DONE ) {
+        if(( CurState == LOOKING_FOR_TRUE_COND )
+            || ( CurState == DONE )
+            || MacroExitState ) {
             *line = '\0';
         }
     }

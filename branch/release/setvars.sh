@@ -10,30 +10,31 @@ export WATCOM=$OWROOT/rel2
 
 export MAKE=make
 
-#subdirectory to be used for bootstrapping
+# Subdirectory to be used for bootstrapping
 export OBJDIR=bootstrp
 
-# Unset this variable to get more debug info
-export ON_BUILD_MACHINE=1
+# Set this variable to 1 to get debug build
+export DEBUG_BUILD=0
+
+# Set this variable to 1 to get default windowing support in clib
+export DEFAULT_WINDOWING=0
 
 # Stuff for the Open Watcom build environment
 export BATDIR=$OWROOT
 export BUILDER_CTL=lang.ctl
 export BUILD_PLATFORM=linux386
-export build_platform=$BUILD_PLATFORM
 export BLD_VER=12
 export DEFPATH=$PATH
 export DEFREL=rel2
 export DEVDIR=$OWROOT/bld
-export devdir=$DEVDIR
 export DWATCOM=$WATCOM
+export DOC_ROOT=$OWROOT/docs
 export INCLUDE=$WATCOM/lh:$DEVDIR/watcom/h
 export LIB=$OWROOT/bld/watcom/lib
 export LANG_BLD=$OWROOT/bat
-export owroot=$OWROOT
 export PATH=$OWROOT/bin:$DEVDIR/build/binl:$OWROOT/bat:$WATCOM/binl:$DOC_ROOT/cmds:$DEFPATH
 export RELROOT=$OWROOT
-export doc_root=$OWROOT/docs
+export WD_PATH=$WATCOM/binl
 
 # Setup environment variables for Perforce
 export P4PORT=perforce.scitechsoft.com:3488

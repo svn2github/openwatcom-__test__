@@ -113,6 +113,8 @@ Surround the definition with quotes (") if it contains blanks (e.g.,
 "debug_opt=&wlinkdebug").
 The macro definitions specified on the command line supersede any
 macro definitions defined in makefiles.
+Macro names are case-insensitive unless the "ms" option is used to
+select Microsoft NMAKE mode.
 .ix '&makcmdup command line' 'targets'
 .note targets
 is one or more targets described in the makefile.
@@ -169,6 +171,8 @@ query mode - check targets without updating them
 do not use default definitions
 .note &sw.s
 silent mode - do not print commands before execution
+.note &sw.sn
+noisy mode - always print commands before execution
 .note &sw.t
 touch files instead of executing commands
 .note &sw.u
@@ -308,7 +312,7 @@ output by &maksname during the processing of the makefile.
 do not search for the MAKEINIT file
 .np
 The default action for &maksname is to search for an initialization
-file called "MAKEINIT".
+file called "MAKEINIT" or "TOOLS.INI" if the "ms" option is set.
 The "m" option will indicate to &maksname that processing of the
 MAKEINIT file is not desired.
 :OPT name='ms'
@@ -387,6 +391,7 @@ __NT386__ = defined if x86 Windows NT version
 __OS2__ = defined if OS/2 version
 __QNX__ = defined if QNX version
 __LINUX__ = defined if Linux version
+MAKE = <name of file containing &makcmdup>
 #endif
 # clear &sysper.EXTENSIONS list
 &sysper.EXTENSIONS:
@@ -408,6 +413,8 @@ following default definitions are established.
 &sysper.EXTENSIONS: .exe .obj .asm .c .cpp .cxx &
             .bas .cbl .for .f .f90 .pas .res .rc
 
+%MAKEFLAGS=$(%MAKEFLAGS) $(__MAKEOPTS__)
+MAKE=<name of file containing &makcmdup>
 AS=ml
 BC=bc
 CC=cl
@@ -467,6 +474,49 @@ and for Windows NT, the
 .id __MSDOS__
 macro will be replaced by
 .id __NT__.
+.np
+For UNIX make compatibility (when you use the "u" option), the
+following default definition is established.
+.millust begin
+&sysper.EXTENSIONS: .exe .obj .c .y .l .f
+
+%MAKEFLAGS=$(%MAKEFLAGS) $(__MAKEOPTS__)
+MAKE=<name of file containing &makcmdup>
+YACC=yacc
+YFLAGS=
+LEX=lex
+LFLAGS=
+LDFLAGS=
+CC=cl
+FC=fl
+&sysper.asm.exe:
+    $(AS) $(AFLAGS) $*&sysper.asm
+&sysper.c.exe:
+    $(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+&sysper.f.exe:
+    $(FC) $(FFLAGS) $(LDFLAGS) -o $@ $<
+&sysper.c.obj:
+    $(CC) $(CFLAGS) -c $<
+&sysper.f.obj:
+    $(FC) $(FFLAGS) -c $<
+&sysper.y.obj:
+    $(YACC) $(YFLAGS) $<
+    $(CC) $(CFLAGS) -c y.tab.c
+    del y.tab.c
+    move y.tab.obj $@
+&sysper.l.obj:
+    $(LEX) $(LFLAGS) $<
+    $(CC) $(CFLAGS) -c lex.yy.c
+    del lex.yy.c
+    move lex.yy.obj $@
+&sysper.y.c:
+    $(YACC) $(YFLAGS) $<
+    move y.tab.c $@
+&sysper.l.c:
+    $(LEX) $(LFLAGS) $<
+    move lex.yy.c $@
+
+.millust end
 The "r" option will disable these definitions before processing any
 makefiles.
 :OPT name='s'
@@ -476,6 +526,12 @@ silent mode - do not print commands before execution
 The "s" option is equivalent to the
 .id &sysper.SILENT
 directive.
+:OPT name='sn'
+.ix '&makcmdup options' 'sn'
+noisy mode - always print commands before execution
+.np
+The "sn" option overrules all silencing controls.
+It can be used to assist in debugging a makefile.
 :OPT name='t'
 .ix '&makcmdup options' 't'
 touch files instead of executing commands
@@ -562,10 +618,12 @@ This macro is defined in the Windows NT environment.
 This macro is defined in the OS/2 environment.
 .point __MAKEOPTS__
 contains all of the command line options that &makcmdup was invoked
-with except for the "f" options
+with except for any use of the "f" or "n" options.
 .point __MAKEFILES__
 contains the names of all of the makefiles processed at the time of
 expansion (includes the file currently being processed)
+.point MAKE
+contains the full name of the file that contains &makcmdup.
 .endpoint
 .pc
 The next three tables contain macros that are valid during execution
@@ -1759,6 +1817,41 @@ example : .SYMBOLIC
 and still produce the same results.
 The shorthand notation "+=" supported by &maksname provides a quick way
 to add more text to macros.
+.pc
+&maksname provides the "!inject" preprocessor directive to append
+a "word" (one or more graphic characters) to one or more macros.
+The previous makefile is adapted to show the usage:
+.ix '&makcmdup preprocessing' '!inject'
+.ix '&makcmdup directives' '.SYMBOLIC'
+.ix 'SYMBOLIC' '&makcmdup directive'
+.millust begin
+#
+# macro construction with !inject
+#
+!inject file1.obj objs objs12 objs13 objs14 objs15
+!inject file2.obj objs objs12 objs13 objs14 objs15
+!inject file3.obj objs        objs13 objs14 objs15
+!inject file4.obj objs               objs14 objs15
+!inject file5.obj objs                      objs15
+
+example : .SYMBOLIC
+        echo $(objs)
+        echo $(objs12)
+        echo $(objs13)
+        echo $(objs14)
+        echo $(objs15)
+.millust end
+This makefile would produce the following output:
+.exam begin
+file1.obj file2.obj file3.obj file4.obj file5.obj
+file1.obj file2.obj
+file1.obj file2.obj file3.obj
+file1.obj file2.obj file3.obj file4.obj
+file1.obj file2.obj file3.obj file4.obj file5.obj
+.exam end
+.pc
+The "!inject" preprocessor directive supported by &maksname 
+provides a way to append a word to several macros.
 .np
 There are instances when it is useful to have macro identifiers that
 have macro references contained in them.
@@ -3729,33 +3822,14 @@ among different makefiles.
 .ix 'MAKEINIT'
 .ix '&makcmdup' 'initialization file'
 .ix 'initialization file'
-&maksname will search for a file called "MAKEINIT" and process it
+&maksname will search for a file called "MAKEINIT" (or "TOOLS.INI" when
+the "ms" option is set) and process it
 before any other makefiles.
 The search for the "MAKEINIT" file will occur along the current
 "PATH".
 If the file "MAKEINIT" is not found, processing continues without any
 errors.
-The only default declaration that &maksname provides is equivalent to a
-"MAKEINIT" file containing:
-.code begin
-__MAKEOPTS__ = <options passed to &makcmdup>
-__MAKEFILES__ = <list of makefiles>
-__MSDOS__ =
-# clear &sysper.EXTENSIONS list
-&sysper.EXTENSIONS:
-
-# set &sysper.EXTENSIONS list
-&sysper.EXTENSIONS: .exe .exp .lib .obj .asm .c .for .pas .cob .h .fi .mif
-.code end
-.pc
-For OS/2, the
-.id __MSDOS__
-macro will be replaced by
-.id __OS2__
-and for Windows NT, the
-.id __MSDOS__
-macro will be replaced by
-.id __NT__.
+By default, &maksname defines a set of data described at the "r" option.
 The use of a "MAKEINIT" file will allow you to reuse common
 declarations and will result in simpler, more maintainable makefiles.
 .*

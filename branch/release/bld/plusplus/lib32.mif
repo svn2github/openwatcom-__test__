@@ -1,7 +1,6 @@
 #
 # 32-bit library support
 #
-host_CPU = 386
 
 !ifdef __LINUX__
 comp_cpp = $(plusplus_dir)/bin/rpp$(host_cpu)12
@@ -9,7 +8,7 @@ comp_cpp = $(plusplus_dir)/bin/rpp$(host_cpu)12
 comp_cpp = $(plusplus_dir)\bin\rpp$(host_cpu)12.exe
 !endif
 
-!ifndef on_build_machine
+!ifeq release 0
 !ifdef comp_cpp_386
 comp_cpp = $(comp_cpp_386)
 !endif

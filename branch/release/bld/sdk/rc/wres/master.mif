@@ -47,14 +47,6 @@ OBJS = &
 extra_c_flags = -dMICROSOFT
 
 #
-# FLAGS FOR THE DATABASE TEAM
-#
-# Don't include pragmas, because WRES code is put in DBLIB
-#
-!ifdef NO_PRAGMA
-extra_c_flags += -d_NO_LIB_PRAGMAS_
-!endif
-#
 # Option to compile with -r (used in QNX build)
 #
 !ifdef MAINTAIN_SR
@@ -79,8 +71,7 @@ extra_c_flags += -s
 
 lbcfile = tmp.lbc
 
-inc_dirs_NT = $(watcom_dir)/h/nt;
-inc_dirs = ../h;$(inc_dirs_$(NT))
+inc_dirs = ../h;
 
 .BEFORE
         @set include=$(inc_path)
@@ -91,10 +82,6 @@ inc_dirs = ../h;$(inc_dirs_$(NT))
         %create $(lbcfile)
         @for %i in ($(OBJS)) do @%append $(lbcfile) +%i
         $(librarian) -n -b $^@ @$(lbcfile)
-!ifdef on_build_machine
-        cp $^@ $(watcom_dir)/lib
-!endif
-        @rm -f $(lbcfile)
 
 clean : .SYMBOLIC .EXPLICIT
-        rm -f *.?bj *.err *.trk ../lib/$(name).lib
+        rm -f *.?bj *.err *.trk *.lbc ../lib/$(name).lib

@@ -76,7 +76,7 @@ typedef struct {
 #pragma pack()
 
 typedef struct {
-    void *      (*read)( void *, int );
+    void *      (*read)( void *, size_t );
     long int    (*seek)( void *, long int, int );
     void *      (*alloc)( size_t );
     void        (*free)( void * );
@@ -197,6 +197,7 @@ typedef enum {
     ORL_SYM_TYPE_FILE                   = 0x0008, // symbol gives info on a source file
     ORL_SYM_TYPE_FUNC_INFO              = 0x0010, // symbol gives additional info on a function
     ORL_SYM_TYPE_GROUP                  = 0x0020, // symbol refers to an OMF group
+    ORL_SYM_TYPE_NOTYPE                 = 0x0040, // symbol without a type
     // and at most one of these:
     ORL_SYM_TYPE_ABSOLUTE               = 0x0100, // symbol has an absolute value
     ORL_SYM_TYPE_COMMON                 = 0x0200, // symbol labels a common unallocated block (Elf)
@@ -235,10 +236,12 @@ typedef enum {
     ORL_RELOC_TYPE_REL_14,      // relative ref to a 14-bit address shifted 2
     ORL_RELOC_TYPE_REL_24,      // relative ref to a 24-bit address shifted 2
     ORL_RELOC_TYPE_REL_32,      // relative ref to a 32-bit address
+    ORL_RELOC_TYPE_REL_32_NOADJ,// as above, but doesn't need -4 adjustment
     ORL_RELOC_TYPE_TOCREL_16,   // relative ref to 16-bit offset from TOC base.
     ORL_RELOC_TYPE_TOCREL_14,   // rel. ref to 14-bit offset from TOC base shifted 2.
     ORL_RELOC_TYPE_TOCVREL_16,  // ditto, data explicitely defined in .tocd
     ORL_RELOC_TYPE_TOCVREL_14,  // ditto
+    ORL_RELOC_TYPE_GOT_32,      // direct ref to 32-bit offset from GOT base.
     ORL_RELOC_TYPE_GOT_16,      // direct ref to 16-bit offset from GOT base.
     ORL_RELOC_TYPE_GOT_16_HI,   // direct ref to hi 16-bits of offset from GOT base.
     ORL_RELOC_TYPE_GOT_16_HA,   // ditto adjusted for signed low 16-bits

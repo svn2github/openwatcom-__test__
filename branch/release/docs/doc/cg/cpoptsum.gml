@@ -123,6 +123,31 @@ generate in-line 80x87 instructions
 :optref refid='SW7'.
 .do end
 .*
+.if &version ge 112 .do begin
+.note ad[=<file_name>]
+generate makefile style auto depend file
+:optref refid='SWad'.
+.do end
+.if &version ge 112 .do begin
+.note adbs
+force slashes generated in makefile style auto depend to backward
+:optref refid='SWadbs'.
+.do end
+.if &version ge 112 .do begin
+.note add[=<file_name>]
+specify source dependancy name generated in make-style autodep file
+:optref refid='SWadd'.
+.do end
+.if &version ge 112 .do begin
+.note adfs
+force slashes generated in makefile style auto depend to forward
+:optref refid='SWadfs'.
+.do end
+.if &version ge 112 .do begin
+.note adt[=<target_name>]
+specify target name generated in makefile style auto depend
+:optref refid='SWadt'.
+.do end
 .if '&alpha' eq 'AXP' .do begin
 .note as
 :CMT. .ix 'options' 'as'

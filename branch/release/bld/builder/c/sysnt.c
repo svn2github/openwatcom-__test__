@@ -41,9 +41,8 @@
 
 #include <windows.h>
 
-char    *CmdProc;
 #define TITLESIZE 256
-char    Title[TITLESIZE];
+static char    Title[TITLESIZE];
 
 void SysInitTitle( int argc, char *argv[] )
 {
@@ -73,7 +72,7 @@ void SysSetTitle( char *title )
     SetConsoleTitle( Title );
 }
 
-int RunChildProcessCmdl( char *prg, char *cmdl )
+int RunChildProcessCmdl( const char *cmdl )
 {
 
     PROCESS_INFORMATION pinfo;
@@ -83,21 +82,16 @@ int RunChildProcessCmdl( char *prg, char *cmdl )
     sinfo.cb = sizeof( sinfo );
     memset( &pinfo, 0, sizeof( pinfo ) );
 
-    return CreateProcessA( prg, cmdl, NULL, NULL, TRUE, 0, NULL, NULL, &sinfo, &pinfo );
+    return CreateProcessA( NULL, (LPSTR)cmdl, NULL, NULL, TRUE, 0, NULL, NULL, &sinfo, &pinfo );
 }
 
 void SysInit( int argc, char *argv[] )
 {
     SysInitTitle( argc, argv );
-    CmdProc = getenv( "ComSpec" );
-    if( CmdProc == NULL ) {
-        Fatal( "Can not find command processor" );
-    }
 }
 
 unsigned SysRunCommandPipe( const char *cmd, int *readpipe )
 {
-    char        buff[256+1];
     int         rc;
     HANDLE      pipe_input;
     HANDLE      pipe_output;
@@ -116,9 +110,7 @@ unsigned SysRunCommandPipe( const char *cmd, int *readpipe )
                 GetCurrentProcess(), &pipe_input_dup , 0, FALSE,
                 DUPLICATE_SAME_ACCESS);
     CloseHandle( pipe_input );
-    strcpy( buff, "/c " );
-    strncat( buff, cmd, sizeof( buff ) - 4 );
-    rc = RunChildProcessCmdl( CmdProc, buff );
+    rc = RunChildProcessCmdl( cmd );
     CloseHandle( pipe_output );
     *readpipe = _hdopen( (int) pipe_input_dup, O_RDONLY );
     return rc;

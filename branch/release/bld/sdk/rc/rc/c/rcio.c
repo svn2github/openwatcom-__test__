@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -66,10 +67,6 @@
 #else
 #define PATH_SEP '\\'
 #define PATH_SPLIT ';'
-#endif
-
-#ifndef S_IRWXU
-#define S_IRWXU 0
 #endif
 
 #ifdef __OSI__
@@ -528,7 +525,8 @@ static int openExeFileInfoRO( char * filename, ExeFileInfo * info )
 static int openNewExeFileInfo( char *filename, ExeFileInfo *info )
 /******************************************************************/
 {
-    info->Handle = RcOpen( filename, O_RDWR|O_CREAT|O_TRUNC|O_BINARY, S_IRWXU );
+    info->Handle = RcOpen( filename, O_RDWR|O_CREAT|O_TRUNC|O_BINARY, 
+                S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH );
     if( info->Handle == -1 ) {
         RcError( ERR_OPENING_TMP, filename, strerror( errno ) );
         return( FALSE );
@@ -588,6 +586,8 @@ extern void ClosePass2FilesAndFreeMem( void )
     case EXE_TYPE_PE:
         FreePEFileInfoPtrs( &old->u.PEInfo );
         break;
+    default: //EXE_TYPE_UNKNOWN
+        break;
     }
 
     if( tmp->IsOpen ) {
@@ -600,6 +600,8 @@ extern void ClosePass2FilesAndFreeMem( void )
         break;
     case EXE_TYPE_PE:
         FreePEFileInfoPtrs( &tmp->u.PEInfo );
+        break;
+    default: //EXE_TYPE_UNKNOWN
         break;
     }
     CloseResFiles( Pass2Info.ResFiles );
@@ -620,8 +622,9 @@ extern int RcPass2IoInit( void )
     if( noerror ) {
         noerror = openNewExeFileInfo( Pass2Info.TmpFileName,
                                       &(Pass2Info.TmpFile) );
-        tmpexe_exists = noerror;
     }
+    tmpexe_exists = noerror;
+
     if( noerror ) {
         Pass2Info.TmpFile.Type = Pass2Info.OldFile.Type;
         Pass2Info.TmpFile.WinHeadOffset = Pass2Info.OldFile.WinHeadOffset;

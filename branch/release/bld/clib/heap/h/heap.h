@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Heap library configuration for various platforms.
 *
 ****************************************************************************/
 
@@ -33,11 +32,12 @@
 #include "variety.h"
 
 #if defined(_M_IX86)
+#if defined(__SNAP__)
+  unsigned short FP_SEG( const volatile void __far * );
+  #pragma aux    FP_SEG = __parm __caller [eax dx] __value [dx];
+#else
 #include <i86.h>
 #endif
-
-#if (__WATCOMC__ < 900)
- #define __segment      unsigned short
 #endif
 
 #if !defined(__DOS_EXT__)
@@ -48,7 +48,8 @@
    !defined(__NT__) &&                  \
    !defined(__OSI__) &&                 \
    !defined(__QNX__) &&                 \
-   !defined(__LINUX__)
+   !defined(__LINUX__) &&               \
+   !defined(__SNAP__)
 #define __DOS_EXT__
 #endif
 #endif

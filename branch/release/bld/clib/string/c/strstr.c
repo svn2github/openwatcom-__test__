@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Implementation of strstr() and wcsstr().
 *
 ****************************************************************************/
 
@@ -34,13 +33,8 @@
 #include "widechar.h"
 #include <stddef.h>
 #include <string.h>
-#ifdef _M_IX86
+#if defined(_M_IX86) && !defined(__SNAP__)
  #include <i86.h>
-#endif
-
-#ifdef __WIDECHAR__
-extern size_t wcslen( const CHAR_TYPE * );
-extern CHAR_TYPE * wcschr( const CHAR_TYPE *, int );
 #endif
 
 #if defined(M_I86) && !defined( __WIDECHAR__ )

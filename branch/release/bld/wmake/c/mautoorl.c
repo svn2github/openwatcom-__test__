@@ -86,7 +86,7 @@ static void bufferInit( void )
     orlBuffer = NULL;
 }
 
-static void *orlRead( void *handle, int bytes )
+static void *orlRead( void *handle, size_t bytes )
 /*********************************************/
 {
     int                 n;
@@ -187,6 +187,10 @@ handle AutoORLFileInit( const char *name )
                     return( &orlInfo );
                 }
             }
+            break;
+        case ORL_OMF:
+        case ORL_UNRECOGNIZED_FORMAT:
+            break;
         }
         if( orlBuffer != NULL ) {
             FreeSafe( orlBuffer );

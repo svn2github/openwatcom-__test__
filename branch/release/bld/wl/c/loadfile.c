@@ -33,7 +33,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include "linkstd.h"
-#if _OS != _LINUX
+#if _OS != _LINUX || defined(__WATCOMC__)
 #include <process.h>
 #endif
 #include "ring.h"
@@ -143,9 +143,14 @@ extern void FiniLoadFile( void )
     DoCVPack();
 }
 
-#if _OS == _LINUX
+#if _OS == _LINUX && !defined(__WATCOMC__)
 static void DoCVPack( void ) {}
 #else
+#if _OS == _LINUX
+#define CVPACK_EXE "cvpack"
+#else
+#define CVPACK_EXE "cvpack.exe"
+#endif
 static void DoCVPack( void )
 /**************************/
 {
@@ -158,10 +163,10 @@ static void DoCVPack( void )
         } else {
             name = Root->outfile->fname;
         }
-        retval = spawnlp( P_WAIT, "cvpack.exe", "cvpack.exe", "/nologo",
+        retval = spawnlp( P_WAIT, CVPACK_EXE, CVPACK_EXE, "/nologo",
                           name, NULL );
         if( retval == -1 ) {
-            PrintIOError( ERR+MSG_CANT_EXECUTE, "12", "cvpack.exe" );
+            PrintIOError( ERR+MSG_CANT_EXECUTE, "12", CVPACK_EXE );
         }
     }
 }
@@ -602,16 +607,15 @@ static void SetupImpLib( void )
         } else {
             ImpLib.handle = OpenTempFile( &ImpLib.fname );
         }
+        /* RemovePath results in the filename only   *
+         * it trims both the path, and the extension */
         fname = RemovePath( Root->outfile->fname, &namelen );
         ImpLib.dlllen = namelen;
-        if( !(FmtData.type & MK_OS2) ) {
-            ImpLib.dlllen += 4;
-        }
+        /* increase length to restore full extension if not OS2    *
+         * sometimes the extension of the output name is important */
+        ImpLib.dlllen += strlen( fname + namelen );
         _ChkAlloc( ImpLib.dllname, ImpLib.dlllen );
-        memcpy( ImpLib.dllname, fname, namelen );
-        if( !(FmtData.type & MK_OS2) ) {
-            memcpy( ImpLib.dllname + namelen, ".dll", 4 );
-        }
+        memcpy( ImpLib.dllname, fname, ImpLib.dlllen );
     }
 }
 
@@ -923,7 +927,7 @@ extern void FreeOutFiles( void )
     }
 }
 
-static void * SetToZero( char *dest, const char *dummy, unsigned size )
+static void * SetToZero( void *dest, const void *dummy, unsigned size )
 /*********************************************************************/
 {
     memset( dest, 0, size );
@@ -959,7 +963,7 @@ extern void WriteLoad( void *buff, unsigned long size )
     }
 }
 
-static void * NullBuffFunc( char *dest, const char *dummy, unsigned size )
+static void * NullBuffFunc( void *dest, const void *dummy, unsigned size )
 /************************************************************************/
 {
     dummy = dummy;
@@ -1053,7 +1057,7 @@ extern void CloseBuffFile( outfilelist *outfile )
 }
 
 static void WriteBuffer( char *info, unsigned long len, outfilelist *outfile,
-                         void * (*rtn)(char *, const char *, unsigned) )
+                         void * (*rtn)(void *, const void *, unsigned) )
 /***************************************************************************/
 {
     unsigned modpos;

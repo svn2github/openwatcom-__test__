@@ -1,6 +1,6 @@
 #ifndef _ACLAPI_H
 #define _ACLAPI_H
-#if __GNUC__ >=3
+#if __GNUC__ >= 3
 #pragma GCC system_header
 #endif
 
@@ -10,6 +10,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 VOID WINAPI BuildExplicitAccessWithNameA(PEXPLICIT_ACCESS_A,LPSTR,DWORD,ACCESS_MODE,DWORD);
 VOID WINAPI BuildExplicitAccessWithNameW(PEXPLICIT_ACCESS_W,LPWSTR,DWORD,ACCESS_MODE,DWORD);
 DWORD WINAPI BuildSecurityDescriptorA(PTRUSTEE_A,PTRUSTEE_A ,ULONG,PEXPLICIT_ACCESS_A,
@@ -32,6 +33,10 @@ DWORD WINAPI GetEffectiveRightsFromAclA(PACL,PTRUSTEE_A,PACCESS_MASK);
 DWORD WINAPI GetEffectiveRightsFromAclW(PACL,PTRUSTEE_W,PACCESS_MASK);
 DWORD WINAPI GetExplicitEntriesFromAclA(PACL,PULONG,PEXPLICIT_ACCESS_A*);
 DWORD WINAPI GetExplicitEntriesFromAclW(PACL,PULONG,PEXPLICIT_ACCESS_W*);
+#if (_WIN32_WINNT >= 0x0501)
+DWORD WINAPI GetInheritanceSourceA(LPSTR,SE_OBJECT_TYPE,SECURITY_INFORMATION,BOOL,GUID**,DWORD,PACL,void*,PGENERIC_MAPPING,PINHERITED_FROMA);
+DWORD WINAPI GetInheritanceSourceW(LPWSTR,SE_OBJECT_TYPE,SECURITY_INFORMATION,BOOL,GUID**,DWORD,PACL,void*,PGENERIC_MAPPING,PINHERITED_FROMW);
+#endif
 DWORD WINAPI GetNamedSecurityInfoA(LPSTR,SE_OBJECT_TYPE,SECURITY_INFORMATION,
   PSID*,PSID*,PACL*,PACL*,PSECURITY_DESCRIPTOR*);
 DWORD WINAPI GetNamedSecurityInfoW(LPWSTR,SE_OBJECT_TYPE,SECURITY_INFORMATION,
@@ -53,13 +58,14 @@ DWORD WINAPI SetEntriesInAclW(ULONG,PEXPLICIT_ACCESS_W,PACL,PACL*);
 DWORD WINAPI SetNamedSecurityInfoA(LPSTR,SE_OBJECT_TYPE,SECURITY_INFORMATION,PSID,PSID,PACL,PACL);
 DWORD WINAPI SetNamedSecurityInfoW(LPWSTR,SE_OBJECT_TYPE,SECURITY_INFORMATION,PSID,PSID,PACL,PACL);
 DWORD WINAPI SetSecurityInfo(HANDLE,SE_OBJECT_TYPE,SECURITY_INFORMATION,PSID,PSID,PACL,PACL);
-
-/* These are deprecated by MS and not documented in Aug 2001 PSDK 
-BuildImpersonateExplicitAccessWithName[AW]
-BuildImpersonateTrustee[AW]
-GetMultipleTrustee[AW]
-GetMultipleTrusteeOperation[AW]
-*/
+VOID WINAPI BuildImpersonateExplicitAccessWithNameA(PEXPLICIT_ACCESS_A,LPSTR,PTRUSTEE_A,DWORD,ACCESS_MODE,DWORD);
+VOID WINAPI BuildImpersonateExplicitAccessWithNameW(PEXPLICIT_ACCESS_W,LPWSTR,PTRUSTEE_W,DWORD,ACCESS_MODE,DWORD);
+VOID WINAPI BuildImpersonateTrusteeA(PTRUSTEE_A,PTRUSTEE_A);
+VOID WINAPI BuildImpersonateTrusteeW(PTRUSTEE_W,PTRUSTEE_W);
+PTRUSTEE_A WINAPI GetMultipleTrusteeA(PTRUSTEE_A);
+PTRUSTEE_W WINAPI GetMultipleTrusteeW(PTRUSTEE_W);
+MULTIPLE_TRUSTEE_OPERATION WINAPI GetMultipleTrusteeOperationA(PTRUSTEE_A);
+MULTIPLE_TRUSTEE_OPERATION WINAPI GetMultipleTrusteeOperationW(PTRUSTEE_W);
 
 #ifdef UNICODE
 #define BuildExplicitAccessWithName  BuildExplicitAccessWithNameW
@@ -78,6 +84,10 @@ GetMultipleTrusteeOperation[AW]
 #define LookupSecurityDescriptorParts  LookupSecurityDescriptorPartsW
 #define SetEntriesInAcl  SetEntriesInAclW
 #define SetNamedSecurityInfo  SetNamedSecurityInfoW
+#define BuildImpersonateExplicitAccessWithName  BuildImpersonateExplicitAccessWithNameW
+#define BuildImpersonateTrustee  BuildImpersonateTrusteeW
+#define GetMultipleTrustee  GetMultipleTrusteeW
+#define GetMultipleTrusteeOperation  GetMultipleTrusteeOperationW
 #else
 #define BuildExplicitAccessWithName  BuildExplicitAccessWithNameA
 #define BuildSecurityDescriptor  BuildSecurityDescriptorA
@@ -95,10 +105,13 @@ GetMultipleTrusteeOperation[AW]
 #define LookupSecurityDescriptorParts  LookupSecurityDescriptorPartsA
 #define SetEntriesInAcl  SetEntriesInAclA
 #define SetNamedSecurityInfo  SetNamedSecurityInfoA
-#endif  /* UNICODE */
+#define BuildImpersonateExplicitAccessWithName  BuildImpersonateExplicitAccessWithNameA
+#define BuildImpersonateTrustee  BuildImpersonateTrusteeA
+#define GetMultipleTrustee  GetMultipleTrusteeA
+#define GetMultipleTrusteeOperation  GetMultipleTrusteeOperationA
+#endif /* UNICODE */
 
 #ifdef __cplusplus
 }
 #endif
 #endif
-

@@ -158,7 +158,9 @@
 #endif
 
 #define RCSTR_MAX_LEN   128
+#ifndef FILE_OPEN
 #define FILE_OPEN       1
+#endif
 #define FILE_SAVE       2
 
 #define BITMAP_X                ( 23 + 4 )
@@ -350,10 +352,10 @@ void SetFilterSaveBitsMsgs( MsgClass type, BOOL val, char *bits );
 void FrameAWindow( HWND hwnd, BOOL use_snap );
 void UpdateFramedInfo( HWND dlg, HWND framedhwnd, BOOL ispick  );
 HWND DoPickDialog( WORD );
-LONG CALLBACK SpyPickProc( HWND hwnd, int msg, UINT wparam, LONG lparam );
+LONG CALLBACK SpyPickProc( HWND hwnd, UINT msg, UINT wparam, LONG lparam );
 
 /* spyproc.c */
-LONG CALLBACK SpyWindowProc( HWND hwnd, int msg, UINT wparam, LONG lparam );
+LONG CALLBACK SpyWindowProc( HWND hwnd, UINT msg, UINT wparam, LONG lparam );
 void SetSpyState( spystate ss );
 
 /* spysel.c */

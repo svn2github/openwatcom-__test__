@@ -94,9 +94,8 @@
 #endif
 
 /* global variables */
-extern char             *CodeBuffer;
+extern unsigned char    *CodeBuffer;
 extern struct asm_tok   *AsmBuffer[];
-extern struct AsmCodeName AsmOpcode[];
 extern struct asmfixup  *InsFixups[3];
 extern struct asmfixup  *FixupHead;
 extern struct asm_code  *Code;
@@ -107,7 +106,9 @@ extern unsigned char    Opnd_Count;
 extern char             Modend;         // end of module is reached
 extern int_8            Use32;          // if 32-bit code is use
 extern uint             LineNumber;
+extern int              Token_Count;    // number of tokens on line
 
+struct asm_sym;
 extern void             add_frame( void );
 extern struct asmfixup  *AddFixup( struct asm_sym *sym, int fixup_type );
 extern int              BackPatch( struct asm_sym *sym );
@@ -116,10 +117,10 @@ extern struct fixup     *CreateFixupRec( int index );
 extern int              store_fixup( int index );
 extern int              MakeFpFixup( struct asm_sym *sym );
 extern int              match_phase_1( void );
-extern void             AsmByte( char );
+extern void             AsmByte( unsigned char );
 #ifdef _WASM_
-    extern void         AsmCodeByte( char );
-    extern void         AsmDataByte( char );
+    extern void         AsmCodeByte( unsigned char );
+    extern void         AsmDataByte( unsigned char );
 #else
     #define AsmCodeByte( c )        AsmByte( c )
     #define AsmDataByte( c )        AsmByte( c )

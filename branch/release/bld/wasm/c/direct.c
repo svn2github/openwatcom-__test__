@@ -39,9 +39,7 @@
 #include "asmglob.h"
 #include "asmalloc.h"
 #include "asmerr.h"
-#include "asmops1.h"
-#include "asmops2.h"
-#include "asmins1.h"
+#include "asmins.h"
 #include "namemgr.h"
 #include "asmsym.h"
 #include "asmerr.h"
@@ -53,6 +51,8 @@
 #include "fixup.h"
 #include "queue.h"
 #include "expand.h"
+
+#include "asmdefs.h"
 
 #include "directiv.h"
 #undef _DIRECT_H_
@@ -75,42 +75,26 @@ extern char             *ScanLine( char * );
 extern void             FlushCurrSeg( void );
 extern void             AsmError( int );
 extern int              InputQueueFile( char * );
-extern int              AsmScan( char *, char * );
-extern struct fixup     *CreateFixupRec( int );
 extern void             InputQueueLine( char * );
 extern void             AsmTakeOut( char * );
-extern int              EvalExpr( int, int, int, bool );
 extern void             GetInsString( enum asm_token, char *, int );
-extern void             MakeConstantUnderscored( long );
 extern void             SetMangler( struct asm_sym *sym, char *mangle_type );
 
 static char *Check4Mangler( int *i );
 
-extern  const struct asm_ins    ASMFAR AsmOpTable[];
-extern  uint            LineNumber;
 extern  char            write_to_file;  // write if there is no error
 extern  uint_32         BufSize;
-extern  struct asm_tok  *AsmBuffer[];   // buffer to store token
-extern  struct AsmCodeName AsmOpcode[];
-extern  char            StringBuf[];
-extern  char            Parse_Pass;     // phase of parsing
-extern  int_8           Frame;
-extern  uint_8          Frame_Datum;
 extern  int_8           DefineProc;     // TRUE if the definition of procedure
                                         // has not ended
 extern dir_node         *CurrProc;
-extern int_8            Use32;          // if 32-bit code is use
 extern File_Info        AsmFiles;
 extern char             *CurrString;    // Current Input Line
 extern char             EndDirectiveFound;
-extern char             AsmChars[];
-extern int              Token_Count;    // number of tokens on line
 
 qdesc                   *LnameQueue = NULL; // queue of LNAME structs
 seg_list                *CurrSeg;       // points to stack of opened segments
 uint                    LnamesIdx;      // Number of LNAMES definition
 obj_rec                 *ModendRec;     // Record for Modend
-extern struct asm_code  *Code;
 
 assume_info             AssumeTable[ASSUME_LAST];
 symbol_queue            Tables[TAB_LAST];// tables of definitions
@@ -176,7 +160,7 @@ char            *SimCodeBegin[2][ SIM_LAST ] = {
         "_BSS SEGMENT DWORD USE32 PUBLIC 'BSS' IGNORE",
         "FAR_DATA SEGMENT PARA USE32 PRIVATE 'FAR_DATA' IGNORE",
         "FAR_BSS SEGMENT PARA USE32 PRIVATE 'FAR_DATA?' IGNORE",
-        "CONST SEGMENT DWORD PUBLIC 'CONST' IGNORE",            },
+        "CONST SEGMENT DWORD USE32 PUBLIC 'CONST' IGNORE",            },
 };
 
 char    *SimCodeEnd[ SIM_LAST ] = {
@@ -552,16 +536,21 @@ void FreeInfo( dir_node *dir )
         AsmFree( dir->e.lnameinfo );
         break;
     case SYM_CONST:
-        DebugMsg(( "freeing const: %s = ", dir->sym.name ));
-
+#ifdef DEBUG_OUT
+        if(( dir->e.constinfo->count > 0 ) && ( dir->e.constinfo->data[0].token != T_NUM )) {
+            DebugMsg(( "freeing const(String): %s = ", dir->sym.name ));
+        } else {
+            DebugMsg(( "freeing const(Number): %s = ", dir->sym.name ));
+        }
+#endif
         for( i=0; i < dir->e.constinfo->count; i++ ) {
-            #ifdef DEBUG_OUT
+#ifdef DEBUG_OUT
             if( dir->e.constinfo->data[i].token == T_NUM ) {
                 DebugMsg(( "%d ", dir->e.constinfo->data[i].value ));
             } else {
                 DebugMsg(( "%s ", dir->e.constinfo->data[i].string_ptr ));
             }
-            #endif
+#endif
             AsmFree( dir->e.constinfo->data[i].string_ptr );
         }
         DebugMsg(( "\n" ));
@@ -1070,6 +1059,7 @@ asm_sym *MakeExtern( char *name, int type, bool already_defd )
     if( ext == NULL ) return( NULL );
     sym = (struct asm_sym *)ext;
     ext->e.extinfo->idx = ++extdefidx;
+    ext->e.extinfo->use32 = Use32;
 
     GetSymInfo( sym );
     sym->state = SYM_EXTERNAL;
@@ -1327,7 +1317,6 @@ int  SetCurrSeg( int i )
     struct asm_sym      *sym;
 
     name = AsmBuffer[i]->string_ptr;
-    Use32 = ModuleInfo.use32;
 
     switch( AsmBuffer[i+1]->value ) {
     case T_SEGMENT:
@@ -1396,12 +1385,17 @@ static int token_cmp( char **token, int start, int end )
     }
 }
 
-static void find_use32( void )
+void find_use32( void )
 {
     if( CurrSeg == NULL ) {
-        Use32 = ModuleInfo.use32;
+        Use32 = ModuleInfo.defseg32;
     } else {
         Use32 = CurrSeg->seg->e.seginfo->segrec->d.segdef.use_32;
+#ifdef _WASM_
+        if( Use32 && ( ( Code->info.cpu & P_CPU_MASK ) < P_386 )) {
+            AsmError( WRONG_CPU_FOR_32BIT_SEGMENT );
+        }
+#endif
     }
 }
 
@@ -1461,7 +1455,7 @@ int SegDef( int i )
             if( !defined ) {
                 seg->d.segdef.align = ALIGN_PARA;
                 seg->d.segdef.combine = COMB_INVALID;
-                seg->d.segdef.use_32 = ( (Code->info.cpu&P_CPU_MASK) >= P_386 ) ? TRUE : FALSE;
+                seg->d.segdef.use_32 = ModuleInfo.defseg32;
                 seg->d.segdef.class_name_idx = 1;
                 /* null class name, in case none is mentioned */
                 dirnode->e.seginfo->readonly = FALSE;
@@ -1473,7 +1467,7 @@ int SegDef( int i )
                 if( !ignore ) {
                     seg->d.segdef.use_32 = oldobj->d.segdef.use_32;
                 } else {
-                    seg->d.segdef.use_32 = ( (Code->info.cpu&P_CPU_MASK) >= P_386 ) ? TRUE : FALSE;
+                    seg->d.segdef.use_32 = ModuleInfo.defseg32;
                 }
                 seg->d.segdef.class_name_idx = oldobj->d.segdef.class_name_idx;
             }
@@ -1622,6 +1616,15 @@ int SegDef( int i )
                 LnameInsert( name );
 
             }
+            if( CurrSeg != NULL ) {
+                if(( !ModuleInfo.mseg )
+                    && ( CurrSeg->seg->e.seginfo->segrec->d.segdef.use_32 != ModuleInfo.use32 )) {
+                    ModuleInfo.mseg = TRUE;
+                }
+                if( CurrSeg->seg->e.seginfo->segrec->d.segdef.use_32 ) {
+                    ModuleInfo.use32 = TRUE;
+                }
+            }
             break;
         case T_ENDS:
             if( CurrSeg == NULL ) {
@@ -1692,7 +1695,7 @@ int IncludeLib( int i )
 
 static int find_bit( void )
 {
-    if( ModuleInfo.use32 ) {
+    if( ModuleInfo.defseg32 ) {
         return( BIT32 );
     } else {
         return( BIT16 );
@@ -2007,8 +2010,16 @@ void ModuleInit( void )
     ModuleInfo.langtype = LANG_NONE;
     ModuleInfo.ostype = OPSYS_DOS;
     ModuleInfo.use32 = FALSE;
+    ModuleInfo.defseg32 = FALSE;
     ModuleInfo.init = FALSE;
     ModuleInfo.cmdline = FALSE;
+}
+
+void SetModuleDefSegment32( int flag ) 
+{
+    if(( CurrSeg == NULL ) && (( ModuleInfo.init == 0 ) || ( ModuleInfo.cmdline == TRUE ))) {
+        ModuleInfo.defseg32 = flag;
+    }
 }
 
 static void get_module_name( void )
@@ -2105,6 +2116,9 @@ int Model( int i )
         switch( type ) {
             case TOK_FLAT:
                 DefFlatGroup();
+                // TODO!! FLAT Model supposed 32-bit segments
+                ModuleInfo.defseg32 = 1;
+                find_use32();
             case TOK_TINY:
             case TOK_SMALL:
             case TOK_COMPACT:
@@ -2298,6 +2312,36 @@ uint GetGrpIdx( struct asm_sym *sym )
         }
     }
     return( idx );
+}
+
+int SymIs32( struct asm_sym *sym )
+/**************************************/
+/* get sym's segment size */
+{
+    dir_node            *curr;
+    uint                idx;
+
+    idx = sym->segidx;
+    if( idx == 0 ) {
+        if( sym->state == SYM_EXTERNAL ) {
+            if( ModuleInfo.mseg ) {
+                curr = (dir_node *)sym;
+                return( curr->e.extinfo->use32);
+            } else {
+                return( ModuleInfo.use32 );
+            }
+        } else {
+            return( 0 );
+        }
+    } else {
+        for( curr = Tables[TAB_SEG].head; curr; curr = curr->next ) {
+            if( curr->sym.state != SYM_SEG ) continue;
+            if( idx == curr->e.seginfo->segrec->d.segdef.idx ) {
+                return( curr->e.seginfo->segrec->d.segdef.use_32 );
+            }
+        }
+    }
+    return( 0 );
 }
 
 int FixOverride( int index )
@@ -2720,6 +2764,7 @@ static int proc_exam( int i )
     info->parasize = 0;
     info->localsize = 0;
     info->is_vararg = FALSE;
+    info->pe_type = !( ( Code->info.cpu & P_CPU_MASK ) < P_286 );
     SetMangler( &dir->sym, NULL );
 
     /* Parse the definition line, except the parameters */
@@ -3011,6 +3056,7 @@ int WritePrologue( void )
             strcpy( curr->replace, buffer );
 
         }
+        info->localsize = offset;
 
         /* Figure out the replacing string for the parameters */
 
@@ -3051,33 +3097,35 @@ int WritePrologue( void )
     }
 
     if( info->localsize != 0 || info->parasize != 0 || info->is_vararg ) {
-
-        /* Push BP or EBP */
+        // write prolog code
         if( Use32 ) {
+            // write 80386 prolog code
+            // PUSH EBP
+            // MOV  EBP, ESP
+            // SUB  ESP, the number of localbytes
             strcpy( buffer, "push ebp" );
-        } else {
-            strcpy( buffer, "push bp" );
-        }
-        InputQueueLine( buffer );
-
-        /* Move SP/ESP to BP/EBP */
-        if( Use32 ) {
-            strcpy( buffer, "mov ebp, esp" );
-        } else {
-            strcpy( buffer, "mov bp, sp" );
-        }
-        InputQueueLine( buffer );
-
-        /* Substract SP/ESP by the number of localbytes */
-        if( info->localsize != 0 ) {
-            if( Use32 ) {
-                strcpy( buffer, "sub esp, " );
-            } else {
-                strcpy( buffer, "sub sp, " );
-            }
-            sprintf( buffer+strlen(buffer), "%d", info->localsize );
             InputQueueLine( buffer );
+            strcpy( buffer, "mov ebp, esp" );
+            if( info->localsize != 0 ) {
+                InputQueueLine( buffer );
+                strcpy( buffer, "sub esp, " );
+                sprintf( buffer+strlen(buffer), "%d", info->localsize );
+            }
+        } else {
+            // write 8086 prolog code
+            // PUSH BP
+            // MOV  BP, SP
+            // SUB  SP, the number of localbytes
+            strcpy( buffer, "push bp" );
+            InputQueueLine( buffer );
+            strcpy( buffer, "mov bp, sp" );
+            if( info->localsize != 0 ) {
+                InputQueueLine( buffer );
+                strcpy( buffer, "sub sp, " );
+                sprintf( buffer+strlen(buffer), "%d", info->localsize );
+            }
         }
+        InputQueueLine( buffer );
     }
 
     /* Push the registers */
@@ -3114,59 +3162,61 @@ static void write_epilogue( void )
     pop_register( CurrProc->e.procinfo->regslist );
 
     if( info->localsize == 0 && info->parasize == 0 && !(info->is_vararg) ) return;
-
-    if( info->localsize != 0 ) {
-        /* Move BP/EBP to SP/ESP */
-        if( Use32 ) {
-            strcpy( buffer, "mov esp, ebp" );
-        } else {
-            strcpy( buffer, "mov sp, bp" );
-        }
-        InputQueueLine( buffer );
-    }
-
-    /* Pop BP or EBP */
-    if( Use32 ) {
-        strcpy( buffer, "pop ebp" );
+    // write epilog code
+    if( Use32 || info->pe_type ) {
+        // write 80286 and above epilog code
+        // LEAVE
+        strcpy( buffer, "leave" );
     } else {
+        // write 8086 epilog code
+        // Mov SP, BP
+        // POP BP
+        if( info->localsize != 0 ) {
+            strcpy( buffer, "mov sp, bp" );
+            InputQueueLine( buffer );
+        }
         strcpy( buffer, "pop bp" );
     }
     InputQueueLine( buffer );
 }
 
-int Ret( int i, int count )
+int Ret( int i, int count, int flag_iret )
 /*************************/
 {
     char        buffer[20];
     proc_info   *info;
 
     info = CurrProc->e.procinfo;
-
-    if( info->mem_type == T_NEAR ) {
+    
+    if( flag_iret ) {
+        strcpy( buffer, AsmBuffer[i]->string_ptr );
+    } else if( info->mem_type == T_NEAR ) {
         strcpy( buffer, "retn " );
     } else {
         strcpy( buffer, "retf " );
     }
-
+    
     write_epilogue();
-    if( count == i + 1 ) {
-        if( ( info->langtype >= LANG_BASIC &&
+    if( !flag_iret ) {
+        if( count == i + 1 ) {
+            if( ( info->langtype >= LANG_BASIC &&
                 info->langtype <= LANG_PASCAL ) ||
-            ( info->langtype == LANG_STDCALL && !(info->is_vararg) ) ) {
-            if( info->parasize != 0 ) {
-                sprintf( buffer + strlen(buffer), "%d", info->parasize );
+                ( info->langtype == LANG_STDCALL && !(info->is_vararg) ) ) {
+                if( info->parasize != 0 ) {
+                    sprintf( buffer + strlen(buffer), "%d", info->parasize );
+                }
             }
+        } else {
+            if( AsmBuffer[i+1]->token != T_NUM ) {
+                AsmError( CONSTANT_EXPECTED );
+                return( ERROR );
+            }
+            sprintf( buffer + strlen(buffer), "%d", AsmBuffer[i+1]->value );
         }
-    } else {
-        if( AsmBuffer[i+1]->token != T_NUM ) {
-            AsmError( CONSTANT_EXPECTED );
-            return( ERROR );
-        }
-        sprintf( buffer + strlen(buffer), "%d", AsmBuffer[i+1]->value );
     }
-
+    
     InputQueueLine( buffer );
-
+    
     return( NOT_ERROR );
 }
 

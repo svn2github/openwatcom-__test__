@@ -65,12 +65,6 @@ memory_model_386 = s
 !include $(trap_dir)/trap.mif
 !endif
 
-!ifndef bin_root
-!ifdef bin_root_wv
-bin_root = $(bin_root_wv)
-!endif
-!endif
-
 # cflags stuff
 ###############
 extra_c_flags += -D$(which) -D_$(machine)_PC -DMD_$(cpu) -s
@@ -161,10 +155,10 @@ targ = os2
 targ = $(os)
 !endif
 
-!ifdef on_build_machine
-default_targ    = w
-!else
+!ifeq release 0
 default_targ    = d
+!else
+default_targ    = w
 !endif
 
 first : $(default_targ) .SYMBOLIC
@@ -172,18 +166,20 @@ first : $(default_targ) .SYMBOLIC
 
 save_name =$+$(name)$-
 name = $(name_debug)$(save_name)
+!ifeq release 1
 !ifdef test
 name_debug=z
 !else
 name_debug=
 !endif
-target = $+$(bin_root)/$(targ_$(cpu)_$(os))$-
+!else
 !ifdef test
 name_debug=t
 !else
 name_debug=d
 !endif
-dtarget = $+$(bin_root)/$(targ_$(cpu)_$(os))$-
+!endif
+target = $+$(targ_$(cpu)_$(os))$-
 
 trperr_h = _err.gh
 jtrperr_h = _jerr.gh
@@ -191,28 +187,26 @@ mkstr_c = $(trap_dir)/c/mkstr.c
 trap_msg = $(trap_dir)/h/trap.msg
 
 w : .SYMBOLIC $(trperr_h) $(jtrperr_h)
-        @set COMP_DEBUG=-d1 -oxt
         @set LINK_DEBUG=d a op symfile
         @%make $(target)
 
 d : .SYMBOLIC $(trperr_h) $(jtrperr_h)
-        @set COMP_DEBUG=-d2 -s
         @set LINK_DEBUG=d a
-        @%make $(dtarget)
+        @%make $(target)
 
 cv : .SYMBOLIC $(trperr_h) $(jtrperr_h)
         @set COMP_DEBUG=-d1 -s -hc
         @set LINK_DEBUG=debug codeview
-        @%make $(dtarget)
-        !cvpack $(dtarget)
+        @%make $(target)
+        !cvpack $(target)
 
-./mkstr.exe: $(mkstr_c)
+./mkstr.exe: $(mkstr_c) $(trap_msg)
         $(bld_cl) $(wcl_util_opts) -i"$(trap_dir)/h" $[@
 
 $(trperr_h) : ./mkstr.exe
         $[@ $^@
 
-./jmkstr.exe: $(mkstr_c)
+./jmkstr.exe: $(mkstr_c) $(trap_msg)
         $(bld_cl) $(wcl_util_opts) -i"$(trap_dir)/h" -dJAPANESE_MESSAGES $[@
 
 $(jtrperr_h) : ./jmkstr.exe
@@ -222,10 +216,14 @@ $(jtrperr_h) : ./jmkstr.exe
 extra_dobjs = $(extra_objs)
 !endif
 
+!ifeq release 1
 objs  = $($(which)_objs) mxutil.obj $(extra_objs)
-dobjs = $($(which)_objs) mxutil.obj $(extra_dobjs)
+!else
+objs = $($(which)_objs) mxutil.obj $(extra_dobjs)
+!endif
 
 !ifndef substitute_linker
+
 $(target) : $(objs) $(extra_libs) $(resource_file) $(extra_deps) $(__MAKEFILES__)
         $(linker) op map $(%LINK_DEBUG) $(sys_$(cpu)_$(os)) name $^@ &
                 file {$(objs)} &
@@ -238,21 +236,10 @@ $(target) : $(objs) $(extra_libs) $(resource_file) $(extra_deps) $(__MAKEFILES__
         $(extra_cmds)
 !endif
 
-!ifneq target $(dtarget)
-$(dtarget) : $(dobjs) $(extra_libs) $(resource_file) $(extra_deps) $(__MAKEFILES__)
-        $(linker) op map $(%LINK_DEBUG) $(sys_$(cpu)_$(os)) name $^@ &
-                file {$(dobjs)} &
-                library {$(extra_libs) $(libs_$(cpu)_$(os))} &
-                $(extra_linker)
-!ifdef resource_file
-        $(rc) -bt=$(targ) $(resource_file) $^@
-!endif
-!ifdef extra_cmds
-        $(extra_cmds)
-!endif
 !endif
 
-!endif
+dbgstr.lib : dbgstr.obj
+        $(librarian) $^@ +$[@
 
 inc_dirs+=;$(dig_dir)/h;$(trap_dir)/common/$(os);$(trap_dir)/common;$(trap_dir)/h;$(watcom_dir)/h
 !ifeq host_os nov

@@ -83,7 +83,7 @@ static BOOL     WdeTabCGetWindowClass   ( WdeTabCObject *, char **, void *);
 static BOOL     WdeTabCDefine           ( WdeTabCObject *, POINT *, void *);
 static void     WdeTabCSetDefineInfo    ( WdeDefineObjectInfo *, HWND );
 static void     WdeTabCGetDefineInfo    ( WdeDefineObjectInfo *, HWND );
-static BOOL     WdeTabCDefineHook       ( HWND, WORD, WPARAM, LPARAM,
+static BOOL     WdeTabCDefineHook       ( HWND, UINT, WPARAM, LPARAM,
                                           DialogStyle );
 
 /****************************************************************************/
@@ -255,7 +255,7 @@ Bool WdeTabCInit( Bool first )
     SETCTL_SIZEW( WdeDefaultTabC, 0 );
     SETCTL_SIZEH( WdeDefaultTabC, 0 );
     SETCTL_TEXT( WdeDefaultTabC, NULL );
-    SETCTL_CLASSID( WdeDefaultTabC, WdeStrDup( WWC_TABCONTROL ) );
+    SETCTL_CLASSID( WdeDefaultTabC, WdeStrToControlClass( WWC_TABCONTROL ) );
 
     WdeTabCDispatch = MakeProcInstance((FARPROC)WdeTabCDispatcher,
                                            WdeGetAppInstance());
@@ -504,7 +504,7 @@ void WdeTabCGetDefineInfo ( WdeDefineObjectInfo *o_info, HWND hDlg )
 #endif
 }
 
-BOOL WdeTabCDefineHook( HWND hDlg, WORD message,
+BOOL WdeTabCDefineHook( HWND hDlg, UINT message,
                         WPARAM wParam, LPARAM lParam, DialogStyle mask )
 {
 #ifdef __NT__XX

@@ -40,10 +40,6 @@
 #include "objrec.h"
 #include "asmsym.h"
 
-#ifndef asm_op
-#include "asmops2.h"
-#endif
-
 #define MAX_LNAME       255
 #define LNAME_NULL      0
 
@@ -134,6 +130,12 @@ enum {
     END_COMMENT
 };                      // parms to Comment
 
+typedef enum irp_type {
+        IRP_CHAR,
+        IRP_WORD,
+        IRP_REPEAT
+};
+
 /*---------------------------------------------------------------------------*/
 
 typedef struct stacknode {
@@ -163,14 +165,15 @@ typedef struct {
     obj_rec     *segrec;
     direct_idx  idx;            // its group index
     uint_32     start_loc;      // starting offset of current ledata or lidata
-    int_8       readonly:1;     // if the segment is readonly
-    int_8       ignore:1;       // ignore this if the seg is redefined
+    unsigned    readonly:1;     // if the segment is readonly
+    unsigned    ignore:1;       // ignore this if the seg is redefined
     direct_idx  lname_idx;
     uint_32     current_loc;    // current offset in current ledata or lidata
 } seg_info;
 
 typedef struct {
     uint        idx;            // external definition index
+    unsigned    use32:1;
 } ext_info;
 
 typedef struct {
@@ -181,8 +184,8 @@ typedef struct {
 
 typedef struct {
 //    char              *string;        // string assigned to the symbol
-    int                 redefine:1,     // whether it is redefinable or not
-                        expand_early:1; // if TRUE expand before parsing
+    unsigned            redefine:1;     // whether it is redefinable or not
+    unsigned            expand_early:1; // if TRUE expand before parsing
     int                 count;          // number of tokens
     struct asm_tok      *data;          // array of asm_tok's to replace symbol
 } const_info;
@@ -199,7 +202,7 @@ typedef struct label_list {
     int                 size;           // size of parameter
     int                 factor;         // for local var only
     union {
-        int             is_vararg:1;    // if it is a vararg
+        unsigned        is_vararg:1;    // if it is a vararg
         int             count;          // number of element in this label
     };
 } label_list;
@@ -213,7 +216,8 @@ typedef struct {
     int         parasize;       // total no. of bytes used by parameters
     int         localsize;      // total no. of bytes used by local variables
     int         mem_type;       // distance of procedure: near or far
-    int         is_vararg:1;    // if it has a vararg
+    unsigned    is_vararg:1;    // if it has a vararg
+    unsigned    pe_type:1;      // prolog/epilog code type 0:8086/186 1:286 and above
 } proc_info;
 
 typedef struct parm_list {
@@ -299,16 +303,18 @@ typedef struct a_definition_struct {
 extern a_definition_struct Definition;
 
 typedef struct {
-    dist_type   distance;       // stack distance;
-    mod_type    model;          // memory model;
-    lang_type   langtype;       // language;
-    os_type     ostype;         // operating system;
-    unsigned    use32:1;        // If 32-bit is used
+    dist_type   distance;        // stack distance;
+    mod_type    model;           // memory model;
+    lang_type   langtype;        // language;
+    os_type     ostype;          // operating system;
+    unsigned    use32:1;         // If 32-bit segment is used
     unsigned    init:1;
     unsigned    cmdline:1;
+    unsigned    defseg32:1;      // default segment size 32-bit
+    unsigned    mseg:1;          // mixed segments (16/32-bit)
     unsigned    flat_idx;        // index of FLAT group
     char        name[_MAX_FNAME];// name of module
-} module_info;                  // Information about the module
+} module_info;                   // Information about the module
 
 /*---------------------------------------------------------------------------*/
 
@@ -335,8 +341,8 @@ enum {
 typedef struct {
     asm_sym             *symbol;        /* segment or group that is to
                                            be associated with the register */
-    unsigned int        error:1;        // the register is assumed to ERROR
-    unsigned int        flat:1;         // the register is assumed to FLAT
+    unsigned            error:1;        // the register is assumed to ERROR
+    unsigned            flat:1;         // the register is assumed to FLAT
 } assume_info;
 
 extern assume_info AssumeTable[ASSUME_LAST];
@@ -388,10 +394,11 @@ extern int              SetCurrSeg( int );      // open or close a segment in
 extern int              ProcDef( int );         // define a procedure
 extern int              LocalDef( int );        // define local variables to procedure
 extern int              ProcEnd( int );         // end a procedure
-extern int              Ret( int, int );        // emit return statement from procedure
+extern int              Ret( int, int, int );   // emit return statement from procedure
 extern int              WritePrologue( void );  // emit prologue statement after the
                                                 // declaration of a procedure
 extern int              MacroDef( int, char );  // define a macro
+extern int              MacroEnd( char );       // end a macro
 extern int              Startup( int );         // handle .startup & .exit
 extern int              SimSeg( int );          // handle simplified segment
 extern int              Include( int );         // handle an INCLUDE statement
@@ -418,11 +425,6 @@ extern uint             GetAssume( struct asm_sym*, uint );
 
 extern uint             GetPrefixAssume( struct asm_sym* , uint );
 /* Determine the frame and frame_datum of a symbol with a register prefix */
-
-extern int              DefineConstant( int, char, char );
-/* pass in an equ statement, and store the constant defined */
-extern int              StoreConstant( char *, char *, int_8 );
-/* Store a constant */
 
 extern int              FixOverride( int );
 /* Get the correct frame and frame_datum for a label when there is a segment

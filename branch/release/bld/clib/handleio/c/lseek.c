@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  lseek wrapper with positive -> extend file check
 *
 ****************************************************************************/
 
@@ -33,57 +32,26 @@
 #include "variety.h"
 #include <stdio.h>
 #include <unistd.h>
+#ifdef __NT__
+#include <windows.h>
+#endif
 #include "iomode.h"
-#include "tinyio.h"
 #include "rtcheck.h"
 #include "seterrno.h"
 
-#ifdef __WINDOWS_386__
-#include <dos.h>
-#endif
-
+extern _WCRTLINK long __lseek( int handle, long offset, int origin );
 
 _WCRTLINK long lseek( int handle, long offset, int origin )
 {
-    uint_32             pos;
     unsigned            iomode_flags;
 
-    #ifdef __WINDOWS_386__
-        union REGS regs;
+    __handle_check( handle, -1 );
 
-        __handle_check( handle, -1 );
+    /*** Set the _FILEEXT iomode_flags bit if positive offset ***/
+    iomode_flags = __GetIOMode( handle );
 
-        /*** Set the _FILEEXT iomode_flags bit if positive offset ***/
-        iomode_flags = __GetIOMode( handle );
-        if( offset > 0 && !(iomode_flags & _APPEND) )
-            __SetIOMode( handle, iomode_flags | _FILEEXT );
+    if( offset > 0 && !(iomode_flags & _APPEND) )
+        __SetIOMode( handle, iomode_flags | _FILEEXT );
 
-        regs.h.ah = DOS_LSEEK;
-        regs.h.al = origin;
-        regs.w.bx = handle;
-        regs.w.cx = (offset >> 16) & 0xffff;
-        regs.w.dx = offset & 0xffff;
-        intdos( &regs, &regs );
-        pos = (regs.w.dx << 16) | regs.w.ax;
-        if( regs.w.cflag ) {
-            __set_errno_dos( regs.w.ax );
-            return( -1L );
-        }
-    #else
-        unsigned short rc;
-
-        __handle_check( handle, -1 );
-
-        /*** Set the _FILEEXT iomode_flags bit if positive offset ***/
-        iomode_flags = __GetIOMode( handle );
-        if( offset > 0 && !(iomode_flags & _APPEND) )
-            __SetIOMode( handle, iomode_flags | _FILEEXT );
-
-        rc = TinyLSeek( handle, offset, origin, (void _WCNEAR *) &pos );
-        if( TINY_ERROR(rc) ) {
-            __set_errno_dos( TINY_INFO(rc) );
-            return( -1L );
-        }
-    #endif
-    return( pos );
+    return( __lseek( handle, offset, origin ) );
 }

@@ -34,7 +34,6 @@
 #include <math.h>
 #include <errno.h>
 
-
 #ifdef __V80_MATH__
 #pragma off(unreferenced);
 double _matherr( why, who, arg1, arg2, result )
@@ -48,7 +47,7 @@ double _matherr( why, who, arg1, arg2, result )
 
 #else   /* version 8.5 */
 
-double _matherr( struct exception *p )
+double _matherr( struct _exception *p )
 /************************************/
 {
     return( p->retval );

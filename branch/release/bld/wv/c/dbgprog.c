@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Processing of the NEW command, program and symbol loading.
 *
 ****************************************************************************/
 
@@ -1341,10 +1340,15 @@ static void EvalMapExpr( address *addr )
     PostProcMapExpr( addr );
 }
 
+/*
+ * MapAddrUser - have the user supply address mapping information
+ */
+
 OVL_EXTERN void MapAddrUser( image_entry *image, addr_ptr *addr,
                         addr_off *lo_bound, addr_off *hi_bound )
 {
     address     mapped;
+    addr_off    offset   = addr->offset;
 
     //NYI: what about bounds under Netware?
     *lo_bound = 0;
@@ -1355,16 +1359,27 @@ OVL_EXTERN void MapAddrUser( image_entry *image, addr_ptr *addr,
         return;
     }
     for( ;; ) {
-        Format( TxtBuff, LIT( Map_Selector ), addr->segment, image->sym_name );
+        switch( addr->segment ) {
+        case 0xFFFF:
+            Format( TxtBuff, LIT( Map_Named_Selector ), "Flat Code", image->sym_name );
+            break;
+        case 0xFFFE:
+            Format( TxtBuff, LIT( Map_Named_Selector ), "Flat Data", image->sym_name );
+            break;
+        default:
+            Format( TxtBuff, LIT( Map_Selector ), addr->segment, image->sym_name );
+        }
         mapped.mach.segment = NO_SEG;
         mapped.mach.offset = 0;
         if( DlgGivenAddr( TxtBuff, &mapped ) ) {
             PostProcMapExpr( &mapped );
+            mapped.mach.offset += offset;   // add offset back!
             *addr = mapped.mach;
             break;
         }
     }
 }
+
 
 /*
  * SymFileNew - process a new symbolic file request
@@ -1372,7 +1387,6 @@ OVL_EXTERN void MapAddrUser( image_entry *image, addr_ptr *addr,
 
 OVL_EXTERN void SymFileNew()
 {
-
     char        *fname;
     unsigned    fname_len;
     image_entry *image;
@@ -1414,6 +1428,10 @@ OVL_EXTERN void SymFileNew()
         curr->link = NULL;
         curr->pre_map = TRUE;
         curr->real_addr = addr.mach;
+        curr->map_valid_lo = 0;
+        curr->map_valid_hi = ~(addr_off)0;
+        curr->map_addr.offset  = 0;
+        curr->map_addr.segment = 0;
         if( CurrToken == T_COMMA ) {
             Scan();
         }
@@ -1435,6 +1453,107 @@ OVL_EXTERN void SymFileNew()
     InitImageInfo( image );
 }
 
+
+/*
+ * MapAddrUsrMod - simple address mapping for user loaded modules
+ */
+
+OVL_EXTERN void MapAddrUsrMod( image_entry *image, addr_ptr *addr,
+                        addr_off *lo_bound, addr_off *hi_bound )
+{
+    address     mapped;
+    addr_off    offset   = addr->offset;
+
+    *lo_bound = 0;
+    *hi_bound = ~(addr_off)0;
+    if( image->map_list != NULL && !image->map_list->pre_map
+      && MADAddrMap( addr, &image->map_list->map_addr,
+                &image->map_list->real_addr, &DbgRegs->mr ) == MS_OK ) {
+        return;
+    }
+    mapped.mach.segment = NO_SEG;
+    mapped.mach.offset  = 0;
+
+    // Assumes flat model images with single base address
+    if( image->map_list != NULL ) {
+        mapped.mach = image->map_list->real_addr;
+
+        PostProcMapExpr( &mapped );
+        mapped.mach.offset += offset;   // add offset back!
+        *addr = mapped.mach;
+    }
+}
+
+
+/*
+ * SymUserModLoad - process symbol information for user loaded module
+ *                  NB: assumes flat model
+ */
+
+bool SymUserModLoad( char *fname, address *loadaddr )
+{
+    unsigned    fname_len;
+    image_entry *image;
+    map_entry   **owner;
+    map_entry   *curr;
+
+    if( !fname )
+        return( TRUE );
+
+    if( !( fname_len = strlen( fname ) ) )
+        return( TRUE );
+
+    image = DoCreateImage( fname, fname );
+    image->mapper = MapAddrUsrMod;
+    if( !ProcSymInfo( image ) ) {
+        FreeImage( image );
+        Error( ERR_NONE, LIT( ERR_FILE_NOT_OPEN ), fname );
+    }
+    owner = &image->map_list;
+
+    _Alloc( curr, sizeof( *curr ) );
+    if( curr == NULL ) {
+        DIPUnloadInfo( image->dip_handle );
+        Error( ERR_NONE, LIT( ERR_NO_MEMORY_FOR_DEBUG ) );
+    }
+
+    // Save off the load address in a map entry
+    *owner = curr;
+    owner = &curr->link;
+    curr->link    = NULL;
+    curr->pre_map = TRUE;
+    curr->map_valid_lo = 0;
+    curr->map_valid_hi = ~(addr_off)0;
+    curr->real_addr    = loadaddr->mach;
+    curr->map_addr.offset  = 0;
+    curr->map_addr.segment = 0;
+
+    DIPMapInfo( image->dip_handle, image );
+    curr = image->map_list->link;
+    DbgUpdate( UP_SYMBOLS_ADDED );
+    InitImageInfo( image );
+    return( FALSE );
+}
+
+
+/*
+ * SymUserModUnload - unload symbol information for user loaded module
+ */
+
+bool SymUserModUnload( char *fname )
+{
+    image_entry *image;
+
+    if( fname ) {
+        for( image = ImagePrimary(); image != NULL; image = image->link ) {
+            if( image->sym_name && ( strcmp( image->sym_name, fname ) == 0 ) ) {
+                UnLoadSymInfo( image, FALSE );
+                return( FALSE );
+            }
+        }
+    }
+    return( TRUE );
+}
 
 static char NewNameTab[] = {
     "Program\0"

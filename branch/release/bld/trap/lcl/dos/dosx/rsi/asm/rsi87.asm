@@ -24,17 +24,12 @@
 ;*
 ;*  ========================================================================
 ;*
-;* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-;*               DESCRIBE IT HERE!
+;* Description:  Interface to 8087/80387 state
 ;*
 ;*****************************************************************************
 
 
                 NAME    NPXType
-
-;no87    ; get the fp emulation bit off
-; correct use is /fpi87 switch on  command line, .no87 directive is used for
-; temporary coprocessor instructions switch off
 
 .386
 .387
@@ -95,7 +90,7 @@ Read387_ proc   near
         fnsave   [bx]
         wait
         db      66H
-        fnrstor  [bx]
+        frstor  [bx]
         wait
         pop     edi
         pop     bx
@@ -113,7 +108,7 @@ Write387_ proc  near
         movzx   edi,bx
         wait
         db      66h
-        fnrstor  [bx]
+        frstor  [bx]
         wait
         pop     edi
         pop     bx

@@ -34,7 +34,6 @@
 !inject dosinite.obj                d32i     nci
 !inject efcvt.obj    d16c d16i d32c d32i ncc nci wnc wni axp ntp op
 !inject efgfmt.obj   d16c d16i d32c d32i ncc nci wnc wni axp ntp op
-!inject emustub.obj  d16c                        wnc
 !inject evalpoly.obj d16c d16i d32c d32i ncc nci wnc wni axp ntp op
 !inject exp.obj      d16c      d32c      ncc     wnc     axp ntp op
 !inject exp387.obj        d16i      d32i     nci     wni
@@ -153,3 +152,16 @@
 
 !include $(mathlib_dir)/objlist.mif
 !include $(mathlib_dir)/libs.mif
+
+atan87__flags=-fpi87
+exp87__flags=-fpi87
+log87__flags=-fpi87
+sin87__flags=-fpi87
+tan87__flags=-fpi87
+sqrt87__flags=-fpi87
+atan387__flags=-fpi87
+exp387__flags=-fpi87
+log387__flags=-fpi87
+sin387__flags=-fpi87
+tan387__flags=-fpi87
+sqrt387__flags=-fpi87

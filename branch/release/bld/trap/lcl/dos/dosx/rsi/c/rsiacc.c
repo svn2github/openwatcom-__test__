@@ -89,7 +89,7 @@ typedef struct watch {
     dword               value;
     dword               linear;
     short               dregs;
-    short               len;
+    unsigned short      len;
     dpmi_watch_handle   handle;
     dpmi_watch_handle   handle2;
 } watch;
@@ -99,12 +99,10 @@ watch   WatchPoints[ MAX_WP ];
 int     WatchCount;
 
 
-#if 0
+#ifdef DEBUG_TRAP
 #define _DBG2( x ) printf x ; fflush( stdout )
 #define _DBG1( x ) printf x ; fflush( stdout )
 #define _DBG( x ) printf x ; fflush( stdout )
-//#define _DBG1( x )
-//#define _DBG( x )
 #else
 #define _DBG2( x )
 #define _DBG1( x )
@@ -119,14 +117,14 @@ extern unsigned short GetMSW(void);
 extern void SetUsrTask() {}
 extern void SetDbgTask() {}
 
-static int ReadWrite( int (*r)(OFFSET32,SELECTOR,int,char*,int), addr48_ptr *addr, byte far *data, int req ) {
+static unsigned short ReadWrite( int (*r)(OFFSET32,SELECTOR,int,char far*,unsigned short), addr48_ptr *addr, byte far *data, unsigned short req ) {
 
-    int         len;
+    unsigned short    len;
 
     _DBG(("checking %4.4x:%8.8lx for 0x%x bytes -- ",
             addr->segment, addr->offset, req ));
     if( D32AddressCheck( addr->segment, addr->offset, req, NULL ) &&
-            r( addr->offset, addr->segment, 0, (void *)data, req ) == 0 ) {
+            r( addr->offset, addr->segment, 0, data, req ) == 0 ) {
         _DBG(( "OK\n" ));
         addr->offset += req;
         return( req );
@@ -135,7 +133,7 @@ static int ReadWrite( int (*r)(OFFSET32,SELECTOR,int,char*,int), addr48_ptr *add
     len = 0;
     while( req > 0 ) {
         if( !D32AddressCheck( addr->segment, addr->offset, 1, NULL ) ) break;
-        if( r( addr->offset, addr->segment, 0, (void *)data, 1 ) != 0 ) break;
+        if( r( addr->offset, addr->segment, 0, data, 1 ) != 0 ) break;
         ++addr->offset;
         ++data;
         ++len;
@@ -144,13 +142,12 @@ static int ReadWrite( int (*r)(OFFSET32,SELECTOR,int,char*,int), addr48_ptr *add
     return( len );
 }
 
-
-static int ReadMemory( addr48_ptr *addr, byte far *data, int len )
+static unsigned short ReadMemory( addr48_ptr *addr, byte far *data, unsigned short len )
 {
     return( ReadWrite( D32DebugRead, addr, data, len ) );
 }
 
-static int WriteMemory( addr48_ptr *addr, byte far *data, int len )
+static unsigned short WriteMemory( addr48_ptr *addr, byte far *data, unsigned short len )
 {
     return( ReadWrite( D32DebugWrite, addr, data, len ) );
 }
@@ -265,9 +262,9 @@ unsigned ReqMachine_data()
 
 unsigned ReqChecksum_mem()
 {
-    int            len;
-    int            i;
-    int            read;
+    unsigned short      len;
+    int                 i;
+    unsigned short      read;
     checksum_mem_req    *acc;
     checksum_mem_ret    *ret;
 
@@ -278,7 +275,7 @@ unsigned ReqChecksum_mem()
     len = acc->len;
     ret->result = 0;
     while( len >= BUFF_SIZE ) {
-        read = ReadMemory( (addr48_ptr *)&acc->in_addr, (byte *)&UtilBuff, BUFF_SIZE );
+        read = ReadMemory( (addr48_ptr *)&acc->in_addr, &UtilBuff, BUFF_SIZE );
         for( i = 0; i < read; ++i ) {
             ret->result += UtilBuff[ i ];
         }
@@ -286,7 +283,7 @@ unsigned ReqChecksum_mem()
         len -= BUFF_SIZE;
     }
     if( len != 0 ) {
-        read = ReadMemory( (addr48_ptr *)&acc->in_addr, (byte *)&UtilBuff, len );
+        read = ReadMemory( (addr48_ptr *)&acc->in_addr, &UtilBuff, len );
         if( read == len ) {
             for( i = 0; i < len; ++i ) {
                 ret->result += UtilBuff[ i ];
@@ -300,8 +297,8 @@ unsigned ReqChecksum_mem()
 unsigned ReqRead_mem()
 {
     read_mem_req        *acc;
-    void                *buff;
-    unsigned            len;
+    void far            *buff;
+    unsigned short      len;
 
     _DBG1(( "ReadMem\n" ));
     acc = GetInPtr( 0 );
@@ -343,7 +340,7 @@ unsigned ReqRead_io()
 
 unsigned ReqWrite_io()
 {
-    int              len;
+    unsigned            len;
     write_io_req        *acc;
     write_io_ret        *ret;
     void                *data;
@@ -543,12 +540,12 @@ static void GetObjectInfo( char *name )
 
 unsigned ReqProg_load()
 {
-    char        *src;
-    char        *dst;
-    char        *name;
-    char        ch;
-    prog_load_ret       *ret;
-    unsigned            len;
+    char            *src;
+    char            *dst;
+    char            *name;
+    char            ch;
+    prog_load_ret   *ret;
+    unsigned        len;
 
     _DBG1(( "AccLoadProg\r\n" ));
     AtEnd = FALSE;
@@ -607,10 +604,11 @@ unsigned ReqProg_kill()
 
 unsigned ReqSet_watch()
 {
-    watch       *curr;
-    set_watch_req       *acc;
-    set_watch_ret       *ret;
-    int         i,needed;
+    watch           *curr;
+    set_watch_req   *acc;
+    set_watch_ret   *ret;
+    int             i;
+    int             needed;
 
     _DBG1(( "AccSetWatch\n" ));
 
@@ -627,7 +625,7 @@ unsigned ReqSet_watch()
     curr->handle = -1;
     curr->handle2 = -1;
     curr->value = 0;
-    ReadMemory( (addr48_ptr *)&acc->watch_addr, (byte *)&curr->value, curr->len );
+    ReadMemory( (addr48_ptr *)&acc->watch_addr, (byte far *)&curr->value, curr->len );
     ++WatchCount;
     needed = 0;
     for( i = 0; i < WatchCount; ++i ) {
@@ -809,7 +807,7 @@ static bool CheckWatchPoints()
         addr.segment = wp->addr.segment;
         addr.offset = wp->addr.offset;
         val = 0;
-        if( ReadMemory( &addr, (void far *)&val, wp->len ) != wp->len ) {
+        if( ReadMemory( &addr, (byte far *)&val, wp->len ) != wp->len ) {
             return( TRUE );
         }
         if( val != wp->value ) {
@@ -846,13 +844,13 @@ static unsigned ProgRun( bool step )
                 addr.segment = Proc.cs;
                 addr.offset = Proc.eip;
 
-                if( ReadMemory( &addr, (void far *)int_buff, 3 ) == 3
+                if( ReadMemory( &addr, int_buff, 3 ) == 3
                     && int_buff[0] == 0xcd ) {
                     /* have to breakpoint across software interrupts because Intel
                         doesn't know how to design chips */
                     addr.offset = Proc.eip + 2;
                     int_buff[0] = 0xcc;
-                    WriteMemory( &addr, (void far *)int_buff, 1 );
+                    WriteMemory( &addr, int_buff, 1 );
                 } else {
                     Proc.eflags |= 0x100;
                     int_buff[0] = 0;
@@ -861,7 +859,7 @@ static unsigned ProgRun( bool step )
                 ret->conditions = DoRun();
                 if( int_buff[0] != 0 ) {
                     addr.offset = Proc.eip;
-                    WriteMemory( &addr, (void *)&int_buff[2], 1 );
+                    WriteMemory( &addr, &int_buff[2], 1 );
                 } else {
                     Proc.eflags &= ~0x100;
                 }
@@ -933,7 +931,7 @@ unsigned ReqGet_err_text()
 
 unsigned ReqGet_lib_name()
 {
-    char *ch;
+    char                *ch;
     get_lib_name_ret    *ret;
 
     ret = GetOutPtr( 0 );

@@ -1,7 +1,9 @@
-#pmake: all build flat cpu_386 os_osi
+#pmake: all build flat cpu_386 os_osi os_dos os_linux
 #
 # plib3r -- 32-bit 3r PLIB, PLBX
 #
+host_cpu = 386
+
 suffix = 3r
 target_system = generic
 production_lib = lib386

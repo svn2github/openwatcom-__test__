@@ -60,7 +60,7 @@ typedef unsigned_64     uint64;
 *
 * freed by CFOLD
 */
-typedef enum    type_modifiers {          /* type   leaf   sym */
+typedef enum    type_modifiers {  /* type   leaf   sym */
         FLAG_NONE       = 0x0000,
         FLAG_CONST      = 0x0001, /* Y0001  Y0001      */
         FLAG_VOLATILE   = 0x0002, /* Y0002  Y0002      */
@@ -136,6 +136,10 @@ typedef enum declspec_class {      //note declspec field 2-bits in SYM_ENTRY
     DECLSPEC_DLLEXPORT,
     DECLSPEC_THREAD,
 }declspec_class;
+
+typedef enum string_flags {     // string literal flags
+    STRLIT_WIDE         = 0x80, // must not conflict with FLAG_MEM_MODEL
+}string_flags;
 
 typedef unsigned short SYM_HANDLE;
 typedef struct  string_literal *STR_HANDLE;
@@ -247,7 +251,6 @@ typedef struct type_definition {
                 };
         } u;
 } TYPEDEFN, *TYPEPTR;
-extern  unsigned long TypeSize(TYPEPTR);
 extern  void WalkTypeList( void (*func)(TYPEPTR) );
 extern  void WalkFuncTypeList( void (*func)(TYPEPTR,int) );
 
@@ -690,6 +693,8 @@ struct  comp_flags {
         unsigned rent                   : 1;    /* make re-entrant r/w split thind  */
         unsigned unaligned_segs         : 1;    /* don't align segments */
         unsigned trigraph_alert         : 1;    /* trigraph char alert */
+
+        unsigned generate_auto_depend   : 1; /* Generate make auto depend file */
 };
 
 struct  global_comp_flags {  // things that live across compiles

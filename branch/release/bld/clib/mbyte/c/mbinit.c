@@ -261,6 +261,7 @@ int __mbinit( int codepage )
 //    return( MK_FP( sregs.ds, regs.w.si ) ); /* return pointer to table */
 //}
 
+#if 0
 unsigned short dos_get_code_page( void )
 /**************************************/
 {
@@ -274,11 +275,36 @@ unsigned short dos_get_code_page( void )
     regs.w.dx = 0xFFFF;                     /* current country */
     regs.w.di = FP_OFF( (void __far*)buf ); /* buffer offset */
     sregs.es = FP_SEG( (void __far*)buf );  /* buffer segment */
+    sregs.ds = 0;                           /* in protected mode (dos16m) DS must be initialized */
     intdosx( &regs, &regs, &sregs );        /* call DOS */
     if( regs.w.cflag )  return( 0 );        /* ensure function succeeded */
     return( * (unsigned short*)(buf+5) );   /* return code page */
 }
-
+#endif
+#pragma aux dos_get_code_page = \
+        "push ds"       \
+        "push bp"       \
+        "mov bp,sp"     \
+        "sub sp,8"      \
+        "xor ax,ax"     \
+        "mov ds,ax"     \
+        "mov ax,6501h"  /* get international info */ \
+        "mov bx,0ffffh" /* global code page */ \
+        "mov cx,0007h"  /* buffer size */ \
+        "mov dx,0ffffh" /* current country */ \
+        "lea di,[bp-8]" /* buffer offset */ \
+        "push ss"       \
+        "pop es"        /* buffer segment */ \
+        "int 21h"       /* call DOS */ \
+        "mov ax,[bp-8+5]" /* code page */ \
+        "jnc NoError"   \
+        "xor ax,ax"     \
+        "NoError:"      \
+        "mov sp,bp"     \
+        "pop bp"        \
+        "pop ds"        \
+        value           [ax] \
+        modify          [ax bx cx dx di es];
 
 #else
 

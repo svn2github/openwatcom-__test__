@@ -44,10 +44,12 @@
 #include "asmglob.h"
 #include "asmerr.h"
 #include "asmsym.h"
-#include "asmops1.h"
+#include "asmins.h"
 #include "asmalloc.h"
 #include "fatal.h"
 #include "directiv.h"
+#include "asmdefs.h"
+#include "asmeval.h"
 
 #include "womp.h"
 #include "objio.h"
@@ -67,16 +69,13 @@ extern void             AsmError( int );
 extern void             FreeIncludePath( void );
 extern void             PrepAnonLabels( void );
 extern char             *Mangle( struct asm_sym *, char * );
-extern void             AsmEvalInit( void );
-extern void             AsmEvalFini( void );
 extern void             CheckForOpenConditionals();
 extern bool             PopLineQueue();
+extern void             set_cpu_parameters( void );
+extern void             set_fpu_parameters( void );
 
-extern uint_32          Address;
-extern unsigned char    *CodeBuffer;
 extern pobj_state       pobjState;      // for WOMP interface
 extern File_Info        AsmFiles;
-extern int              Token_Count;    // number of tokens on line
 extern pobj_filter      jumpTable[ CMD_MAX_CMD - CMD_POBJ_MIN_CMD + 1 ];
 extern seg_list         *CurrSeg;       // points to stack of opened segments
 extern symbol_queue     Tables[];       // tables of definitions
@@ -90,7 +89,8 @@ extern uint_32          BufSize;
 extern uint             LnamesIdx;      // Number of LNAMES definition
 extern obj_rec          *ModendRec;     // Record for Modend
 extern sim_seg          LastSimSeg;     // last opened simplified segment
-extern module_info      ModuleInfo;     // general info about the module
+
+extern int              MacroExitState;
 
 int                     MacroLocalVarCounter = 0; // counter for temp. var names
 char                    Parse_Pass;     // phase of parsing
@@ -323,7 +323,7 @@ static void write_export( void )
 static void write_grp( void )
 {
     dir_node    *curr;
-    dir_node    *seg_info;
+    dir_node    *segminfo;
     seg_list    *seg;
     obj_rec     *grp;
     uint        line;
@@ -346,15 +346,15 @@ static void write_grp( void )
 
         for( seg = curr->e.grpinfo->seglist; seg; seg = seg->next ) {
             writeseg = TRUE;
-            seg_info = (dir_node *)(seg->seg);
-            if( seg_info->sym.state != SYM_SEG ) {
+            segminfo = (dir_node *)(seg->seg);
+            if( segminfo->sym.state != SYM_SEG ) {
                 LineNumber = curr->line;
                 AsmError( SEG_NOT_DEFINED );
                 write_to_file = FALSE;
                 LineNumber = line;
             } else {
                 ObjPut8( grp, GRP_SEGIDX );
-                ObjPutIndex( grp, seg_info->e.seginfo->segrec->d.segdef.idx);
+                ObjPutIndex( grp, segminfo->e.seginfo->segrec->d.segdef.idx);
             }
         }
         if( write_to_file ) {
@@ -684,7 +684,6 @@ static void write_header( void )
     } else {
         name = _getFilenameFullPath( full_name, AsmFiles.fname[ASM], sizeof( full_name ) );
     }
-    objr->is_32 = Use32;
     len = strlen( name );
     ObjAllocData( objr, len + 1 );
     ObjPutName( objr, name, len );
@@ -1077,7 +1076,9 @@ static void reset_seg_len( void )
             AsmError( SEG_NOT_DEFINED );
             continue;
         }
-        curr->e.seginfo->segrec->d.segdef.seg_length = 0;
+        if( curr->e.seginfo->segrec->d.segdef.combine != COMB_STACK ) {
+            curr->e.seginfo->segrec->d.segdef.seg_length = 0;
+        }
         curr->e.seginfo->start_loc = 0; // fixme ?
         curr->e.seginfo->current_loc = 0;
     }
@@ -1108,11 +1109,15 @@ static void writepass1stuff( void )
 
 static unsigned long OnePass( char *string )
 {
+    set_cpu_parameters();
+    set_fpu_parameters();
+
     EndDirectiveFound = FALSE;
     PhaseError = FALSE;
     Modend = FALSE;
     PassTotal = 0;
     LineNumber = 0;
+    MacroExitState = 0;
 
     for(;;) {
         if( ScanLine( string, MAX_LINE_LEN ) == NULL ) break; // EOF
@@ -1169,9 +1174,13 @@ void WriteObjModule( void )
         PrepAnonLabels();
 
         curr_total = OnePass( string );
+        // remove all remaining lines and deallocate corresponding memory
+        while( ScanLine( string, MAX_LINE_LEN ) != NULL ) {
+        }
         while( PopLineQueue() ) {
         }
-        if( !PhaseError && prev_total == curr_total ) break;
+        if( !PhaseError && prev_total == curr_total )
+            break;
         ObjWriteClose( pobjState.file_out );
         /* This remove works around an NT networking bug */
         remove( AsmFiles.fname[OBJ] );

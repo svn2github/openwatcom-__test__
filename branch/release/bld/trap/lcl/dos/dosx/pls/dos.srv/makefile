@@ -13,12 +13,15 @@ name = plshelp
 which = SERVER
 
 extra_c_flags = -fi=wcc.h -dDOSXHELP $(compflags_$[&)
-inc_dirs = ../h;
+
+extra_a_flags_plsintr = -fpi87
+
+inc_dirs = ../h;$(plsdir);
 
 extra_objs = $(dosx_serv_objs) plsacc.obj plsintr.obj x86cpu.obj dilglue.obj
 extra_srcs = $(plsdir)
 
-compflags_dilglue = -3s
+extra_c_flags_dilglue = -3s
 
 !ifndef extra_linker
 extra_linker = &

@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Heap growing routines - allocate near heap memory from OS.
 *
 ****************************************************************************/
 
@@ -38,9 +37,6 @@
 #include "heapacc.h"
 #include "heap.h"
 #include <errno.h>
-#if defined(_M_IX86)
- #include <i86.h>
-#endif
 #if defined(__DOS_EXT__)
  #include "extender.h"
  #include "tinyio.h"
@@ -57,13 +53,16 @@
 #if defined(__WINDOWS_386__)
  extern void * pascal DPMIAlloc(unsigned long);
 #endif
+#if defined(__SNAP__)
+ #include <os/imports.h>
+#endif
+
 
 static frlptr __LinkUpNewMHeap( mheapptr );
 
 #if defined(__DOS_EXT__)
 
 extern  int                     SegmentLimit();
-#if __WATCOMC__ > 950
 #pragma aux SegmentLimit        = \
         "xor    eax,eax"        \
         "mov    ax,ds"          \
@@ -71,15 +70,6 @@ extern  int                     SegmentLimit();
         "inc    eax"            \
         value                   [eax] \
         modify exact            [eax];
-#else
-#pragma aux SegmentLimit        = \
-        "xor    eax,eax"        \
-        "mov    ax,ds"          \
-        "lsl    eax,eax"        \
-        "inc    eax"            \
-        value                   [eax] \
-        modify exact            [eax];
-#endif
 
 static void __unlink( mheapptr miniheapptr )
 {
@@ -307,7 +297,8 @@ static void *RationalAlloc( size_t size )
     defined(__WARP__)        || \
     defined(__NT__)          || \
     defined(__CALL21__)      || \
-    defined(__DOS_EXT__)
+    defined(__DOS_EXT__)     || \
+    defined(__SNAP__)
 static int __CreateNewNHeap( unsigned amount )
 {
     mheapptr        p1;
@@ -340,6 +331,11 @@ static int __CreateNewNHeap( unsigned amount )
     brk_value = (unsigned) VirtualAlloc( NULL, amount, MEM_COMMIT,
                                         PAGE_EXECUTE_READWRITE );
     //brk_value = (unsigned) LocalAlloc( LMEM_FIXED, amount );
+    if( brk_value == 0 ) {
+        return( 0 );
+    }
+#elif defined(__SNAP__)
+    brk_value = (unsigned) xmalloc( amount );
     if( brk_value == 0 ) {
         return( 0 );
     }
@@ -406,7 +402,8 @@ int __ExpandDGROUP( unsigned amount )
         defined(__WINDOWS_386__) || \
         defined(__WARP__)        || \
         defined(__NT__)          || \
-        defined(__CALL21__)
+        defined(__CALL21__)      || \
+        defined(__SNAP__)
         // first try to free any available storage
         _nheapshrink();
         return( __CreateNewNHeap( amount ) );
@@ -499,7 +496,8 @@ static int __AdjustAmount( unsigned *amount )
     #if ! ( defined(__WINDOWS_286__) || \
             defined(__WINDOWS_386__) || \
             defined(__WARP__)        || \
-            defined(__NT__)             \
+            defined(__NT__)          || \
+            defined(__SNAP__)           \
         )
         unsigned last_free_amt;
     #endif
@@ -512,7 +510,8 @@ static int __AdjustAmount( unsigned *amount )
     #if ! ( defined(__WINDOWS_286__) || \
             defined(__WINDOWS_386__) || \
             defined(__WARP__)        || \
-            defined(__NT__)             \
+            defined(__NT__)          || \
+            defined(__SNAP__)           \
         )
         #if defined(__DOS_EXT__)
             if( _IsRationalZeroBase() || _IsCodeBuilder() ) {
@@ -557,6 +556,7 @@ static int __AdjustAmount( unsigned *amount )
     #if defined(__WINDOWS_386__) || \
         defined(__WARP__)        || \
         defined(__NT__)          || \
+        defined(__SNAP__)        || \
         defined(__CALL21__)      || \
         defined(__DOS_EXT__)
         /* make sure amount is a multiple of 4k */
@@ -568,3 +568,4 @@ static int __AdjustAmount( unsigned *amount )
     *amount = amt;
     return( *amount != 0 );
 }
+

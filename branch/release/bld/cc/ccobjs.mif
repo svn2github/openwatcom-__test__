@@ -38,7 +38,9 @@ common_objs = &
         strsave.obj &
         swchar.obj &
         watcom.obj &
+!ifndef bootstrap
         cmatherr.obj &
+!endif
         cgetch.obj &
         cmacadd.obj &
         asmalloc.obj &
@@ -62,7 +64,7 @@ cc_objs_tree = &
         exprtree.obj &
         treewalk.obj
 
-!ifndef on_build_machine
+!ifeq release 0
 cc_objs_tree += cfedump.obj
 !endif
 

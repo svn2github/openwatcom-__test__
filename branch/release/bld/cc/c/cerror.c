@@ -35,6 +35,8 @@
 #include "target.h"
 #include <stdarg.h>
 
+static void PrintPostNotes(void);
+
 #if 0
 static char const WngLvls[] = {
 #define warn(code,level) level,
@@ -133,7 +135,6 @@ static void OutMsg( cmsg_info  *info ){
         fputc( '\n', ErrFile );
         CompFlags.errfile_written = 1;
     }
-    SymLoc = NULL;
 }
 
 void CErr1( int msgnum )
@@ -173,12 +174,14 @@ void CErr( int msgnum, ... ){
         va_end( args1 );
         OutMsg( &info );
         ++ErrCount;
+        PrintPostNotes();
     } else {
         CMsgInfo( &info, ERR_TOO_MANY_ERRORS, args1 );
         OutMsg( &info );
         va_end( args1 );
         CSuicide();
     }
+    SymLoc = NULL;
 }
 
 
@@ -208,6 +211,7 @@ void CWarn( int level, int msgnum, ... ){
             va_end( args1 );
             OutMsg( &info );
             ++WngCount;
+            PrintPostNotes();
         }
     }
     SymLoc = NULL;
@@ -267,14 +271,7 @@ void PCHNote( int msgnum, ... ){
 
 void SetSymLoc( SYMPTR sym )
 {
-    FNAMEPTR flist;
-
-    flist = FileIndexToFName( sym->defn_file_index );
-    if( CompFlags.ef_switch_used ){
-        SymLoc = FNameFullPath( flist );
-    }else{
-        SymLoc = flist->name;
-    }
+    SymLoc  = FileIndexToCorrectName( sym->defn_file_index );
     ErrLine = sym->d.defn_line;
 }
 
@@ -369,3 +366,102 @@ void DumpAllMsg( void ){
 #undef MSG_DEF
 }
 #endif
+
+/*
+ * Types of post-processing messages (informational notes)
+ */
+
+typedef enum {
+    POSTLIST_SYMBOL,     /* location of previously defined symbol */
+    POSTLIST_TWOTYPES    /* type mismatch between two types - print them */
+} postlist_type;
+
+struct ErrPostList
+{
+    struct ErrPostList *next;
+    postlist_type       type;
+
+    union
+    {
+        struct               /* POSTLIST_SYMBOL */
+        {
+            char *sym_name;
+            char *sym_file;
+            int  sym_line;
+        };
+        TYPEPTR  types[2];  /* POSTLIST_TWOTYPES */
+    };
+};
+
+static struct ErrPostList *PostList;
+
+static struct ErrPostList *NewPostList(postlist_type type)
+{
+    struct ErrPostList *np;
+
+    np = CMemAlloc( sizeof( *np ) );
+    np->next = PostList;
+    np->type = type;
+    PostList = np;
+    return np;
+}
+
+void SetDiagSymbol( SYMPTR sym, SYM_HANDLE handle )
+{
+    struct ErrPostList *np;
+
+    np = NewPostList(POSTLIST_SYMBOL);
+    np->sym_name = SymName( sym, handle );
+    if (np->sym_name == NULL)
+        np->sym_name = "???";
+    np->sym_file = FileIndexToCorrectName( sym->defn_file_index );
+    np->sym_line = sym->d.defn_line;
+}
+
+void SetDiagType2( TYPEPTR typ_source, TYPEPTR typ_target )
+{
+    struct ErrPostList *np;
+
+    np = NewPostList(POSTLIST_TWOTYPES);
+    np->types[0] = typ_source;
+    np->types[1] = typ_target;
+}
+
+void SetDiagPop(void)
+{
+    struct ErrPostList *np;
+
+    np = PostList;
+    if (np)
+    {
+        PostList = np->next;
+        CMemFree(np);
+    }
+}
+
+static void PrintType( int msg, TYPEPTR typ )
+{
+    char *text;
+
+    text = DiagGetTypeName( typ );
+    CInfoMsg( msg, text );
+    CMemFree( text );
+}
+
+static void PrintPostNotes(void)
+{
+    while ( PostList )
+    {
+        switch ( PostList->type )
+        {
+        case POSTLIST_SYMBOL:
+            CInfoMsg( INFO_SYMBOL_DECLARATION, PostList->sym_name, PostList->sym_file, PostList->sym_line );
+            break;
+        case POSTLIST_TWOTYPES:
+            PrintType( INFO_SRC_CNV_TYPE, PostList->types[0] );
+            PrintType( INFO_TGT_CNV_TYPE, PostList->types[1] );
+            break;
+        }
+        SetDiagPop();
+    }
+}

@@ -1,11 +1,12 @@
 #pmake: build os_dos cpu_386 386 intel
 #
-# WATCOM Debugger makefile for dsx
+# Open Watcom Debugger makefile for dsx
 #
 
-host_OS=dos
-host_CPU=386
-display=char
+host_os  = dos
+host_cpu = 386
+display  = char
+
 syshdir = ../h;../../dos/h
 
 sysobjs =   &
@@ -21,7 +22,3 @@ sysobjs =   &
 
 
 !include ../../master.mif
-
-syslnk : .PROCEDURE
-    @%append $(lnk) sys dos4g op stack=12k
-    @%append $(lnk) export DOS4GOPTIONS=_DOS4GOPTIONS

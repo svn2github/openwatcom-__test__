@@ -1096,11 +1096,7 @@ void Set_U(){
     AddUndefName( name );
     CMemFree( name );
 }
-void Set_V()
-{
-    CompFlags.dump_prototypes     = 1;
-    CompFlags.generate_prototypes = 1;
-}
+void Set_V()            { CompFlags.generate_prototypes = 1; }
 
 void Set_WE()           { CompFlags.warnings_cause_bad_exit = 1; }
 void Set_WO()           { CompFlags.using_overlays = 1; }
@@ -1150,7 +1146,11 @@ void Set_ZGF()          { SwData.peg_gs_used = 1; SwData.peg_gs_on = 0; }
 void Set_ZGP()          { SwData.peg_gs_used = 1; SwData.peg_gs_on = 1; }
 #endif
 void Set_ZE()           { CompFlags.extensions_enabled = 1; }
-void Set_ZG()           { CompFlags.generate_prototypes = 1; }
+void Set_ZG()
+{
+    CompFlags.generate_prototypes = 1;
+    CompFlags.dump_prototypes     = 1;
+}
 
 void Set_ZI()           { CompFlags.extra_stats_wanted = 1; }
 
@@ -1214,6 +1214,43 @@ void SetWindows()
 #endif
 }
 #endif
+
+void SetGenerateMakeAutoDepend()
+{
+    CompFlags.generate_auto_depend = 1;
+    CMemFree( DependFileName );
+    DependFileName = GetAFileName();
+    if( !DependFileName[0] )
+    {
+        CMemFree( DependFileName );
+        DependFileName = NULL;
+    }
+}
+
+void SetAutoDependTarget()
+{
+   // auto set depend yes...
+    CompFlags.generate_auto_depend = 1;
+    CMemFree( DependTarget );
+    DependTarget = GetAFileName();
+}
+
+void SetAutoDependSrcDepend()
+{
+    CompFlags.generate_auto_depend = 1;
+    CMemFree( SrcDepName );
+    SrcDepName = GetAFileName();
+}
+
+void SetAutoDependForeSlash()
+{
+    DependForceSlash = '/';
+}
+
+void SetAutoDependBackSlash()
+{
+    DependForceSlash = '\\';
+}
 
 void Set_PL()           { CompFlags.cpp_line_wanted = 1; }
 void Set_PC()
@@ -1319,7 +1356,6 @@ struct option const Preprocess_Options[] = {
 
 extern void SetOptimization();
 extern void SetPreprocessOptions();
-
 struct option const CFE_Options[] = {
     { "o*",     0,              SetOptimization },
     { "i=@",    0,              SetInclude },
@@ -1348,6 +1384,13 @@ struct option const CFE_Options[] = {
     { "3",      SW_CPU3,        SetCPU },
 #endif
     { "aa",     0,              Set_AA },
+    // more specific commands first ... otherwise the
+    // short command sets us up for failure...
+    { "adt=@",  0,              SetAutoDependTarget },
+    { "adbs",   0,              SetAutoDependBackSlash },
+    { "add=@",  0,              SetAutoDependSrcDepend },
+    { "adfs",   0,              SetAutoDependForeSlash },
+    { "ad=@",   0,              SetGenerateMakeAutoDepend },
     { "ai",     0,              Set_AI },
     { "aq",     0,              Set_AQ },
 #if _MACHINE == _ALPHA
@@ -1936,6 +1979,8 @@ void GenCOptions( char **cmdline )
 {
     memset( &SwData,0, sizeof( SwData ) ); //re-useable
     EnableDisableMessage( 0, ERR_PARM_NOT_REFERENCED );
+    /* 29-oct-03 Add precision warning but disabled by default */
+    EnableDisableMessage( 0, ERR_LOSE_PRECISION );
     InitModInfo();
     InitCPUModInfo();
     #if _CPU == 386

@@ -15,20 +15,20 @@ compile = wcc386 /i=..\h;$(dwarfdir)\dr\h;$(dwarfdir)\dw\h
 .c.obj :
         $(compile) $[@ -oaxt-d1-w4
 
-all : $(%devdir)\bin\dump.exe $(%devdir)\bin\hexit.exe $(%devdir)\bin\build.exe
+all : dump.exe hexit.exe build.exe
     wtouch all
 
-$(%devdir)\bin\dump.exe : main.obj testdump.obj
+dump.exe : main.obj testdump.obj
     @set OBJS=$<
     @set NAME=$^@
     @%make dolink
 
-$(%devdir)\bin\hexit.exe : hexit.obj
+hexit.exe : hexit.obj
     @set OBJS=$<
     @set NAME=$^@
     @%make dolink
 
-$(%devdir)\bin\build.exe : build.obj
+build.exe : build.obj
     @set OBJS=$<
     @set NAME=$^@
     @%make dolink

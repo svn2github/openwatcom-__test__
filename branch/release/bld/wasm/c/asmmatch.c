@@ -38,9 +38,7 @@
 #include <malloc.h>
 
 #include "asmglob.h"
-#include "asmops1.h"//
-#include "asmops2.h"
-#include "asmins1.h"
+#include "asmins.h"
 #include "asmopnds.h"
 #include "asmerr.h"
 #include "asmsym.h"
@@ -55,11 +53,6 @@
 extern int_8                    PhaseError;
 
 #endif
-
-extern const struct asm_ins ASMFAR AsmOpTable[];
-
-extern int OperandSize( unsigned long opnd );
-extern int InRange( unsigned long, unsigned );
 
 #ifdef _WASM_
 extern int AddFloatingPointEmulationFixup( const struct asm_ins ASMFAR *, bool );
@@ -83,6 +76,10 @@ static int output( int i )
         AddLinnumData();
     }
 
+    if((( ins->cpu & P_FPU_MASK ) != P_NO87 ) && ( Options.floating_point == NO_FP_ALLOWED )) {
+        AsmError( NO_FP_WITH_FPC_SET );
+        return( ERROR );
+    }
     if(( Options.floating_point == DO_FP_EMULATION )
         && ( !rCode->use32 )
         && ( ins->allowed_prefix != NO_FWAIT )

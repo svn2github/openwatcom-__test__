@@ -5,7 +5,7 @@
 .extensions:
 .extensions: .prs .ssl
 
-!ifndef on_build_machine
+!ifeq release 0
 verbose = /v
 !endif
 
@@ -23,9 +23,6 @@ java.prs : java.ssl pp_c.ssl $(common)
 
 .ssl.prs
         ssl $(verbose) $[@ $^@
-!ifndef on_build_machine
-    @cp $^@ $(bin_root_wv)\bin >$(nulldevice)
-!endif
 
 clean: .SYMBOLIC
     rm -f *.prs

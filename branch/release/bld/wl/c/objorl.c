@@ -391,7 +391,7 @@ static void AllocSeg( void *_snode, void *dummy )
         snode->entry->u.leader->info |= SEG_LXDATA_SEEN;
         if( !sdata->isdead ) {
             ORLSecGetContents( snode->handle, &snode->contents );
-            if( !sdata->iscdat ) {
+            if( !sdata->iscdat && ( snode->contents != NULL )) {
                 PutInfo( sdata->data, snode->contents, sdata->length );
             }
         }
@@ -407,7 +407,7 @@ static void DefNosymComdats( void *_snode, void *dummy )
     dummy = dummy;
     sdata = snode->entry;
     if( sdata == NULL || snode->info & SEG_DEAD ) return;
-    if( sdata->iscdat && !sdata->hascdatsym && snode->contents != NULL ) {
+    if( sdata->iscdat && !sdata->hascdatsym && ( snode->contents != NULL )) {
         sdata->data = AllocStg( sdata->length );
         PutInfo( sdata->data, snode->contents, sdata->length );
     }
@@ -580,7 +580,8 @@ static orl_return ProcSymbol( orl_symbol_handle symhdl )
     }
     if( type & ORL_SYM_TYPE_DEBUG ) return ORL_OKAY;
     if( type & (ORL_SYM_TYPE_OBJECT|ORL_SYM_TYPE_FUNCTION) ||
-        (type & ORL_SYM_TYPE_UNDEFINED && name != NULL)) {
+        (type & (ORL_SYM_TYPE_NOTYPE|ORL_SYM_TYPE_UNDEFINED) && 
+         name != NULL)) {
         namelen = strlen( name );
         if( namelen == 0 ) {
             BadObject();
@@ -714,6 +715,9 @@ static orl_return DoReloc( orl_reloc *reloc )
     case ORL_RELOC_TYPE_REL_32:
         type = FIX_OFFSET_32 | FIX_REL;
         break;
+    case ORL_RELOC_TYPE_REL_32_NOADJ:
+        type = FIX_OFFSET_32 | FIX_REL | FIX_NOADJ;
+        break;
     case ORL_RELOC_TYPE_SEGMENT:
         type = FIX_BASE;
         break;
@@ -728,6 +732,9 @@ static orl_return DoReloc( orl_reloc *reloc )
         break;
     case ORL_RELOC_TYPE_WORD_32:
         type = FIX_OFFSET_32;
+        break;
+    case ORL_RELOC_TYPE_GOT_32:     // relative ref to 32-bit offset from TOC base.
+        type = FIX_OFFSET_32 | FIX_TOC;
         break;
     case ORL_RELOC_TYPE_HALF_HI:
         SavedReloc = *reloc;

@@ -18,12 +18,12 @@ set BUILD_PLATFORM=
 #================================
     cdsay <PROJDIR>\ctl\dos386
     wmake -h
-    <CPCMD> parsectl.exe <owroot>\bld\build\bin\
-    <CPCMD> parsedyn.exe <owroot>\bld\build\bin\
+    <CPCMD> parsectl.exe <OWROOT>\bld\build\bin\
+    <CPCMD> parsedyn.exe <OWROOT>\bld\build\bin\
     cdsay <PROJDIR>\bind\dos386
     wmake -h
     cdsay <PROJDIR>
-    if not exist <PROJDIR>\<OBJDIR> mkdir <PROJDIR>\<OBJDIR>
+    mkdir <PROJDIR>\<OBJDIR>
     cdsay <PROJDIR>\<OBJDIR>
     wmake -h -f ../dos386/makefile bname=bvi prebuild=1
     <CPCMD> bvi.exe <DEVDIR>/build/bin/
@@ -33,12 +33,12 @@ set BUILD_PLATFORM=
 #================================
     cdsay <PROJDIR>\ctl\os2386
     wmake -h
-    <CPCMD> parsectl.exe <owroot>\bld\build\binp\
-    <CPCMD> parsedyn.exe <owroot>\bld\build\binp\
+    <CPCMD> parsectl.exe <OWROOT>\bld\build\binp\
+    <CPCMD> parsedyn.exe <OWROOT>\bld\build\binp\
     cdsay <PROJDIR>\bind\os2386
     wmake -h
     cdsay <PROJDIR>
-    if not exist <PROJDIR>\<OBJDIR> mkdir <PROJDIR>\<OBJDIR>
+    mkdir <PROJDIR>\<OBJDIR>
     cdsay <PROJDIR>\<OBJDIR>
     wmake -h -f ../os2386/makefile bname=bvi prebuild=1
     <CPCMD> bvi.exe <DEVDIR>/build/binp/
@@ -48,12 +48,12 @@ set BUILD_PLATFORM=
 #===============================
     cdsay <PROJDIR>\ctl\nt386
     wmake -h
-    <CPCMD> parsectl.exe <owroot>\bld\build\binnt\
-    <CPCMD> parsedyn.exe <owroot>\bld\build\binnt\
+    <CPCMD> parsectl.exe <OWROOT>\bld\build\binnt\
+    <CPCMD> parsedyn.exe <OWROOT>\bld\build\binnt\
     cdsay <PROJDIR>\bind\nt386
     wmake -h
     cdsay <PROJDIR>
-    if not exist <PROJDIR>\<OBJDIR> mkdir <PROJDIR>\<OBJDIR>
+    mkdir <PROJDIR>\<OBJDIR>
     cdsay <PROJDIR>\<OBJDIR>
     wmake -h -f ../nt386/makefile bname=bvi prebuild=1
     <CPCMD> bvi.exe <DEVDIR>/build/binnt/
@@ -63,12 +63,12 @@ set BUILD_PLATFORM=
 #===============================
     cdsay <PROJDIR>/ctl/linux386
     wmake -h
-    <CPCMD> parsectl.exe <owroot>/bld/build/binl/parsectl
-    <CPCMD> parsedyn.exe <owroot>/bld/build/binl/parsedyn
+    <CPCMD> parsectl.exe <OWROOT>/bld/build/binl/parsectl
+    <CPCMD> parsedyn.exe <OWROOT>/bld/build/binl/parsedyn
     cdsay <PROJDIR>/bind/linux386
     wmake -h
     cdsay <PROJDIR>
-    mkdir -p <PROJDIR>/<OBJDIR>
+    mkdir <PROJDIR>/<OBJDIR>
     cdsay <PROJDIR>/<OBJDIR>
     wmake -h -f ../linux386/makefile bname=bvi prebuild=1
     <CPCMD> bvi.exe <DEVDIR>/build/binl/bvi
@@ -82,18 +82,18 @@ set BUILD_PLATFORM=
     pmake -d all -h clean
     cdsay <PROJDIR>
     rm -f -r <PROJDIR>/<OBJDIR>
-    @rm -f <owroot>/bld/build/bin/bvi.*
-    @rm -f <owroot>/bld/build/bin/parsectl.*
-    @rm -f <owroot>/bld/build/bin/parsedyn.*
-    @rm -f <owroot>/bld/build/binp/bvi.*
-    @rm -f <owroot>/bld/build/binp/parsectl.*
-    @rm -f <owroot>/bld/build/binp/parsedyn.*
-    @rm -f <owroot>/bld/build/binnt/bvi.*
-    @rm -f <owroot>/bld/build/binnt/parsectl.*
-    @rm -f <owroot>/bld/build/binnt/parsedyn.*
-    @rm -f <owroot>/bld/build/binl/bvi*
-    @rm -f <owroot>/bld/build/binl/parsectl*
-    @rm -f <owroot>/bld/build/binl/parsedyn*
+    @rm -f <OWROOT>/bld/build/bin/bvi.*
+    @rm -f <OWROOT>/bld/build/bin/parsectl.*
+    @rm -f <OWROOT>/bld/build/bin/parsedyn.*
+    @rm -f <OWROOT>/bld/build/binp/bvi.*
+    @rm -f <OWROOT>/bld/build/binp/parsectl.*
+    @rm -f <OWROOT>/bld/build/binp/parsedyn.*
+    @rm -f <OWROOT>/bld/build/binnt/bvi.*
+    @rm -f <OWROOT>/bld/build/binnt/parsectl.*
+    @rm -f <OWROOT>/bld/build/binnt/parsedyn.*
+    @rm -f <OWROOT>/bld/build/binl/bvi*
+    @rm -f <OWROOT>/bld/build/binl/parsectl*
+    @rm -f <OWROOT>/bld/build/binl/parsedyn*
 
 [ BLOCK <1> clean cprel2 ]
 #==================

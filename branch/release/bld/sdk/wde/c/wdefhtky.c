@@ -83,7 +83,7 @@ static BOOL     WdeHtKyGetWindowClass   ( WdeHtKyObject *, char **, void *);
 static BOOL     WdeHtKyDefine           ( WdeHtKyObject *, POINT *, void *);
 static void     WdeHtKySetDefineInfo    ( WdeDefineObjectInfo *, HWND );
 static void     WdeHtKyGetDefineInfo    ( WdeDefineObjectInfo *, HWND );
-static BOOL     WdeHtKyDefineHook       ( HWND, WORD, WPARAM, LPARAM,
+static BOOL     WdeHtKyDefineHook       ( HWND, UINT, WPARAM, LPARAM,
                                           DialogStyle );
 
 /****************************************************************************/
@@ -255,7 +255,7 @@ Bool WdeHtKyInit( Bool first )
     SETCTL_SIZEW( WdeDefaultHtKy, 0 );
     SETCTL_SIZEH( WdeDefaultHtKy, 0 );
     SETCTL_TEXT( WdeDefaultHtKy, NULL );
-    SETCTL_CLASSID( WdeDefaultHtKy, WdeStrDup( WHOTKEY_CLASS ) );
+    SETCTL_CLASSID( WdeDefaultHtKy, WdeStrToControlClass( WHOTKEY_CLASS ) );
 
     WdeHtKyDispatch = MakeProcInstance((FARPROC)WdeHtKyDispatcher,
                                            WdeGetAppInstance());
@@ -401,7 +401,7 @@ void WdeHtKyGetDefineInfo ( WdeDefineObjectInfo *o_info, HWND hDlg )
     WdeEXGetDefineInfo ( o_info, hDlg );
 }
 
-BOOL WdeHtKyDefineHook( HWND hDlg, WORD message,
+BOOL WdeHtKyDefineHook( HWND hDlg, UINT message,
                         WPARAM wParam, LPARAM lParam, DialogStyle mask )
 {
     /* touch unused vars to get rid of warning */

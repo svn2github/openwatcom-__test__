@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  low-level component of close() for DOS/Win16
 *
 ****************************************************************************/
 
@@ -39,7 +38,6 @@
 #include "iomode.h"
 #include "seterrno.h"
 #include "defwin.h"
-
 
 int __close( int handle )
 {
@@ -66,6 +64,6 @@ int __close( int handle )
         __set_errno( EBADF );
         rv = -1;
     }
-    __SetIOMode( handle, 0 );
+    __CloseIOMode( handle );
     return( rv );
 }

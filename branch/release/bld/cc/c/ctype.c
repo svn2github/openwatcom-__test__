@@ -324,6 +324,9 @@ local TYPEPTR GetScalarType( char *plain_int, int bmask )
     TYPEPTR     typ;
 
     data_type = -1;
+    if( bmask & M_LONG_LONG ) {
+        bmask &= ~M_INT;
+    }
     if( bmask & (M_VOID | M_FLOAT | M_DOUBLE | M_LONG_LONG ) ) {
         if( bmask == M_VOID ) {
             data_type = TYPE_VOID;
@@ -1273,7 +1276,14 @@ TYPEPTR FuncNode( TYPEPTR return_typ, int flag, TYPEPTR *parm_types )
     return( typ );
 }
 
+/* CarlYoung 31-Oct-03 */
 unsigned long TypeSize( TYPEPTR typ )
+{
+    return(TypeSizeEx(typ, NULL));
+}
+
+/* CarlYoung 31-Oct-03 */
+unsigned long TypeSizeEx( TYPEPTR typ , unsigned long * pFieldWidth)
 {
     unsigned long size;
 
@@ -1338,6 +1348,10 @@ unsigned long TypeSize( TYPEPTR typ )
     case TYPE_FIELD:
     case TYPE_UFIELD:
         size = CTypeSizes[ typ->u.f.field_type ];
+        /* CarlYoung 31-Oct-03 */
+        if(pFieldWidth){
+            *pFieldWidth = typ->u.f.field_width;
+        }
         break;
     default:
         size = 0;

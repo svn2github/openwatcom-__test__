@@ -24,15 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Front end routines defined for optimizing code generator.
 *
 ****************************************************************************/
 
-
-//
-// WF77INFO  : Front end routines defined for optimizing code generator
-//
 
 #include "ftnstd.h"
 #include "global.h"
@@ -58,14 +53,6 @@
   #define __TGT_SYS     __TGT_SYS_AXP_NT
 #elif _TARGET == _PPC
   #define __TGT_SYS     __TGT_SYS_PPC_NT
-// This code should not be used.
-//  #if _OPSYS == _NT
-//    #define __TGT_SYS __TGT_SYS_PPC_NT
-//  #elif _OPSYS == _OS2
-//    #define __TGT_SYS __TGT_SYS_PPC_OS2
-//  #else
-//    #error Unknown PPC OS
-//  #endif
 #else
   #error Unknown platform
 #endif
@@ -157,6 +144,8 @@ extern  dep_info        *DependencyInfo;
 #ifdef _EMS
 extern  unsigned int    EMSsegment;
 #endif
+
+static  void            DefDbgStruct( sym_id sym );
 
 #define CS_SUFF_LEN             5
 #define G_DATA_LEN              6
@@ -1608,11 +1597,11 @@ static  void    DefDbgFields( sym_id sd, dbg_struct db, unsigned_32 f_offset ) {
     dbg_type    db_type;
     char        field_name[MAX_SYMLEN+1];
 
-    field = sd->sd.fields;
+    field = sd->sd.fl.sym_fields;
     while( field != NULL ) {
         if( field->fd.typ == TY_UNION ) {
             size = 0;
-            map = field->fd.xt.record;
+            map = field->fd.xt.sym_record;
             while( map != NULL ) {
                 DefDbgFields( map, db, f_offset );
                 if( size < map->sd.size ) {
@@ -1623,7 +1612,7 @@ static  void    DefDbgFields( sym_id sd, dbg_struct db, unsigned_32 f_offset ) {
         } else {
             STFieldName( field, field_name );
             if( field->fd.typ == TY_STRUCTURE ) {
-                DefDbgStruct( field->fd.xt.record );
+                DefDbgStruct( field->fd.xt.sym_record );
                 size = field->fd.xt.record->size;
                 db_type = field->fd.xt.record->dbi;
             } else {
@@ -1676,7 +1665,7 @@ static  dbg_type        DefCommonStruct( sym_id sym ) {
         com_ext = sym->ns.si.va.vi.ec_ext;
         STGetName( sym, field_name );
         if( sym->ns.typ == TY_STRUCTURE ) {
-            DefDbgStruct( sym->ns.xt.record );
+            DefDbgStruct( sym->ns.xt.sym_record );
         }
         size = _SymSize( sym );
         db_type = GetDbgType( sym );
@@ -1720,7 +1709,7 @@ dbg_type        FEDbgRetType( sym_id sym ) {
     _UnShadow( sym );
     InitDBGTypes();
     if( sym->ns.typ == TY_STRUCTURE ) {
-        DefDbgStruct( sym->ns.xt.record );
+        DefDbgStruct( sym->ns.xt.sym_record );
     }
     return( GetDBGSubProgType( sym ) );
 }
@@ -1781,7 +1770,7 @@ dbg_type        FEDbgType( sym_id sym ) {
         db_type = DefCommonStruct( sym );
     } else {
         if( sym->ns.typ == TY_STRUCTURE ) {
-            DefDbgStruct( sym->ns.xt.record );
+            DefDbgStruct( sym->ns.xt.sym_record );
         }
         if( (sym->ns.flags & SY_CLASS) == SY_SUBPROGRAM ) {
             db_type = GetDBGSubProgType( sym );

@@ -37,7 +37,11 @@
 #endif
 ::
 #define _NFILES         20      /* number of files that can be handled */
-#define FILENAME_MAX    80
+#if defined(__OS2__) || defined(__NT__)
+ #define FILENAME_MAX   260
+#else
+ #define FILENAME_MAX   144
+#endif
 :endsegment
 
 struct __stream_link;
@@ -54,9 +58,6 @@ typedef struct  __iobuf
 :segment QNX
     struct __iobuf       *_unused;      /* spare entry */
 :endsegment
-}
-#else
-{
 }
 #endif
 FILE;
@@ -87,7 +88,7 @@ typedef long    fpos_t;
 
 #if !defined(__OBSCURE_STREAM_INTERNALS)
 
-_WCRTLINK extern FILE _WCDATA __iob[];
+_WCRTLINK extern FILE _WCNEAR __iob[];
 /*
  *  Define macros to access the three default file pointer (and descriptors)
  *  provided to each process by default.  They will always occupy the
@@ -207,15 +208,21 @@ _WCRTLINK extern size_t fwrite( const void *__ptr, size_t __size, size_t __n,
                                 FILE *__fp );
 _WCRTLINK extern int    getc( FILE *__fp );
 _WCRTLINK extern int    getchar( void );
+:segment !SNAP & !SNAPDRV
 _WCRTLINK extern int    _getw( FILE *__fp );
+:endsegment
 _WCRTLINK extern char   *gets( char *__s );
 _WCRTLINK extern void   perror( const char *__s );
+:segment !SNAP & !SNAPDRV
 _WCRTLINK extern FILE * _popen( const char *__command, const char *__mode );
 _WCRTLINK extern int    _pclose( FILE *__fp );
+:endsegment
 _WCRTLINK extern int    printf( const char *__format, ... );
 _WCRTLINK extern int    putc( int __c, FILE *__fp );
 _WCRTLINK extern int    putchar( int __c );
+:segment !SNAP & !SNAPDRV
 _WCRTLINK extern int    _putw( int __binint, FILE *__fp );
+:endsegment
 _WCRTLINK extern int    puts( const char *__s );
 _WCRTLINK extern int    remove( const char *__filename );
 _WCRTLINK extern int    rename( const char *__old, const char *__new );
@@ -226,7 +233,9 @@ _WCRTLINK extern int    setvbuf( FILE *__fp, char *__buf, int __mode,
                                  size_t __size );
 _WCRTLINK extern int    sprintf( char *__s, const char *__format, ... );
 _WCRTLINK extern int    sscanf( const char *__s, const char *__format, ... );
+:segment !SNAP & !SNAPDRV
 _WCRTLINK extern char * _tempnam( char *__dir, char *__prefix );
+:endsegment
 _WCRTLINK extern FILE   *tmpfile( void );
 _WCRTLINK extern char   *tmpnam( char *__s );
 _WCRTLINK extern int    ungetc( int __c, FILE *__fp );
@@ -237,6 +246,7 @@ _WCRTLINK extern int    vsprintf( char *__s, const char *__format,
                                   __va_list __arg );
 
 :include ext.sp
+:segment !SNAPDRV
 _WCRTLINK extern int    fileno(FILE *);
 _WCRTLINK extern int    _fileno(FILE *);
 _WCRTLINK extern int    fcloseall( void );
@@ -251,6 +261,7 @@ _WCRTLINK extern int    _fputchar( int __c );
 _WCRTLINK extern int    fputchar( int __c );
 _WCRTLINK extern FILE   *_fsopen( const char *__filename, const char *__mode,
                                   int __shflag );
+:endsegment
 _WCRTLINK extern int    flushall( void );
 _WCRTLINK extern int    vfscanf( FILE *__fp, const char *__format,
                                  __va_list __arg );
@@ -259,16 +270,20 @@ _WCRTLINK extern int    vsscanf( const char *__s, const char *__format,
                                  __va_list __arg );
 _WCRTLINK extern int    snprintf( char *__buf, size_t __bufsize,
                                   const char *__fmt, ... );
+:segment !SNAPDRV
 _WCRTLINK extern int    _bprintf( char *__buf, size_t __bufsize,
                                   const char *__fmt, ... );
 _WCRTLINK extern int    _snprintf( char *__buf, size_t __bufsize,
                                    const char *__fmt, ... );
+:endsegment
 _WCRTLINK extern int    vsnprintf( char *__s, size_t __bufsize,
                                    const char *__format, __va_list __arg );
+:segment !SNAPDRV
 _WCRTLINK extern int    _vbprintf( char *__s, size_t __bufsize,
                                    const char *__format, __va_list __arg );
 _WCRTLINK extern int    _vsnprintf( char *__s, size_t __bufsize,
                                     const char *__format, __va_list __arg );
+:segment !NO_WIDECHAR
 
 _WCRTLINK extern FILE   *_wfopen( const wchar_t *, const wchar_t * );
 _WCRTLINK extern int    fwprintf( FILE *, const wchar_t *, ... );
@@ -320,12 +335,14 @@ _WCRTLINK extern int    _vsnwprintf( wchar_t *, size_t, const wchar_t *,
                                     __va_list );
 _WCRTLINK extern int    _wrename( const wchar_t *, const wchar_t * );
 _WCRTLINK extern FILE * _wpopen( const wchar_t *__command, const wchar_t *__mode );
+:endsegment
 
 :segment QNX
 #ifdef _this_belongs_in_a_private_qnx_header
  extern int _input_line_max;            /* defaults to 20 */
  char   *input_line( FILE *, char *, int );
 #endif
+:endsegment
 :endsegment
 #endif
 
@@ -337,8 +354,8 @@ extern FILE     *fdopen( int __handle, const char *__mode );
 extern FILE     *popen( const char *__filename, const char *__mode );
 extern int      pclose( FILE *stream );
 #endif
-:endsegment
 
+:endsegment
 #if !defined(__OBSCURE_STREAM_INTERNALS)
 #define clearerr(fp)    ((fp)->_flag &= ~(_SFERR|_EOF))
 #define feof(fp)        ((fp)->_flag & _EOF)

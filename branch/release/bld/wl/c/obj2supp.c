@@ -24,16 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Utilities for wlink specific parts of objpass2.
 *
 ****************************************************************************/
 
-
-/*
- *  OBJ2SUPP : utilities for wlink specific parts of objpass2
- *
- */
 
 #include <string.h>
 #include "linkstd.h"
@@ -303,7 +297,8 @@ static void CheckRWData( frame_spec *targ, targ_addr *addr )
 {
     if( FmtData.type & MK_WINDOWS && FmtData.u.os2.chk_seg_relocs
                                   && IsReadOnly( LastSegData ) ) {
-        if( !IsReadOnly( GetFrameSegData( targ ) ) ) {
+        if(( !IS_SYM_IMPORTED( targ->u.sym ))
+            && ( !IsReadOnly( GetFrameSegData( targ )))) {
             LnkMsg( LOC+WRN+MSG_RELOC_TO_RWDATA_SEG, "a", addr );
         }
     }
@@ -772,7 +767,7 @@ static bool CheckSpecials( fix_data *fix, frame_spec *targ )
     signed_32   off;
     unsigned_32 uoff;
     signed_32   temp;
-    signed_16   pos;
+    signed_32   pos;
     unsigned    fixsize;
     group_entry *group;
     segdata  *  sdata;
@@ -780,7 +775,10 @@ static bool CheckSpecials( fix_data *fix, frame_spec *targ )
 
     if( FmtData.type & MK_ELF ) {
         if( !(fix->type & FIX_REL) ) return FALSE;
+#if 0
+    XXX: this is not the right thing to do for elf-i386
         if( fix->loc_addr.seg != fix->tgt_addr.seg ) return FALSE;
+#endif
     }
     if( FmtData.type & (MK_QNX|MK_WINDOWS) && fix->ffix != FFIX_NOT_A_FLOAT ) {
         if( fix->ffix != FFIX_IGNORE ) {
@@ -807,7 +805,10 @@ static bool CheckSpecials( fix_data *fix, frame_spec *targ )
             }
         }
         DbgVerify( (pos % 4) == 0, "symbol not in toc" );
-        PUT_U16(fix->data, pos);
+        if (fix->type & FIX_OFFSET_16)
+            PUT_U16(fix->data, (signed_16)pos);
+        else
+            PUT_U32(fix->data, pos);
         return TRUE;
     } else if( special == FIX_IFGLUE ) {
         if( targ->type == FIX_FRAME_EXT && IS_SYM_IMPORTED(targ->u.sym) ) {
@@ -849,7 +850,8 @@ static bool CheckSpecials( fix_data *fix, frame_spec *targ )
         }
         return TRUE;
     }
-    if( FmtData.type & (MK_PROT_MODE & ~(MK_OS2_FLAT|MK_PE)) ) {
+    /* XXX: MK_ELF must not be included for non-i386 */
+    if( FmtData.type & (MK_PROT_MODE & ~(MK_OS2_FLAT|MK_PE|MK_ELF)) ) {
         if( fix->loc_addr.seg != fix->tgt_addr.seg && !(fix->type & FIX_ABS) ) {
             //must have same file segment.
             if( FmtData.type & MK_ID_SPLIT ) {
@@ -882,7 +884,9 @@ static bool CheckSpecials( fix_data *fix, frame_spec *targ )
         off = SUB_ADDR( fix->tgt_addr, fix->loc_addr );
     }
     fixsize = CalcFixupSize( fix->type );
-    off -= fixsize;
+    if ( !( fix->type & FIX_NOADJ ) ) {
+        off -= fixsize;
+    }
     if( fix->type == FIX_OFFSET_16 ) {
         temp = off + (fix->loc_addr.off + fixsize);
         if( temp < 0 || temp >= 0x10000 ) {
@@ -1277,7 +1281,11 @@ static void FmtReloc( fix_data *fix, frame_spec *tthread )
         } else {
             fixtype = MapOS2FixType( fix->type );
         }
-        targseg = GetFrameSegData( tthread );
+        if( IS_SYM_IMPORTED( tthread->u.sym )) {
+            targseg = NULL;
+        } else {
+            targseg = GetFrameSegData( tthread );
+        }
         if( targseg != NULL && !targseg->is32bit ) {
             switch( fixtype ) {
             case 2:     // 16-bit selector
@@ -1295,9 +1303,9 @@ static void FmtReloc( fix_data *fix, frame_spec *tthread )
                 break;
             }
         }
-    // ALWAYS set the alias flag for 16:16 pointers!
-    if (fixtype == 3)
-        fixtype |= OSF_FIXUP_TO_ALIAS;
+        // ALWAYS set the alias flag for 16:16 pointers!
+        if (fixtype == 3)
+            fixtype |= OSF_FIXUP_TO_ALIAS;
 
         PUT_U8( fixptr, fixtype );
         flags = 0;
@@ -1444,8 +1452,10 @@ static void FmtReloc( fix_data *fix, frame_spec *tthread )
         } else {
             new_reloc.item.elf.info = R_386_32;
         }
-        if( tthread->type & FIX_FRAME_EXT && IsSymElfImpExp(tthread->u.sym) ) {
-            sym = tthread->u.sym;
+        sym = tthread->u.sym;
+        if( IS_SYM_ALIAS( sym ) ) {
+            save = FALSE;
+        } else if( (tthread->type & FIX_FRAME_EXT) && IsSymElfImpExp(sym) ) {
             new_reloc.item.elf.addend = 0;
         } else {
             seg = GetFrameSegData( tthread );

@@ -31,7 +31,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef __UNIX__
+#include <dirent.h>
+#else
 #include <direct.h>
+#endif
 #include <string.h>
 #include "uidef.h"
 #include "help.h"
@@ -42,7 +46,7 @@
 
 #define MAX_HELPFILES   100
 #define FILE_CNT        sizeof( FileDescs ) / sizeof( FileDesc )
-#define DEF_EXT         ".IHP"
+#define DEF_EXT         ".ihp"
 
 typedef struct {
     char        *fname;
@@ -108,7 +112,11 @@ static void printDescrip( FileInfo *info, unsigned cnt ) {
         printf( "%s\n", key->descrip );
     } else {
         strcpy( tmp, info->fpath );
+#ifdef __UNIX__
+        strcat( tmp, "/" );
+#else
         strcat( tmp, "\\" );
+#endif
         strcat( tmp, info->fname );
         strcat( tmp, DEF_EXT );
         fp = HelpOpen( tmp, HELP_OPEN_RDONLY | HELP_OPEN_BINARY );
@@ -158,17 +166,21 @@ static void scanDirectory( char *buf, FileList *list ) {
     struct dirent       *dirent;
     char                fname[_MAX_FNAME];
     unsigned            len;
-    char                newpath[ _MAX_PATH ];
 
-    strcpy( newpath, buf );
-    strcat( buf, "\\*.IHP" );
     dirhdl = opendir( buf );
+    if ( dirhdl == NULL )
+        return;
     dirent = readdir( dirhdl );
     while( dirent != NULL ) {
+        len = strlen( dirent->d_name );
+        if ( len < 5 || strcmp ( &dirent->d_name[len - 4], ".ihp" ) != 0 ) {
+            dirent = readdir( dirhdl );
+            continue;
+        }
         list->items[ list->used ] = HelpMemAlloc( sizeof( FileInfo ) );
-        len = strlen( newpath ) + 1;
+        len = strlen( buf ) + 1;
         list->items[ list->used ]->fpath = HelpMemAlloc( len );
-        strcpy( list->items[ list->used ]->fpath, newpath );
+        strcpy( list->items[ list->used ]->fpath, buf );
         _splitpath( dirent->d_name, NULL, NULL, fname, NULL );
         len = strlen( fname ) + 1;
         list->items[ list->used ]->fname = HelpMemAlloc( len );
@@ -197,7 +209,11 @@ static doFillFileList( char *cur, FileList *list ) {
     strcpy( path, cur );
     cur = path;
     for( ;; ) {
+#ifdef __UNIX__
+        while( *cur != ':' ) {
+#else
         while( *cur != ';' ) {
+#endif
             if( *cur == '\0' ) {
                 done = 1;
                 break;
@@ -207,7 +223,11 @@ static doFillFileList( char *cur, FileList *list ) {
         *cur = '\0';
         strcpy( buf, path );
         len = strlen( buf );
-        if( buf[len] == '\\' ) buf[len] = '\0';
+#ifdef __UNIX__
+        if( buf[len] == '/' ) buf[len] = '\0';
+#else
+        if( buf[len] == '/' || buf[len] == '\\' ) buf[len] = '\0';
+#endif
         scanDirectory( buf, list );
         if( done ) break;
         path = cur + 1;

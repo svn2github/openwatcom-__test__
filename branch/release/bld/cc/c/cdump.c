@@ -62,6 +62,75 @@ char    *CTypeNames[] = {
         "<wide char>"
  };
 
+static  char   do_message_output; /* Optimize output for human */
+
+typedef struct
+{
+    char    *data;
+    size_t  cursize;
+    size_t  maxsize;
+} STRCHUNK;
+#define STRCHUNK_INCREMENT 512
+
+static void ChunkInit(STRCHUNK *pch)
+{
+    pch->data = NULL;
+    pch->cursize = 0;
+    pch->maxsize = 0;
+}
+
+static char *ChunkToStr(STRCHUNK *pch)
+{
+    char *ret;
+
+    ret = pch->data;
+    if( ret == NULL ) {
+        ret = CStrSave( "" );
+    }
+    return ret;
+}
+
+static void ChunkSaveData( STRCHUNK *pch, const char *data, size_t len )
+{
+    int   bytesleft;
+    int   requestbytes;
+    char *newdata;
+
+    bytesleft = pch->maxsize - (pch->cursize+len+1);
+    if( bytesleft <= 0 ) {
+        requestbytes = -bytesleft;
+        if( requestbytes < STRCHUNK_INCREMENT ) {
+            requestbytes = STRCHUNK_INCREMENT;
+        }
+        requestbytes += pch->maxsize;
+        newdata = CMemAlloc( requestbytes );
+        if( pch->data ) {
+            memcpy( newdata, pch->data, pch->cursize );
+            CMemFree( pch->data );
+        }
+        pch->data = newdata;
+        pch->maxsize = requestbytes;
+    }
+    memcpy( pch->data+pch->cursize, data, len );
+    pch->cursize += len;
+    pch->data[pch->cursize] = '\0';
+}
+
+static void ChunkSaveStr( STRCHUNK *pch, const char *str )
+{
+    ChunkSaveData( pch, str, strlen( str ) );
+}
+
+static void ChunkSaveChar( STRCHUNK *pch, char ch )
+{
+    ChunkSaveData( pch, &ch, 1 );
+}
+
+static void ChunkSaveStrWord( STRCHUNK *pch, const char *str )
+{
+    ChunkSaveStr( pch, str );
+    ChunkSaveChar( pch, ' ' );
+}
 
 void SymDump()
 {
@@ -110,9 +179,29 @@ void DumpTypeCounts()
 
 static TYPEPTR TrueType( TYPEPTR typ )
 {
-    if( !CompFlags.dump_prototypes && typ != NULL ) {
-        /* -zg, not -v */
-        while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
+    TYPEPTR newtyp;
+
+    if ( typ == NULL )
+        return typ;
+
+    if ( do_message_output ) {
+        /* For human: smart typedef expansion. Stop before unnamed struct */
+        while ( typ->decl_type == TYPE_TYPEDEF ) {
+            newtyp = typ->object;
+            if( newtyp->decl_type == TYPE_STRUCT ||
+                newtyp->decl_type == TYPE_UNION  ||
+                newtyp->decl_type == TYPE_ENUM  ) {
+
+                if ( *newtyp->u.tag->name == '\0' )
+                    break;
+            }
+            typ = newtyp;
+        }
+    } else {
+        if( !CompFlags.dump_prototypes) {
+            /* -zg, not -v */
+            while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
+        }
     }
     return( typ );
 }
@@ -122,46 +211,66 @@ static TYPEPTR Object( TYPEPTR typ )
     return( TrueType( typ->object ) );
 }
 
-void DumpFuncDefn()
+static void DumpPointer( TYPEPTR typ, STRCHUNK *pch )      ;
+static void DumpTail( TYPEPTR typ, SYMPTR funcsym, int pointer_flags, STRCHUNK *pch );
+static void DumpDecl( TYPEPTR typ, SYMPTR funcsym, STRCHUNK *pch );
+static void put_keyword( int keyword, STRCHUNK *pch );
+static void DumpFlags( int flags, TYPEPTR typ, STRCHUNK *fp );
+static void DumpBaseType( TYPEPTR typ, STRCHUNK *pch );
+static void DumpArray( TYPEPTR typ, STRCHUNK *pch );
+static void DumpParmTags( TYPEPTR *parm, FILE *fp );
+static void DumpTagName( char *tag_name, STRCHUNK *pch );
+static TYPEPTR DefArgPromotion( TYPEPTR arg_typ );
+static void DumpParmList( TYPEPTR *parm, SYMPTR funcsym, STRCHUNK *pch );
+
+void DumpFuncDefn(void)
 {
     TYPEPTR     typ;
     FNAMEPTR    flist;
+    STRCHUNK    chunk;
+    char        *result;
 
     typ = CurFunc->sym_type;
-    DumpParmTags( typ->u.parms );
+    DumpParmTags( typ->u.parms, DefFile );
     flist = FileIndexToFName( CurFunc->defn_file_index );
     fprintf( DefFile, "//#line \"%s\" %u\n",            /* 07-jun-94 */
                 flist->name,
                 CurFunc->d.defn_line );
+
+    ChunkInit( &chunk );
+
     if( CurFunc->stg_class == SC_STATIC ) {
-        put_keyword( T_STATIC, DefFile );
+        put_keyword( T_STATIC, &chunk );
     } else {
-        put_keyword( T_EXTERN, DefFile );
+        put_keyword( T_EXTERN, &chunk );
     }
     if( CurFunc->flags & SYM_TYPE_GIVEN ) {
-        DumpBaseType( Object( typ ) );
+        DumpBaseType( Object( typ ), &chunk );
     }
-    DumpDecl( typ, CurFunc );
-    fputs( ";\n", DefFile );
+    DumpDecl( typ, CurFunc, &chunk );
+
+    result = ChunkToStr( &chunk );
+    fprintf( DefFile, "%s;\n", result );
+    CMemFree( result );
 }
 
 
-static void DumpPointer( TYPEPTR typ )                   /* 26-may-89 */
+static void DumpPointer( TYPEPTR typ, STRCHUNK *pch )        /* 26-may-89 */
 {
     if( typ->decl_type == TYPE_POINTER ) {
-        DumpPointer( Object( typ ) );
+        DumpPointer( Object( typ ), pch );
         if( !( typ->u.p.decl_flags & FLAG_WAS_ARRAY) ) {    /* 07-jun-94 */
             DumpFlags( typ->u.p.decl_flags & ~(FLAG_CONST|FLAG_VOLATILE),
-                                typ, DefFile );
+                                typ, pch );
             DumpFlags( typ->u.p.decl_flags & (FLAG_CONST|FLAG_VOLATILE),
-                                typ, DefFile );
-            fputc( '*', DefFile );
+                                typ, pch );
+            ChunkSaveChar( pch, '*' );
         }
     }
 }
 
 
-static void DumpTail( TYPEPTR typ, SYMPTR funcsym, int pointer_flags )
+static void DumpTail( TYPEPTR typ, SYMPTR funcsym, int pointer_flags, STRCHUNK *pch )
 {
     TYPEPTR     top_typ;
     TYPEPTR     obj;
@@ -169,25 +278,25 @@ static void DumpTail( TYPEPTR typ, SYMPTR funcsym, int pointer_flags )
     top_typ = typ;
     for(;;) {
         if( typ->decl_type == TYPE_FUNCTION ) {
-            fputc( '(', DefFile );
+            ChunkSaveChar( pch, '(' );
             if( typ == top_typ  ||  typ->u.parms != NULL ) {
-                DumpParmList( typ->u.parms, funcsym );
+                DumpParmList( typ->u.parms, funcsym, pch);
                 funcsym = NULL;
             }
-            fputc( ')', DefFile );
+            ChunkSaveChar( pch, ')' );
         }
         typ = Object( typ );
         while( typ->decl_type == TYPE_POINTER ) {
             typ = Object( typ );
         }
         if( typ->decl_type == TYPE_ARRAY ) {
-            fputc( ')', DefFile );
+            ChunkSaveChar( pch, ')' );
             if( pointer_flags & FLAG_WAS_ARRAY ) {      /* 07-jun-94 */
                 /* we don't know the dimension anymore. just put out [1] */
-                fputs( "[1]", DefFile );
+                ChunkSaveStr( pch, "[1]" );
                 pointer_flags = 0;
             }
-            DumpArray( typ );
+            DumpArray( typ, pch) ;
             for( ;; ) {
                 obj = Object( typ );
                 if( obj->decl_type != TYPE_ARRAY ) break;
@@ -195,58 +304,59 @@ static void DumpTail( TYPEPTR typ, SYMPTR funcsym, int pointer_flags )
             }
         } else {
             if( typ->decl_type != TYPE_FUNCTION ) break;
-            fputc( ')', DefFile );
+            ChunkSaveChar( pch, ')' );
         }
     }
 }
 
 
-static void DumpDecl( TYPEPTR typ, SYMPTR funcsym )
+static void DumpDecl( TYPEPTR typ, SYMPTR funcsym, STRCHUNK *pch )
 {
     TYPEPTR     obj;
     int         flags;
 
     switch( typ->decl_type ) {
     case TYPE_FUNCTION:
-        DumpDecl( Object( typ ), NULL );
-        flags = CurFunc->attrib;
-        if( flags & FLAG_LOADDS )  put_keyword( T___LOADDS, DefFile );
-        if( flags & FLAG_EXPORT )  put_keyword( T___EXPORT, DefFile );
-        if( flags & FLAG_SAVEREGS) put_keyword( T___SAVEREGS, DefFile );
-        flags &= ~(FLAG_LOADDS | FLAG_EXPORT | FLAG_SAVEREGS);
-        DumpFlags( flags, typ, DefFile );               /* 03-aug-88, FWC */
-        fputs( CurFunc->name, DefFile );
+        DumpDecl( Object( typ ), NULL, pch );
+        if ( funcsym ) {
+            flags = funcsym->attrib;
+            if( flags & FLAG_LOADDS )  put_keyword( T___LOADDS, pch );
+            if( flags & FLAG_EXPORT )  put_keyword( T___EXPORT, pch );
+            if( flags & FLAG_SAVEREGS) put_keyword( T___SAVEREGS, pch );
+            flags &= ~(FLAG_LOADDS | FLAG_EXPORT | FLAG_SAVEREGS);
+            DumpFlags( flags, typ, pch );               /* 03-aug-88, FWC */
+            ChunkSaveStr( pch, funcsym->name );
+        }
     case TYPE_ARRAY:
-        DumpTail( typ, funcsym, 0 );
+        DumpTail( typ, funcsym, 0, pch );
         break;
     case TYPE_POINTER:
         obj = Object( typ );
         while( obj->decl_type == TYPE_POINTER ) obj = Object( obj );
         switch( obj->decl_type ) {
         case TYPE_FUNCTION:
-            DumpDecl( Object( obj ), NULL );
-            fputc( '(', DefFile );
+            DumpDecl( Object( obj ), NULL, pch );
+            ChunkSaveChar( pch, '(' );
             break;
         case TYPE_ARRAY:
             while( obj->decl_type == TYPE_ARRAY ) obj = Object( obj );
-            DumpDecl( obj, NULL );
-            fputc( '(', DefFile );
+            DumpDecl( obj, NULL, pch );
+            ChunkSaveChar( pch, '(' );
             break;
         }
-        DumpPointer( typ );         /* 26-may-89 */
+        DumpPointer( typ, pch );         /* 26-may-89 */
         break;
     }
 }
 
 
-static void put_keyword( int keyword, FILE *fp )
+static void put_keyword( int keyword, STRCHUNK *pch )
 {
-    fputs( Tokens[ keyword ], fp );
-    fputc( ' ', fp );
+    ChunkSaveStrWord( pch, Tokens[ keyword ] );
 }
 
 
-void DumpFlags( int flags, TYPEPTR typ, FILE *fp )
+static void DumpFlags( int flags, TYPEPTR typ, STRCHUNK *fp )
 {
     SYM_NAMEPTR p;
     SYM_ENTRY   sym;
@@ -257,15 +367,15 @@ void DumpFlags( int flags, TYPEPTR typ, FILE *fp )
         if( flags & FLAG_FAR  ) {
             put_keyword( T___INTERRUPT, fp );
         } else if( flags & FLAG_BASED ) {               /* 13-nov-91 */
-            fputs( "__based(", fp );
+            ChunkSaveStr( fp, "__based(" );
             if( typ->u.p.based_sym == 0 ) {
-                fputs( "void", fp );
+                ChunkSaveStr( fp, "void" );
             } else {
                 SymGet( &sym, typ->u.p.based_sym );
                 p = SymName( &sym, typ->u.p.based_sym );
-                while( *p ) fputc( *p++, fp );
+                ChunkSaveStr( fp, p );
             }
-            fputs( ") ", fp );
+            ChunkSaveStr( fp, ") " );
         } else {
             put_keyword( T___NEAR, fp );
         }
@@ -297,7 +407,7 @@ void DumpFlags( int flags, TYPEPTR typ, FILE *fp )
     }
 }
 
-static void DumpBaseType( TYPEPTR typ )
+static void DumpBaseType( TYPEPTR typ, STRCHUNK *pch )
 {
     auto SYM_ENTRY      sym;
     TYPEPTR             obj;
@@ -315,12 +425,12 @@ static void DumpBaseType( TYPEPTR typ )
     }
     if( typ->decl_type == TYPE_TYPEDEF ) {
         SymGet( &sym, typ->u.typedefn );
-        fprintf( DefFile, "%s ", SymName( &sym, typ->u.typedefn ) );
+        ChunkSaveStrWord( pch, SymName( &sym, typ->u.typedefn ) );
     } else {
         if( typ->type_flags & TF2_TYPE_PLAIN_CHAR ) {   /* 25-nov-94 */
-            fprintf( DefFile, "char " );
+            ChunkSaveStrWord( pch, "char" );
         } else {
-            fprintf( DefFile, "%s ", CTypeNames[ typ->decl_type ] );
+            ChunkSaveStrWord( pch, CTypeNames[ typ->decl_type ] );
         }
         if( typ->decl_type == TYPE_STRUCT ||
             typ->decl_type == TYPE_UNION  ||
@@ -329,31 +439,35 @@ static void DumpBaseType( TYPEPTR typ )
             /* if there is no tag name, then should print out the
                entire structure or union definition or enum list */
 
-            DumpTagName( typ->u.tag->name );
+            DumpTagName( typ->u.tag->name, pch );
         }
     }
 }
 
 
-static void DumpArray( TYPEPTR typ )
+static void DumpArray( TYPEPTR typ, STRCHUNK *pch )
 {
     unsigned long size;
+    char tempbuf[20];
 
     while( typ->decl_type == TYPE_ARRAY ) {
         size = typ->u.array->dimension;
         if( size != 0 ) {
-            fprintf( DefFile, "[%lu]", size );
+            sprintf( tempbuf, "[%lu]", size );
+            ChunkSaveStr( pch, tempbuf );
         } else {
-            fputs( "[]", DefFile );
+            ChunkSaveStr( pch, "[]" );
         }
         typ = Object( typ );
     }
 }
 
 
-static void DumpParmTags( TYPEPTR *parm )
+static void DumpParmTags( TYPEPTR *parm, FILE *fp )
 {
     TYPEPTR     typ;
+    STRCHUNK    chunk;
+    char        *result;
 
     if( parm != NULL ) {
         for(;;) {
@@ -362,9 +476,12 @@ static void DumpParmTags( TYPEPTR *parm )
             typ = TrueType( typ );
             if( typ->decl_type == TYPE_STRUCT  ||
                 typ->decl_type == TYPE_UNION ) {
-                fprintf( DefFile, "%s ", CTypeNames[ typ->decl_type ]  );
-                DumpTagName( typ->u.tag->name );
-                fputs( ";\n", DefFile );
+                ChunkInit(&chunk);
+                ChunkSaveStrWord( &chunk, CTypeNames[ typ->decl_type ] );
+                DumpTagName( typ->u.tag->name, &chunk );
+                result = ChunkToStr( &chunk );
+                fprintf( fp, "%s;\n", result );
+                CMemFree( result );
             }
             ++parm;
         }
@@ -372,10 +489,15 @@ static void DumpParmTags( TYPEPTR *parm )
 }
 
 
-static void DumpTagName( char *tag_name )
+static void DumpTagName( char *tag_name, STRCHUNK *pch )
 {
-    if( *tag_name == '\0' )  tag_name = "_no_name_";
-    fprintf( DefFile, "%s ", tag_name );
+    if( *tag_name == '\0' ) {
+        if (do_message_output)
+            tag_name = "{...}";
+        else
+            tag_name = "_no_name_";
+    }
+    ChunkSaveStrWord( pch, tag_name );
 }
 
 
@@ -403,18 +525,50 @@ static TYPEPTR DefArgPromotion( TYPEPTR arg_typ )
     return( arg_typ );
 }
 
+static void DoDumpType( TYPEPTR realtype, char *symname, STRCHUNK *pch )
+{
+    type_modifiers     pointer_flags;
+    TYPEPTR typ;
 
-static void DumpParmList( TYPEPTR *parm, SYMPTR funcsym )
+    realtype = TrueType( realtype );
+    DumpBaseType( realtype, pch );
+    DumpDecl( realtype, NULL, pch );
+    if( symname )
+        ChunkSaveStr( pch, symname );
+    if( realtype->decl_type == TYPE_POINTER ) {
+        if( realtype->u.p.decl_flags & FLAG_WAS_ARRAY ) {
+            typ = Object( realtype );
+            if( typ->decl_type != TYPE_ARRAY ) {
+                ChunkSaveStr( pch, "[]" );
+            }
+        }
+    }
+    for( typ = realtype; typ != NULL; typ = Object( typ ) ) {
+        if( typ->decl_type == TYPE_TYPEDEF ) break; /* 17-jan-91 */
+        pointer_flags = 0;
+        while( typ->decl_type == TYPE_POINTER ) {
+            pointer_flags = typ->u.p.decl_flags;
+            typ = Object( typ );
+        }
+        if( typ->decl_type == TYPE_ARRAY  ||
+           typ->decl_type == TYPE_FUNCTION ) {
+            DumpTail( realtype, NULL, pointer_flags, pch );
+            break;
+        }
+    }
+}
+
+static void DumpParmList( TYPEPTR *parm, SYMPTR funcsym, STRCHUNK *pch )
 {
     TYPEPTR            typ;
-    TYPEPTR            realtype;
-    type_modifiers     pointer_flags;
     int                parm_num;
     SYM_HANDLE         sym_handle;
     SYM_ENTRY          sym;
+    char               *sym_name;
+    char               temp_name[20];
 
     if( parm == NULL ) {
-        fputs( "void", DefFile );
+        ChunkSaveStr( pch, "void" );
     } else {
         parm_num = 1;
         if( funcsym != NULL ) {
@@ -423,51 +577,41 @@ static void DumpParmList( TYPEPTR *parm, SYMPTR funcsym )
             sym_handle = 0;
         }
         for( ;; ) {
-            realtype = *parm;
-            if( realtype == NULL ) break;
-            realtype = TrueType( realtype );
-            typ = realtype;
+            typ = *parm;
+            if( typ == NULL ) break;
+            typ = TrueType( typ );
             if( funcsym != NULL ) {
                 if( funcsym->flags & SYM_OLD_STYLE_FUNC ) {
-                    typ = DefArgPromotion( realtype );
+                    typ = DefArgPromotion( typ );
                 }
             }
-            DumpBaseType( typ );
-            DumpDecl( realtype, NULL );
+            sym_name = NULL;
             if( sym_handle != 0 ) {
                 SymGet( &sym, sym_handle );
                 sym_handle = sym.handle;
-                fprintf( DefFile, "%s", sym.name );
+                sym_name   = sym.name;
             } else {
                 if( typ->decl_type != TYPE_VOID  &&
                     typ->decl_type != TYPE_DOT_DOT_DOT ) {
-                    fprintf( DefFile, "__p%d", parm_num );
+                        sym_name = temp_name;
+                        sprintf( temp_name, "__p%d", parm_num );
                 }
             }
-            if( realtype->decl_type == TYPE_POINTER ) {
-                if( realtype->u.p.decl_flags & FLAG_WAS_ARRAY ) {
-                    typ = Object( realtype );
-                    if( typ->decl_type != TYPE_ARRAY ) {
-                        fputs( "[]", DefFile );
-                    }
-                }
-            }
-            for( typ = realtype; typ != NULL; typ = Object( typ ) ) {
-                if( typ->decl_type == TYPE_TYPEDEF ) break; /* 17-jan-91 */
-                pointer_flags = 0;
-                while( typ->decl_type == TYPE_POINTER ) {
-                    pointer_flags = typ->u.p.decl_flags;
-                    typ = Object( typ );
-                }
-                if( typ->decl_type == TYPE_ARRAY  ||
-                    typ->decl_type == TYPE_FUNCTION ) {
-                    DumpTail( realtype, NULL, pointer_flags );
-                    break;
-                }
-            }
+            DoDumpType( typ, sym_name, pch );
             ++parm;
-            if( *parm != NULL )  fputc( ',', DefFile );
+            if( *parm != NULL )  ChunkSaveChar( pch, ',' );
             ++parm_num;
         }
     }
+}
+
+char *DiagGetTypeName( TYPEPTR typ )
+{
+    STRCHUNK  chunk;
+
+    ChunkInit( &chunk );
+    do_message_output = 1;
+    DoDumpType( typ, NULL, &chunk );
+    do_message_output = 0;
+    return ChunkToStr( &chunk );
 }

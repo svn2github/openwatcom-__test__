@@ -297,9 +297,9 @@ is implicit in every makefile and does not need to be listed explicitly
 .note build
 indicates that wmake should be run in this directory as part of the build process
 .note os_x
-for each x in the list of the valid host_os tokens
+for each x in the list of the valid host_os tokens (os_nt, os_nw, etc)
 .note cpu_x
-for each x in the list of the valid host_cpu tokens
+for each x in the list of the valid host_cpu tokens (cpu_386, cpu_ppc, etc)
 .note target_x
 for each x in the list of valid host_cpu tokens (for compilers and targetted apps)
 .note tiny, small, compact, medium, large, huge, flat, nomodel
@@ -313,6 +313,19 @@ should have a pmake line which contains, at a minimum:
 .millust begin
 #pmake: build os_nt cpu_ppc
 .millust end
+Pmake also supports the concept of priority. The priority is specified as 
+/nnn after the #pmake but before the colon (:) like so:
+.millust begin
+#pmake/50: build os_nt cpu_ppc
+.millust end
+Makefiles with lower priority are visited first. The default priority if not
+explicitly specified is 100. Pmake will visit subdirectories in depth first
+traversal order unless changed by the 
+.us -r
+ option or the 
+.us priority
+ value.
+.np
 You are free to add as many mnemonic identifiers as you want, of course,
 but anything which you feel is an abstract classification that would apply
 to other projects, please bring to our collective attention and if deemed
@@ -480,6 +493,50 @@ host_cpu = Y
 .np
 That's it! The only downside is that sticking to these guidelines will make
 everyone's life less exciting.
+
+
+.chap Technical Notes
+.section 32-bit Windows run-time DLLs
+.*
+.np
+.ix 'Windows DLLs'
+Most of Open Watcom run-time Windows DLLs have predefined loading address.
+Bellow is table with address for each DLL.
+.np
+0x69000000  wppdxxxx.dll (C++ compiler)
+.br
+0x69400000  wccdxxxx.dll (C compiler)
+.br
+0x69800000  wrc.dll (Resource compiler)
+.br
+0x69900000  wr.dll (Resource library)
+.br
+0x69c00000  wlink.dll (Linker)
+.br
+0x6a000000  wlib.dll (Librarian)
+.br
+0x6e800000  javavm.dll (Debugger DIP)
+.br
+0x6e900000  all trap dlls (Debugger TRAP)
+.br
+0x6eb00000  madx86.dll (Debugger MAD)
+.br
+0x6ec00000  export.dll (Debugger DIP)
+.br
+0x6ed00000  codeview.dll (Debugger DIP)
+.br
+0x6ee00000  watcom.dll (Debugger DIP)
+.br
+0x6ef00000  dwarf.dll (Debugger DIP)
+.br
+0x6fd00000  plbxxxx.dll (run-time DLL C++ library)
+.br
+0x6fe00000  clbxxxx.dll (run-time DLL C library)
+.br
+0x6ff00000  mtxxxx.dll (run-time DLL math library)
+.br
+.np
+You shouldn't use these addresses for your own DLLs.
 
 .chap Build Process
 

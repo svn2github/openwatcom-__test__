@@ -22,6 +22,7 @@
     #define INCL_WINHOOKS
     #define INCL_WININPUT
     #define INCL_WINLISTBOXES
+    #define INCL_WINLOAD
     #define INCL_WINMENUS
     #define INCL_WINMESSAGEMGR
     #define INCL_WINMLE
@@ -245,6 +246,9 @@ typedef LHANDLE HPS, *PHPS;
 typedef LHANDLE HRGN, *PHRGN;
 typedef VOID    *MPARAM, **PMPARAM;
 typedef VOID    *MRESULT, **PMRESULT;
+
+typedef HMODULE  HLIB;
+typedef PHMODULE PHLIB;
 
 typedef CHAR STR8[8];
 typedef STR8 *PSTR8;
@@ -1707,6 +1711,19 @@ typedef struct _LBOXINFO {
 #define MLN_UNDOOVERFLOW          0x000d
 #define MLN_CLPBDFAIL             0x000f
 
+#define MLFFMTRECT_LIMITHORZ    0x1L
+#define MLFFMTRECT_LIMITVERT    0x2L
+#define MLFFMTRECT_MATCHWINDOW  0x4L
+#define MLFFMTRECT_FORMATRECT   0x7L
+
+#define MLFIE_CFTEXT            0x0
+#define MLFIE_NOTRANS           0x1
+#define MLFIE_WINFMT            0x2
+#define MLFIE_RTF               0x3
+
+#define MLE_INDEX               0x0
+#define MLE_RGB                 0x1
+
 #define MLFQS_MINMAXSEL 0
 #define MLFQS_MINSEL    1
 #define MLFQS_MAXSEL    2
@@ -1850,6 +1867,18 @@ typedef struct _SEARCH {
     ((BOOL)WinSendMsg(hwndMenu, MM_SETITEMTEXT, MPFROMLONG(id), MPFROMP(psz)))
 #define WinIsMenuItemValid(hwndMenu, id) \
     ((BOOL)WinSendMsg(hwndMenu, MM_ISITEMVALID, MPFROM2SHORT(id, TRUE), MPFROMLONG(FALSE)))
+
+typedef struct _OWNERITEM {
+    HWND   hwnd;
+    HPS    hps;
+    ULONG  fsState;
+    ULONG  fsAttribute;
+    ULONG  fsStateOld;
+    ULONG  fsAttributeOld;
+    RECTL  rclItem;
+    LONG   idItem;
+    ULONG  hItem;
+} OWNERITEM, *POWNERITEM;
 
 #pragma pack(2)
 
@@ -2453,7 +2482,7 @@ typedef struct _PRESPARAMS {
     PARAM aparam[1];
 } PRESPARAMS, *PPRESPARAMS;
 
-ULONG  APIENTRY WinQueryPresParam(HWND,ULONG,ULONG,PULONG,ULONG,PPVOID,ULONG);
+ULONG  APIENTRY WinQueryPresParam(HWND,ULONG,ULONG,PULONG,ULONG,PVOID,ULONG);
 LONG   APIENTRY WinQuerySysColor(HWND,LONG,LONG);
 LONG   APIENTRY WinQuerySysValue(HWND,LONG);
 BOOL   APIENTRY WinRemovePresParam(HWND,ULONG);
@@ -2524,6 +2553,15 @@ ULONG  APIENTRY WinUpperChar(HAB,ULONG,ULONG,ULONG);
 #ifdef INCL_WINPALETTE
 
 LONG  APIENTRY WinRealizePalette(HWND,HPS,PULONG);
+
+#endif
+
+#if defined(INCL_WINLOAD)
+
+BOOL  APIENTRY WinDeleteLibrary(HAB,HLIB);
+BOOL  APIENTRY WinDeleteProcedure(HAB,PFNWP);
+HLIB  APIENTRY WinLoadLibrary(HAB,PCSZ);
+PFNWP APIENTRY WinLoadProcedure(HAB,HLIB,PCSZ);
 
 #endif
 

@@ -32,22 +32,22 @@
 #include "variety.h"
 #include <stddef.h>
 #include <errno.h>
-
-#include <libc/init.h>
-#include <libc/alloc.h>
+#include <os/imports.h>
 
 _WCRTLINK void _WCNEAR *sbrk( int increment )
-    {
-        if( increment > 0 ) {
-            void *p;
+{
+    if( increment > 0 ) {
+        void *p;
 
-            p = xmalloc( increment );
-            if( p != NULL )
-                return( p );
+        increment = ( increment + 0x0fff ) & ~0x0fff;
+        p = xmalloc( increment );
+        if( p != NULL )
+            return( p );
 
-            errno = ENOMEM;
-        } else {
-            errno = EINVAL;
-        }
-        return( (void *) -1 );
+        errno = ENOMEM;
+    } else {
+        errno = EINVAL;
     }
+    return( (void *) -1 );
+}
+

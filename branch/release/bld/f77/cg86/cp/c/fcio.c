@@ -24,15 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  F-Code I/O routines.
 *
 ****************************************************************************/
 
-
-//
-// FCIO         : F-Code i/o routines
-//
 
 #include "ftnstd.h"
 #include "global.h"
@@ -92,6 +87,9 @@ extern  cg_name         TmpVal(tmp_handle,cg_type);
 extern  void            ReverseList(void **);
 extern  cg_type         PromoteToBaseType(cg_type);
 
+static  void            StructIOArrayStruct( sym_id arr );
+static  void            StructIOItem( sym_id fd );
+
 static  sym_id          EndEqStmt;
 static  sym_id          ErrEqStmt;
 static  void            (**IORtnTable)();
@@ -101,23 +99,23 @@ static  label_handle    IOSLabel;
 static  bool            NmlSpecified;
 
 
-static  void    StructIO( sym_id fd ) {
-//=====================================
+static  void    StructIO( struct field *fd ) {
+//============================================
 
     sym_id      map;
     sym_id      big_map;
     unsigned_32 size;
 
     while( fd != NULL ) {
-        if( fd->fd.typ == TY_STRUCTURE ) {
-            if( fd->fd.dim_ext != NULL ) {
-                StructIOArrayStruct( fd );
+        if( fd->typ == TY_STRUCTURE ) {
+            if( fd->dim_ext != NULL ) {
+                StructIOArrayStruct( (sym_id)fd );
             } else {
-                StructIO( fd->fd.xt.record->fields );
+                StructIO( fd->xt.record->fl.fields );
             }
-        } else if( fd->fd.typ == TY_UNION ) {
+        } else if( fd->typ == TY_UNION ) {
             size = 0;
-            map = fd->fd.xt.record;
+            map = fd->xt.sym_record;
             while( map != NULL ) { // find biggest map
                 if( map->sd.size > size ) {
                     size = map->sd.size;        // 91/08/01 DJG
@@ -125,11 +123,11 @@ static  void    StructIO( sym_id fd ) {
                 }
                 map = map->sd.link;
             }
-            StructIO( big_map->sd.fields );
+            StructIO( big_map->sd.fl.fields );
         } else {
-            StructIOItem( fd );
+            StructIOItem( (sym_id)fd );
         }
-        fd = fd->fd.link;
+        fd = &fd->link->fd;
     }
 }
 
@@ -593,12 +591,12 @@ void    FCOutStruct() {
 
     IORtnTable = OutRtn;
     TmpStructPtr = MkTmp( XPop(), T_POINTER );
-    StructIO( ((sym_id)GetPtr())->sd.fields );
+    StructIO( ((sym_id)GetPtr())->sd.fl.fields );
 }
 
 
-static  void    DoStructArrayIO( tmp_handle num_elts, sym_id fieldz ) {
-//=====================================================================
+static  void    DoStructArrayIO( tmp_handle num_elts, struct field *fieldz ) {
+//============================================================================
 
 // Perform structure array i/o.
 
@@ -629,7 +627,7 @@ static  void    StructIOArrayStruct( sym_id arr ) {
     tmp_handle          num_elts;
 
     num_elts = MkTmp( FieldArrayNumElts( arr ), T_INT_4 );
-    DoStructArrayIO( num_elts, arr->fd.xt.record->fields );
+    DoStructArrayIO( num_elts, arr->fd.xt.record->fl.fields );
 }
 
 
@@ -702,7 +700,7 @@ void    FCInpStruct() {
 
     IORtnTable = InpRtn;
     TmpStructPtr = MkTmp( XPop(), T_POINTER );
-    StructIO( ((sym_id)GetPtr())->sd.fields );
+    StructIO( ((sym_id)GetPtr())->sd.fl.fields );
 }
 
 
@@ -881,7 +879,7 @@ static  void    StructArrayIO() {
     arr = GetPtr();
     num_elts = MkTmp( ArrayNumElts( arr ), T_INT_4 );
     TmpStructPtr = MkTmp( SymAddr( arr ), T_POINTER );
-    DoStructArrayIO( num_elts, arr->ns.xt.record->fields );
+    DoStructArrayIO( num_elts, arr->ns.xt.record->fl.fields );
 }
 
 

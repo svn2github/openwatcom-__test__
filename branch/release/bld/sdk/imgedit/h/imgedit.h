@@ -85,7 +85,10 @@ typedef enum {
 
 #define BORDER_WIDTH    12      /* size of the border around the view area */
 
+#ifndef FILE_OPENED             // this pre
 #define FILE_OPENED     1
+#endif
+
 #define FILE_SAVE       2
 #define DIM_DEFAULT     32              // This is temporarily the default
 #define UNDEF_IMG       0
@@ -237,8 +240,8 @@ void SetInitScreenColour( COLORREF colour );
 /* curclr.c */
 MRESULT CALLBACK CurrentWndProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam, WPI_PARAM2 lparam );
 void CreateCurrentWnd( HWND hparent );
-void SetColour( short mousebutton, COLORREF colour, COLORREF solid, wie_clrtype type );
-COLORREF GetSelectedColour( short mousebutton, COLORREF *solid, wie_clrtype *type );
+void SetColour( int mousebutton, COLORREF colour, COLORREF solid, wie_clrtype type );
+COLORREF GetSelectedColour( int mousebutton, COLORREF *solid, wie_clrtype *type );
 void VerifyCurrentClr( COLORREF screen_colour, COLORREF inverse_colour );
 void SetCurrentNumColours( int colour_count );
 void ChangeCurrentColour( void );

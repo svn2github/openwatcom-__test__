@@ -32,7 +32,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __UNIX__
+#include <dirent.h>
+#else
 #include <direct.h>
+#endif
 #include <uidef.h>
 #include "stdui.h"
 #include "help.h"
@@ -42,8 +46,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#define DEF_EXTENSION   ".IHP"
-#define FIRST_SRCH_PATH ".\\"
+#define DEF_EXTENSION   ".ihp"
+#define FIRST_SRCH_PATH "./"
 
 static HelpSrchPathItem searchList[] = {
     SRCHTYPE_PATH,      FIRST_SRCH_PATH,// this may be changed when a cross
@@ -85,7 +89,7 @@ static void showHelp( char *name ) {
     char        fname[_MAX_FNAME];
 
     _splitpath( name, NULL, NULL, fname, NULL );
-    printf( "\nThe WATCOM Help command line:\n" );
+    printf( "\nThe Watcom Help command line:\n" );
     printf( "\n" );
     printf( "               %s help_file [topic_name]\n", fname );
     printf( "\n" );
@@ -160,9 +164,9 @@ void main( int argc, char *argv[] ) {
         printf( "ui failed\n" );
         return;
     } else {
-    #ifdef __OS2__
+    #if defined __OS2__
         initmouse( 2 );  /* the 0=mouseless,1=mouse,2=initialized mouse */
-    #else
+    #elif !defined __UNIX__
         uiinitgmouse( 2 );  /* the 0=mouseless,1=mouse,2=initialized mouse */
         FlipCharacterMap();
     #endif

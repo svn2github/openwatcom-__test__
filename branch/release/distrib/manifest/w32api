@@ -3,6 +3,7 @@
 README.w32
 h\nt\accctrl.h
 h\nt\aclapi.h
+h\nt\afxres.h
 h\nt\basetsd.h
 h\nt\basetyps.h
 h\nt\cderr.h
@@ -16,8 +17,10 @@ h\nt\custcntl.h
 h\nt\dbt.h
 h\nt\dde.h
 h\nt\ddeml.h
+h\nt\dhcpcsdk.h
 h\nt\dlgs.h
 h\nt\docobj.h
+h\nt\errorrep.h
 h\nt\exdisp.h
 h\nt\exdispid.h
 h\nt\httpext.h
@@ -60,6 +63,7 @@ h\nt\lzexpand.h
 h\nt\mapi.h
 h\nt\mciavi.h
 h\nt\mcx.h
+h\nt\mgmtapi.h
 h\nt\mmsystem.h
 h\nt\mshtml.h
 h\nt\mswsock.h
@@ -122,6 +126,7 @@ h\nt\shellapi.h
 h\nt\shlguid.h
 h\nt\shlobj.h
 h\nt\shlwapi.h
+h\nt\snmp.h
 h\nt\sql.h
 h\nt\sqlext.h
 h\nt\sqltypes.h
@@ -130,8 +135,11 @@ h\nt\sspi.h
 h\nt\subauth.h
 h\nt\svcguid.h
 h\nt\tlhelp32.h
+h\nt\tmschema.h
 h\nt\unknwn.h
 h\nt\userenv.h
+h\nt\uxtheme.h
+h\nt\vfw.h
 h\nt\w32api.h
 h\nt\winable.h
 h\nt\winbase.h
@@ -152,6 +160,7 @@ h\nt\winnt.h
 h\nt\winperf.h
 h\nt\winreg.h
 h\nt\winresrc.h
+h\nt\winsnmp.h
 h\nt\winsock.h
 h\nt\winsock2.h
 h\nt\winspool.h
@@ -178,17 +187,20 @@ lib386\nt\d3dim.lib
 lib386\nt\d3drm.lib
 lib386\nt\d3dxof.lib
 lib386\nt\ddraw.lib
+lib386\nt\dhcpcsvc.lib
 lib386\nt\dinput.lib
 lib386\nt\dlcapi.lib
 lib386\nt\dplayx.lib
 lib386\nt\dsetup.lib
 lib386\nt\dsound.lib
 lib386\nt\dxguid.lib
+lib386\nt\faultrep.lib
 lib386\nt\gdi32.lib
 lib386\nt\glaux.lib
 lib386\nt\glu32.lib
 lib386\nt\glut.lib
 lib386\nt\glut32.lib
+lib386\nt\igmpagnt.lib
 lib386\nt\imagehlp.lib
 lib386\nt\imm32.lib
 lib386\nt\iphlpapi.lib
@@ -232,6 +244,7 @@ lib386\nt\setupapi.lib
 lib386\nt\shell32.lib
 lib386\nt\shfolder.lib
 lib386\nt\shlwapi.lib
+lib386\nt\snmpapi.lib
 lib386\nt\svrapi.lib
 lib386\nt\tapi32.lib
 lib386\nt\th32.lib
@@ -240,6 +253,7 @@ lib386\nt\url.lib
 lib386\nt\user32.lib
 lib386\nt\userenv.lib
 lib386\nt\uuid.lib
+lib386\nt\uxtheme.lib
 lib386\nt\vdmdbg.lib
 lib386\nt\version.lib
 lib386\nt\vfw32.lib
@@ -251,5 +265,6 @@ lib386\nt\winstrm.lib
 lib386\nt\wldap32.lib
 lib386\nt\wow32.lib
 lib386\nt\ws2_32.lib
+lib386\nt\wsnmp32.lib
 lib386\nt\wsock32.lib
 lib386\nt\wst.lib

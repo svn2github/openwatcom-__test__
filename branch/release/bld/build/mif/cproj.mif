@@ -29,8 +29,13 @@ as_i86          = *wasm
 as_axp          = *wasaxp
 as_ppc          = *wasppc
 
-rc_os2      = $(os2_toolkit)\bin\rc.exe
-#rc_os2      = $(lang_root)\binp\rc.exe
+!ifndef %use_os2tk_stuff
+rc_os2_path = $(lang_root)\binp
+!else
+rc_os2_path = $(os2_toolkit)\bin
+!endif
+
+rc_os2      = $(rc_os2_path)\rc.exe
 
 !ifeq host_os os2
 %PATH = $+$(%PATH);$(%watcom)\binp$-
@@ -40,10 +45,10 @@ rc              = *wrc
 
 
 !ifndef release_$(proj_name)
-!ifeq on_build_machine 1
-release = 1
-!else
+!ifeq debug_build 1
 release = 0
+!else
+release = 1
 !endif
 !else
 release = $(release_$(proj_name))
@@ -271,7 +276,7 @@ linker          = $(linker_$(host_cpu))
 librarian       = $(librarian_$(host_cpu))
 as              = $(as_$(host_cpu))
 vi              = vi -q -d -i
-rc_aui          = $(rc) -bt=windows -r
+rc_aui          = $(rc) -bt=windows -zk0 -r
 
 !include bhost.mif
 !include local.mif

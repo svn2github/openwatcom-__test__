@@ -22,17 +22,16 @@ $# just in case anyone is curious ...
 .ERASE
 .CONTINUE
 
-# if you wish to have on_build_machine defined in your environment, set
-# it as an environment variable.
-!ifdef %on_build_machine
-on_build_machine = $(%on_build_machine)
+# if you wish to build debug version
+!ifdef %DEBUG_BUILD
+debug_build = $(%DEBUG_BUILD)
 !endif
 # default windowing support
-!ifdef %default_windowing
-default_windowing = $(%default_windowing)
+!ifdef %DEFAULT_WINDOWING
+default_windowing = $(%DEFAULT_WINDOWING)
 !endif
 
-os2_toolkit     = $(%os2tkroot)
+os2_toolkit     = $(%OS2TKROOT)
 
 !ifndef __LINUX__
 
@@ -88,12 +87,12 @@ libcompaxp=$(compaxp)
 #
 # compilers used for install
 #
-inscomp286=$(%relroot)\rel2\binw\wcc -r -fpr
+inscomp286=$(%RELROOT)\rel2\binw\wcc -r -fpr
 
 !ifdef msc
 inscomp386=$(comp386)
 !else
-inscomp386=$(%relroot)\rel2\binw\wcc386 -r -fpr
+inscomp386=$(%RELROOT)\rel2\binw\wcc386 -r -fpr
 !endif
 
 #
@@ -194,7 +193,6 @@ wresdir=$(build_root)sdk\rc\wres
 # define directories (without trailing \)
 #
 
-bin_root_wv=$(build_root)\bin
 win386dir=$(build_root)\win386
 batchdir=$(build_root)\idebatch
 wclassdir=$(build_root)\wclass
@@ -377,12 +375,12 @@ libcompaxp=$(compaxp)
 #
 # compilers used for install
 #
-inscomp286=$(%relroot)/rel2/binw/wcc -r-fpr
+inscomp286=$(%RELROOT)/rel2/binw/wcc -r-fpr
 
 !ifdef gcc
 inscomp386=$(comp386)
 !else
-inscomp386=$(%relroot)/rel2/binw/wcc386 -r-fpr
+inscomp386=$(%RELROOT)/rel2/binw/wcc386 -r-fpr
 !endif
 
 #

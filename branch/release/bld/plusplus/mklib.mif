@@ -3,21 +3,13 @@
 # it doesn't seem to provide any clear benefits.
 uncompressed=1
 
-!include $(plusplus_dir)/dirmacs.mif
+proj_name = cpplib
 
-!include $(define_library_include)
-!include $(define_target_include)
 !include cproj.mif
 
-!ifdef on_build_machine
-!   ifeq on_build_machine 0
-!       undef on_build_machine
-!   endif
-!endif
-
-# !ifdef on_JWW_machine
-# uncompressed=1
-# !endif
+!include $(plusplus_dir)/dirmacs.mif
+!include $(define_library_include)
+!include $(define_target_include)
 
 !ifndef target_objs
 target_objs = $(objs)
@@ -28,7 +20,7 @@ target_xbjs = $(xbjs)
 !endif
 
 lib_flags = -b -c
-!ifdef on_build_machine
+!ifeq release 1
 lib_flags += -t
 !ifeq host_CPU axp
 !else
@@ -36,10 +28,16 @@ lib_flags += -s
 !endif
 !endif
 
-!ifdef on_JWW_machine
-lib_page_size = -p=64
-!else ifndef on_build_machine
+!ifndef lib_page_size
+!ifeq release 0
+!ifdef debug_lib_page_size
+lib_page_size = $(debug_lib_page_size)
+!endif
 !else
+!ifdef release_lib_page_size
+lib_page_size = $(release_lib_page_size)
+!endif
+!endif
 !endif
 !ifndef lib_page_size
 lib_page_size = -p=16
@@ -103,10 +101,7 @@ asm_flags =
 asm_flags = -zq-w4 $(asm_model) -fo=.obj -i"$(watcom_dir)/h"
 !endif
 
-!ifdef on_JWW_machine
-comp_flags += -d2
-comp_cpp += -ew
-!else ifndef on_build_machine
+!ifeq release 0
 comp_flags += -d2
 !else
 comp_flags += -d1 -dNDEBUG
@@ -241,7 +236,7 @@ update : .symbolic $(target_lib)
 
 !include $(plusplus_dir)/clean.mif
 
-!ifndef on_build_machine
+!ifeq release 0
 !ifdef define_deps_include
 obj_deps_ext=obj
 !include $(define_deps_include)

@@ -37,7 +37,7 @@
 #include "rtdata.h"
 
 #if defined(_M_IX86)
- extern int     __matherr( struct exception * );
+ extern int     __matherr( struct _exception * );
  #pragma aux    __matherr "*";
 #endif
 
@@ -51,14 +51,14 @@ static const char * const Msgs[] = {
         "Partial loss of significance"
    };
 
-int   (*_RWD_matherr)( struct exception * ) =
+int   (*_RWD_matherr)( struct _exception * ) =
 #if defined(__AXP__) || defined(__PPC__)
   matherr;
 #elif defined(_M_IX86)
   __matherr;
 #endif
 
-_WMRTLINK void _set_matherr( int (*rtn)( struct exception * ) )
+_WMRTLINK void _set_matherr( int (*rtn)( struct _exception * ) )
 {
     _RWD_matherr = rtn;
 }
@@ -73,8 +73,8 @@ void __rterrmsg( const int errcode, const char *funcname )
     fputc( '\n', fp );
 }
 
-_WMRTLINK double _matherr( struct exception *excp )
-/***************************************/
+_WMRTLINK double _matherr( struct _exception *excp )
+/**************************************************/
     {
         if( (*_RWD_matherr)( excp ) == 0 ) {
             __rterrmsg( excp->type, excp->name );

@@ -1,7 +1,6 @@
 #pmake: os_os2 cpu_i86 i86 intel
-os      = os2
-bin     = binp
-form    = os2 pmc
 
-!include deftarg.mif
-!include ../makefile
+host_os = os2
+host_cpu = i86
+
+!include ../master.mif

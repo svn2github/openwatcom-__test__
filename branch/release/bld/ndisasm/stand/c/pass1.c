@@ -95,6 +95,7 @@ static int isSelfReloc( ref_entry r_entry )
     case ORL_RELOC_TYPE_REL_HI_8:
     case ORL_RELOC_TYPE_REL_32_SEG:
     case ORL_RELOC_TYPE_REL_32:
+    case ORL_RELOC_TYPE_REL_32_NOADJ:
         return( 1 );
     }
     return( 0 );
@@ -199,11 +200,12 @@ return_val DoPass1( orl_sec_handle shnd, char * contents, orl_sec_size size,
                          * local label because the offset might change when the
                          * code is re-assembled
                          */
-                        r_entry->no_val = 1;
                         if( r_entry->addend ) {
+                            r_entry->no_val = 0;
                             CreateUnnamedLabel( r_entry->label->shnd,
                                                 HandleAddend( r_entry ), &rs );
                         } else {
+                            r_entry->no_val = 1;
                             if( adjusted && isSelfReloc( r_entry ) &&
                                 ( r_entry->label->type == LTYP_SECTION ) ) {
                                 /* This is a kludgy reloc done under OMF

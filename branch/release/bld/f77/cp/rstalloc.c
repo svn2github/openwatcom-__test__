@@ -24,15 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Resident symbol table memory manager.
 *
 ****************************************************************************/
 
-
-//
-// RSTALLOC  : resident symbol table memory manager
-//
 
 #include "ftnstd.h"
 #include "errcod.h"
@@ -46,6 +41,7 @@ extern  void            FreeSFHeader(sym_id);
 extern  sym_id          STFree(sym_id);
 extern  void            FreeChain(void **);
 extern  void            *FreeLink(void *);
+extern  void            FreeRList( sym_id sym );
 
 
 grp_entry       *STGroupEntry() {
@@ -153,10 +149,10 @@ sym_id  FreeREntry( sym_id sym ) {
 
     sym_id      fd;
 
-    fd = sym->sd.fields;
+    fd = sym->sd.fl.sym_fields;
     while( fd != NULL ) {
         if( fd->fd.typ == TY_UNION ) {
-            FreeRList( fd->fd.xt.record );
+            FreeRList( fd->fd.xt.sym_record );
         } else {
             if( fd->fd.dim_ext != NULL ) {
                 FMemFree( fd->fd.dim_ext );

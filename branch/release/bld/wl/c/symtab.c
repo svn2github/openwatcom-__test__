@@ -1057,8 +1057,12 @@ static symbol * DoSymOp( byte op, char *symname, int length )
 extern symbol * UnaliasSym( sym_flags op, symbol *sym )
 /*****************************************************/
 {
+    symbol *orig_sym = sym;
     while( sym != NULL && IS_SYM_ALIAS(sym) ) {
         sym = DoSymOp( op, sym->p.alias, sym->u.aliaslen );
+        /* circular ref, may be a weak symbol ! */
+        if( sym == orig_sym )
+            break;
     }
     return sym;
 }
@@ -1525,7 +1529,9 @@ extern group_entry *SymbolGroup( symbol *sym )
 {
     group_entry *group;
 
-    if( IS_SYM_GROUP(sym) ) {
+    if( IS_SYM_ALIAS(sym) ) {
+        group = NULL;
+    } else if( IS_SYM_GROUP(sym) ) {
         for( group = Groups; group != NULL; group = group->next_group ) {
             if( sym == group->sym ) {
                 break;

@@ -15,14 +15,34 @@ cdsay .
 
 [ BLOCK <1> rel2 cprel2 ]
 #========================
-    <CPCMD> <devdir>/bin/bin/mad???.mad <relroot>/rel2/binw/
-    <CPCMD> <devdir>/bin/bin/mad???.dll <relroot>/rel2/binw/
-    <CPCMD> <devdir>/bin/binp/dll/mad???.dll <relroot>/rel2/binp/dll/
-    <CPCMD> <devdir>/bin/binp/dll/mad???.d32 <relroot>/rel2/binp/
-    <CPCMD> <devdir>/bin/binnt/mad???.dll <relroot>/rel2/binnt/
-#    <CPCMD> <devdir>/bin/axpnt/mad???.dll <relroot>/rel2/axpnt/
-    <CPCMD> <devdir>/bin/qnx/*.mad <relroot>/rel2/qnx/watcom/wd/
-    <CPCMD> <devdir>/bin/linux/*.mad <relroot>/rel2/binl/
+# x86
+    <CPCMD> <DEVDIR>/mad/x86/dos386/madx86.mad   <RELROOT>/rel2/binw/
+    <CPCMD> <DEVDIR>/mad/x86/wini86/madx86.dll   <RELROOT>/rel2/binw/
+#    <CPCMD> <DEVDIR>/mad/x86/os2i86/madx86.dll   <RELROOT>/rel2/binp/dll/
+    <CPCMD> <DEVDIR>/mad/x86/os2386/madx86.d32   <RELROOT>/rel2/binp/
+    <CPCMD> <DEVDIR>/mad/x86/nt386/madx86.dll    <RELROOT>/rel2/binnt/
+#    <CPCMD> <DEVDIR>/mad/x86/ntaxp/madx86.dll    <RELROOT>/rel2/axpnt/
+#    <CPCMD> <DEVDIR>/mad/x86/qnx386/madx86.mad   <RELROOT>/rel2/qnx/watcom/wd/
+    <CPCMD> <DEVDIR>/mad/x86/linux386/madx86.mad <RELROOT>/rel2/binl/
+# axp
+#    <CPCMD> <DEVDIR>/mad/axp/dos386/madaxp.mad   <RELROOT>/rel2/binw/
+#    <CPCMD> <DEVDIR>/mad/axp/wini86/madaxp.dll   <RELROOT>/rel2/binw/
+#    <CPCMD> <DEVDIR>/mad/axp/os2i86/madaxp.dll   <RELROOT>/rel2/binp/dll/
+#    <CPCMD> <DEVDIR>/mad/axp/os2386/madaxp.d32   <RELROOT>/rel2/binp/
+#    <CPCMD> <DEVDIR>/mad/axp/nt386/madaxp.dll    <RELROOT>/rel2/binnt/
+#    <CPCMD> <DEVDIR>/mad/axp/ntaxp/madaxp.dll    <RELROOT>/rel2/axpnt/
+#    <CPCMD> <DEVDIR>/mad/axp/qnx386/madaxp.mad   <RELROOT>/rel2/qnx/watcom/wd/
+#    <CPCMD> <DEVDIR>/mad/axp/linux386/madaxp.mad <RELROOT>/rel2/binl/
+# ppc
+#    <CPCMD> <DEVDIR>/mad/ppc/dos386/madppc.mad   <RELROOT>/rel2/binw/
+#    <CPCMD> <DEVDIR>/mad/ppc/wini86/madppc.dll   <RELROOT>/rel2/binw/
+#    <CPCMD> <DEVDIR>/mad/ppc/os2i86/madppc.dll   <RELROOT>/rel2/binp/dll/
+#    <CPCMD> <DEVDIR>/mad/ppc/os2386/madppc.d32   <RELROOT>/rel2/binp/
+#    <CPCMD> <DEVDIR>/mad/ppc/nt386/madppc.dll    <RELROOT>/rel2/binnt/
+#    <CPCMD> <DEVDIR>/mad/ppc/ntaxp/madppc.dll    <RELROOT>/rel2/axpnt/
+#    <CPCMD> <DEVDIR>/mad/ppc/qnx386/madppc.mad   <RELROOT>/rel2/qnx/watcom/wd/
+#    <CPCMD> <DEVDIR>/mad/ppc/linux386/madppc.mad <RELROOT>/rel2/binl/
+
 
 [ BLOCK <1> clean ]
 #==================

@@ -138,6 +138,7 @@ global  FILE    *ErrFile;       /* error file */
 global  FILE    *DefFile;       /* output for func prototypes */
 global  FILE    *CppFile;       /* output for preprocessor */
 global  FILE    *PageFile;      /* page file for leafs, quads, syms */
+global  FILE    *DepFile;       /* make style auto depend file */
 global  struct  cpp_info *CppStack; /* #if structure control stack */
 global  char    *HFileList;     /* list of path names to try for H files */
 global  int     SrcLineNum;
@@ -406,6 +407,10 @@ global  char    *DataSegName;   /* name of the data segment */
 global  char    *CodeClassName; /* name of the code class */
 global  char    *ModuleName;    /* name of module */
 global  char    *ObjectFileName;/* name of object file */
+global  char    *DependFileName;/* name of make style auto depend file */
+global  char    *DependTarget;  /* name of target in make style autodep */
+global  char    *SrcDepName;    /* name of first depend (sourcefile)*/
+global  char     DependForceSlash;/* type of slash to force to in depend output */
 global  int      PackAmount;    /* current packing alignment */
 global  int      GblPackAmount; /* packing alignment given on command line */
 global  struct textsegment *TextSegList; /* list of #pragma alloc_text segs*/
@@ -510,9 +515,7 @@ extern  void    SetDBChar(int);                 /* casian */
 extern  struct aux_entry *AuxLookup(char *);    /* caux.c */
 extern  void    PragmaFini(void);               /* caux.c */
 
-extern  void    ChkParmPromotion( TYPEPTR *plist ); /*ccheck*/
-extern  void    ChkParmList( TYPEPTR *plist1 ,TYPEPTR *plist2 ); /*ccheck*/
-extern  void    AsgnCheck(TYPEPTR,TREEPTR);     /* ccheck */
+extern  int     ChkCompatibleFunction( TYPEPTR typ1, TYPEPTR typ2, int topLevelCheck ); /*ccheck*/
 extern  void    TernChk( TYPEPTR typ1, TYPEPTR typ2 ); /*check */
 extern  void    ChkCallParms(void);             /* ccheck */
 extern  void    ChkRetType(TREEPTR);            /* ccheck */
@@ -521,7 +524,7 @@ extern  void    CompatiblePtrType(TYPEPTR,TYPEPTR); /* ccheck */
 extern  int     IdenticalType(TYPEPTR,TYPEPTR); /* ccheck */
 extern  int     VerifyType(TYPEPTR,TYPEPTR,SYMPTR);/* ccheck */
 extern  TYPEPTR SkipTypeFluff( TYPEPTR typ );      /* ccheck */
-extern   void ParmAsgnCheck( TYPEPTR typ1, TREEPTR opnd2, int parm_num );
+extern  void    ParmAsgnCheck( TYPEPTR typ1, TREEPTR opnd2, int parm_num ); /* ccheck */
 //ccmain.c
 extern  void    FrontEndInit( bool reuse );
 extern  int     FrontEnd(char **);
@@ -540,10 +543,16 @@ extern  FILE    *OpenBrowseFile(void);
 extern  void    CloseFiles(void);
 extern  void    FreeFNames(void);
 extern  char    *ErrFileName(void);
+extern  char    *DepFileName(void);
 extern  char    *ObjFileName(char *);
+extern  char    *ForceSlash(char *, char );
+extern  char    *CreateFileName( char *template, char *extension, bool forceext );
+extern  char    *GetSourceDepName( void );
+
 extern  FNAMEPTR AddFlist(char const *);
 extern  FNAMEPTR FileIndexToFName(unsigned);
 extern  char    *FNameFullPath( FNAMEPTR flist );
+extern  char    *FileIndexToCorrectName( unsigned file_index );
 extern  int     FListSrcQue(void);
 extern  void    SrcFileReadOnlyDir( char const *dir );
 extern  void    SrcFileReadOnlyFile( char const *file );
@@ -579,6 +588,7 @@ extern  void    VarDeclEquals(SYMPTR,SYM_HANDLE);/* cdinit */
 
 extern  void    DumpFuncDefn(void);             /* cdump */
 extern  void    SymDump(void);                  /* cdump */
+extern  char *  DiagGetTypeName(TYPEPTR typ);   /* cdump */
 
 extern  SEGADDR_T AccessSegment(struct seg_info *);     /* cems */
 extern  SEGADDR_T AllocSegment(struct seg_info *);      /* cems */
@@ -603,6 +613,9 @@ extern  void    CInfoMsg(int,...);
 extern  void    CSuicide(void);
 extern  void    OpenErrFile(void);
 extern  void    FmtCMsg( char *buff, cmsg_info *info );
+extern  void    SetDiagSymbol(SYMPTR sym, SYM_HANDLE handle);
+extern  void    SetDiagType2(TYPEPTR typ_source, TYPEPTR typ_target);
+extern  void    SetDiagPop(void);
 
 //  cexpr2.c
 extern  void    ExprInit(void);
@@ -895,6 +908,8 @@ extern  TAGPTR  NullTag(void);
 extern  TAGPTR  TagLookup(void);
 extern  void    FreeTags(void);
 extern  unsigned long TypeSize(TYPEPTR);
+/* CarlYoung 31-Oct-03 */
+extern  unsigned long TypeSizeEx(TYPEPTR, unsigned long * pFieldWidth);
 extern  TAGPTR  VfyNewTag(TAGPTR,int);
 extern  void    VfyNewSym(int,char *);
 extern  unsigned GetTypeAlignment(TYPEPTR);
@@ -906,6 +921,7 @@ extern  void    CCusage(void);                  /* cusage */
 
 extern  void    CErrSymName(int,SYMPTR,SYM_HANDLE);/* cutil */
 extern  void    Expecting(char *);              /* cutil */
+extern  void    ExpectingAfter(char *,char *);  /* cutil */
 extern  void    ExpectConstant(void);           /* cutil */
 extern  void    ExpectEndOfLine(void);          /* cutil */
 extern  void    ExpectIdentifier(void);         /* cutil */
