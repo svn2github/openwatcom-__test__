@@ -532,6 +532,7 @@ extern "C" {
 #define REPLACEFILE_WRITE_THROUGH 0x00000001
 #define REPLACEFILE_IGNORE_MERGE_ERRORS 0x00000002
 #endif /* (_WIN32_WINNT >= 0x0500) */
+#define WRITE_WATCH_FLAG_RESET 1
 
 #ifndef RC_INVOKED
 typedef struct _FILETIME {
@@ -1011,6 +1012,9 @@ typedef enum _COMPUTER_NAME_FORMAT {
 	ComputerNameMax
 } COMPUTER_NAME_FORMAT;
 #endif /* (_WIN32_WINNT >= 0x0500) */
+#if (_WIN32_WINNT >= 0x0500 || _WIN32_WINDOWS >= 0x0410)
+typedef DWORD EXECUTION_STATE;
+#endif
 
 typedef DWORD(WINAPI *LPPROGRESS_ROUTINE)(LARGE_INTEGER,LARGE_INTEGER,LARGE_INTEGER,LARGE_INTEGER,DWORD,DWORD,HANDLE,HANDLE,LPVOID);
 typedef void(WINAPI *LPFIBER_START_ROUTINE)(PVOID);
@@ -1288,8 +1292,13 @@ DWORD WINAPI GetFirmwareEnvironmentVariableW(LPCWSTR,LPCWSTR,PVOID,DWORD);
 BOOL WINAPI FlushFileBuffers(HANDLE);
 BOOL WINAPI FlushInstructionCache(HANDLE,PCVOID,DWORD);
 BOOL WINAPI FlushViewOfFile(PCVOID,DWORD);
+#if !defined(__WATCOMC__) || defined(__AXP__) || defined(__PPC__)
 DWORD WINAPI FormatMessageA(DWORD,PCVOID,DWORD,DWORD,LPSTR,DWORD,va_list*);
 DWORD WINAPI FormatMessageW(DWORD,PCVOID,DWORD,DWORD,LPWSTR,DWORD,va_list*);
+#else
+DWORD WINAPI FormatMessageA(DWORD,PCVOID,DWORD,DWORD,LPSTR,DWORD,char**);
+DWORD WINAPI FormatMessageW(DWORD,PCVOID,DWORD,DWORD,LPWSTR,DWORD,char**);
+#endif
 BOOL WINAPI FreeEnvironmentStringsA(LPSTR);
 BOOL WINAPI FreeEnvironmentStringsW(LPWSTR);
 BOOL WINAPI FreeLibrary(HMODULE);
@@ -1509,7 +1518,7 @@ BOOL WINAPI GetVolumePathNamesForVolumeNameW(LPCWSTR,LPWSTR,DWORD,PDWORD);
 UINT WINAPI GetWindowsDirectoryA(LPSTR,UINT);
 UINT WINAPI GetWindowsDirectoryW(LPWSTR,UINT);
 DWORD WINAPI GetWindowThreadProcessId(HWND,PDWORD);
-UINT GetWriteWatch(DWORD,PVOID,SIZE_T,PVOID*,PULONG_PTR,PULONG);
+UINT WINAPI GetWriteWatch(DWORD,PVOID,SIZE_T,PVOID*,PULONG_PTR,PULONG);
 ATOM WINAPI GlobalAddAtomA(LPCSTR);
 ATOM WINAPI GlobalAddAtomW( LPCWSTR);
 HGLOBAL WINAPI GlobalAlloc(UINT,DWORD);
@@ -1605,7 +1614,7 @@ BOOL WINAPI IsValidAcl(PACL);
 BOOL WINAPI IsValidSecurityDescriptor(PSECURITY_DESCRIPTOR);
 BOOL WINAPI IsValidSid(PSID);
 #if (_WIN32_WINNT >= 0x0501)
-BOOL IsWow64Process(HANDLE,PBOOL);
+BOOL WINAPI IsWow64Process(HANDLE,PBOOL);
 #endif
 void WINAPI LeaveCriticalSection(LPCRITICAL_SECTION);
 #define LimitEmsPages(n)
@@ -1828,6 +1837,9 @@ DWORD WINAPI SetTapeParameters(HANDLE,DWORD,PVOID);
 DWORD WINAPI SetTapePosition(HANDLE,DWORD,DWORD,DWORD,DWORD,BOOL);
 DWORD WINAPI SetThreadAffinityMask(HANDLE,DWORD);
 BOOL WINAPI SetThreadContext(HANDLE,const CONTEXT*);
+#if (_WIN32_WINNT >= 0x0500 || _WIN32_WINDOWS >= 0x0410)
+EXECUTION_STATE WINAPI SetThreadExecutionState(EXECUTION_STATE);
+#endif
 DWORD WINAPI SetThreadIdealProcessor(HANDLE,DWORD);
 BOOL WINAPI SetThreadPriority(HANDLE,int);
 BOOL WINAPI SetThreadPriorityBoost(HANDLE,BOOL);
@@ -1992,7 +2004,11 @@ typedef PCACTCTXW PCACTCTX;
 #endif
 #define FindResource FindResourceW
 #define FindResourceEx FindResourceExW
+#if !defined(__WATCOMC__) || defined(__AXP__) || defined(__PPC__)
 #define FormatMessage FormatMessageW
+#else
+#define FormatMessage(a,b,c,d,e,f,g) FormatMessageW(a,b,c,d,e,f,*(g))
+#endif
 #define FreeEnvironmentStrings FreeEnvironmentStringsW
 #define GetAtomName GetAtomNameW
 #define GetBinaryType GetBinaryTypeW
@@ -2188,7 +2204,11 @@ typedef PCACTCTXA PCACTCTX;
 #endif
 #define FindResource FindResourceA
 #define FindResourceEx FindResourceExA
+#if !defined(__WATCOMC__) || defined(__AXP__) || defined(__PPC__)
 #define FormatMessage FormatMessageA
+#else
+#define FormatMessage(a,b,c,d,e,f,g) FormatMessageA(a,b,c,d,e,f,*(g))
+#endif
 #define FreeEnvironmentStrings FreeEnvironmentStringsA
 #define GetAtomName GetAtomNameA
 #define GetBinaryType GetBinaryTypeA
