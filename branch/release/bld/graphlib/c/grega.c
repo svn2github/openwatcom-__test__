@@ -42,9 +42,9 @@ extern void pascal      _EGAMoveDownHi();
 extern void pascal      _EGAMoveDownLo();
 extern void pascal      _EGAMoveRight();
 extern void pascal      _EGARep();
-extern void pascal      _EGAGetDot();
-extern void pascal      _EGAGetDotEO();
-extern void pascal      _EGAGetDotMono();
+extern short pascal     _EGAGetDot();
+extern short pascal     _EGAGetDotEO();
+extern short pascal     _EGAGetDotMono();
 extern void pascal      _EGAZap();
 extern void pascal      _EGAZapEO();
 extern void pascal      _EGAZapMono();
@@ -299,7 +299,7 @@ gr_device _FARD         _GrEGA_16 = {
 };
 
 gr_device _FARD         _GrEGA_EO = {
-    _NoOp, _NoOp,     // init routine is never called
+    (short (*)(short))_NoOp, _NoOp,     // init routine is never called
     _EGASetEO, _EGAResetEO,
     _EGASetupMono,
     _EGAMoveUpHi,_EGAMoveLeft,_EGAMoveDownHi,_EGAMoveRight,
