@@ -38,13 +38,6 @@
 #define INCL_VIO
 #include "os2.h"
 
-#pragma off (unreferenced);
-char In61( void ) { return( 0 ); }
-void Out61( char a ) {}
-void Out43( char a ) {}
-void Out42( char a ) {}
-#pragma on (unreferenced);
-
 #ifdef __386__
     #define SEG16 _Seg16
 #else
@@ -94,7 +87,7 @@ void BIOSGetColorPalette( void _FAR *palette )
 {
     VIOPALSTATE         *pal_state;
     USHORT              size, i;
-    char far            *pal = palette;
+    char _FAR           *pal = palette;
 
     size = sizeof( VIOPALSTATE ) + sizeof( USHORT )*(MAX_COLOR_REGISTERS - 1);
     pal_state = MemAlloc( size );

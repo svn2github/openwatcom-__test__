@@ -24,14 +24,13 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  HTML syntax highlighting function prototypes.
 *
 ****************************************************************************/
 
 
 void GetHTMLBlock( ss_block *, char *, int );
 void InitHTMLFlags( linenum );
-void GetHTMLFlags( ss_flags_f * );
-void InitHTMLFlagsGivenValues( ss_flags_f * );
+void GetHTMLFlags( ss_flags_h * );
+void InitHTMLFlagsGivenValues( ss_flags_h * );
 void InitHTMLLine( char * );

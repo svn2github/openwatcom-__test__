@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Support for ctags style tags.
 *
 ****************************************************************************/
 
@@ -34,7 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <unistd.h>
+#include "posix.h"
 #include "vi.h"
 #include "keys.h"
 #include "rxsupp.h"
@@ -64,7 +63,7 @@ int GetCurrentTag( void )
  */
 int TagHunt( char *str )
 {
-    char        buff[MAX_STR],file[_MAX_PATH];
+    char        buff[MAX_STR],file[FILENAME_MAX];
     int         num,rc=ERR_NO_ERR;
 
     rc = LocateTag( str, file, buff );
@@ -103,7 +102,7 @@ int TagHunt( char *str )
  */
 int FindTag( char *tag )
 {
-    extern char near META[];
+    extern char _NEAR META[];
     int         rc,omag;
     char        *oldms;
 
@@ -244,11 +243,11 @@ static int selectTag( FILE *f, char *str, char *buff, char *fname )
  */
 FILE *SearchForTags(void)
 {
-    char  path[_MAX_PATH];
+    char  path[FILENAME_MAX];
     char *eop;
 
     if (CurrentFile && CurrentFile->name) {
-        _fullpath(path, CurrentFile->name, _MAX_PATH);
+        _fullpath(path, CurrentFile->name, FILENAME_MAX);
 
         /*
          * Remove trailing filename.
@@ -258,7 +257,7 @@ FILE *SearchForTags(void)
             *eop = 0x00;
         }
     } else {
-        GetCWD2(&path, _MAX_PATH);
+        GetCWD2(&path, FILENAME_MAX);
     }
 
     eop = &path[strlen(path) - 1];

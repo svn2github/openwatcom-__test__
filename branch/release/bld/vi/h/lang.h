@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Languages defined for syntax highlighting.
 *
 ****************************************************************************/
 
@@ -45,7 +44,9 @@ enum {
     LANG_PERL,
     LANG_HTML,
     LANG_WML,
+    LANG_GML,
     LANG_DBTEST,
+    LANG_MAKEFILE,
     LANG_USER,
     LANG_MAX,           // LANG_MAX always last
 };

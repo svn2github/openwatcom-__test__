@@ -35,6 +35,7 @@
 #include <assert.h>
 #include "vi.h"
 #include "sstyle.h"
+#include "sstyle_h.h"
 #include "lang.h"
 
 
@@ -146,14 +147,14 @@ static void getString( ss_block *ss_new, char *start, int skip )
     ss_new->len = text - start;
 }
 
-void InitHTMLFlagsGivenValues( ss_flags_c *newFlags )
+void InitHTMLFlagsGivenValues( ss_flags_h *newFlags )
 {
-    flags = *(ss_flags_h *)newFlags;
+    flags = *newFlags;
 }
 
-void GetHTMLFlags( ss_flags_c *storeFlags )
+void GetHTMLFlags( ss_flags_h *storeFlags )
 {
-    *storeFlags = *(ss_flags_c *)(&flags);
+    *storeFlags = flags;
 }
 
 void InitHTMLFlags( linenum line_no )
@@ -164,10 +165,9 @@ void InitHTMLFlags( linenum line_no )
 }
 
 
-void GetHTMLBlock( ss_block *ss_new, char *start, line *line, linenum line_no )
+void GetHTMLBlock( ss_block *ss_new, char *start, int line )
 {
     line = line;
-    line_no = line_no;
 
     if( start[ 0 ] == '\0' ) {
     if( firstNonWS == start ) {
