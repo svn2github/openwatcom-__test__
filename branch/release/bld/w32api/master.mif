@@ -91,7 +91,7 @@ libs =               &
 .c: ..\lib
 
 .def.lbc:
-        vi -i -q -k ":set norc\n:r ../lib/$[.\n:source ../def2lbc.vi $*\n"
+        vi -i -q -k ":set norc\n:source ../getmodn.vi ../lib/$[.\n:r ../lib/$[.\n:source ../def2lbc.vi $*\n"
 
 .lbc.lib:
         $(lib) -b -c -q -n -io -ii $@ @$<
@@ -103,6 +103,7 @@ libs =               &
         $(cc) -i$(inc_dirs) -zq-w4-we-dNDEBUG -zc -bt=nt -oaxt -d1 $<
 
 $(libs):
+
 
 kernel32.lib: kernel32.lbc
         $(lib) -b -c -q -n -io -ii $@ @$<
@@ -121,3 +122,4 @@ clean: .SYMBOLIC .EXPLICIT
         @if exist *.bak @del *.bak
         @if exist *.obj @del *.obj
 
+
