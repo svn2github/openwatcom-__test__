@@ -38,8 +38,9 @@
 #include "seterrno.h"
 
 
-#if ( defined(__NT__) || defined(__RUNTIME_HANDLE_CHECKS__) ) \
-    && ( !defined(__NETWARE__) && !defined(__QNX__) && !defined(__OSI__) )
+#if ( defined(__NT__) || defined(__RUNTIME_HANDLE_CHECKS__) )   \
+    && ( !defined(__NETWARE__) && !defined(__QNX__)             \
+    && !defined(__OSI__) )
 
     extern unsigned __NFiles;
 
@@ -57,3 +58,4 @@
 
 
 #endif
+

@@ -34,10 +34,10 @@
 #include "widechar.h"
 #include <stdio.h>
 #include <errno.h>
-#include <io.h>
+#include <unistd.h>
 #include <fcntl.h>
-#include <sys\types.h>
-#include <sys\stat.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "seterrno.h"
 
 
@@ -45,7 +45,7 @@
 
 #define _A_RDONLY       0x01
 
-#ifndef __QNX__
+#ifndef __UNIX__
     typedef int mode_t;
 #endif
 

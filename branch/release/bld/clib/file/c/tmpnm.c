@@ -31,16 +31,11 @@
 
 #include "variety.h"
 #include "widechar.h"
-#ifndef __QNX__
-    #include <io.h>
-#endif
 #include <errno.h>
 #include <process.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef __QNX__
-    #include <unistd.h>
-#endif
+#include <unistd.h>
 #include "rtdata.h"
 #include "fileacc.h"
 #include "exitwmsg.h"
@@ -70,7 +65,7 @@
  #include "thread.h"
  #define getpid()       GetThreadID()
  extern int             GetThreadID( void );
-#elif defined(__QNX__)
+#elif defined(__UNIX__)
  extern char *__tmpdir( char * );
 #endif
 
@@ -93,7 +88,7 @@ static size_t init_name()
     CHAR_TYPE   *p;
 
     p = (CHAR_TYPE *)_RWD_tmpnambuf;
-    #if defined(__QNX__)
+    #if defined(__UNIX__)
         p = __tmpdir( p );
     #endif
     *p++ = '_';

@@ -81,6 +81,9 @@ extern  void            __FiniThreadProcessing(void);
     _WCRTLINK void (*__AccessSema4)( semaphore_object *) = &nullSema4Rtn;
     _WCRTLINK void (*__ReleaseSema4)( semaphore_object *) = &nullSema4Rtn;
     _WCRTLINK void (*__CloseSema4)( semaphore_object *) = &nullSema4Rtn;
+    #if !defined( __NETWARE__ )
+        static void __NullAccHeapRtn(void) {}
+    #endif
 #endif
 
 extern  int             __Sema4Fini;            // in finalizer segment
@@ -177,6 +180,8 @@ _WCRTLINK void __CloseSemaphore( semaphore_object *obj )
                     obj->semaphore = 0;
                 #elif defined( __QNX__ )
                     __qsem_destroy( &obj->semaphore );
+                #elif defined( __LINUX__ )
+                    // TODO: Close the semaphore for Linux!
                 #else
                     DosCloseMutexSem( obj->semaphore );
                 #endif
@@ -215,6 +220,8 @@ _WCRTLINK void __AccessSemaphore( semaphore_object *obj )
                             obj->semaphore = __NTGetCriticalSection();
                         #elif defined( __QNX__ )
                             __qsem_init( &obj->semaphore, 1, 1 );
+                        #elif defined( __LINUX__ )
+                            // TODO: Access semaphore under Linux!
                         #else
                             DosCreateMutexSem( NULL, &obj->semaphore, 0, FALSE );
                         #endif
@@ -225,7 +232,7 @@ _WCRTLINK void __AccessSemaphore( semaphore_object *obj )
                 }
             #endif
             #if defined( __NETWARE__ )
-                while( obj->semaphore != 0 ) 
+                while( obj->semaphore != 0 )
                     #if defined (_NETWARE_CLIB)
                     ThreadSwitch();
                     #else
@@ -238,6 +245,8 @@ _WCRTLINK void __AccessSemaphore( semaphore_object *obj )
                 EnterCriticalSection( obj->semaphore );
             #elif defined( __QNX__ )
                 __qsem_wait( &obj->semaphore );
+            #elif defined( __LINUX__ )
+                // TODO: Wait for semaphore under Linux!
             #else
                 DosRequestMutexSem( obj->semaphore, SEM_INDEFINITE_WAIT );
             #endif
@@ -270,6 +279,8 @@ _WCRTLINK void __ReleaseSemaphore( semaphore_object *obj )
                     LeaveCriticalSection( obj->semaphore );
                 #elif defined( __QNX__ )
                     __qsem_post( &obj->semaphore );
+                #elif defined( __LINUX__ )
+                    // TODO: Relase semaphore under Linux!
                 #else
                     DosReleaseMutexSem( obj->semaphore );
                 #endif
@@ -363,7 +374,7 @@ void    __ReleaseFList()
 #endif
 #endif
 
-_WCRTLINK void *__MultipleThread()
+_WCRTLINK struct thread_data *__MultipleThread()
 {
     #if defined( __NT__ )
         /*
@@ -390,15 +401,15 @@ _WCRTLINK void *__MultipleThread()
         int ccode = 0;
 
         thread_data *tdata = NULL;
-        
+
         if(0 != (ccode = NXKeyGetValue(__NXSlotID, (void **) &tdata)))
             tdata = NULL;
 
-        if( tdata == NULL ) 
+        if( tdata == NULL )
         {
             tdata = __GetThreadData();
-        } 
-        else if( tdata->__resize ) 
+        }
+        else if( tdata->__resize )
         {
             tdata = __ReallocThreadData();
         }
@@ -428,6 +439,9 @@ _WCRTLINK void *__MultipleThread()
             tdata = __QNXAddThread( tdata );
         }
         return( tdata );
+    #elif defined( __LINUX__ )
+        // TODO: Init multiple threads for Linux!
+        return( NULL );
     #else
         return( __ThreadData[GetCurrentThreadId()].data );
     #endif
@@ -613,6 +627,21 @@ void __QNXRemoveThread( void )
     }
 }
 
+#elif defined( __LINUX__ )
+
+thread_data *__LinuxAddThread( thread_data *tdata )
+/***********************************************/
+{
+    // TODO: Implement this for Linux!
+    return( NULL );
+}
+
+void __LinuxRemoveThread( void )
+/****************************/
+{
+    // TODO: Implement this for Linux!
+}
+
 #endif
 
 void __InitMultipleThread()
@@ -683,6 +712,8 @@ void __InitMultipleThread()
             __qsem_init( &InitSemaphore.semaphore, 1, 1 );
             InitSemaphore.initialized = 1;
             // first thread data already in magic memory
+        #elif defined( __LINUX__ )
+            // TODO: Init semaphores for Linux
         #else
             DosCreateMutexSem( NULL, &InitSemaphore.semaphore, 0, FALSE );
             InitSemaphore.initialized = 1;
@@ -723,7 +754,7 @@ static void __FiniSema4s()              // called from finalizer
     int         i;
 
     _CloseSemaphore( &IOBSemaphore );
-    for( i = 0; i < MAX_SEMAPHORE; i++ ) 
+    for( i = 0; i < MAX_SEMAPHORE; i++ )
     {              /* 17-feb-93 */
         _CloseSemaphore( &FileSemaphores[ i ] );
     }
@@ -748,6 +779,21 @@ static void __FiniSema4s()              // called from finalizer
     #if defined( __386__ ) || defined( __AXP__ ) || defined( __PPC__ )
     _CloseSemaphore( &TDListSemaphore );
     _CloseSemaphore( &InitSemaphore );
+
+    // After closing InitSemaphore, we need to reset the sem access routines to
+    // the dummy ones; someone may still want semaphore protection during shutdown
+    // processing but since threading is gone now, there should be no reentrancy
+    // problems
+    __AccessSema4  = &nullSema4Rtn;
+    __ReleaseSema4 = &nullSema4Rtn;
+    __CloseSema4   = &nullSema4Rtn;
+    #if !defined( __NETWARE__ )
+        _AccessNHeap  = &__NullAccHeapRtn;
+        _AccessFHeap  = &__NullAccHeapRtn;
+        _ReleaseNHeap = &__NullAccHeapRtn;
+        _ReleaseFHeap = &__NullAccHeapRtn;
+    #endif
+
         #if defined( __NT__ )
         __NTDeleteCriticalSection();
         __NTThreadFini();
@@ -759,3 +805,4 @@ static void __FiniSema4s()              // called from finalizer
 }
 
 AYI( __FiniSema4s, INIT_PRIORITY_RUNTIME )
+
