@@ -93,6 +93,7 @@
     #define WPI_HACCEL                  HACCEL
     #define WPI_MSG                     PM1632_WINDOW_MSG
     #define WPI_QMSG                    QMSG
+    #define WPI_WNDPROC                 PFNWP 
     #define WPI_PROC                    PFNWP
     #define WPI_PRES                    HPS
     #define WPI_POINT                   POINTL
@@ -143,7 +144,7 @@
     #define WPI_F_FONT                  LOGFONT
     #define WPI_PARAM1                  WPARAM
     #define WPI_PARAM2                  LPARAM
-    #define WPI_INST                    HANDLE
+    #define WPI_INST                    HINSTANCE
     #define WPI_HACCEL                  HANDLE
     #define WPI_MSG                     UINT
     #define WPI_QMSG                    MSG
@@ -155,6 +156,7 @@
     #define WPI_PRECT                   LPRECT
     #define WPI_RECTDIM                 int
     #define WPI_COLOUR                  COLORREF
+    #define WPI_WNDPROC                 WNDPROC
     #define WPI_PROC                    FARPROC
     #define WPI_ENUMFONTPROC            int CALLBACK
     #define WPI_LINEDDAPROC             LINEDDAPROC
