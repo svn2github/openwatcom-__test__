@@ -2,15 +2,11 @@ proj_name = w16api
 
 !include cproj.mif
 
-lib = wlib
-cc = wcc386
-as = wasm
-
 .EXTENSIONS : .lbc .def
 
 libs =               &
-        $(misc_dir)\ctl3d.lib &
-        $(watcom_dir)\lib\winsock.lib &
+        $(misc_dir)/ctl3d.lib &
+        $(watcom_dir)/lib/winsock.lib &
         commdlg.lib  &
         ctl3d.lib    &
         ddeml.lib    &
@@ -29,33 +25,29 @@ winlibs =            &
         user.lbc     &
         win87em.lbc
 
-.def: ..\lib
-.asm: ..\asm
+.def: ../lib
+.asm: ../asm
 
 .asm.obj:
-    $(as) $[@
+        $(as) $(aflags) $[@ -fo=.obj
 
 .def.lbc:
-        vi -i -q -k ":set norc\n:r ../lib/$[.\n:source ../def16lbc.vi $*\n"
+        $(vi) -s ../def16lbc.vi -p"$*" ../lib/$[.
 
 .lbc.lib:
-        $(lib) -b -q -n -p=16 -io -ii $@ @$<
+        $(librarian) -b -n -p=16 -io -ii $@ @$<
 
 $(libs):
 
 windows.lbc : $(winlibs)
         @%create $^@
-        @for %i in ($(winlibs)) do @type %i >>$^@
+        @for %i in ($(winlibs)) do @%append $^@ @ %i
 
 windows.lib: windows.lbc profc.obj
-        $(lib) -b -q -n -p=16 -io -ii $@ @$<
-
+        $(librarian) -b -n -p=16 -io -ii $@ @$<
 
 clean: .SYMBOLIC .EXPLICIT
-        @if exist $(watcom_dir)\lib\winsock.lib @del $(watcom_dir)\lib\winsock.lib
-        @if exist $(misc_dir)\ctl3d.lib @del $(misc_dir)\ctl3d.lib
-        @if exist *.lbc @del *.lbc
-        @if exist *.lib @del *.lib
-        @if exist *.bak @del *.bak
-        @if exist *.obj @del *.obj
+        @rm -f $(watcom_dir)/lib/winsock.lib
+        @rm -f $(misc_dir)/ctl3d.lib
+        @rm -f *.lbc *.lib *.bak *.obj *.err
 
