@@ -280,7 +280,7 @@ toolbar *ToolBarInit( HWND parent )
     appInst = instance;
 
     if( !toolBarClassRegistered ) {
-        wc.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
+        wc.style = CS_SAVEBITS | CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
         wc.lpfnWndProc = (LPVOID) ToolBarWndProc;
         wc.lpszMenuName = NULL;
         wc.cbClsExtra = 0;
@@ -288,7 +288,7 @@ toolbar *ToolBarInit( HWND parent )
         wc.hInstance = instance;
         wc.hIcon = HNULL;
         wc.hCursor = LoadCursor( (HANDLE) HNULL, IDC_ARROW );
-        wc.hbrBackground = (HBRUSH) (COLOR_BTNFACE + 1);
+        wc.hbrBackground = (HBRUSH) 0; // (COLOR_BTNFACE + 1); 
         wc.lpszMenuName = NULL;
         wc.lpszClassName = className;
         RegisterClass( &wc );
@@ -547,7 +547,7 @@ void ToolBarDisplay( toolbar *bar, TOOLDISPLAYINFO *disp )
 #ifndef __OS2_PM__
 #if defined (__NT__)
     if ( LOBYTE(LOWORD(GetVersion())) >= 4 && (bar->is_fixed) ) {
-        CreateWindow( className, NULL, ( disp->style ^ WS_BORDER ),
+        CreateWindow( className, NULL, WS_CHILD, //( disp->style ),
             disp->area.left, disp->area.top, width, height,
             bar->owner, (HMENU) HNULL, GET_HINSTANCE( bar->owner ), bar );
     }
@@ -1229,7 +1229,6 @@ MRESULT CALLBACK ToolBarWndProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
         /* First non comment line below inserted as test by RR 2003.10.26 */
         /* Ref PM implementation above, and WM_PAINT: handler in toolbr.c */
         _wpi_fillrect( pres, &ps.rcPaint, clr_btnface, btnFaceBrush );
-        /* FillRect( pres, &ps.rcPaint, btnFaceBrush ); */
         for( tool = bar->tool_list; tool != NULL; tool = tool->next ) {
             if( _wpi_intersectrect( appInst, &inter, &ps.rcPaint, &tool->area ) ) {
 #endif
@@ -1239,6 +1238,14 @@ MRESULT CALLBACK ToolBarWndProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
         _wpi_deletecompatiblepres( mempres, memdc );
         _wpi_endpaint( hwnd, NULL, &ps );
         break;
+
+#ifndef __OS2_PM__
+    case WM_ERASEBKGND:
+        InvalidateRect( hwnd, NULL, FALSE );
+        /* Resulting WM_PAINT will fill entire area, */
+        /* so avoid default handler kicking in. */
+        return 1;
+#endif
 
     case WM_DESTROY:
         bar->hwnd = HNULL;
