@@ -30,24 +30,31 @@
 ****************************************************************************/
 
 
-#define STRICT
-#include <windows.h>
-#include "wedit.h"
+#define _LINKER         _WLINK
+#define _SRCMACH        _IBMPC
+#define _OS             _LINUX
 
-int PASCAL WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                    LPSTR lpszCmdLine, int nCmdShow )
-{
-    EDITConnect();
-    EDITFile( "d:\\tmp\\t.c", NULL );
-    EDITLocateError( 3L, 4, 5, 0, "msg... error on this line" );
-    EDITShowWindow( SW_MINIMIZE );
-    EDITShowWindow( SW_RESTORE );
-    EDITShowWindow( SW_MINIMIZE );
-    EDITShowWindow( SW_RESTORE );
-    EDITSaveFiles();
-    EDITSaveThisFile( "d:\\tmp\\t.c" );
-    EDITQueryThisFile( "d:\\tmp\\t.c" );
-    EDITDisconnect();
+/* Define all load file formats that the linker will produce */
 
-    return( 0 );
-}
+#define _EXE       0
+#define _QNXLOAD   1
+#define _OS2       2
+#define _PHARLAP   3
+#define _NOVELL    4
+//#define _DOS16M    5
+#define _ELF        6
+
+/* Define if file system is case sensitive */
+
+#define CASE_SENSITIVE
+
+// define the path separator character(s).
+
+#define PATH_SEP '/'
+#define IS_PATH_SEP( a ) ((a)=='/')
+#define CASE_PATH_SEP case'/'
+#define PATH_LIST_SEP ':'
+
+// remove assertions
+
+#define NDEBUG

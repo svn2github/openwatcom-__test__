@@ -24,30 +24,11 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Indirected second version of ring.c.
 *
 ****************************************************************************/
 
 
-#define STRICT
-#include <windows.h>
-#include "wedit.h"
+#define PARAM2
+#include "ring.c"
 
-int PASCAL WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                    LPSTR lpszCmdLine, int nCmdShow )
-{
-    EDITConnect();
-    EDITFile( "d:\\tmp\\t.c", NULL );
-    EDITLocateError( 3L, 4, 5, 0, "msg... error on this line" );
-    EDITShowWindow( SW_MINIMIZE );
-    EDITShowWindow( SW_RESTORE );
-    EDITShowWindow( SW_MINIMIZE );
-    EDITShowWindow( SW_RESTORE );
-    EDITSaveFiles();
-    EDITSaveThisFile( "d:\\tmp\\t.c" );
-    EDITQueryThisFile( "d:\\tmp\\t.c" );
-    EDITDisconnect();
-
-    return( 0 );
-}
