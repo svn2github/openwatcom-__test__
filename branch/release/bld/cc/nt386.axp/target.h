@@ -40,13 +40,13 @@
 
 #define VERSION         PRODUCTION
 
-#define _MACHINE        _PC
-#define _CPU            386
+#define _MACHINE        _ALPHA
+#define _CPU            0000
 
 #define _OS             _NT
 #define _EMS            0
 
-#define __TGT_SYS       __TGT_SYS_X86
+#define __TGT_SYS       __TGT_SYS_AXP_NT
 
-#define _HOST           0000
+#define _HOST           386
 #endif
