@@ -282,7 +282,7 @@ extern void CalcOvl( void )
         temp += strlen( fnode->fname ) + 1;
         fnode = fnode->next;
     }
-    Root->outfile->ovlfnoff |= EXE_FILENAME;    // indicate the .exe file.
+    Root->outfile->ovlfnoff |= OVE_EXE_FILENAME;    // indicate the .exe file.
     /* calculate starting address of overlay vectors, record */
     OvltabSize = temp;   /*  incl. NULLCHAR */
     CurrentSeg = NULL;
@@ -735,7 +735,7 @@ static unsigned EmitOvlEntry( unsigned off, section *sect )
     for( ; sect != NULL; sect = sect->next_sect ) {/* write out table entry */
         flags_anc = sect->parent->ovl_num;
         if( sect == NonSect ) {
-            flags_anc |= FLAG_PRELOAD;/*  pre-load the data area */
+            flags_anc |= OVE_FLAG_PRELOAD;/*  pre-load the data area */
         }
         _HostU16toTarg( sect->outfile->ovlfnoff, entry.fname );
         _HostU16toTarg( sect->relocs, entry.relocs );
