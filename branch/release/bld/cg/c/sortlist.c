@@ -38,6 +38,8 @@ extern  mem_out_action          SetMemOut(mem_out_action);
 
 #define _NEXT( list, offset ) (*((void **)((char *)list + offset)))
 
+static  void            ShellSort( void **array, unsigned length,
+                                   bool (*before)(void*,void*) );
 
 static  void            *BuildList( void **array,
                                     unsigned next_offset, unsigned length ) {
@@ -179,8 +181,10 @@ extern  void            *SortList( void *list, unsigned next_offset,
         ++length;
         list2 = _NEXT( list2, next_offset );
     }
-    old_memout = SetMemOut( MO_OK );
-    list = DoSortList( list, next_offset, before, length );
-    SetMemOut( old_memout );
+    if( length > 1 ) {
+        old_memout = SetMemOut( MO_OK );
+        list = DoSortList( list, next_offset, before, length );
+        SetMemOut( old_memout );
+    }
     return( list );
 }

@@ -56,6 +56,7 @@ sys_x86_win  = sys windows_dll &
             export SETHARDMODE.12 &
             export UNLOCKINPUT.13 &
             op modname=$^& &
+            option rwr &
             option description $(description)
 sys_x86_nt   = sys nt_dll initinstance &
             export TrapInit_.1 &
@@ -99,12 +100,6 @@ sys_ppc_nt   = sys ntppc_dll initinstance &
             export Terminate.6 &
             option description $(description) &
             op modname=$^&
-
-!ifeq machine IBM
-machsuff=
-!else
-machsuff=$+$(machine)$-
-!endif
 
 targ_x86_os2    = $(name).dll
 targ_x86_os2v2  = $(name).d32

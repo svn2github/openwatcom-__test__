@@ -32,6 +32,8 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "watcom.h"
@@ -132,7 +134,6 @@ DWORD RelocSize( DWORD *relocs, unsigned n )
 int CreateRelocs( DWORD *relocs, unsigned short *newrelocs, unsigned n )
 {
     DWORD       page;
-    unsigned    num;
     unsigned    i;
     unsigned    j;
     unsigned    k;
@@ -165,7 +166,6 @@ int main( int argc, char *argv[] )
     int                 handle;
     int                 loader_handle;
     int                 newfile;
-    long                rc;
     char                *file;
     DWORD               size;
     DWORD               codesize;
@@ -441,7 +441,6 @@ int lookup( unsigned char a, unsigned char b )
 void HashBlock( int len )
 {
     int         c;
-    int         i;
     int         index;
     int         used = 0;
 
@@ -551,7 +550,6 @@ void inc_count( int index )
 /* Compress from input file to output file */
 void CompressFile( int handle, DWORD filesize )
 {
-    int         done = 0;
     int         len;
 
     /* Compress each data block until end of file */

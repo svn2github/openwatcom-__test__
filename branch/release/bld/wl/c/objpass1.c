@@ -24,16 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Pass 1 of Open Watcom linker.
 *
 ****************************************************************************/
 
-
-/*
- *  OBJPASS1:  pass 1 of WATFOR-77 linker
- *
- */
 
 #include <string.h>
 #include <stdlib.h>
@@ -64,6 +58,10 @@
 #define MAX_SEGMENT         0x10000
 
 static seg_leader *     LastCodeSeg;    // last code segment in current module
+
+static void MakeNewLeader( segdata *sdata, class_entry *class, unsigned_16 info);
+static void FindALeader( segdata *sdata, class_entry *class, unsigned_16 info );
+static void DoAllocateSegment( segdata *sdata, char *clname );
 
 void ResetObjPass1( void )
 /************************/
@@ -297,14 +295,12 @@ extern unsigned long IncPass1( void )
     for(;;) {
         seg = Ring2Pop( &seglist );
         if( seg == NULL ) break;
-        if( !seg->isdead || seg->iscdat ) {
-            dataoff = seg->data;
-            DoAllocateSegment( seg, seg->o.clname );
-            seg->o.mod = CurrMod;
-            if( !seg->isuninit && !seg->isdead && !seg->iscdat ) {
-                PutInfo( seg->data, GetSegContents(seg, dataoff), seg->length );
-                seg->u.leader->info |= SEG_LXDATA_SEEN;
-            }
+        dataoff = seg->data;
+        DoAllocateSegment( seg, seg->o.clname );
+        seg->o.mod = CurrMod;
+        if( !seg->isuninit && !seg->isdead && !seg->iscdat ) {
+            PutInfo( seg->data, GetSegContents(seg, dataoff), seg->length );
+            seg->u.leader->info |= SEG_LXDATA_SEEN;
         }
     }
     publist = CurrMod->publist;
@@ -918,7 +914,7 @@ extern void DefineComdat( segdata *sdata, symbol *sym, offset value,
         SetComdatSym( sym, sdata );
         sym->addr.off += value;
         sdata->data = AllocStg( sdata->length );
-        
+
         if(NULL == data)
             PutNulls(sdata->data, sdata->length);
         else

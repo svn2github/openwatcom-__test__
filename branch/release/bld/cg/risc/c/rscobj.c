@@ -56,7 +56,6 @@
 extern  pointer         CGAlloc( unsigned size );
 extern  void            CGFree( pointer );
 extern  void            CloseObj();
-extern  void            ScratchObj();
 extern  void            OpenObj();
 extern  void            PutObjBytes( const char *, uint );
 extern  sym_handle      AskForLblSym( label_handle );
@@ -194,12 +193,6 @@ extern  void    ObjInit() {
     }
 }
 
-
-extern void AbortObj() {
-/**********************/
-
-    ScratchObj();
-}
 
 #if 1
 static  void    DefaultLibs( void ){
@@ -1016,8 +1009,8 @@ extern void     AbsPatch(void * patch,offset lc) {
     lc = lc;
 }
 
-extern DoEmptyQueue()
-/*******************/
+extern void DoEmptyQueue()
+/************************/
 {
     EmptyQueue();
     TellUnreachLabels();

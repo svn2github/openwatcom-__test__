@@ -38,6 +38,7 @@
 #include "asmsym.h"
 #include "asmins.h"
 #include "asmdefs.h"
+#include "asmfixup.h"
 
 #ifdef _WASM_
     #include "directiv.h"
@@ -82,9 +83,9 @@ int MakeLabel( char *symbol_name, memtype mem_type )
 /**********************************************/
 {
     struct asm_sym      *sym;
-    #ifdef _WASM_
-        int                     addr;
-        char                    buffer[20];
+#ifdef _WASM_
+    int                     addr;
+    char                    buffer[20];
 
     if( strcmp( symbol_name, "@@" ) == 0 ) {
         struct asm_sym          *newsym;
@@ -95,7 +96,6 @@ int MakeLabel( char *symbol_name, memtype mem_type )
         /* find the old @B */
         sym = AsmGetSymbol( "@B" );
         if( sym != NULL ) {
-
             /* change it to some magical name */
             sprintf( buffer, "L&_%d", AnonymousCounter++ );
             AsmChangeName( sym->name, buffer );
@@ -104,15 +104,14 @@ int MakeLabel( char *symbol_name, memtype mem_type )
 
         /* change all forward anon. references to this location */
         newsym = AsmGetSymbol( "@F" );
-
         if( newsym != NULL ) {
             sym->fixup = newsym->fixup;
             newsym->fixup = NULL;
         }
         AsmTakeOut( "@F" );
         sym->state = SYM_INTERNAL;
-            sym->mem_type = mem_type;  // fixme ??
-            GetSymInfo( sym );
+        sym->mem_type = mem_type;  // fixme ??
+        GetSymInfo( sym );
         BackPatch( sym );
 
         /* now point the @F marker at the next anon. label if we have one */
@@ -121,45 +120,47 @@ int MakeLabel( char *symbol_name, memtype mem_type )
         if( sym != NULL ) {
             AsmChangeName( sym->name, "@F" );
         }
-
         return( NOT_ERROR );
     }
-    #endif
     sym = AsmLookup( symbol_name );
-
-    if( sym == NULL ) return( ERROR );
-
-    #ifdef _WASM_
-        if( Parse_Pass == PASS_1 ) {
-            if( sym->state != SYM_UNDEFINED ) {
-                AsmErr( SYMBOL_PREVIOUSLY_DEFINED, symbol_name );
-                return( ERROR );
-            }
-        } else {
-            /* save old offset */
-            addr = sym->offset;
-        }
-        if( Definition.struct_depth != 0 ) {
-            if( Parse_Pass == PASS_1 ) {
-                sym->offset = AddFieldToStruct( -1 );
-                sym->state = SYM_STRUCT_FIELD;
-            }
-        } else {
-            sym->state = SYM_INTERNAL;
-            GetSymInfo( sym );
-        }
-        sym->mem_type = mem_type;  // fixme ??
-        if( Parse_Pass != PASS_1 && sym->offset != addr ) {
-            PhaseError = TRUE;
-        }
-    #else
+    if( sym == NULL )
+        return( ERROR );
+    if( Parse_Pass == PASS_1 ) {
         if( sym->state != SYM_UNDEFINED ) {
-            AsmError( SYMBOL_ALREADY_DEFINED );
+            AsmErr( SYMBOL_PREVIOUSLY_DEFINED, symbol_name );
             return( ERROR );
         }
+    } else {
+        /* save old offset */
+        addr = sym->offset;
+    }
+    if( Definition.struct_depth != 0 ) {
+        if( Parse_Pass == PASS_1 ) {
+            sym->offset = AddFieldToStruct( -1 );
+            sym->state = SYM_STRUCT_FIELD;
+        }
+    } else {
         sym->state = SYM_INTERNAL;
-        sym->addr = Address;
-    #endif
+        GetSymInfo( sym );
+    }
+    sym->mem_type = mem_type;  // fixme ??
+    if( Parse_Pass != PASS_1 && sym->offset != addr ) {
+        PhaseError = TRUE;
+    }
+#else
+    sym = AsmLookup( symbol_name );
+    if( sym == NULL )
+        return( ERROR );
+    if( sym->state != SYM_UNDEFINED ) {
+        AsmError( SYMBOL_ALREADY_DEFINED );
+        return( ERROR );
+    }
+    sym->state = SYM_INTERNAL;
+    sym->addr = Address;
+//  it should define label type ?????
+    sym->mem_type = mem_type;  // fixme ??
+#endif
+
     BackPatch( sym );
     return( NOT_ERROR );
 }
@@ -177,7 +178,7 @@ int LabelDirective( int i )
 
         sym = AsmGetSymbol( AsmBuffer[i+1]->string_ptr );
         if( sym != NULL && sym->state == SYM_STRUCT ) {
-            return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_STRUCT ) );
+            return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_STRUCT ) );
         }
     }
 #endif
@@ -187,23 +188,25 @@ int LabelDirective( int i )
     }
     switch( AsmBuffer[i+1]->value ) {
     case T_NEAR:
-        return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_NEAR ));
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_NEAR ));
     case T_FAR:
-        return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_FAR ));
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_FAR ));
     case T_BYTE:
-        return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_BYTE ));
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_BYTE ));
     case T_WORD:
-        return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_WORD ));
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_WORD ));
     case T_DWORD:
-        return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_DWORD ));
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_DWORD ));
     case T_FWORD:
-        return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_FWORD ));
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_FWORD ));
     case T_PWORD:
-        return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_FWORD ));
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_FWORD ));
     case T_QWORD:
-        return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_QWORD ));
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_QWORD ));
     case T_TBYTE:
-        return( MakeLabel( AsmBuffer[i-1]->string_ptr, MT_TBYTE ));
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_TBYTE ));
+    case T_OWORD:
+        return( MakeLabel( AsmBuffer[i-1]->string_ptr, T_OWORD ));
     default:
         AsmError( INVALID_LABEL_DEFINITION );
         return( ERROR );

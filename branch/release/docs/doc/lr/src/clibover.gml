@@ -46,17 +46,13 @@ The Unicode character set is capable of representing 65536 unique
 characters.
 .do end
 .*
-.if &version ge 107 .do begin
 .note Wide Character Manipulation Functions
 .sk 0
 These functions deal with wide characters.
-.do end
 .*
-.if &version ge 107 .do begin
 .note Multibyte Character Manipulation Functions
 .sk 0
 These functions deal with multibyte characters.
-.do end
 .*
 .note Memory Manipulation Functions
 .sk 0
@@ -79,7 +75,6 @@ A Unicode character string is an array of zero or more adjacent
 which marks the end of the string.
 .do end
 .*
-.if &version ge 107 .do begin
 .note Wide String Manipulation Functions
 .sk 0
 These functions manipulate strings of wide characters.
@@ -87,9 +82,7 @@ A wide character string is an array of zero or more adjacent wide
 characters followed by a null wide character
 .mono (L'\0')
 which marks the end of the wide string.
-.do end
 .*
-.if &version ge 107 .do begin
 .note Multibyte String Manipulation Functions
 .sk 0
 These functions manipulate strings of multibyte characters.
@@ -118,7 +111,6 @@ and a double-byte character (0x81 0x41).
 The second 0x41 is not the letter "A" and that could only be
 determined by scanning from left to right starting with the first byte
 (0x31).
-.do end
 .*
 .note Conversion Functions
 .sk 0
@@ -176,14 +168,12 @@ under format control.
 .do end
 .*
 .if '&machsys' ne 'FOX' .do begin
-.if &version ge 107 .do begin
 .note Wide Character Stream I/O Functions
 .sk 0
 These functions provide the "standard" functions to read and write
 files of wide characters.
 Data can be transmitted as wide characters, wide character strings,
 blocks of memory or under format control.
-.do end
 .do end
 .*
 .if '&machsys' ne 'FOX' .do begin
@@ -348,12 +338,10 @@ This set of functions allows access to DOS-specific functions.
 This set of functions allows access to Intel 80x86 processor-related
 functions.
 .*
-.if &version ge 107 .do begin
 .note Intel Pentium Multimedia Extension Functions
 .sk 0
 This set of functions allows access to Intel Architecture Multimedia
 Extensions (MMX).
-.do end
 .*
 :cmt. QNX will do later .if '&machsys' eq 'QNX' .do begin
 :cmt. QNX will do later .note UNIX portability Functions
@@ -403,6 +391,7 @@ convert to upper/lower case.
 .fd *fun="isalnum" test for letter or digit
 .fd *fun="isalpha" test for letter
 .fd *fun="isascii" test for ASCII character
+.fd *fun="isblank" test for blank character
 .fd *fun="iscntrl" test for control character
 .fd *fun="iscsym" test for letter, underscore or digit
 .fd *fun="iscsymf" test for letter or underscore
@@ -418,7 +407,6 @@ convert to upper/lower case.
 .fd *fun="toupper" convert character to uppercase
 .fdend
 .*======================================================================
-.if &version ge 107 .do begin
 .section Wide Character Manipulation Functions
 .*
 .np
@@ -432,6 +420,7 @@ between upper and lowercase.
 .fd *fun="iswalnum" test for letter or digit
 .fd *fun="iswalpha" test for letter
 .fd *fun="iswascii" test for ASCII character
+.fd *fun="iswblank" test for blank character
 .fd *fun="iswcntrl" test for control character
 .fd *fun="iswdigit" test for digit
 .fd *fun="iswgraph" test for printable character, except space
@@ -446,9 +435,7 @@ between upper and lowercase.
 .fd *fun="towlower" convert character to lowercase
 .fd *fun="towupper" convert character to uppercase
 .fdend
-.do end
 .*======================================================================
-.if &version ge 107 .do begin
 .section Multibyte Character Manipulation Functions
 .*
 .np
@@ -532,7 +519,6 @@ between upper and lowercase.
 .fd *fun="mbtowc" convert multibyte character to wide character
 .fd *fun="sisinit" determine if mbstate_t object describes an initial conversion state
 .fdend
-.do end
 .*======================================================================
 .section Memory Manipulation Functions
 .*
@@ -575,11 +561,9 @@ regardless of which memory model your program has been compiled for.
 See the section
 .us "String Manipulation Functions"
 for descriptions of functions that manipulate strings of data.
-.if &version ge 107 .do begin
 See the section
 .us "Wide String Manipulation Functions"
 for descriptions of functions that manipulate wide strings of data.
-.do end
 .*======================================================================
 .section String Manipulation Functions
 .*
@@ -682,7 +666,6 @@ For related functions see the sections
 .us Memory Manipulation Functions
 (operate on arrays without terminating null character).
 .*======================================================================
-.if &version ge 107 .do begin
 .section Wide String Manipulation Functions
 .*
 .np
@@ -770,9 +753,7 @@ For related functions see the sections
 (formatting of dates and times), and
 .us Memory Manipulation Functions
 (operate on arrays without terminating null character).
-.do end
 .*======================================================================
-.if &version ge 107 .do begin
 .section Multibyte String Manipulation Functions
 .*
 .np
@@ -889,7 +870,6 @@ For related functions see the sections
 (formatting of dates and times), and
 .us Memory Manipulation Functions
 (operate on arrays without terminating null character).
-.do end
 .*======================================================================
 .section Conversion Functions
 .*
@@ -906,32 +886,41 @@ is also provided.
 .fd *fun="atoh" hexadecimal string to "unsigned int"
 .fd *fun="atoi" string to "int"
 .fd *fun="atol" string to "long int"
+.fd *fun="atoll" string to "long long int"
 .fd *fun="ecvt" "double" to E-format string
 .fd *fun="fcvt" "double" to F-format string
 .fd *fun="gcvt" "double" to string
 .fd *fun="itoa" "int" to string
+.fd *fun="lltoa" "long long int" to string
 .fd *fun="ltoa" "long int" to string
 .fd *fun="strtod" string to "double"
 .fd *fun="strtol" string to "long int"
+.fd *fun="strtoll" string to "long long int"
 .fd *fun="strtoul" string to "unsigned long int"
+.fd *fun="strtoull" string to "unsigned long long int"
+.fd *fun="ulltoa" "unsigned long long int" to string
 .fd *fun="ultoa" "unsigned long int" to string
 .fd *fun="utoa" "unsigned int" to string
 .fdend
-.if &version ge 107 .do begin
 .np
 These functions perform conversions between objects of various types
 and wide character strings.
 .fdbeg
 .fd *fun="_itow" "int" to wide character string
+.fd *fun="_lltow" "long long int" to wide character string
 .fd *fun="_ltow" "long int" to wide character string
+.fd *fun="_ulltow" "unsigned long long int" to wide character string
 .fd *fun="_ultow" "unsigned long int" to wide character string
 .fd *fun="_utow" "unsigned int" to wide character string
 .fd *fun="wcstod" wide character string to "double"
 .fd *fun="wcstol" wide character string to "long int"
+.fd *fun="wcstoll" wide character string to "long long int"
 .fd *fun="wcstoul" wide character string to "unsigned long int"
+.fd *fun="wcstoull" wide character string to "unsigned long long int"
 .fd *fun="_wtof" wide character string to "double"
 .fd *fun="_wtoi" wide character string to "int"
 .fd *fun="_wtol" wide character string to "long int"
+.fd *fun="_wtoll" wide character string to "long long int"
 .fdend
 .np
 See also
@@ -959,19 +948,6 @@ See also
 and
 .kw _mbsupr
 which convert the cases of characters and strings.
-.do end
-.el .do begin
-.np
-See also
-.kw tolower
-.ct,
-.kw toupper
-.ct,
-.kw strlwr
-and
-.kw strupr
-which convert the cases of characters and strings.
-.do end
 .*======================================================================
 .if '&machsys' ne 'FOX' .do begin
 .section Memory Allocation Functions
@@ -1188,6 +1164,8 @@ and should be isolated in programs when portability is a consideration.
 .fd *fun="_fpreset" initializes for floating-point operations
 .fd *fun="frexp" fractional exponent
 .fd *fun="hypot" compute hypotenuse
+.fd *fun="imaxabs" get quotient, remainder from division of object of maximum-size integer type
+.fd *fun="imaxdiv" absolute value of an object of maximum-size integer type
 .fd *fun="j0" return Bessel functions of the first kind (described under "bessel Functions")
 .fd *fun="j1" return Bessel functions of the first kind (described under "bessel Functions")
 .fd *fun="jn" return Bessel functions of the first kind (described under "bessel Functions")
@@ -1419,7 +1397,6 @@ for functions which are related to directories.
 .do end
 .*======================================================================
 .if '&machsys' ne 'FOX' .do begin
-.if &version ge 107 .do begin
 .section Wide Character Stream I/O Functions
 .*
 .np
@@ -1491,7 +1468,6 @@ converted to multibyte characters.
 See the section
 .us Directory Functions
 for functions which are related to directories.
-.do end
 .do end
 .*======================================================================
 .if '&machsys' ne 'FOX' .do begin
@@ -2289,7 +2265,6 @@ the 80286, 80386, 80486 and Pentium processors.
 .fd *fun="sound" turn on the speaker at specified frequency
 .fdend
 .*======================================================================
-.if &version ge 107 .do begin
 .section Intel Pentium Multimedia Extension Functions
 .*
 .np
@@ -2368,7 +2343,6 @@ header file for examples.
 .fd *fun="_m_pxor" XOR 64 bits from two MM elements
 .fd *fun="_m_to_int" retrieve low-order 32 bits from MM value
 .fdend
-.do end
 .*======================================================================
 :cmt. QNX will do later .if '&machsys' eq 'QNX' .do begin
 :cmt. QNX will do later .section UNIX portability Functions

@@ -46,6 +46,27 @@ extern  TREEPTR GenExpressCode(TREEPTR,int,TREEPTR);
 extern  void    EmptyQueue(void);
 extern  int     StartWCG();
 
+local void      FreeExtVars( void );
+local void      FreeGblVars( SYM_HANDLE sym_handle );
+local void      FreeLocalVars( SYM_HANDLE sym_list );
+static void     FreeTrySymBackInfo( void );
+static void     FreeTryTableBackHandles( void );
+static void     FreeTrySymBackInfo( void );
+extern int      PtrType( TYPEPTR typ, int flags );
+local int       CodePtrType( int flags );
+local int       DoFuncDefn( SYM_HANDLE funcsym_handle );
+static void     CallTryFini( void );
+local void      EmitSyms( void );
+local void      Emit1String( STR_HANDLE str_handle );
+local void      EmitLiteral( STR_HANDLE strlit );
+local void      EmitCS_Strings( void );
+local void      FreeStrings( void );
+local void      DoAutoDecl( SYM_HANDLE sym_handle );
+local void      DoParmDecl( SYMPTR sym, SYM_HANDLE sym_handle );
+local void      ParmReverse( SYM_HANDLE sym_handle );
+#ifdef __SEH__
+static void     GenerateTryBlock( TREEPTR tree );
+#endif
 
 static  struct  local_vars {
         struct local_vars       *next;
@@ -59,7 +80,7 @@ extern  SYM_LISTS       *SymListHeads;
 
 static int  TryRefno;
 
-struct  try_table_back_handles {
+static struct  try_table_back_handles {
         struct try_table_back_handles   *next;
         back_handle                     try_table_back_handle;
 } *TryTableBackHandles;
@@ -74,10 +95,9 @@ static TREEPTR         LastNode;
 static OPNODE         *FuncNodePtr;
 static int             Refno;
 static temp_handle     SSVar;
-SYM_HANDLE      Saved_CurFunc;
+static SYM_HANDLE      Saved_CurFunc;
 
 extern  int     LabelIndex;
-extern  TREEPTR FirstStmt;
 static  int     InLineDepth;
 
 struct func_save {
@@ -88,6 +108,7 @@ struct func_save {
         int             labelindex;
 };
 
+/* matches table of type in ctypes.h */
 static  char    CGDataType[] = {
         T_INT_1,        /* TYPE_CHAR */
         T_UINT_1,       /* TYPE_UCHAR */
@@ -113,10 +134,26 @@ static  char    CGDataType[] = {
         T_INTEGER,      /* TYPE_UFIELD unsigned bit field */
         T_INTEGER,      /* TYPE_DOT_DOT_DOT  for the ... in prototypes */
         T_INTEGER,      /* TYPE_PLAIN_CHAR */
+/*
+  I can't see how these were ever generated.  They're also not
+  in the same order as the table in ctypes.h, which is very important.
+*/
+#if 0
         T_INTEGER,      /* TYPE_UNUSED (a unref'd function) */
         T_INTEGER,      /* TYPE_WCHAR L'c' - a wide character constant */
         T_POINTER,      /* TYPE_REF C++ reference */
         T_INTEGER       /* TYPE_CLASS  C++ class */
+#endif
+        T_INTEGER,      /* TYPE_WCHAR L'c' - a wide character constant */
+        T_LONG_DOUBLE,  /* TYPE_LONG_DOUBLE */
+        T_POINTER,      /* TYPE_FCOMPLEX */
+        T_POINTER,      /* TYPE_DCOMPLEX */
+        T_POINTER,      /* TYPE_LDCOMPLEX */
+        T_FLOAT,        /* TYPE_FIMAGINARY */
+        T_DOUBLE,       /* TYPE_DIMAGINARY */
+        T_LONG_DOUBLE,  /* TYPE_LDIMAGINARY */
+        T_UINT_1,       /* TYPE_BOOL */
+        T_INTEGER,      /* TYPE_UNUSED */
   };
 
 static  char    CGOperator[] = {
@@ -325,21 +362,6 @@ local cg_name ForceVolatileFloat( cg_name name, TYPEPTR typ ) /* 05-sep-92 */
     return( name );
 }
 
-local cg_name LoadSegment( cg_name seg_label )/* 18-jan-92 */
-{
-    temp_handle temp_name;
-    cg_name     name;
-    cg_name     left;
-
-    temp_name = CGTemp( T_LONG_POINTER );
-    name = CGTempName( temp_name, T_LONG_POINTER );
-    left = CGAssign( name, seg_label, T_LONG_POINTER );
-//  name = CGTempName( temp_name, T_LONG_POINTER );
-    name = CGBinary( O_PLUS, left, CGInteger( TARGET_INT, TY_UNSIGNED ),
-                                T_LONG_POINTER );
-//  name = CGBinary( O_COMMA, left, name, T_LONG_POINTER );
-    return( name );
-}
 
 static cg_name PushSymSeg( OPNODE *node )
 {
@@ -360,48 +382,14 @@ static cg_name PushSymSeg( OPNODE *node )
             segname = CGTempName( SSVar, T_UINT_2 );
         } else {
             sym = SymGetPtr( sym_handle );
-    //      if( sym->name[0] == '.' ) {  /* if segment label 15-mar-92 */
-    //          segname = LoadSegment(
-     //                 CGBackName( sym->info.backinfo, T_LONG_POINTER ) );
-      //    } else {
-                segname = CGFEName( sym_handle, T_UINT_2 );
-       //   }
+            segname = CGFEName( sym_handle, T_UINT_2 );
         }
     }
     return( segname );
 }
 
-cg_name MakeFarPtr( SYM_HANDLE sym_handle, cg_name offset_part )
-{
-    cg_name     segname;
-    SYMPTR      sym;
-
-    if( sym_handle == 0 ) {         /* 30-nov-91 */
-        segname = CGInteger( 0, TY_UNSIGNED );
-    } else {
-        if( sym_handle == Sym_CS ) { /* 23-jan-92 */
-            segname = CGBackName( CurFunc->info.backinfo, T_LONG_POINTER );
-        } else if( sym_handle == Sym_SS ) { /* 13-dec-92 */
-            if( SSVar == NULL ) {
-                SSVar = CGTemp( T_UINT_2 );
-            }
-            segname = CGTempName( SSVar, T_UINT_2 );
-        } else {
-            sym = SymGetPtr( sym_handle );
-            if( sym->name[0] == '.' ) {  /* if segment label 15-mar-92 */
-                segname = LoadSegment(
-                        CGBackName( sym->info.backinfo, T_LONG_POINTER ) );
-            } else {
-                segname = CGFEName( sym_handle, T_UINT_2 );
-            }
-            segname = CGUnary( O_POINTS, segname, T_UINT_2 );
-        }
-    }
-    return( CGBinary( O_CONVERT, offset_part, segname, T_LONG_POINTER ) );
-}
-
 #ifdef __SEH__
-cg_name TryFieldAddr( unsigned offset )
+static cg_name TryFieldAddr( unsigned offset )
 {
     cg_name     name;
 
@@ -414,7 +402,7 @@ cg_name TryFieldAddr( unsigned offset )
     return( name );
 }
 
-cg_name TryExceptionInfoAddr()
+static cg_name TryExceptionInfoAddr()
 {
     cg_name     name;
 
@@ -424,7 +412,7 @@ cg_name TryExceptionInfoAddr()
     return( name );
 }
 
-void SetTryTable( back_handle except_table )
+static void SetTryTable( back_handle except_table )
 {
     cg_name     name;
     cg_name     table;
@@ -434,7 +422,7 @@ void SetTryTable( back_handle except_table )
     CGDone( CGAssign( name, table, T_POINTER ) );
 }
 
-void SetTryScope( int scope )
+static void SetTryScope( int scope )
 {
     cg_name     name;
 
@@ -442,7 +430,7 @@ void SetTryScope( int scope )
     CGDone( CGAssign( name, CGInteger( scope, T_UINT_1 ), T_UINT_1 ) );
 }
 
-void EndFinally()
+static void EndFinally()
 {
     cg_name      name;
     cg_name      func;
@@ -461,7 +449,7 @@ void EndFinally()
     BEFiniLabel( label_handle );
 }
 
-cg_name TryAbnormalTermination()
+static cg_name TryAbnormalTermination()
 {
     cg_name      name;
 
@@ -470,7 +458,7 @@ cg_name TryAbnormalTermination()
     return( name );
 }
 
-void CallTryRtn( SYM_HANDLE try_rtn, cg_name parm )
+static void CallTryRtn( SYM_HANDLE try_rtn, cg_name parm )
 {
     call_handle call_list;
 
@@ -480,12 +468,12 @@ void CallTryRtn( SYM_HANDLE try_rtn, cg_name parm )
     CGDone( CGCall( call_list ) );
 }
 
-void CallTryInit()
+static void CallTryInit( void )
 {
     CallTryRtn( SymTryInit, CGFEName( TrySymHandle, T_POINTER ) );
 }
 
-void CallTryFini()
+static void CallTryFini( void )
 {
     cg_name     name;
 
@@ -494,7 +482,7 @@ void CallTryFini()
     CallTryRtn( SymTryFini, name );
 }
 
-void TryUnwind( int scope_index )
+static void TryUnwind( int scope_index )
 {
     call_handle call_list;
     cg_name     parm;
@@ -723,6 +711,10 @@ static cg_name PushConstant( OPNODE *node )
         break;
     case TYPE_FLOAT:
     case TYPE_DOUBLE:
+    case TYPE_LONG_DOUBLE:
+    case TYPE_FIMAGINARY:
+    case TYPE_DIMAGINARY:
+    case TYPE_LDIMAGINARY:
         flt = node->float_value;
         if( flt->len != 0 ) {                   // if still in string form
             name = CGFloat( flt->string, dtype );
@@ -835,13 +827,16 @@ static bool IsStruct( TYPEPTR typ ){
 /*********************************/
     while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
     if( typ->decl_type == TYPE_STRUCT  ||
+        typ->decl_type == TYPE_FCOMPLEX ||
+        typ->decl_type == TYPE_DCOMPLEX ||
+        typ->decl_type == TYPE_LDCOMPLEX ||
         typ->decl_type == TYPE_UNION ) {
             return( TRUE );
     }
     return( FALSE );
 }
 
-void EmitNodes( TREEPTR tree )
+local void EmitNodes( TREEPTR tree )
 {
     cg_name     op1;
     cg_name     op2;
@@ -1164,14 +1159,14 @@ void EmitNodes( TREEPTR tree )
     }
 }
 
-void ThreadNode( TREEPTR node )
+local void ThreadNode( TREEPTR node )
 {
     if( FirstNode == NULL )  FirstNode = node;
     if( LastNode != NULL )   LastNode->thread = node;
     LastNode = node;
 }
 
-TREEPTR LinearizeTree( TREEPTR tree )
+local TREEPTR LinearizeTree( TREEPTR tree )
 {
     FirstNode = NULL;
     LastNode = NULL;
@@ -1199,7 +1194,7 @@ void EmitAbort()
 {
 }
 
-TREEPTR GenOptimizedCode( TREEPTR tree )
+local TREEPTR GenOptimizedCode( TREEPTR tree )
 {
     unsigned    unroll_count;
 
@@ -1270,21 +1265,12 @@ static void DoInLineFunction( TREEPTR tree )
     --InLineDepth;
 }
 
-TREEPTR FindFuncStmtTree( SYM_HANDLE sym_handle )
+static TREEPTR FindFuncStmtTree( SYM_HANDLE sym_handle )
 {
-    TREEPTR     tree;
-    TREEPTR     right;
-    tree = FirstStmt;
-    while( tree != NULL ) {
-        right = tree->right;
-        if( right->op.opr == OPR_FUNCTION ) {     // if start of func
-            if( right->op.func.sym_handle == sym_handle ){
-                break;
-            }
-        }
-        tree = tree->left;
-    }
-    return( tree );
+    SYMPTR      symptr;
+
+    symptr = SymGetPtr( sym_handle );
+    return( symptr->u.func.start_of_func );
 }
 
 void GenInLineFunc( SYM_HANDLE sym_handle )
@@ -1316,7 +1302,7 @@ bool IsInLineFunc( SYM_HANDLE sym_handle )
     return( ret );
 }
 
-void GenModuleCode()
+local void GenModuleCode()
 {
     TREEPTR     tree;
 
@@ -1418,7 +1404,7 @@ void DoCompile()
 }
 
 
-void EmitSyms()
+local void EmitSyms( void )
 {
     SYM_HANDLE          sym_handle;
     auto SYM_ENTRY      sym;
@@ -1443,7 +1429,7 @@ void EmitSyms()
 }
 
 
-void EmitSym( SYMPTR sym, SYM_HANDLE sym_handle )
+local void EmitSym( SYMPTR sym, SYM_HANDLE sym_handle )
 {
     TYPEPTR             typ;
     int                 segment;
@@ -1592,6 +1578,7 @@ local void DoParmDecl( SYMPTR sym, SYM_HANDLE sym_handle )
         }
     }
 }
+
 local void ParmReverse( SYM_HANDLE sym_handle ) /* 22-jan-90 */
 {
     SYMPTR      sym;
@@ -1639,6 +1626,9 @@ local void DoAutoDecl( SYM_HANDLE sym_handle )
             case TYPE_UNION:
             case TYPE_STRUCT:
             case TYPE_ARRAY:
+            case TYPE_FCOMPLEX:
+            case TYPE_DCOMPLEX:
+            case TYPE_LDCOMPLEX:
                 emit_extra_info = 1;
                 break;
             }
@@ -1667,7 +1657,7 @@ local void DoAutoDecl( SYM_HANDLE sym_handle )
 }
 
 
-void FreeSymBackInfo( SYM_ENTRY *sym, SYM_HANDLE sym_handle )
+local void FreeSymBackInfo( SYM_ENTRY *sym, SYM_HANDLE sym_handle )
 {
     if( sym->info.backinfo != NULL ) {
         BEFiniBack( sym->info.backinfo );
@@ -1678,7 +1668,7 @@ void FreeSymBackInfo( SYM_ENTRY *sym, SYM_HANDLE sym_handle )
 }
 
 #ifdef __SEH__
-void FreeTrySymBackInfo()
+static void FreeTrySymBackInfo( void )
 {
     SYM_ENTRY   sym;
 
@@ -1686,7 +1676,7 @@ void FreeTrySymBackInfo()
     FreeSymBackInfo( &sym, TrySymHandle );
 }
 
-void FreeTryTableBackHandles()
+static void FreeTryTableBackHandles( void )
 {
     struct try_table_back_handles       *try_backinfo;
 
@@ -1700,7 +1690,7 @@ void FreeTryTableBackHandles()
 }
 #endif
 
-void FreeLocalVars( SYM_HANDLE sym_list )
+local void FreeLocalVars( SYM_HANDLE sym_list )
 {
     SYM_HANDLE          sym_handle;
     auto SYM_ENTRY      sym;
@@ -1772,6 +1762,10 @@ int CGenType( TYPEPTR typ )
 
     while( typ->decl_type == TYPE_TYPEDEF )  typ = typ->object;
     switch( typ->decl_type ) {
+
+    case TYPE_FCOMPLEX:
+    case TYPE_DCOMPLEX:
+    case TYPE_LDCOMPLEX:
     case TYPE_STRUCT:
     case TYPE_UNION:
         if( typ->object != NULL ) { /* 15-jun-94 */
@@ -1862,12 +1856,14 @@ extern int PtrType( TYPEPTR typ, int flags )
 }
 
 
-int StringSegment( STR_HANDLE strlit )
+local int StringSegment( STR_HANDLE strlit )
 {
 #if _MACHINE == _PC
-    if( strlit->flags & FLAG_FAR )   return( FarStringSegment );
+    if( strlit->flags & FLAG_FAR )
+        return( FarStringSegment );
 #endif
-    if( strlit->flags & FLAG_CONST ) return( SEG_CODE );/* 01-sep-89*/
+    if( strlit->flags & FLAG_CONST )
+        return( SEG_CODE );                 /* 01-sep-89*/
     return( SEG_CONST );
 }
 
@@ -1880,7 +1876,7 @@ void EmitStrPtr( STR_HANDLE str_handle, int pointer_type )
 }
 
 
-void Emit1String( STR_HANDLE str_handle )
+local void Emit1String( STR_HANDLE str_handle )
 {
     if( str_handle->cg_back_handle == 0 ) {
         str_handle->cg_back_handle = BENewBack( NULL );
@@ -1893,7 +1889,7 @@ void Emit1String( STR_HANDLE str_handle )
 
 int EmitBytes( STR_HANDLE strlit )
 {
-    DGBytes( strlit->length, &strlit->literal[0] );
+    DGBytes( strlit->length, strlit->literal );
     return( strlit->length );
 }
 
@@ -1912,7 +1908,7 @@ local void EmitLiteral( STR_HANDLE strlit )
 }
 
 
-void FreeStrings()
+local void FreeStrings( void )
 {
     STR_HANDLE  strlit, next;
     int         i;
@@ -1925,7 +1921,7 @@ void FreeStrings()
                 strlit->cg_back_handle = 0;
             }
             next = strlit->next_string;
-            CMemFree( strlit );
+            FreeLiteral( strlit );
             strlit = next;
         }
         StringHash[i] = 0;
@@ -1946,7 +1942,7 @@ local void DumpCS_Strings( STR_HANDLE strlit )
 }
 
 
-local void EmitCS_Strings()
+local void EmitCS_Strings( void )
 {
     int         i;
 
@@ -1958,7 +1954,7 @@ local void EmitCS_Strings()
 }
 
 #ifdef __SEH__
-void GenerateTryBlock( TREEPTR tree )
+static void GenerateTryBlock( TREEPTR tree )
 {
     TREEPTR     stmt;
     int         try_index;

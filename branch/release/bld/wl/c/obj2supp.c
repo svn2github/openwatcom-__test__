@@ -80,6 +80,10 @@ static segdata *        LastSegData;
 static offset           FixupOverflow;
 
 static unsigned         MapOS2FixType( unsigned type );
+static void             PatchOffset( fix_data *fix, unsigned_32 val,
+                                     bool isdelta );
+static void             Relocate( fix_data *fix, frame_spec *targ );
+
 
 #define MAX_ADDEND_SIZE (2 * sizeof(unsigned_32))
 
@@ -295,11 +299,20 @@ static bool IsReadOnly( segdata *sdata )
 static void CheckRWData( frame_spec *targ, targ_addr *addr )
 /**********************************************************/
 {
+    symbol sym;
+
     if( FmtData.type & MK_WINDOWS && FmtData.u.os2.chk_seg_relocs
                                   && IsReadOnly( LastSegData ) ) {
         if(( !IS_SYM_IMPORTED( targ->u.sym ))
             && ( !IsReadOnly( GetFrameSegData( targ )))) {
-            LnkMsg( LOC+WRN+MSG_RELOC_TO_RWDATA_SEG, "a", addr );
+            if( CurrRec.seg->u.leader->dbgtype == NOT_DEBUGGING_INFO ) {
+                if( targ->type == TARGET_SEGWD ) {
+                    sym.name = targ->u.sdata->u.leader->segname;
+                    LnkMsg( LOC+WRN+MSG_RELOC_TO_RWDATA_SEG, "aS", addr, &sym );
+                } else if( targ->type == TARGET_EXTWD ) {
+                    LnkMsg( LOC+WRN+MSG_RELOC_TO_RWDATA_SEG, "aS", addr, targ->u.sym );
+                }
+            }
         }
     }
 }

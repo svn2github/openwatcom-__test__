@@ -100,7 +100,7 @@ typedef struct save_state {
 
 static  save_state      *StateCurr;
 static  save_state      *StateLast;
-static  int             NumStateEntries;
+static  int             NumStateEntries = 0;
 
 extern long             GetDataLong(void);
 extern void             StartupErr(char *);
@@ -165,18 +165,19 @@ address GetRegIP()
 }
 
 
-void RecordSetRegIP( address addr )
-{
-    Format( TxtBuff, "%s %A", GetCmdName( CMD_SKIP ), addr );
-    RecordEvent( TxtBuff );
-    SetRegIP( addr );
-}
-
 void SetRegIP( address addr )
 {
     AddrFix( &addr );
     MADRegSpecialSet( MSR_IP, &DbgRegs->mr, &addr.mach );
     SetStateOvlSect( DbgRegs, addr.sect_id );
+}
+
+
+void RecordSetRegIP( address addr )
+{
+    Format( TxtBuff, "%s %A", GetCmdName( CMD_SKIP ), addr );
+    RecordEvent( TxtBuff );
+    SetRegIP( addr );
 }
 
 
@@ -314,7 +315,7 @@ static void FreeState( save_state *state )
     --NumStateEntries;
 }
 
-unsigned        CurrRegSize;
+unsigned        CurrRegSize = 0;
 
 void ResizeRegData()
 {
@@ -327,14 +328,18 @@ void ResizeRegData()
     new_size = MADRegistersSize();
     if( new_size > CurrRegSize ) {
         /* should I zero out new memory? */
+        /* Yes, it is neccessary for debug version */
         found_dbgregs = FALSE;
         state = StateCurr;
         for( ;; ) {
             old = state;
-            _Realloc( state, sizeof( save_state ) + new_size );
+            _Alloc( state, sizeof( save_state ) + new_size );
             if( state == NULL ) {
                 ReportMADFailure( MS_NO_MEM );
                 new_size = CurrRegSize;
+            } else {
+                memset( state, 0, sizeof( save_state ) + new_size );
+                memcpy( state, old, sizeof( save_state ) );
             }
             if( old == StateCurr ) StateCurr = state;
             if( old == StateLast ) StateLast = state;
@@ -351,11 +356,13 @@ void ResizeRegData()
         if( !found_dbgregs ) {
             /* just a machine state on it's own */
             ms = DbgRegs;
-            _Realloc( ms, sizeof( machine_state ) + new_size );
+            _Alloc( ms, sizeof( machine_state ) + new_size );
             if( ms == NULL ) {
                 ReportMADFailure( MS_NO_MEM );
                 new_size = CurrRegSize;
             } else {
+                memset( ms, 0, sizeof( machine_state ) + new_size );
+                memcpy( ms, DbgRegs, sizeof( machine_state ) );
                 if( DbgRegs == PrevRegs ) PrevRegs = ms;
                 DbgRegs = ms;
             }
@@ -382,6 +389,32 @@ static save_state *AllocState()
     }
     ++NumStateEntries;
     return( state );
+}
+
+
+void ClearMachState()
+{
+    save_state  *state,*next;
+
+    state = StateCurr->next->next;
+    while( state != StateCurr ) {
+        next = state->next;
+        FreeState( state );
+        state = next;
+    }
+    OvlSize = 0;
+    state = StateCurr;
+    do {
+        _Free( state->s.ovl );
+        state->s.ovl = NULL;
+        state->s.tid = 1;
+        state->s.mad = MAD_NIL;
+        FreeMemDelta( state );
+        state = state->next;
+    } while( state != StateCurr );
+    PrevRegs = DbgRegs = &StateCurr->s;
+    StateLast = StateCurr;
+    AlreadyWarnedUndo = FALSE;
 }
 
 
@@ -413,31 +446,6 @@ void FiniMachState()
     FreeState( StateCurr );
     StateCurr = NULL;
     StateLast = NULL;
-}
-
-void ClearMachState()
-{
-    save_state  *state,*next;
-
-    state = StateCurr->next->next;
-    while( state != StateCurr ) {
-        next = state->next;
-        FreeState( state );
-        state = next;
-    }
-    OvlSize = 0;
-    state = StateCurr;
-    do {
-        _Free( state->s.ovl );
-        state->s.ovl = NULL;
-        state->s.tid = 1;
-        state->s.mad = MAD_NIL;
-        FreeMemDelta( state );
-        state = state->next;
-    } while( state != StateCurr );
-    PrevRegs = DbgRegs = &StateCurr->s;
-    StateLast = StateCurr;
-    AlreadyWarnedUndo = FALSE;
 }
 
 
@@ -693,6 +701,48 @@ bool MachStateInfoRelease()
 #endif
 
 
+typedef struct {
+    location_context    lc;
+    int                 targ;
+    int                 curr;
+    bool                success;
+} move_info;
+
+CALL_CHAIN_RTN CheckOneLevel;
+
+void SetStackPos( location_context *lc, int pos )
+{
+    StackPos = pos;
+    Context.execution = lc->execution;
+    Context.stack = lc->stack;
+    Context.frame = lc->frame;
+    Context.up_stack_level = lc->up_stack_level;
+    Context.maybe_have_frame = lc->maybe_have_frame;
+    Context.have_frame = lc->have_frame;
+    SetCodeLoc( GetRegIP() );
+    DbgUpdate( UP_STACKPOS_CHANGE );
+}
+
+void MoveStackPos( int by )
+{
+    move_info   info;
+
+    if( StackPos + by > 0 ) {
+        Warn( LIT( Bottom_Of_Stack ) );
+        return;
+    }
+    info.targ = StackPos + by;
+    info.curr = 0;
+    info.success = FALSE;
+    WalkCallChain( CheckOneLevel, &info );
+    if( info.success ) {
+        SetStackPos( &info.lc, info.targ );
+    } else {
+        Warn( LIT( Top_Of_Stack ) );
+    }
+}
+
+
 void PosMachState( int rel_pos )
 {
     save_state          *new;
@@ -787,14 +837,6 @@ void LastMachState()
     PosMachState( UndoLevel() );
 }
 
-typedef struct {
-    location_context    lc;
-    int                 targ;
-    int                 curr;
-    bool                success;
-} move_info;
-
-CALL_CHAIN_RTN CheckOneLevel;
 static bool CheckOneLevel( call_chain_entry *entry, void *_info )
 {
     move_info  *info = _info;
@@ -810,26 +852,6 @@ static bool CheckOneLevel( call_chain_entry *entry, void *_info )
 }
 
 
-void MoveStackPos( int by )
-{
-    move_info   info;
-
-    if( StackPos + by > 0 ) {
-        Warn( LIT( Bottom_Of_Stack ) );
-        return;
-    }
-    info.targ = StackPos + by;
-    info.curr = 0;
-    info.success = FALSE;
-    WalkCallChain( CheckOneLevel, &info );
-    if( info.success ) {
-        SetStackPos( &info.lc, info.targ );
-    } else {
-        Warn( LIT( Top_Of_Stack ) );
-    }
-}
-
-
 void LastStackPos()
 {
     if( StackPos != 0 ) {
@@ -837,18 +859,6 @@ void LastStackPos()
     }
 }
 
-void SetStackPos( location_context *lc, int pos )
-{
-    StackPos = pos;
-    Context.execution = lc->execution;
-    Context.stack = lc->stack;
-    Context.frame = lc->frame;
-    Context.up_stack_level = lc->up_stack_level;
-    Context.maybe_have_frame = lc->maybe_have_frame;
-    Context.have_frame = lc->have_frame;
-    SetCodeLoc( GetRegIP() );
-    DbgUpdate( UP_STACKPOS_CHANGE );
-}
 
 int GetStackPos()
 {

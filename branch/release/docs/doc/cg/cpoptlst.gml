@@ -789,6 +789,11 @@
 ~b~b~b~b~b~b
 .br
 .*
+:CMT. .note zat
+:hotlink refid='SWzat'.
+~b~b~b~b~b~b
+.br
+.*
 :CMT. .note ze
 :hotlink refid='SWze'.
 ~b~b~b~b~b~b
@@ -815,6 +820,11 @@
 .*
 :CMT. .note zev
 :hotlink refid='SWzev'.
+~b~b~b~b~b~b
+.br
+.*
+:CMT. .note zf
+:hotlink refid='SWzf'.
 ~b~b~b~b~b~b
 .br
 .*
@@ -942,6 +952,16 @@
 .*
 :CMT. .note zq
 :hotlink refid='SWzq'.
+~b~b~b~b~b~b
+.br
+.*
+:CMT. .note zri
+:hotlink refid='SWzri'.
+~b~b~b~b~b~b
+.br
+.*
+:CMT. .note zro
+:hotlink refid='SWzro'.
 ~b~b~b~b~b~b
 .br
 .*

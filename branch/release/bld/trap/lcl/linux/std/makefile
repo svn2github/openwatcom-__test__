@@ -16,9 +16,9 @@ extra_objs = &
         linuxfile.obj &
         squish87.obj &
         supp.obj &
-        core.obj
+        core.obj &
+        x86cpu.obj
 
-inc_dirs = $(trap_dir)/lcl/h
-
+!include $(trap_dir)/lcl/lcl.mif
 !include $(trap_dir)/master.mif
 

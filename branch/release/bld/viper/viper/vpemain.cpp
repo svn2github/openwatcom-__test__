@@ -453,12 +453,13 @@ void VpeMain::buildMenuBar()
     MAction     *action;
     WString     mname;
     WMenuItem   *mi;
+    int         i;
 
     WPopupMenu* pop7 = makeMenu( &popup7, toolBar );
     menuBar->insertPopup( pop7, 7 );
     helpcnt = _config->helpactions().count();
     if( helpcnt > 0 ) pop7->insertSeparator();
-    for( int i = 0; i < helpcnt; i++ ) {
+    for( i = 0; i < helpcnt; i++ ) {
         action = (MAction *)_config->helpactions()[i];
         action->menuName( &mname );
         mi = new WMenuItem( mname, this, (cbm)&VpeMain::mHelpItem,
@@ -524,7 +525,7 @@ WPopupMenu* VpeMain::makeMenu( MenuPop* popup, VToolBar* tools )
     return( pop );
 }
 
-MenuPop VpeMain::popup0a = { "Set Sou&rce Control", (cbp)&VpeMain::onPopup0a, menu0a, 6 };
+MenuPop VpeMain::popup0a = { "Set Sou&rce Control", (cbp)&VpeMain::onPopup0a, menu0a, 7 };
 MenuData VpeMain::menu0a[] = {
     "MKS &SI", (cbm)&VpeMain::setMksSi, "Use MKS Source Integrity revision control", 0, NULL,
     "MKS &RCS", (cbm)&VpeMain::setMksRcs, "Use MKS RCS revision control", 0, NULL,
@@ -532,6 +533,7 @@ MenuData VpeMain::menu0a[] = {
     "&Other", (cbm)&VpeMain::setOtherRcs, "Use another revision control system", 0, NULL,
     "&None", (cbm)&VpeMain::setNoRcs, "Disable revision control functions", 0, NULL,
     "Object &Cycle", (cbm)&VpeMain::setObjectCycle, "Use Object Cycle", 0, NULL,
+    "P&erforce", (cbm)&VpeMain::setPerforce, "Use Perforce", 0, NULL,
 };
 
 MenuPop VpeMain::popup0 = { "&File", (cbp)&VpeMain::onPopup0, menu0, 16 };
@@ -636,7 +638,8 @@ void VpeMain::onPopup1( WPopupMenu* pop )
     }
 
     int icount = _config->actions().count();
-    for( int i=0; i<icount; i++ ) {
+    int i;
+    for( i=0; i<icount; i++ ) {
         MAction* action = (MAction*)_config->actions()[i];
         WString  mname;
         action->menuName( &mname );
@@ -1206,7 +1209,9 @@ void VpeMain::openProject( WMenuItem* )
 
 void VpeMain::addOldProject( const WFileName& filename )
 {
-    for( int i=0; i<_oldProjects.count(); i++ ) {
+    int i;
+
+    for( i=0; i<_oldProjects.count(); i++ ) {
         WFileName* fn = (WFileName*)_oldProjects[ i ];
         if( *fn == filename ) {
             delete _oldProjects.removeAt( i );
@@ -1665,11 +1670,12 @@ bool VpeMain::kDynAccel( WKeyCode kc ) {
 
     bool        done;
     MAction     *action;
+    int         i;
 
     done = FALSE;
     // search project level accelerators
     int icount = _config->actions().count();
-    for( int i=0; i<icount; i++ ) {
+    for( i=0; i<icount; i++ ) {
         action = (MAction*)_config->actions()[i];
         if( action->menuAccel() == kc ) {
             doAction( action );
@@ -2138,6 +2144,10 @@ void VpeMain::setMksSi( WMenuItem *) {
 
 void VpeMain::setObjectCycle( WMenuItem *) {
     setRcsScheme( O_CYCLE );
+}
+
+void VpeMain::setPerforce( WMenuItem *) {
+    setRcsScheme( PERFORCE );
 }
 
 void VpeMain::setPvcs( WMenuItem *) {

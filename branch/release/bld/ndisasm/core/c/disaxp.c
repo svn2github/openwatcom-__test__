@@ -35,12 +35,13 @@
 #include "distypes.h"
 #include "dis.h"
 
+#if DISCPU & DISCPU_axp
+
 extern long SEX( unsigned long v, unsigned bit );
 
 extern const dis_range          AXPRangeTable[];
+extern const int                AXPRangeTablePos[];
 extern const unsigned char      AXPMaxInsName;
-
-#if DISCPU & DISCPU_axp
 
 typedef union {
     unsigned_32 full;
@@ -568,10 +569,13 @@ static unsigned AXPOpHook( dis_handle *h, void *d, dis_dec_ins *ins,
     return( 0 );
 }
 
-const dis_cpu_data AXPData = {
-    AXPRangeTable, AXPInsHook, AXPFlagHook, AXPOpHook, &AXPMaxInsName, 4
-};
-#else
+static dis_handler_return AXPDecodeTableCheck( int page, dis_dec_ins *ins )
+{
+    return( DHR_DONE );
+}
 
-const dis_cpu_data AXPData;
+const dis_cpu_data AXPData = {
+    AXPRangeTable, AXPRangeTablePos, AXPDecodeTableCheck, AXPInsHook, AXPFlagHook, AXPOpHook, &AXPMaxInsName, 4
+};
+
 #endif

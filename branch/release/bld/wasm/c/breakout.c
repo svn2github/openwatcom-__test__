@@ -44,7 +44,7 @@
 #include "condasm.h"
 #include "myassert.h"
 #include "asmerr.h"
-#include "expand.h"
+#include "asmexpnd.h"
 #include "asmdefs.h"
 
 /* prototypes */
@@ -84,6 +84,11 @@ int directive( int i, long direct )
     case T_DOT_287:
     case T_DOT_387:
     case T_DOT_NO87:
+    case T_DOT_K3D:
+    case T_DOT_MMX:
+    case T_DOT_XMM:
+    case T_DOT_XMM2:
+    case T_DOT_XMM3:
         ret = cpu_directive(direct);
         if( Parse_Pass != PASS_1 ) ret = NOT_ERROR;
         return( ret );
@@ -209,19 +214,19 @@ int directive( int i, long direct )
     case T_EQU2:    // =
         /* expand any constants and simplify any expressions */
 //        if( Parse_Pass == PASS_1 ) {
-            ExpandTheWorld( 0, FALSE, TRUE );
+            ExpandTheConstant( 0, FALSE, TRUE );
 //        }
         break;
     case T_EQU:     // EQU
         /* expand any constants and simplify any expressions */
 //        if( Parse_Pass == PASS_1 ) {
-            ExpandTheWorld( 0, FALSE, TRUE );
+            ExpandTheConstant( 0, FALSE, TRUE );
 //        }
         break;
     case T_TEXTEQU: // TEXTEQU
         /* expand any constants and simplify any expressions */
 //        if( Parse_Pass == PASS_1 ) {
-//            ExpandTheWorld( 0, FALSE, TRUE );
+            ExpandTheConstant( 0, FALSE, TRUE );
 //        }
         break;
     case T_NAME:
@@ -247,7 +252,7 @@ int directive( int i, long direct )
     case T_EXTERNDEF:
         return( Parse_Pass == PASS_1 ? GlobalDef(i+1) : NOT_ERROR );
     case T_DOT_MODEL:
-        return( Parse_Pass == PASS_1 ? Model(i) : NOT_ERROR );
+        return( Model(i) );
     case T_INCLUDE:
         return( Include(i+1) );
     case T_INCLUDELIB:

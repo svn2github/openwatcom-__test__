@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  WASM top level module + command line parser
 *
 ****************************************************************************/
 
@@ -48,11 +47,9 @@
 #include "fatal.h"
 #include "asmerr.h"
 #include "asmdefs.h"
-#include "expand.h"
+#include "asmexpnd.h"
 
-#ifdef TRMEM
 #include "memutil.h"
-#endif
 
 #include "womp.h"
 #include "objprs.h"
@@ -74,6 +71,18 @@ extern void             PushLineQueue(void);
 extern void             AddStringToIncludePath( char * );
 
 extern const char       *FingerMsg[];
+
+       int              trademark( void );
+static void             usage_msg( void );
+static void             set_some_kinda_name( char token, char *name );
+static void             get_fname( char *token, int type );
+static void             add_constant( char *string );
+static void             do_envvar_cmdline( char *envvar );
+static int              set_build_target( void );
+static void             main_fini( void );
+static void             main_init( void );
+static void             open_files( void );
+static void             parse_cmdline( char **cmdline );
 
 File_Info               AsmFiles;       // files information
 pobj_state              pobjState;      // object file information for WOMP
@@ -149,8 +158,10 @@ static void StripQuotes( char *fname )
         // string will shrink so we can reduce in place
         d = fname;
         for( s = d + 1; *s && *s != '"'; ++s ) {
-            if( *s == '\0' )break;
-            if( s[0] == '\\' && s[1] == '"' ) {
+            // collapse double backslashes, only then look for escaped quotes
+            if( s[0] == '\\' && s[1] == '\\' ) {
+                ++s;
+            } else if( s[0] == '\\' && s[1] == '"' ) {
                 ++s;
             }
             *d++ = *s;
@@ -622,9 +633,7 @@ static void main_init( void )
 {
     int         i;
 
-#ifdef TRMEM
     MemInit();
-#endif
     for( i=ASM; i<=OBJ; i++ ) {
         AsmFiles.file[i] = NULL;
         AsmFiles.fname[i] = NULL;
@@ -1210,7 +1219,7 @@ static int ProcOptions( char *str, int *level )
 }
 
 static void parse_cmdline( char **cmdline )
-/*************************************************/
+/*****************************************/
 {
     char msgbuf[80];
     int  level = 0;
@@ -1225,18 +1234,4 @@ static void parse_cmdline( char **cmdline )
         MsgGet( NO_FILENAME_SPECIFIED, msgbuf );
         Fatal( MSG_CANNOT_OPEN_FILE, msgbuf );
     }
-}
-
-/* The following are functions needed by the original stand-alone assembler */
-
-extern enum sym_state   AsmQueryExternal( char *name )
-{
-    name = name;
-    return SYM_UNDEFINED;
-}
-
-extern enum sym_type    AsmQueryType( char *name )
-{
-    name = name;
-    return SYM_INT1;
 }

@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Support routines for debug build of linker.
 *
 ****************************************************************************/
 
@@ -114,14 +113,16 @@ static void TrecFailCondition(void) {
     // set TrecHit here if failure detected:
     // Here you may put any condition you like
 
+#ifdef TRMEM
     if( !ValidateMem() ) {
         TrecHit = 1;
     }
+#endif
 }
 
 void Trec(char *str, ...) {
     enum { max=10 };
-    static currBuff;
+    static int  currBuff;
     static char buff[max][128];
     va_list     arglist;
 

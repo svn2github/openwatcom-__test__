@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  PERMDATA:  routines for making some linker data permanent
+* Description:  Routines for making some linker data permanent.
 *
 ****************************************************************************/
 
@@ -51,7 +51,7 @@
 #include "permdata.h"
 
 stringtable             PermStrings;
-stringtable				PrefixStrings;	/* these are NetWare prefix strings of which there could possibly be several */
+stringtable             PrefixStrings;  /* these are NetWare prefix strings of which there could possibly be several */
 carve_t                 CarveLeader;
 carve_t                 CarveModEntry;
 carve_t                 CarveSymbol;
@@ -78,6 +78,10 @@ static char *           IncStrTab;
 #define MOD_CARVE_SIZE          (5*1024)
 #define SDATA_CARVE_SIZE        (16*1024)
 #define SYM_CARVE_SIZE          (32*1024)
+
+static void BufWritePermFile( perm_write_info *info, void *data, unsigned len );
+static void DoWritePermFile( perm_write_info *info, char *data, unsigned len,
+                             bool isvmem );
 
 extern void ResetPermData( void )
 /******************************/
@@ -260,10 +264,8 @@ static void PrepSegData( void *_sdata, void *info )
     }
     sdata->next = CarveGetIndex( CarveSegData, sdata->next );  // not used
     sdata->mod_next = CarveGetIndex( CarveSegData, sdata->mod_next );
-    if( !sdata->isdead || sdata->iscdat ) {
-        sdata->o.clname = sdata->u.leader->class->name;
-        sdata->u.name = sdata->u.leader->segname;
-    }
+    sdata->o.clname = sdata->u.leader->class->name;
+    sdata->u.name = sdata->u.leader->segname;
 }
 
 static void PrepSymbol( void *_sym, void *info )
@@ -733,10 +735,8 @@ static void RebuildSegData( void *_sdata, void *info )
     }
     sdata->next = CarveMapIndex( CarveSegData, sdata->next );  // dont use this?
     sdata->mod_next = CarveMapIndex( CarveSegData, sdata->mod_next );
-    if( !sdata->isdead || sdata->iscdat ) {
-        sdata->u.name = MapString( sdata->u.name );
-        sdata->o.clname = MapString( sdata->o.clname );
-    }
+    sdata->u.name = MapString( sdata->u.name );
+    sdata->o.clname = MapString( sdata->o.clname );
 }
 
 static void RebuildSymbol( void *_sym, void *info )
@@ -777,7 +777,7 @@ static void RebuildSymbol( void *_sym, void *info )
 static void ReadBlockInfo( carve_t cv, void *blk, void *info )
 /************************************************************/
 {
-    QRead( ((perm_read_info *)info)->incfhdl, CarveBlockData(blk), 
+    QRead( ((perm_read_info *)info)->incfhdl, CarveBlockData(blk),
            CarveBlockSize(cv), IncFileName);
 }
 
@@ -1063,7 +1063,7 @@ extern void CleanPermData( void )
     CarveDestroy( CarveSegData );
     CarveDestroy( CarveClass );
     CarveDestroy( CarveGroup );
-	FiniStringTable( &PrefixStrings);
+    FiniStringTable( &PrefixStrings);
     FiniStringTable( &PermStrings );
     FiniStringTable( &StoredRelocs );
     _LnkFree( IncFileName );

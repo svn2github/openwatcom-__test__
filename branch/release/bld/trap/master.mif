@@ -23,7 +23,6 @@ suppress_zc = 1
 #                         files (required).
 #       cpu             - Name of the CPU that the server/trap is being
 #                         built for (x86,axp,ppc,etc).
-#       machine         - Machine type: IBM/FMR/NEC. Assumes IBM
 #       name            - Root name of the server/trap file. A name is
 #                         created from the "srv" macro if this is not
 #                         defined (optional).
@@ -67,7 +66,7 @@ memory_model_386 = s
 
 # cflags stuff
 ###############
-extra_c_flags += -D$(which) -D_$(machine)_PC -DMD_$(cpu) -s
+extra_c_flags += -D$(which) -DMD_$(cpu) -s
 
 !ifdef japanese
 extra_c_flags += -DJAPANESE_MESSAGES
@@ -116,8 +115,8 @@ libs_axp_nt             = clib
 
 libs_ppc_nt             = clib
 
-!ifndef machine
-machine = IBM
+!ifeq host_OS nov
+mknver_c = $(trap_dir)/c/mknver.c
 !endif
 
 !ifndef name
@@ -185,6 +184,11 @@ trperr_h = _err.gh
 jtrperr_h = _jerr.gh
 mkstr_c = $(trap_dir)/c/mkstr.c
 trap_msg = $(trap_dir)/h/trap.msg
+!ifeq host_OS nov
+nversion_tmp = ./nversion.tmp
+!else
+nversion_tmp =
+!endif
 
 w : .SYMBOLIC $(trperr_h) $(jtrperr_h)
         @set LINK_DEBUG=d a op symfile
@@ -202,6 +206,15 @@ cv : .SYMBOLIC $(trperr_h) $(jtrperr_h)
 
 ./mkstr.exe: $(mkstr_c) $(trap_msg)
         $(bld_cl) $(wcl_util_opts) -i"$(trap_dir)/h" $[@
+
+!ifeq host_OS nov
+
+$(nversion_tmp): ./mknver.exe
+    $[@ $^@
+
+./mknver.exe: $(mknver_c) .AUTODEPEND
+        $(bld_cl) $(wcl_util_opts) -i"$(trap_dir)/h" -i"$(watcom_dir)/h" $[@
+!endif
 
 $(trperr_h) : ./mkstr.exe
         $[@ $^@
@@ -224,7 +237,7 @@ objs = $($(which)_objs) mxutil.obj $(extra_dobjs)
 
 !ifndef substitute_linker
 
-$(target) : $(objs) $(extra_libs) $(resource_file) $(extra_deps) $(__MAKEFILES__)
+$(target) : $(objs) $(extra_libs) $(resource_file) $(extra_deps) $(__MAKEFILES__) $(nversion_tmp)
         $(linker) op map $(%LINK_DEBUG) $(sys_$(cpu)_$(os)) name $^@ &
                 file {$(objs)} &
                 library {$(libs_$(cpu)_$(os)) $(extra_libs)} &

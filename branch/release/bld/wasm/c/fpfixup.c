@@ -40,6 +40,7 @@
 #include "directiv.h"
 #include "myassert.h"
 #include "asmdefs.h"
+#include "asmfixup.h"
 
 extern char *AsmMangler( struct asm_sym *sym, char *buffer );
 
@@ -123,7 +124,7 @@ int AddFloatingPointEmulationFixup( const struct asm_ins ASMFAR *ins, bool secon
     if( patch_name_array[patch] == NULL ) return( NOT_ERROR );
     sym = AsmGetSymbol( patch_name_array[patch] );
     if( sym == NULL ) {
-        sym = MakeExtern( patch_name_array[patch], MT_FAR, FALSE );
+        sym = MakeExtern( patch_name_array[patch], T_FAR, FALSE );
         sym->mangler = AsmMangler;
     }
     if( MakeFpFixup( sym ) == ERROR ) return( ERROR );

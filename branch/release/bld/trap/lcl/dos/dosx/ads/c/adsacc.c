@@ -48,6 +48,7 @@
 #include "adslib.h"
 #include "doshdl.h"
 #include "madregs.h"
+#include "x86cpu.h"
 
 trap_cpu_regs   Regs;
 int             IntNum;
@@ -72,7 +73,6 @@ extern  int             DoWriteMem(word,dword,char*);
 extern  dword           GetLinear(word,dword);
 extern  dword           SegLimit(word);
 extern  bool            WriteOk(word);
-extern  unsigned        X86CPUType(void);
 extern  unsigned        ExceptionText( unsigned, char * );
 
 bool                    FakeBreak;
@@ -881,21 +881,12 @@ unsigned ReqGet_next_alias()
 
 #if 0
 extern int GtKey();
-#ifdef _NEC_PC
-
-#pragma aux GtKey = \
-        " mov ah, 0 " \
-        " int 18h   " \
-        modify [ ax ];
-
-#else
 
 #pragma aux GtKey =                                            \
 0XB4 0X00       /* mov    ah,0                          */      \
 0XCD 0X16       /* int    16                            */      \
 modify [ ax ];
 
-#endif
 
 static unsigned_16 AccReadUserKey()
 {

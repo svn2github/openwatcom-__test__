@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Definition of warning levels for each message.
 *
 ****************************************************************************/
 
@@ -51,7 +50,7 @@ warn( WARN_SYM_NOT_ASSIGNED,                    2 )
 warn( WARN_DEAD_CODE,                           2 )
 warn( WARN_SYM_NOT_REFERENCED,                  2 )
 warn( WARN_UNDECLARED_PP_SYM,                   2 )
-warn( WARN_ASSUMED_IMPORT,                      3 )
+warn( WARN_ASSUMED_IMPORT,                      1 )
 warn( WARN_NESTED_COMMENT,                      3 )
 warn( WARN_USEFUL_SIDE_EFFECT,                  3 )
 warn( WARN_RET_ADDR_OF_AUTO,                    1 )
@@ -70,3 +69,7 @@ warn( WARN_SIGN_MISMATCH,                       1 )
 warn( WARN_PARM_NOT_REFERENCED,                 3 )
 warn( WARN_LOSE_PRECISION,                      1 )
 warn( WARN_LEVEL_1,                             1 )
+warn( WARN_ENUM_CONSTANT_TOO_LARGE,             1 )
+warn( WARN_NO_STG_OR_TYPE,                      1 )
+warn( WARN_NO_RET_TYPE_GIVEN,                   3 )
+warn( WARN_NO_DATA_TYPE_GIVEN,                  3 )

@@ -13,6 +13,8 @@ cflags_386 += $(cflags) -mf-zc
 cflags_i86 += $(cflags) -ml-zc
 cflags_axp += $(cflags)
 
+lnk_i86 += op stack=8K
+
 .cpp.obj:
     $(wpp_$(arch)) $[@ $(cflags_$(arch))
 
@@ -26,7 +28,7 @@ scanner.obj &
 substr.obj &
 translat.obj &
 actions.obj
-    
+
 test : .symbolic re2c.$(exe)
     $(run) re2c.$(exe) -b scanner.re >debug.out
     diff debug.out debug.chk | wc -l >line.out
@@ -36,14 +38,14 @@ test : .symbolic re2c.$(exe)
 
 re2c.$(exe) : $(objs) re2c.lnk
     $(linker) @$]@
-    
+
 re2c.lnk : makefile
     %create $^@
     @%append $^@ NAME $^*
     @%append $^@ $(ldebug_$(arch))
     @%append $^@ $(lnk_$(arch))
-    @%append $^@ OPTION map, caseexact, stack=8k, quiet
+    @%append $^@ OPTION map, caseexact, quiet
     @for %i in ( $(objs) ) do @%append $^@ FILE %i
-    
+
 global : .SYMBOLIC
     @%make common_clean

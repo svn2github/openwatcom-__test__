@@ -70,8 +70,7 @@ $(docsrc_dir)\cl\csymbol.gml &
 $(docsrc_dir)\cl\declare.gml &
 $(docsrc_dir)\cl\defmacro.gml &
 $(docsrc_dir)\cl\enum.gml &
-$(docsrc_dir)\cl\enum286.gml &
-$(docsrc_dir)\cl\enum386.gml &
+$(docsrc_dir)\cl\enumtab.gml &
 $(docsrc_dir)\cl\escape.gml &
 $(docsrc_dir)\cl\examples.gml &
 $(docsrc_dir)\cl\express.gml &
@@ -1028,6 +1027,7 @@ $(docsrc_dir)\lg\opcache.gml &
 $(docsrc_dir)\lg\opcaseex.gml &
 $(docsrc_dir)\lg\opcheck.gml &
 $(docsrc_dir)\lg\opcopyri.gml &
+$(docsrc_dir)\lg\opcsum.gml &
 $(docsrc_dir)\lg\opcustom.gml &
 $(docsrc_dir)\lg\opcvpack.gml &
 $(docsrc_dir)\lg\opdescri.gml &
@@ -1043,6 +1043,7 @@ $(docsrc_dir)\lg\opimplib.gml &
 $(docsrc_dir)\lg\opincrem.gml &
 $(docsrc_dir)\lg\opintern.gml &
 $(docsrc_dir)\lg\oplinear.gml &
+$(docsrc_dir)\lg\oplnkver.gml &
 $(docsrc_dir)\lg\oplongli.gml &
 $(docsrc_dir)\lg\opmangle.gml &
 $(docsrc_dir)\lg\opmanyau.gml &
@@ -1067,6 +1068,7 @@ $(docsrc_dir)\lg\opoldlib.gml &
 $(docsrc_dir)\lg\oponeaut.gml &
 $(docsrc_dir)\lg\oposdoma.gml &
 $(docsrc_dir)\lg\oposname.gml &
+$(docsrc_dir)\lg\oposver.gml &
 $(docsrc_dir)\lg\oppackco.gml &
 $(docsrc_dir)\lg\oppackda.gml &
 $(docsrc_dir)\lg\opprivil.gml &
@@ -1212,8 +1214,6 @@ $(docsrc_dir)\lr\src\atexit.gml &
 $(docsrc_dir)\lr\src\atof.gml &
 $(docsrc_dir)\lr\src\atoi.gml &
 $(docsrc_dir)\lr\src\atol.gml &
-$(docsrc_dir)\lr\src\autosave.24 &
-$(docsrc_dir)\lr\src\autosave.25 &
 $(docsrc_dir)\lr\src\b_disk.gml &
 $(docsrc_dir)\lr\src\b_disk98.gml &
 $(docsrc_dir)\lr\src\b_equi98.gml &
@@ -1392,6 +1392,8 @@ $(docsrc_dir)\lr\src\hcfunmac.gml &
 $(docsrc_dir)\lr\src\header.gml &
 $(docsrc_dir)\lr\src\hfree.gml &
 $(docsrc_dir)\lr\src\hypot.gml &
+$(docsrc_dir)\lr\src\imaxabs.gml &
+$(docsrc_dir)\lr\src\imaxdiv.gml &
 $(docsrc_dir)\lr\src\inp.gml &
 $(docsrc_dir)\lr\src\inpd.gml &
 $(docsrc_dir)\lr\src\inpw.gml &
@@ -1408,6 +1410,7 @@ $(docsrc_dir)\lr\src\isalnum.gml &
 $(docsrc_dir)\lr\src\isalpha.gml &
 $(docsrc_dir)\lr\src\isascii.gml &
 $(docsrc_dir)\lr\src\isatty.gml &
+$(docsrc_dir)\lr\src\isblank.gml &
 $(docsrc_dir)\lr\src\iscntrl.gml &
 $(docsrc_dir)\lr\src\iscsym.gml &
 $(docsrc_dir)\lr\src\iscsymf.gml &
@@ -1680,7 +1683,6 @@ $(docsrc_dir)\lr\src\outpd.gml &
 $(docsrc_dir)\lr\src\outpw.gml &
 $(docsrc_dir)\lr\src\perror.gml &
 $(docsrc_dir)\lr\src\portdesc.gml &
-$(docsrc_dir)\lr\src\posix.doc &
 $(docsrc_dir)\lr\src\pow.gml &
 $(docsrc_dir)\lr\src\printf.gml &
 $(docsrc_dir)\lr\src\printfs.gml &
@@ -1785,7 +1787,6 @@ $(docsrc_dir)\lr\src\strdec.gml &
 $(docsrc_dir)\lr\src\strdup.gml &
 $(docsrc_dir)\lr\src\strerror.gml &
 $(docsrc_dir)\lr\src\strerror.msg &
-$(docsrc_dir)\lr\src\strerror.pp &
 $(docsrc_dir)\lr\src\strerror.qnx &
 $(docsrc_dir)\lr\src\strftime.gml &
 $(docsrc_dir)\lr\src\stricmp.gml &
@@ -1811,9 +1812,11 @@ $(docsrc_dir)\lr\src\strspnp.gml &
 $(docsrc_dir)\lr\src\strstr.gml &
 $(docsrc_dir)\lr\src\strtime.gml &
 $(docsrc_dir)\lr\src\strtod.gml &
+$(docsrc_dir)\lr\src\strtoimx.gml &
 $(docsrc_dir)\lr\src\strtok.gml &
 $(docsrc_dir)\lr\src\strtol.gml &
 $(docsrc_dir)\lr\src\strtoul.gml &
+$(docsrc_dir)\lr\src\strtoumx.gml &
 $(docsrc_dir)\lr\src\structtm.gml &
 $(docsrc_dir)\lr\src\strupr.gml &
 $(docsrc_dir)\lr\src\strxfrm.gml &
@@ -2317,7 +2320,6 @@ $(docsrc_dir)\wd\dlgsrch.bmp &
 $(docsrc_dir)\wd\dlgwopt.bmp &
 $(docsrc_dir)\wd\dlgwopt2.bmp &
 $(docsrc_dir)\wd\symbuttn.gml &
-$(docsrc_dir)\wd\tmp.gml &
 $(docsrc_dir)\wd\wdbg.gml &
 $(docsrc_dir)\wd\wdbgasm.gml &
 $(docsrc_dir)\wd\wdbgbrkp.gml &

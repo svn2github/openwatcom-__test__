@@ -90,9 +90,18 @@ void Initialize( void )
     }
 }
 
-main()
+void OpeningStatement( void )
 {
+    Output( "Open Watcom " );
+    Output( ServName );
+    Output( " Version " _XXXSERV_VERSION_ "\r\n" );
+    Output( banner2( "1988" ) "\r\n" );
+    Output( banner3 "\r\n" );
+    Output( banner3a "\r\n" );
+}
 
+int main()
+{
     char key;
 
     Initialize();
@@ -128,14 +137,5 @@ main()
             SayGNiteGracey( 0 );
         }
     }
-}
-
-void OpeningStatement( void )
-{
-    Output( "Open Watcom " );
-    Output( ServName );
-    Output( " Version " _XXXSERV_VERSION_ "\r\n" );
-    Output( banner2( "1988" ) "\r\n" );
-    Output( banner3 "\r\n" );
-    Output( banner3a "\r\n" );
+    return( 0 );
 }

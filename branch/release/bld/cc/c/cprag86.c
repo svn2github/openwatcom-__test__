@@ -35,11 +35,17 @@
 #include "pragdefn.h"
 #include "pdefn2.h"
 //#include "cg86auxa.h"
-#include "asmsym.h"
+#include "asminlin.h"
 
 extern  void    AsmInit(int, int, int);
 extern  void    AsmLine(char *);
 extern  void    AsmSymFini(void);
+
+local   void    GetParmInfo( void );
+local   void    GetRetInfo( void );
+local   void    GetSTRetInfo( void );
+local   void    GetSaveInfo( void );
+local   int     GetByteSeq( void );
 
 extern  long        Address;
 extern  char       *CodeBuffer;
@@ -453,6 +459,7 @@ static int PtrType( TYPEPTR typ, int flags )
     }
 }
 
+/* matches enum DataType in ctypes.h */
 static enum sym_type AsmDataType[] = {
         SYM_INT1,       /* TYPE_CHAR,*/
         SYM_INT1,       /* TYPE_UCHAR,*/
@@ -462,8 +469,8 @@ static enum sym_type AsmDataType[] = {
         SYM_INT,        /* TYPE_UINT,*/
         SYM_INT4,       /* TYPE_LONG,*/
         SYM_INT4,       /* TYPE_ULONG,*/
-        0,              /* TYPE_LONG64,*/
-        0,              /* TYPE_ULONG64,*/
+        SYM_INT8,       /* TYPE_LONG64,*/
+        SYM_INT8,       /* TYPE_ULONG64,*/
         SYM_FLOAT4,     /* TYPE_FLOAT,*/
         SYM_FLOAT8,     /* TYPE_DOUBLE,*/
         0,              /* TYPE_POINTER,*/
@@ -478,11 +485,19 @@ static enum sym_type AsmDataType[] = {
         0,              /* TYPE_UFIELD,*/
         0,              /* TYPE_DOT_DOT_DOT,*/
         SYM_INT1,       /* TYPE_PLAIN_CHAR,*/
-        0,              /* TYPE_UNUSED,  */
         SYM_INT2,       /* TYPE_WCHAR,  */
+        SYM_FLOAT10,    /* TYPE_LONG_DOUBLE */
+        0,              /* TYPE_FCOMPLEX, */
+        0,              /* TYPE_DCOMPLEX, */
+        0,              /* TYPE_LDCOMPLEX, */
+        SYM_FLOAT4,     /* TYPE_FIMAGINARY, */
+        SYM_FLOAT8,     /* TYPE_DIMAGINARY, */
+        SYM_FLOAT10,    /* TYPE_LDIMAGINARY, */
+        SYM_INT1,       /* TYPE_BOOL, */
+        0,              /* TYPE_UNUSED,  */
 };
 
-local int AsmType( TYPEPTR typ )
+local int AsmType( TYPEPTR typ, int flags )
 {
     while( typ->decl_type == TYPE_TYPEDEF )  typ = typ->object;
     switch( typ->decl_type ) {
@@ -490,12 +505,12 @@ local int AsmType( TYPEPTR typ )
     case TYPE_UNION:
         return( SYM_INT1 );
     case TYPE_ARRAY:
-        return( AsmType( typ->object ) );
+        return( AsmType( typ->object, flags ) );
     case TYPE_FIELD:
     case TYPE_UFIELD:
         return( AsmDataType[ typ->u.f.field_type ] );
     case TYPE_FUNCTION:
-        return( CodePtrType( FLAG_NONE ) );
+        return( CodePtrType( flags ) );
     case TYPE_POINTER:
         return( PtrType( typ->object, typ->u.p.decl_flags ) );
     case TYPE_ENUM:
@@ -514,7 +529,7 @@ enum sym_type AsmQueryType( char *name )
     sym_handle = SymLook( CalcHash( name, strlen( name ) ), name );
     if( sym_handle == 0 ) return( SYM_INT1 );
     SymGet( &sym, sym_handle );
-    return( AsmType( sym.sym_type ) );
+    return( AsmType( sym.sym_type, sym.attrib ) );
 }
 
 static int InsertFixups( unsigned char *buff, unsigned i )
@@ -538,19 +553,22 @@ static int InsertFixups( unsigned char *buff, unsigned i )
     unsigned            skip;
     int                 mutate_to_segment;
     int                 uses_auto;
+#if _CPU == 8086
+    int                 fixup_padding;
+#endif
 
     uses_auto = 0;
     perform_fixups = 0;
     head = FixupHead;
     if( head != NULL ) {
         FixupHead = NULL;
-        /* sort the fixup list in increasing fix_loc's */
+        /* sort the fixup list in increasing fixup_loc's */
         for( fix = head; fix != NULL; fix = next ) {
             owner = &FixupHead;
             for( ;; ) {
                 chk = *owner;
                 if( chk == NULL ) break;
-                if( chk->fix_loc > fix->fix_loc ) break;
+                if( chk->fixup_loc > fix->fixup_loc ) break;
                 owner = &chk->next;
             }
             next = fix->next;
@@ -564,7 +582,7 @@ static int InsertFixups( unsigned char *buff, unsigned i )
         owner = &FixupHead;
         /* insert fixup escape sequences */
         while( src < end ) {
-            if( fix != NULL && fix->fix_loc == (src - buff) ) {
+            if( fix != NULL && fix->fixup_loc == (src - buff) ) {
                 name = fix->name;
                 if( name != NULL ) {
                     sym_handle = SymLook( CalcHash( name, strlen( name ) ),
@@ -589,7 +607,10 @@ static int InsertFixups( unsigned char *buff, unsigned i )
                 skip = 0;
                 *dst++ = FLOATING_FIXUP_BYTE;
                 mutate_to_segment = 0;
-                switch( fix->fix_type ) {
+#if _CPU == 8086
+                fixup_padding = 0;
+#endif
+                switch( fix->fixup_type ) {
                 case FIX_SEG:
                     if( name == NULL ) {
                         /* special case for floating point fixup */
@@ -611,6 +632,9 @@ static int InsertFixups( unsigned char *buff, unsigned i )
                 case FIX_RELOFF32:
                     skip = 4;
                     cg_fix = FIX_SYM_RELOFF;
+#if _CPU == 8086
+                    fixup_padding = 1;
+#endif
                     break;
                 case FIX_PTR16:
                     mutate_to_segment = 1;
@@ -625,6 +649,9 @@ static int InsertFixups( unsigned char *buff, unsigned i )
                 case FIX_OFF32:
                     skip = 4;
                     cg_fix = FIX_SYM_OFFSET;
+#if _CPU == 8086
+                    fixup_padding = 1;
+#endif
                     break;
                 }
                 if( skip != 0 ) {
@@ -635,6 +662,15 @@ static int InsertFixups( unsigned char *buff, unsigned i )
                     dst += sizeof( long );
                     src += skip;
                 }
+#if _CPU == 8086
+                if( fixup_padding ) {
+                    // add offset fixup padding to 32-bit
+                    // cg create only 16-bit offset fixup
+                    *dst++ = 0;
+                    *dst++ = 0;
+                    //
+                }
+#endif
                 if( mutate_to_segment ) {
                     /*
                         Since the CG escape sequences don't allow for
@@ -643,8 +679,8 @@ static int InsertFixups( unsigned char *buff, unsigned i )
                         mutating the fixup structure to look like a segment
                         fixup one near pointer size later.
                     */
-                    fix->fix_type = FIX_SEG;
-                    fix->fix_loc += skip;
+                    fix->fixup_type = FIX_SEG;
+                    fix->fixup_loc += skip;
                     fix->offset = 0;
                 } else {
                     head = fix;
@@ -688,10 +724,10 @@ local void AddAFix( unsigned i, char *name, unsigned type, unsigned long off )
 
     fix = (struct asmfixup *)CMemAlloc( sizeof( *fix ) );
     fix->external = 1;
-    fix->fix_loc = i;
+    fix->fixup_loc = i;
     fix->name = name;
     fix->offset = off;
-    fix->fix_type = type;
+    fix->fixup_type = type;
     fix->next = FixupHead;
     FixupHead = fix;
 }
@@ -709,7 +745,7 @@ local void FreeAsmFixups()
 }
 
 
-local int GetByteSeq()
+local int GetByteSeq( void )
 {
     auto unsigned char  buff[ MAXIMUM_BYTESEQ + 32 ];
     int                 i;
@@ -855,7 +891,7 @@ hw_reg_set PragRegName( char *str )
 
 
 
-local void GetParmInfo()
+local void GetParmInfo( void )
 {
     struct {
         unsigned f_pop           : 1;
@@ -896,7 +932,7 @@ local void GetParmInfo()
 }
 
 
-local void GetRetInfo()
+local void GetRetInfo( void )
 {
     struct {
         unsigned f_no8087        : 1;
@@ -927,7 +963,7 @@ local void GetRetInfo()
 }
 
 
-local void GetSTRetInfo()
+local void GetSTRetInfo( void )
 {
     struct {
         unsigned f_float        : 1;
@@ -964,7 +1000,7 @@ local void GetSTRetInfo()
 }
 
 
-local void GetSaveInfo()
+local void GetSaveInfo( void )
 {
     hw_reg_set  modlist;
     hw_reg_set  default_flt_n_seg;

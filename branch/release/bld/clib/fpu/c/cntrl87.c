@@ -39,7 +39,8 @@ extern  void    __fldcw();
 
 #if defined(__WINDOWS__) && !defined(__WINDOWS_386__)
 
-extern __far _fpmath;
+extern void __far _fpmath();
+#pragma aux _fpmath "__fpmath";
 
 void __win87em_fldcw(unsigned int);
 #pragma aux __win87em_fldcw = \

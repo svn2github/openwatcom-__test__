@@ -24,31 +24,74 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Convert C statements to expression trees.
 *
 ****************************************************************************/
 
 
 #include "cvars.h"
 
+typedef struct block_entry {
+    struct block_entry  *prev_block;
+    struct block_entry  *prev_loop;
+    int         block_type;
+    int         top_label;
+    int         break_label;
+    int         continue_label;
+    int         try_index;      /* TRY: current index */
+    int         parent_index;   /* TRY: parent index */
+    TREEPTR     inc_var;        /* variable used in FOR statement */
+    SYM_HANDLE  sym_list;       /* symbols defined in this block */
+} BLOCKDEFN, *BLOCKPTR;
+
 // values for return_type
 enum return_with {
-    RETURN_WITH_NONE      =0,
-    RETURN_WITH_NO_EXPR   =1,
-    RETURN_WITH_EXPR =2,
-};
-struct  return_info {
-    enum  return_with  with;
-    bool               with_expr;
+    RETURN_WITH_NONE    = 0,
+    RETURN_WITH_NO_EXPR = 1,
+    RETURN_WITH_EXPR    = 2,
 };
 
-extern int             NodeCount;
-TREEPTR         FirstStmt;
-TREEPTR         LastStmt;
-TREEPTR         CurFuncNode;
-int             LabelIndex;
-SYM_LISTS       *SymListHeads;
+struct return_info {
+    enum return_with    with;
+    bool                with_expr;
+};
+
+extern int          NodeCount;
+TREEPTR             CurFuncNode;
+int                 LabelIndex;
+SYM_LISTS           *SymListHeads;
+
+static TREEPTR      LastStmt;
+static BLOCKPTR     BlockStack;
+static BLOCKPTR     LoopStack;
+static SWITCHPTR    SwitchStack;
+
+void ChkStmtExpr( void );
+static void EndOfStmt( void );
+static void LeftBrace( void );
+static void BreakStmt( void );
+static void LeaveStmt( void );
+static void ContinueStmt( void );
+static void DropBreakLabel( void );
+static void DropContinueLabel( void );
+static void DefaultStmt( void );
+static void ElseStmt( void );
+static void GotoStmt( void );
+static void ForStmt( void );
+static void EndForStmt( void );
+static void StmtExpr( void );
+static void ChkUseful( void );
+static void CaseStmt( void );
+static void TryStmt( void );
+static int EndTry( void );
+static void UnWindTry( int try_scope );
+static void NewLoop( void );
+static void startNewBlock( void );
+static void PopBlock( void );
+static void SwitchStmt( void );
+static void EndSwitch( void );
+static void JumpCond( TREEPTR expr, LABEL_INDEX label, int jump_opcode,
+                      int jump_opposite );
 
 void StmtInit( void ){
     FirstStmt = NULL;
@@ -63,6 +106,34 @@ void ChkStringLeaf( TREEPTR leaf )
     }
 }
 
+SYM_HANDLE GetBlockSymList( void )
+{
+    return( BlockStack->sym_list );
+}
+
+void InitStmt( void )
+{
+    BlockStack  = NULL;
+    LoopStack   = NULL;
+    SwitchStack = NULL;
+}
+
+void SwitchPurge()
+{
+    SWITCHPTR   sw;
+    CASEPTR     c_entry, c_tmp;
+
+    while( (sw = SwitchStack) ) {
+        SwitchStack = sw->prev_switch;
+        c_entry = sw->case_list;
+        while( c_entry != NULL ) {
+            c_tmp = c_entry->next_case;
+            CMemFree( c_entry );
+            c_entry = c_tmp;
+        }
+        CMemFree( sw );
+    }
+}
 
 void AddStmt( TREEPTR stmt )
 {
@@ -97,7 +168,7 @@ void GenFunctionNode( SYM_HANDLE sym_handle )
     sym = SymGetPtr( sym_handle );
     tree->op.func.sym_handle = sym_handle;
     tree->op.func.flags = FUNC_NONE;
-    if( Toggles & TOGGLE_INLINE | sym->attrib & FLAG_INLINE ){
+    if( ( Toggles & TOGGLE_INLINE ) | ( sym->attrib & FLAG_INLINE ) ){
         if( !sym->naked ){
             if( strcmp( sym->name, "main" ) != 0 ) {
                 tree->op.func.flags |= FUNC_OK_TO_INLINE;
@@ -107,6 +178,8 @@ void GenFunctionNode( SYM_HANDLE sym_handle )
     tree->op.flags = OpFlags( sym->attrib );
     tree->expr_type = sym->sym_type->object;    // function return type
     AddStmt( tree );
+    // Evil, evil globals! But we need this for later lookups in cgen2.c
+    sym->u.func.start_of_func = LastStmt;
     CurFuncNode = tree;
     NodeCount = 0;
 }
@@ -139,7 +212,7 @@ static TREEPTR BracketExpr()
 }
 
 
-static Jump( LABEL_INDEX label )
+static void Jump( LABEL_INDEX label )
 {
     TREEPTR     tree;
 
@@ -202,7 +275,7 @@ static void JumpCond( TREEPTR expr,
 }
 
 
-void LookAhead(void)
+void LookAhead( void )
 {
     SavedId = CStrSave( Buffer );        /* save current id */
     SavedHash = HashValue;              /* and its hash value */
@@ -304,16 +377,11 @@ static void ChkRetValue()
     TYPEPTR     typ;
 
     typ = CurFunc->sym_type;
-    if( CurFunc->flags & SYM_TYPE_GIVEN ) {
-        typ = typ->object;
-        while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
-        if( typ->decl_type != TYPE_VOID ) {
-            CWarn( WARN_MISSING_RETURN_VALUE,
-                    ERR_MISSING_RETURN_VALUE, CurFunc->name );
-        }
-    } else {  //default is type_int make void to catch bad use
-        CurFunc->sym_type = FuncNode( GetType( TYPE_VOID ),
-                                    FLAG_NONE, typ->u.parms );
+    typ = typ->object;
+    while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
+    if( typ->decl_type != TYPE_VOID ) {
+        CWarn( WARN_MISSING_RETURN_VALUE,
+                ERR_MISSING_RETURN_VALUE, CurFunc->name );
     }
 }
 
@@ -348,7 +416,7 @@ static void DeadMsg( void ){
     DeadCode = 2;   /* so we don't get more messages */
 }
 
-void Statement(void)
+void Statement( void )
 {
     LABEL_INDEX        end_of_func_label;
     SYM_HANDLE         func_result;
@@ -583,7 +651,7 @@ void Statement(void)
 }
 
 
-static void EndOfStmt()
+static void EndOfStmt( void )
 {
     do {
         switch( BlockStack->block_type ) {
@@ -649,7 +717,7 @@ static void EndOfStmt()
 }
 
 
-static void LeftBrace()
+static void LeftBrace( void )
 {
     TREEPTR     tree;
     TREEPTR     first_stmt;
@@ -698,7 +766,7 @@ static void JumpBreak( BLOCKPTR block )
     }
 }
 
-static void BreakStmt()
+static void BreakStmt( void )
 {
     BLOCKPTR    block;
     int         try_scope;
@@ -727,7 +795,7 @@ static void BreakStmt()
 }
 
 #ifdef __SEH__
-static void LeaveStmt()
+static void LeaveStmt( void )
 {
     BLOCKPTR    block;
 
@@ -746,7 +814,7 @@ static void LeaveStmt()
 }
 #endif
 
-static void ContinueStmt()
+static void ContinueStmt( void )
 {
     BLOCKPTR    block;
     int         try_scope;
@@ -776,14 +844,14 @@ static void ContinueStmt()
     MustRecog( T_SEMI_COLON );
 }
 
-static void DropBreakLabel()
+static void DropBreakLabel( void )
 {
     if( BlockStack->break_label != 0 ) {        /* 05-apr-92 */
         DropLabel( BlockStack->break_label );
     }
 }
 
-static void DropContinueLabel()
+static void DropContinueLabel( void )
 {
     if( BlockStack->continue_label != 0 ) {
         DropLabel( BlockStack->continue_label );
@@ -791,7 +859,7 @@ static void DropContinueLabel()
 }
 
 
-static void DefaultStmt()
+static void DefaultStmt( void )
 {
     NextToken();
     MustRecog( T_COLON );
@@ -811,7 +879,7 @@ static void DefaultStmt()
 }
 
 
-static void ElseStmt()
+static void ElseStmt( void )
 {
     LABEL_INDEX if_label;
 
@@ -830,7 +898,7 @@ static void ElseStmt()
 }
 
 
-static void GotoStmt()
+static void GotoStmt( void )
 {
     LABELPTR    label;
 
@@ -847,7 +915,7 @@ static void GotoStmt()
 }
 
 
-static void ForStmt()
+static void ForStmt( void )
 {
     NextToken();
     MustRecog( T_LEFT_PAREN );
@@ -872,7 +940,7 @@ static void ForStmt()
     MustRecog( T_RIGHT_PAREN );
 }
 
-static void EndForStmt()
+static void EndForStmt( void )
 {
     DropContinueLabel();
     if( BlockStack->inc_var ) {
@@ -882,7 +950,7 @@ static void EndForStmt()
 }
 
 
-static void StmtExpr()
+static void StmtExpr( void )
 {
     ChkStmtExpr();
     switch( CurToken ) {
@@ -910,7 +978,7 @@ static void StmtExpr()
 }
 
 
-void ChkStmtExpr()
+void ChkStmtExpr( void )
 {
     TREEPTR     tree;
 
@@ -925,7 +993,7 @@ void ChkStmtExpr()
 }
 
 
-static void ChkUseful()
+static void ChkUseful( void )
 {
     if( CompFlags.useful_side_effect ) {
         CWarn1( WARN_USEFUL_SIDE_EFFECT, ERR_USEFUL_SIDE_EFFECT );
@@ -986,7 +1054,7 @@ static void AddCaseLabel( unsigned long value )
 }
 
 
-static void CaseStmt()
+static void CaseStmt( void )
 {
     const_val val;
     NextToken();
@@ -1021,7 +1089,7 @@ static void MarkTryVolatile( SYM_HANDLE sym_handle )
     }
 }
 
-static void TryStmt()
+static void TryStmt( void )
 {
     TREEPTR     tree;
 
@@ -1042,7 +1110,7 @@ static void TryStmt()
     AddStmt( tree );
 }
 
-static SYM_HANDLE DummyTrySymbol()
+static SYM_HANDLE DummyTrySymbol( void )
 {
     SYM_ENTRY   sym;
     SYM_HANDLE  sym_handle;
@@ -1052,7 +1120,7 @@ static SYM_HANDLE DummyTrySymbol()
     return( sym_handle );
 }
 
-static int EndTry()
+static int EndTry( void )
 {
     int         parent_scope;
     TREEPTR     expr;
@@ -1125,7 +1193,7 @@ static void UnWindTry( int try_scope )
 #endif
 }
 
-static void NewLoop()
+static void NewLoop( void )
 {
     startNewBlock();
     LoopStack = BlockStack;
@@ -1135,7 +1203,7 @@ static void NewLoop()
 }
 
 
-static void startNewBlock()
+static void startNewBlock( void )
 {
     BLOCKPTR    block;
 
@@ -1150,7 +1218,7 @@ static void startNewBlock()
 }
 
 
-static void PopBlock()
+static void PopBlock( void )
 {
     BLOCKPTR    block;
     TREEPTR     tree;
@@ -1168,7 +1236,7 @@ static void PopBlock()
 }
 
 
-static void SwitchStmt()
+static void SwitchStmt( void )
 {
     SWITCHPTR   sw;
     TREEPTR     tree;
@@ -1221,7 +1289,7 @@ static void SwitchStmt()
 }
 
 
-static void EndSwitch()
+static void EndSwitch( void )
 {
     SWITCHPTR   sw;
 //    CASEPTR   ce;
@@ -1248,19 +1316,3 @@ static void EndSwitch()
 #endif
 //    FlushScoreBoard();
 }
-
-#if 0
-
-void PurgeBlockStack()
-{
-    BLOCKPTR block;
-
-    block = BlockStack;
-    while( block != NULL ) {
-        BlockStack = block->prev_block;
-        CMemFree( block );
-        block = BlockStack;
-    }
-    LoopStack = NULL;
-}
-#endif

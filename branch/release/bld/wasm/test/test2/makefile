@@ -11,6 +11,7 @@ bitwise &
 bunk &
 c &
 dasm &
+data &
 dup &
 enter &
 fadd &
@@ -25,6 +26,7 @@ jnk &
 label &
 new &
 old1 &
+old2 &
 ptrtest &
 reljmp &
 reljmp16 &
@@ -33,12 +35,17 @@ struct &
 stupid &
 t &
 t01 &
+t02 &
 t03 &
+t04 &
+t05 &
 t06 &
 t07 &
 t08 &
 t09 &
 t10 &
+t11 &
+t12 &
 t13 &
 t14 &
 t15 &
@@ -68,18 +75,11 @@ t38 &
 t39 &
 t51 &
 test &
-timer
+timer &
+tmp
 
 dev_objs = &
-data &
-old2 &
 set386 &
-setjmp &
-t02 &
-t04 &
-t05 &
-t11 &
-t12 &
-tmp
+setjmp
 
 !include ../test.mif

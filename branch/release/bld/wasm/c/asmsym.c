@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  symbol manipulation routines
 *
 ****************************************************************************/
 
@@ -48,37 +47,32 @@
 #include "myassert.h"
 #include "directiv.h"
 
-#else
-
-struct asm_sym  *AsmSymHead;
-
-#endif
-
-extern void     AsmError( int );
-
-
-
-static unsigned short CvtTable[] = {
-    MT_BYTE,
-    MT_WORD,
-    MT_DWORD,
-    MT_DWORD,    /* should be T_PWORD, T_FWORD */
-    MT_DWORD,
-    MT_QWORD,
-    MT_TBYTE,
-    MT_NEAR,
-    MT_NEAR,
-    MT_FAR,
-    MT_FAR,
-};
-
-#ifdef _WASM_
-
 #include "hash.h"
 struct asm_sym *sym_table[ HASH_TABLE_SIZE ] = { NULL };
 /* initialize the whole table to null pointers */
 
+#else
+
+struct asm_sym  *AsmSymHead;
+
+static unsigned short CvtTable[] = {
+    T_BYTE,   // INT1
+    T_WORD,   // INT2
+    T_DWORD,  // INT4
+    T_FWORD,  // INT6
+    T_QWORD,  // INT8
+    T_DWORD,  // FLOAT4
+    T_QWORD,  // FLOAT8
+    T_TBYTE,  // FLOAT10
+    T_NEAR,   // NEAR2
+    T_NEAR,   // NEAR4
+    T_FAR,    // FAR2
+    T_FAR,    // FAR4
+};
+
 #endif
+
+extern void     AsmError( int );
 
 char *InitAsmSym( struct asm_sym *sym, char *name )
 /************************************************/
@@ -87,8 +81,6 @@ char *InitAsmSym( struct asm_sym *sym, char *name )
     if( sym->name != NULL ) {
         strcpy( sym->name, name );
         sym->next = NULL;
-        sym->state = SYM_UNDEFINED;
-        sym->mem_type = MT_EMPTY;
         sym->fixup = NULL;
 #ifdef _WASM_
         sym->grpidx = 0;
@@ -100,8 +92,16 @@ char *InitAsmSym( struct asm_sym *sym, char *name )
         sym->total_size = 0;
         sym->total_length = 0;
         sym->mangler = NULL;
+        sym->state = SYM_UNDEFINED;
+        sym->mem_type = EMPTY;
 #else
         sym->addr = 0;
+        sym->state = AsmQueryExternal( sym->name );
+        if( sym->state == SYM_UNDEFINED ) {
+            sym->mem_type = EMPTY;
+        } else {
+            sym->mem_type = CvtTable[ AsmQueryType( sym->name ) ];
+        }
 #endif
     }
     return( sym->name );
@@ -137,12 +137,12 @@ struct asm_sym **AsmFind( char *name )
 /* find a symbol in the symbol table, return NULL if not found */
 {
     struct asm_sym      **sym;
-    #ifdef _WASM_
-        sym = &sym_table[ hashpjw( name ) ];
-    #else
-        sym = &AsmSymHead;
-    #endif
 
+#ifdef _WASM_
+    sym = &sym_table[ hashpjw( name ) ];
+#else
+    sym = &AsmSymHead;
+#endif
     for( ; *sym; sym = &((*sym)->next) ) {
         if( stricmp( name, (*sym)->name ) == 0 ) return( sym );
     }
@@ -154,7 +154,6 @@ struct asm_sym *AsmLookup( char *name )
 {
     struct asm_sym      **sym_ptr;
     struct asm_sym      *sym;
-    char                is_current_loc = FALSE;
 
     if( strlen( name ) > MAX_ID_LEN ) {
         AsmError( LABEL_TOO_LONG );
@@ -162,40 +161,31 @@ struct asm_sym *AsmLookup( char *name )
     }
 
     sym_ptr = AsmFind( name );
+    sym = *sym_ptr;
+    if( sym != NULL ) {
 #ifdef _WASM_
-    if( strcmp( name, "$" ) ==  0 ) {
-        is_current_loc = TRUE;
         /* current address operator */
-        if( *sym_ptr != NULL ) {
-            GetSymInfo( *sym_ptr );
-        }
-    }
+        if( strcmp( name, "$" ) ==  0 )
+            GetSymInfo( sym );
 #endif
-    if( *sym_ptr != NULL ) return( *sym_ptr );
+        return( sym );
+    }
 
     sym = AllocASym( name );
     if( sym != NULL ) {
         sym->next = *sym_ptr;
         *sym_ptr = sym;
 
-#ifndef _WASM_
-        sym->addr = Address;
-#else
-        if( is_current_loc ) {
+#ifdef _WASM_
+        if( strcmp( name, "$" ) ==  0 ) {
             GetSymInfo( sym );
             sym->state = SYM_INTERNAL;
-            sym->mem_type = MT_NEAR;
-        }
-#endif
-        if( is_current_loc ) {
+            sym->mem_type = T_NEAR;
             return( sym );
         }
-        sym->state = AsmQueryExternal( name );
-        if( sym->state == SYM_UNDEFINED ) {
-            sym->mem_type = MT_EMPTY;
-        } else {
-            sym->mem_type = CvtTable[ AsmQueryType( name ) ];
-        }
+#else
+        sym->addr = Address;
+#endif
     } else {
         AsmError( NO_MEMORY );
     }
@@ -258,18 +248,6 @@ struct asm_sym *AsmAdd( struct asm_sym *sym )
 
     sym->next = *location;
     *location = sym;
-    sym->fixup = NULL;
-#ifdef _WASM_
-    sym->offset = 0;
-    sym->public = FALSE;
-    sym->mangler = NULL;
-#endif
-    sym->state = AsmQueryExternal( sym->name );
-    if( sym->state == SYM_UNDEFINED ) {
-        sym->mem_type = MT_EMPTY;
-    } else {
-        sym->mem_type = CvtTable[ AsmQueryType( sym->name ) ];
-    }
     return( sym );
 }
 
@@ -312,6 +290,10 @@ void AsmSymFini()
     FreeAliasQueue();
     FreeLnameQueue();
 
+#if defined( _WASM_ ) && defined( DEBUG_OUT )
+    DumpASym();
+#endif
+
     /* now free the symbol table */
     for( i = 0; i < HASH_TABLE_SIZE; i++ ) {
         struct asm_sym  *next;
@@ -343,3 +325,123 @@ void AsmSymFini()
     }
 #endif
 }
+
+#if defined( _WASM_ ) && defined( DEBUG_OUT )
+
+static void DumpSymbol( struct asm_sym *sym )
+{
+    dir_node    *dir;
+    char        *type;
+    char        value[512];
+
+    dir = (dir_node *)sym;
+    *value = 0;
+    switch( sym->state ) {
+    case SYM_SEG:
+        type = "SEGMENT";
+//        dir->e.seginfo->lname_idx = 0;
+//        dir->e.seginfo->grpidx = 0;
+//        dir->e.seginfo->segrec = NULL;
+        break;
+    case SYM_GRP:
+        type = "GROUP";
+//        dir->e.grpinfo = AsmAlloc( sizeof( grp_info ) );
+//        dir->e.grpinfo->idx = grpdefidx;
+//        dir->e.grpinfo->seglist = NULL;
+//        dir->e.grpinfo->numseg = 0;
+//        dir->e.grpinfo->lname_idx = 0;
+        break;
+    case SYM_EXTERNAL:
+        type = "EXTERNAL";
+//        dir->e.extinfo = AsmAlloc( sizeof( ext_info ) );
+//        dir->e.extinfo->idx = ++extdefidx;
+//        dir->e.extinfo->use32 = Use32;
+//        dir->e.extinfo->comm = 0;
+        break;
+//    case TAB_COMM:
+//        sym->state = SYM_EXTERNAL;
+//        dir->e.comminfo = AsmAlloc( sizeof( comm_info ) );
+//        dir->e.comminfo->idx = ++extdefidx;
+//        dir->e.comminfo->use32 = Use32;
+//        dir->e.comminfo->comm = 1;
+//        break;
+    case SYM_CONST:
+        type = "CONSTANT";
+//        dir->e.constinfo = AsmAlloc( sizeof( const_info ) );
+//        dir->e.constinfo->data = NULL;
+//        dir->e.constinfo->count = 0;
+        break;
+    case SYM_PROC:
+        type = "PROCEDURE";
+//        dir->e.procinfo = AsmAlloc( sizeof( proc_info ) );
+//        dir->e.procinfo->regslist = NULL;
+//        dir->e.procinfo->paralist = NULL;
+//        dir->e.procinfo->locallist = NULL;
+        break;
+    case SYM_MACRO:
+        type = "MACRO";
+//        dir->e.macroinfo = AsmAlloc( sizeof( macro_info ) );
+//        dir->e.macroinfo->parmlist = NULL;
+//        dir->e.macroinfo->data = NULL;
+//        dir->e.macroinfo->filename = NULL;
+//        dir->e.macroinfo->start_line = LineNumber;
+        break;
+    case SYM_CLASS_LNAME:
+        type = "CLASS";
+        break;
+    case SYM_LNAME:
+        type = "LNAME";
+//        dir->e.lnameinfo = AsmAlloc( sizeof( lname_info ) );
+//        dir->e.lnameinfo->idx = ++LnamesIdx;
+        break;
+//    case TAB_PUB:
+//        sym->public = TRUE;
+//        return;
+//    case TAB_GLOBAL:
+//        break;
+    case SYM_STRUCT:
+        type = "STRUCTURE";
+//        dir->e.structinfo = AsmAlloc( sizeof( struct_info ) );
+//        dir->e.structinfo->size = 0;
+//        dir->e.structinfo->alignment = 0;
+//        dir->e.structinfo->head = NULL;
+//        dir->e.structinfo->tail = NULL;
+        break;
+    case SYM_STRUCT_FIELD:
+        type = "STRUCTURE FIELD";
+        break;
+    case SYM_LIB:
+        type = "LIBRARY";
+        break;
+    case SYM_UNDEFINED:
+        type = "UNDEFINED";
+        break;
+    case SYM_INTERNAL:
+        type = "INTERNAL";
+        break;
+    default:
+        type = "UNKNOWN";
+        break;
+    }
+    DoDebugMsg( "%-30s\t%s\t%8X\t%s\n", sym->name, type, sym->offset, value );
+}
+
+void DumpASym( void )
+{
+    struct asm_sym      *sym;
+    unsigned            i;
+
+    DoDebugMsg( "\n" );
+    for( i = 0; i < HASH_TABLE_SIZE; i++ ) {
+        struct asm_sym  *next;
+        next = sym_table[i];
+        for( ;; ) {
+            sym = next;
+            if( sym == NULL ) break;
+            next = sym->next;
+            DumpSymbol( sym );
+        }
+    }
+}
+
+#endif

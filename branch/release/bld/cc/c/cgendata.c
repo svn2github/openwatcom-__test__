@@ -40,6 +40,7 @@
 #include "standard.h"
 #include "cgprotos.h"
 
+static void EmitDQuad( DATA_QUAD *dq );
 
 void EmitZeros( unsigned long amount )
 {
@@ -82,7 +83,7 @@ void EmitDataQuads()
     }
 }
 
-void EmitDQuad( DATA_QUAD *dq )
+static void EmitDQuad( DATA_QUAD *dq )
 {
     cg_type             data_type;
     int                 size_of_item;
@@ -191,6 +192,10 @@ void EmitDQuad( DATA_QUAD *dq )
 //      DGFloat( Buffer, TY_DOUBLE );
         DGBytes( sizeof(double), (char *)&dq->u.double_value );
         size += sizeof( double );
+        break;
+    case T_LONG_DOUBLE:
+        DGBytes( sizeof(long_double), (char *)&dq->u.long_double_value );
+        size += sizeof( long_double );
         break;
     case T_STRING:
         EmitStrPtr( dq->u.string_leaf, data_type );

@@ -126,6 +126,17 @@ extern brk              UserTmpBrk;
 
 static int              InCall = 0;
 
+static void NoCRLF( char *str )
+/*****************************/
+{
+    char *p;
+
+    for( p = str; *p != '\0'; ++p ) {
+        if( *p == '\r' ) *p = ' ';
+        if( *p == '\n' ) *p = ' ';
+    }
+}
+
 void SetProgState( unsigned run_conditions )
 {
     ReadDbgRegs();
@@ -181,6 +192,7 @@ bool SetMsgText( char *message, unsigned *conditions )
     char        *equal,*comma1,*comma2;
     address     addr,buff_addr;
     long        buff_len,sym_len;
+    long        num_returns;
     cmd_list    *cmds;
 
     if( memcmp( message, DEBUGGER_THREADID_COMMAND,
@@ -263,6 +275,14 @@ bool SetMsgText( char *message, unsigned *conditions )
         NoCRLF( message );
         SymUserModUnload( message );
         return( FALSE );
+    } else if( memcmp( message, DEBUGGER_BREAKRETURN_COMMAND,
+                sizeof( DEBUGGER_BREAKRETURN_COMMAND )-1 ) == 0 ) {
+        message += sizeof( DEBUGGER_BREAKRETURN_COMMAND )-1;
+        NoCRLF( message );
+        if( !DlgScanLong( message, &num_returns ) )
+            return( TRUE );
+        // TODO: do something with num_returns value
+        return( FALSE );
     } else {
         AddMessageText( message );
         return( TRUE );
@@ -329,22 +349,22 @@ unsigned ExecProg( bool tracing, bool do_flip, bool want_wps )
                 how = TraceHow( FALSE );
             } else {
                 _SwitchOn( SW_EXECUTE_LONG );
-                how = MTH_BREAK;
+                how = MTRH_BREAK;
             }
             break;
         case ES_STEP_ONE:
             how = TraceHow( TRUE );
             break;
         }
-        if( how == MTH_STOP ) break;
+        if( how == MTRH_STOP ) break;
         switch( how ) {
-        case MTH_BREAK:
+        case MTRH_BREAK:
             DbgUpdate( UP_CSIP_JUMPED );
             _SwitchOn( SW_TOUCH_SCREEN_BUFF );
             /* fall through */
-        case MTH_SIMULATE:
-        case MTH_STEP:
-        case MTH_STEPBREAK:
+        case MTRH_SIMULATE:
+        case MTRH_STEP:
+        case MTRH_STEPBREAK:
             if( _IsOff( SW_TOUCH_SCREEN_BUFF ) ) break;
             /* fall through */
         default:
@@ -361,7 +381,7 @@ unsigned ExecProg( bool tracing, bool do_flip, bool want_wps )
         }
         have_brk_at_ip = InsertBPs( (es == ES_FORCE_BREAK) );
         act_wps = UpdateWPs();
-        if( how == MTH_BREAK ) {
+        if( how == MTRH_BREAK ) {
             if( have_brk_at_ip ) {
                 es = ES_STEP_ONE;
                 RemoveBPs();
@@ -374,13 +394,13 @@ unsigned ExecProg( bool tracing, bool do_flip, bool want_wps )
 
         SetMemBefore( tracing );
         switch( how ) {
-        case MTH_SIMULATE:
+        case MTRH_SIMULATE:
             if( TraceSimulate() ) {
                 conditions = COND_TRACE;
                 break;
             }
             /* fall through */
-        case MTH_STEP:
+        case MTRH_STEP:
             /* only updates stack/execution */
             conditions = MakeProgRun( TRUE );
             break;
@@ -409,7 +429,7 @@ unsigned ExecProg( bool tracing, bool do_flip, bool want_wps )
         if( _IsOn( SW_BREAK_ON_DEBUG_MESSAGE ) && ( conditions & COND_MESSAGE ) ) {
             conditions |= COND_STOP;
         }
-        if( how == MTH_STEPBREAK && (conditions & COND_BREAK) && DbgTmpBrk.status.b.hit ) {
+        if( how == MTRH_STEPBREAK && (conditions & COND_BREAK) && DbgTmpBrk.status.b.hit ) {
             conditions &= ~COND_BREAK;
             conditions |= COND_TRACE;
         }
@@ -465,17 +485,6 @@ unsigned ExecProg( bool tracing, bool do_flip, bool want_wps )
     return( conditions );
 }
 
-
-static void NoCRLF( char *str )
-/*****************************/
-{
-    char *p;
-
-    for( p = str; *p != '\0'; ++p ) {
-        if( *p == '\r' ) *p = ' ';
-        if( *p == '\n' ) *p = ' ';
-    }
-}
 
 static void DisplayMsgText()
 /**************************/

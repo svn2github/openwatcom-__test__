@@ -20,7 +20,6 @@ common_objs = &
         cmsg.obj &
         cname.obj &
         coptions.obj &
-        cpageio.obj &
         caux.obj &
         cpragma.obj &
         cpurge.obj &
@@ -38,9 +37,6 @@ common_objs = &
         strsave.obj &
         swchar.obj &
         watcom.obj &
-!ifndef bootstrap
-        cmatherr.obj &
-!endif
         cgetch.obj &
         cmacadd.obj &
         asmalloc.obj &
@@ -51,10 +47,7 @@ common_objs = &
         browsio.obj  &
         intlload.obj  &
         autodept.obj  &
-        $(inline_objs)
-
-
-cc_objs_tree = &
+        $(inline_objs) &
         cexpr2.obj &
         cfold2.obj &
         cmath2.obj &
@@ -65,7 +58,7 @@ cc_objs_tree = &
         treewalk.obj
 
 !ifeq release 0
-cc_objs_tree += cfedump.obj
+common_objs += cfedump.obj
 !endif
 
 cc_objs_i86 = cprag86.obj pragi86.obj
@@ -74,45 +67,21 @@ cc_objs_axp = cpragaxp.obj pragaxp.obj
 cc_objs_ppc = cpragppc.obj pragppc.obj
 cc_objs_sparc = cpragspc.obj pragspc.obj stubspc.obj
 
-cc_objs_i86_tree =
-# fast code generator
-# cc_objs_386_tree = cgen386.obj
-cc_objs_386_tree =
-cc_objs_axp_tree =
-
 cc_objs = &
-        slackdat.obj &
         cdata.obj &
         cintmain.obj &
         $(common_objs) &
-        $(cc_objs_$(cc_version)) &
-        $(cc_objs_$(target_CPU)) &
-        $(cc_objs_$(target_CPU)_$(cc_version)) &
-        cstats.obj &
-        slack2.obj
-cr_objs = &
-        slackdat.obj &
-        cdata.cbj &
-        cintmain.obj &
-        $(common_objs) &
-        $(cc_objs_$(cc_version)) &
-        $(cc_objs_$(target_CPU)) &
-        cstats.cbj &
-        slack2.obj
+        $(cc_objs_$(target_cpu)) &
+        cstats.obj
 dll_objs = &
-        slackdat.obj &
         cdata.obj &
         idedll.obj &
         idemsgpr.obj &
         $(common_objs) &
-        $(cc_objs_$(cc_version)) &
-        $(cc_objs_$(target_CPU)) &
-        $(cc_objs_$(target_CPU)_$(cc_version)) &
-        cstats.obj &
-        slack2.obj
-#dll_objs += ntent.obj
+        $(cc_objs_$(target_cpu)) &
+        cstats.obj
 dlldrv_obj = &
-            idedrv.obj &
-            idemsgfm.obj &
-            idemsgpr.obj &
-            wccdlldr.obj
+        idedrv.obj &
+        idemsgfm.obj &
+        idemsgpr.obj &
+        wccdlldr.obj

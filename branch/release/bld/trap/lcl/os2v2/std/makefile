@@ -33,7 +33,10 @@ extra_linker = &
         imp _TempStack wdsplice, DoReadWord_ wdsplice  &
         imp DoWriteWord_ wdsplice, DoClose_ wdsplice   &
         imp DoOpen_ wdsplice, DoWritePgmScrn_ wdsplice &
+        imp DoReadXMMRegs_ wdsplice                    &
+        imp DoWriteXMMRegs_ wdsplice                   &
         imp _XferBuff wdsplice, DoDupFile_ wdsplice    &
         lib $(os2386),$(os2286)
 
+!include $(trap_dir)/lcl/lcl.mif
 !include $(trap_dir)/master.mif

@@ -102,6 +102,9 @@ extern    source_line_number    SrcLine;
 extern    proc_def              *CurrProc;
 extern    struct opcode_entry   DbgInfo[];
 
+extern  void            DFBlkBeg( dbg_block *blk, offset lc );
+static  void            DumpLocals( dbg_local *local );
+
 #define CurrProc_debug ((dbg_rtn *)CurrProc->targ.debug)
 
 dw_client                  Client;
@@ -916,11 +919,9 @@ static  void GenParmLoc( dbg_local   *parm,
 }
 
 #if _TARGET & _TARG_IAPX86
-    DW_PTR_TYPE_NEAR = DW_PTR_TYPE_NEAR16;
-    DW_PTR_TYPE_FAR  = DW_PTR_TYPE_FAR16;
+static int  DW_PTR_TYPE_FAR  = DW_PTR_TYPE_FAR16;
 #elif _TARGET & _TARG_80386
-    DW_PTR_TYPE_NEAR = DW_PTR_TYPE_NEAR32;
-    DW_PTR_TYPE_FAR  = DW_PTR_TYPE_FAR32;
+static int  DW_PTR_TYPE_FAR  = DW_PTR_TYPE_FAR32;
 #endif
 
 extern  void    DFProEnd( dbg_rtn *rtn, offset lc ) {

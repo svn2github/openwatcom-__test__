@@ -24,16 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Address calculation for pass 2 of wlink.
 *
 ****************************************************************************/
 
-
-/*
- *  OBJCALC : address calculation for pass 2 of WLINK
- *
- */
 
 #include <string.h>
 #include <stdlib.h>
@@ -66,7 +60,19 @@ static char *   IgnoreNames[] = { "FJCRQQ", "FJSRQQ", "FJARQQ" };
 static unsigned long NumMapSyms;
 
 static seg_leader *     FindASeg( class_entry *, char * );
+static void             SortSegments( void );
+static void             ReOrderClasses( section *sec );
 static void             AllocSeg( void * );
+static void             AllocFileSegs( void );
+static void             ReallocFileSegs( void );
+static void             FindUninitDataStart( void );
+static void             CalcGrpAddr( group_entry *currgrp );
+static void             DefinePublics( void );
+static void             WriteSymArray( symbol ** symarray, unsigned num );
+static void             FillClassFlags( char *name, unsigned_16 flags );
+static void             FillTypeFlags( unsigned_16 flags, segflag_type type );
+static void             FindFloatSyms( void );
+static void             CheckClassUninitialized( class_entry * currcl );
 
 extern void CheckClassOrder( void )
 /*********************************/
@@ -208,7 +214,7 @@ static bool CheckLxdataSeen( void *_seg, void *dummy )
 /****************************************************/
 {
     seg_leader *seg = _seg;
-    
+
     dummy = dummy;
     if( seg->info & SEG_LXDATA_SEEN ) {
         seg->class->flags |= CLASS_LXDATA_SEEN;
@@ -360,7 +366,7 @@ static bool SetGroupInitSize( void *_sdata, void *_delta )
 {
     segdata    *sdata = _sdata;
     offset     *delta = _delta;
-    
+
     if( !sdata->isuninit && sdata->length > 0 && !sdata->isdead ) {
         sdata->u.leader->group->size = *delta + sdata->a.delta + sdata->length;
     }
@@ -458,7 +464,7 @@ extern void CalcAddresses( void )
         if( FmtData.type & (MK_QNX_FLAT|MK_PE|MK_ELF) ) {
             ReallocFileSegs();
         }
-    } else if( FmtData.type & MK_QNX ) {
+    } else if( FmtData.type & (MK_QNX|MK_OS2_16BIT) ) {
         ReallocFileSegs();
     }
     DBIAddrStart();
@@ -499,7 +505,7 @@ static void SetLeaderSeg( void *_seg )
 /*****************************************/
 {
     seg_leader *        seg = _seg;
-    
+
     if( !(seg->info & SEG_ABSOLUTE) ) {
         seg->seg_addr.seg = seg->group->grp_addr.seg;
     }
@@ -507,7 +513,7 @@ static void SetLeaderSeg( void *_seg )
 
 static void ReallocFileSegs( void )
 /*********************************/
-/* in QNX & NT we can't have any size 0 physical segments, so after we have
+/* In many cases we can't have any size 0 physical segments, so after we have
  * calculated the size of everything we have to go back and reallocate the
  * segment numbers so there aren't any "gaps" where the 0 size physical
  * segments (groups) are. */
@@ -655,7 +661,7 @@ static void AllocSeg( void *_seg )
 /* Allocate a segment (process all segments in a given class) */
 {
     seg_leader *seg = _seg;
-    
+
     if( !(seg->info & SEG_ABSOLUTE) ) {
         if( IS_DBG_DWARF( seg ) ) {
             CurrLoc.off = 0;
@@ -898,7 +904,7 @@ static void SetReadOnly( void *_seg )
 /***********************************/
 {
     seg_leader *    seg = _seg;
-    
+
     if( seg->class->flags & CLASS_READ_ONLY ) {
         seg->segflags |= SEG_READ_ONLY;
     }

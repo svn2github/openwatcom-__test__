@@ -840,6 +840,11 @@ disable/enable language extensions (default is ze)
 :optref refid='SWza'.
 :optref refid='SWze'.
 .*
+.note zat
+:CMT. .ix 'options' 'zat'
+(C++ only) disable alternative tokens
+:optref refid='SWzat'.
+.*
 .note zc
 :CMT. .ix 'options' 'zc'
 place literal strings in code segment
@@ -859,9 +864,14 @@ load DS register directly from DGROUP
 :optref refid='SWzdl'.
 .*
 .note zev&optdag.
-:CMT .ix 'options' 'zev'
+:CMT. .ix 'options' 'zev'
 (C only, Unix extension) enable arithmetic on void derived types
 :optref refid='SWzev'
+.*
+.note zf&optdag.
+:CMT. .ix 'options' 'zf'
+(C++ only) let scope of for loop initialization extend beyond loop
+:optref refid='SWzf'
 .*
 .note zf{f,p}&optdag.
 :CMT. .ix 'options' 'zfp'
@@ -975,6 +985,16 @@ output warning when padding is added in a struct/class
 :CMT. .ix 'options' 'zq'
 operate quietly
 :optref refid='SWzq'.
+.*
+.note zri
+:CMT. .ix 'options' 'zri'
+inline floating point rounding code
+:optref refid='SWzri'.
+.*
+.note zro
+:CMT. .ix 'options' 'zro'
+omit floating point rounding code
+:optref refid='SWzro'.
 .*
 .note zs
 :CMT. .ix 'options' 'zs'

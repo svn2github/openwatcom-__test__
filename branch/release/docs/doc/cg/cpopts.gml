@@ -532,6 +532,16 @@ continue processing files (ignore errors)
 output function declarations to .def
 :optref refid='SWv'.
 .do end
+.if &e'&$SWzat eq 1 .do begin
+.note zat
+(C++ only) disable alternative tokens
+:optref refid='SWzat'.
+.do end
+.if &e'&$SWzf eq 1 .do begin
+.note zf
+(C++ only) let scope of for loop initialization extend beyond loop
+:optref refid='SWzf'.
+.do end
 .if &e'&$SWzg eq 1 .do begin
 .note zg
 generate function prototypes using base types
@@ -850,6 +860,16 @@ GS floats i.e. not fixed to a segment
 .note zgp
 GS is pegged to a segment
 :optref refid='SWzgfp'.
+.do end
+.if &e'&$SWzri eq 1 .do begin
+.note zri
+Inline floating point rounding code
+:optref refid='SWzri'.
+.do end
+.if &e'&$SWzro eq 1 .do begin
+.note zro
+Omit floating point rounding code
+:optref refid='SWzro'.
 .do end
 .if &e'&$SWzu eq 1 .do begin
 .note zu
@@ -2428,9 +2448,9 @@ This option sets the warning level to its maximum setting.
 .if &e'&$SWza eq 1 .do begin
 :OPT refid='SWza' name='za'.
 .ix 'options' 'za'
-.ix 'ANSI compatibility'
+.ix 'ISO/ANSI compatibility'
 This option helps to ensure that the module to be compiled conforms to
-the ANSI C or C++ programming language specification (depending on the
+the ISO/ANSI C or C++ programming language specification (depending on the
 compiler which is selected).
 .ix 'macros' 'NO_EXT_KEYS'
 The macro
@@ -2441,7 +2461,7 @@ The "ou" option will be enabled :optref refid='SWou'..
 See also the description of the "ze" option.
 .np
 When using the C compiler, there is an exception to the enforcement of
-the ANSI C standard programming language specification.
+the ISO C standard programming language specification.
 The use of C++ style comments (// comment) are not diagnosed.
 .do end
 .*
@@ -2482,7 +2502,7 @@ struct {
 .pc
 In the above example, "x.b" is a valid reference to the "b" field.
 .note
-For C only, ANSI function prototype scope rules are relaxed to allow
+For C only, ISO function prototype scope rules are relaxed to allow
 the following program to compile without any errors.
 .exam begin 12
 void foo( struct a *__p );
@@ -2499,12 +2519,12 @@ void bar( void )
 }
 .exam end
 .pc
-According to a strict interpretation of the ANSI C standard, the
+According to a strict interpretation of the ISO C standard, the
 function prototype introduces a new scope which is terminated at the
 semicolon (;).
 The effect of this is that the structure tag "a" in the function "foo"
 is not the same structure tag "a" defined after the prototype.
-A diagnostic must be issued for a conforming ANSI C implementation.
+A diagnostic must be issued for a conforming ISO C implementation.
 .note
 A trailing comma (,) is allowed after the last constant in an enum
 declaration.
@@ -2512,7 +2532,7 @@ declaration.
 enum colour { RED, GREEN, BLUE, };
 .exam end
 .note
-The ANSI requirement that all enums have a base type of
+The ISO requirement that all enums have a base type of
 .us int
 is relaxed.
 The motivation for this extension is conservation of storage.
@@ -2534,7 +2554,7 @@ In the example, "x" can be stored in an
 .us unsigned char
 because its values span the range 0 to 2.
 .note
-The ANSI requirement that the base type of a bitfield be
+The ISO requirement that the base type of a bitfield be
 .us int
 or
 .us unsigned
@@ -3018,6 +3038,45 @@ other modules in order to take advantage of the compiler's function
 and argument type checking.
 .do end
 .*
+.if &e'&$SWzat eq 1 .do begin
+:OPT refid='SWzat' name='zat'.
+.ix 'options' 'zat'
+ISO C++ defines a number of alternative tokens that can be used instead
+of certain traditional tokens. For example "and" instead of "&&", "or"
+instead of "||", etc. See section 2.5 of the ISO C++ 98 standard for the
+complete list of such tokens. The "zat" option disables support for
+these tokens so that the names "and", "or", etc are no longer reserved.
+.do end
+.*
+.if &e'&$SWzf eq 1 .do begin
+:OPT refid='SWzf' name='zf'.
+.ix 'options' 'zf'
+Starting with Open Watcom 1.3, the scope of a variable declared in the
+initialization expression of a for loop header is by default limited to
+the body of the loop. This is in accordance with the ISO C++ standard.
+The "zf" option causes the compiler to revert to the behavior it had
+before Open Watcom 1.3. In particular, it causes the scope of variables
+declared in the initialization expression of a for loop header to extend
+beyond the loop.
+.np
+.exam begin 9
+#include <iostream>
+
+void f()
+{
+  for( int i = 0; i < 10; ++i ) {
+    std::cout << i << "\n";
+  }
+  std::cout << "Value of i at loop termination: " << i << "\n";
+}
+.exam end
+.np
+The above code will not compile with Open Watcom 1.3 or later because
+the variable "i" is out of scope in the last output statement. The "zf"
+option will allow such code to compile by extending the scope of "i"
+beyond the loop.
+.do end
+.*
 .if &e'&$SWzg eq 1 .do begin
 :OPT refid='SWzg' name='zg'.
 .ix 'options' 'zg'
@@ -3173,7 +3232,7 @@ will be predefined if "j" is selected.
 .ix 'options' 'ri'
 Functions declared to return integral types such as chars and shorts
 are promoted to returning ints.
-This allows non-ANSI-conforming source code which does not properly
+This allows non-ISO-conforming source code which does not properly
 declare the return types of functions to work properly.
 The use of this option should be avoided.
 .do end
@@ -4555,7 +4614,7 @@ This option is used with the "zdp" option but not the "zdf" option.
 .ix 'options' 'zev'
 The "zev" option is an extension to the Watcom C compiler to allow
 arithmetic operations on void derived types. This option has been added
-for compatibility with some Unix compilers and is not ANSI compliant.
+for compatibility with some Unix compilers and is not ISO compliant.
 The use of this option should be avoided.
 .do end
 .*
@@ -4589,6 +4648,31 @@ will be predefined if "zgf" is selected.
 The macro
 .kwm __SW_ZGP
 will be predefined if "zgp" is selected.
+.do end
+.*
+.if &e'&$SWzri eq 1 .do begin
+:OPT refid='SWzri' name='zri'.&optdag.
+.ix 'options' 'zri'
+&386only.
+The "zri" option inlines the code for floating point rounding.
+Normally a function call is generated for each float to int conversion
+ which may not be desirable.
+.np
+The macro
+.kwm __SW_ZRI
+will be predefined if "zri" is selected.
+.do end
+.*
+.if &e'&$SWzro eq 1 .do begin
+:OPT refid='SWzro' name='zro'.&optdag.
+.ix 'options' 'zro'
+The "zro" option omits the code for floating point rounding.
+This results in non-conformant code - the rounding mode is not ISO/ANSI C
+compliant - but the code generated is very fast.
+.np
+The macro
+.kwm __SW_ZRO
+will be predefined if "zro" is selected.
 .do end
 .*
 .if &e'&$SWzu eq 1 .do begin
@@ -4735,30 +4819,23 @@ will be predefined if "od" is selected.
 .ix 'options' 'oe'
 Certain user functions are expanded in-line.
 The criteria for which functions are selected for in-line expansion is
-based on the "size" of the function in terms of the number of "quads"
+based on the "size" of the function in terms of the number of "tree nodes"
 generated by the function.
-A quad (quadruple) consists of four components: an operator, two
-arguments and a result (hence the name).
-All expressions can be decomposed into a series of quads.
+Functions are internally represented as tree structures, where each
+operand and each operator is a node of the tree.
 For example, the statement
 .mono a = -b * (c + d)
-can be broken down into the following quads.
-.millust begin
-OP      ARG1    ARG2    RESULT
-------- ------- ------- ------
-uminus  b       _       t1
-+       c       d       t2
-*       t1      t2      t3
-=       t3      _       a
-.millust end
+can be represented as a tree with 8 nodes, one for each operand and
+operator.
 .np
-The number of "quads" generated corresponds closely with the number
+The number of "nodes" generated corresponds closely with the number
 of operators used in an expression.
-Functions which require more than "<num>" quads are not expanded
+Functions which require more than "<num>" nodes are not expanded
 in-line.
-The default number is 20.
-This optimization is useful when locally-referenced functions are
-small in size.
+The default number is 20. With larger "<num>" values, more (larger)
+functions will be expanded in-line.
+This optimization is especially useful when locally-referenced
+functions are small in size.
 .exam begin 1
 &prompt.:SF font=1.compiler_name:eSF. dhrystone &sw.oe
 .exam end

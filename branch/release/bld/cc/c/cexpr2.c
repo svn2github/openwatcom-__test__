@@ -61,6 +61,9 @@ local   TREEPTR OrOr(TREEPTR);
 local   TREEPTR GenFuncCall(TREEPTR);
 local   TREEPTR IndexOp(TREEPTR,TREEPTR);
 local   TREEPTR SegOp(TREEPTR,TREEPTR);
+local      void PopNestedParms( TYPEPTR **plistptr );
+local      void IncSymWeight( SYMPTR sym );
+local      void AddCallNode( TREEPTR tree );
 
 #define PTR_FLAGS  (FLAG_CONST | FLAG_VOLATILE | FLAG_UNALIGNED | FLAG_MEM_MODEL|FLAG_FAR16 | FLAG_BASED )
 
@@ -234,6 +237,10 @@ TREEPTR ConstLeaf()
         break;
     case TYPE_FLOAT:
     case TYPE_DOUBLE:
+    case TYPE_LONG_DOUBLE:
+    case TYPE_FIMAGINARY:
+    case TYPE_DIMAGINARY:
+    case TYPE_LDIMAGINARY:
         flt = CMemAlloc( sizeof(FLOATVAL) + TokenLen );
         flt->string[0] = '+';
         strcpy( &flt->string[1], Buffer );
@@ -305,12 +312,15 @@ local TREEPTR EnumLeaf( struct enum_info *eip )
 #endif
     decl_type = eip->parent->sym_type->object->decl_type;
     switch( decl_type ) {
-    case TYPE_ULONG64:
     case TYPE_LONG64:
-        return( LongLeaf64( eip->value , decl_type ) );
-    case TYPE_USHORT:
-    case TYPE_UINT:
+    case TYPE_ULONG64:
+    case TYPE_LONG:
     case TYPE_ULONG:
+    case TYPE_INT:
+    case TYPE_UINT:
+        return( LongLeaf64( eip->value , decl_type ) );
+    case TYPE_UCHAR:
+    case TYPE_USHORT:
         return( UIntLeaf( eip->value.u._32[L] ) );
     default:
         return( IntLeaf( eip->value.u._32[L] ) );
@@ -428,7 +438,7 @@ TREEPTR SymLeaf()
 }
 
 
-void IncSymWeight( SYMPTR sym )
+local void IncSymWeight( SYMPTR sym )
 {
     static int LoopWeights[] = { 1, 0x10, 0x100, 0x1000 };
 
@@ -991,6 +1001,47 @@ TREEPTR DotOp( TREEPTR tree )
 }
 
 
+TREEPTR DotOpNamed( TREEPTR tree, char *name )
+{
+    TYPEPTR             typ;
+    TYPEPTR             get_typ;
+    FIELDPTR            field;
+    unsigned long       offset;
+    op_flags            opflag;
+    SYM_ENTRY           sym;
+
+    typ = tree->expr_type;
+    get_typ = typ;
+    offset = 0;
+    field = SearchFields( &get_typ, &offset, name );
+    if( field == NULL ) {
+        CErr( ERR_NAME_NOT_FOUND_IN_STRUCT, name, typ->u.tag->name );
+        return( ErrorNode( tree ) );
+    }
+    typ = field->field_type;
+    opflag = tree->op.flags | OpFlags( field->attrib );
+    if( CompFlags.emit_browser_info ) {                 /* 27-oct-94 */
+        field->xref->next_xref = NewXref( field->xref->next_xref );
+    }
+    if( tree->op.opr == OPR_DOT || tree->op.opr == OPR_ARROW ) {
+        tree->right->op.ulong_value += offset;
+    } else {
+        if( tree->op.opr == OPR_PUSHADDR ) {
+            SymGet( &sym, tree->op.sym_handle );
+            if( !(sym.flags & SYM_ASSIGNED) ) {
+                sym.flags |= SYM_ASSIGNED;
+                SymReplace( &sym, tree->op.sym_handle );
+            }
+        }
+        tree = ExprNode( tree, OPR_DOT, UIntLeaf( offset ) );
+    }
+    tree->expr_type = typ;
+    tree->op.result_type = typ;
+    tree->op.flags = opflag;
+    return( tree );
+}
+
+
 TREEPTR ArrowOp( TREEPTR tree )
 {
     TYPEPTR             typ;
@@ -1298,19 +1349,36 @@ local TREEPTR GetExpr()
                 CompFlags.meaningless_stmt = 1;
                 break;
             case TC_PARM_LIST:          /* do func call */
+                {
+                SYMPTR      sym;
+                int         n;
+                TREEPTR     functree;
+
+                // find the corresponding function symbol
+                n = Level;
+                while( Token[ n ] != T_LEFT_PAREN ) {
+                    --n;
+                }
+                functree = ValueStack[ n ];
+                sym = SymGetPtr( functree->op.sym_handle );
+                if( !(sym->flags & SYM_TEMP) )
+                    SetDiagSymbol( sym, functree->op.sym_handle );
                 tree = GenNextParm( tree, &plist );
                 tree = GenFuncCall( tree );
                 if( plist != NULL ){  // function has prototype
                     if(  *plist != NULL && (*plist)->decl_type != TYPE_DOT_DOT_DOT ) {
                         CErr1( ERR_PARM_COUNT_MISMATCH );
                     }
-                }else{
+                } else {
                     AddCallNode( tree );
                 }
+                if( !(sym->flags & SYM_TEMP) )
+                    SetDiagPop();
                 PopNestedParms( &plist );
                 curclass = TokenClass[ CurToken ] & 0x7F;
                 CompFlags.meaningless_stmt = 0;
                 CompFlags.useful_side_effect = 1;
+                }
                 break;
             }
             --Level;
@@ -1389,8 +1457,9 @@ local TREEPTR GetExpr()
             NextToken();
             continue;
         }
-        if( Level >= MAX_LEVEL ) {
+        if( Level >= (MAX_LEVEL - 1) ) {
             CErr1( ERR_EXPR_TOO_COMPLICATED );
+            CSuicide();
         }
         if( tree != 0 ) {
             ++Level;
@@ -1534,6 +1603,23 @@ local TREEPTR ExprOpnd()
             NextToken();
             tree = ErrorNode( NULL );
             break;
+        case T___OW_IMAGINARY_UNIT:
+            {
+            FLOATVAL    *flt;
+            tree = LeafNode( OPR_PUSHFLOAT );
+            tree->op.const_type = TYPE_DIMAGINARY;
+            flt = CMemAlloc( sizeof(FLOATVAL) + 3 );
+            flt->string[0] = '+';
+            strcpy( &flt->string[1], "1.0" );
+            flt->len = 3 + 1;
+            flt->type = TYPE_DIMAGINARY;
+            flt->next = NULL;
+            tree->op.float_value = flt;
+            tree->op.opr = OPR_PUSHFLOAT;
+            tree->expr_type = GetType( tree->op.const_type );
+            }
+            NextToken();
+            break;
         default:
             if( CompFlags.pre_processing  &&    /* 07-mar-92 */
                 CurToken >= FIRST_KEYWORD  &&  CurToken < T_MACRO_PARM ) {
@@ -1608,7 +1694,7 @@ local int IsMacroDefined()
     if( CurToken != T_ID ) {
         ExpectIdentifier();
     } else {
-        mentry = MacroLookup();
+        mentry = MacroLookup( Buffer );
         if( mentry != NULL ) {
             mentry->macro_flags |= MACRO_REFERENCED;    /* 04-apr-94 */
             return( 1 );
@@ -1731,7 +1817,7 @@ local TREEPTR IndexOp( TREEPTR tree, TREEPTR index_expr )
     return( tree );
 }
 
-void AddCallNode( TREEPTR tree ){
+local void AddCallNode( TREEPTR tree ){
 // if a function call has no proto type wait till end
 // to check it out
     call_list  *new;
@@ -2326,6 +2412,7 @@ TREEPTR BoolExpr( TREEPTR tree )
         if( tree->op.opr == OPR_EQUALS ) {
             switch( tree->right->op.opr ) {
             case OPR_PUSHINT:
+            case OPR_PUSHFLOAT:
                 CWarn1( WARN_ASSIGNMENT_IN_BOOL_EXPR,
                         ERR_ASSIGNMENT_IN_BOOL_EXPR );
                 break;
@@ -2372,6 +2459,7 @@ local TREEPTR NotOp( TREEPTR tree )
             break;
         case TYPE_FLOAT:
         case TYPE_DOUBLE:
+        case TYPE_LONG_DOUBLE:
             flt = tree->op.float_value;
             if( atof( flt->string ) == 0.0 ) {
                 tree->op.long_value = 1;

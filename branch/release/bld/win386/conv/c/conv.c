@@ -35,7 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
-//#include <io.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
@@ -307,7 +307,7 @@ void ClassifyParmList( char *plist, fcn *tmpf )
 } /* ClassifyParmList */
 
 
-main( int argc, char *argv[] )
+int main( int argc, char *argv[] )
 {
     char        *name,*dir;
     FILE        *f,*pf;
@@ -377,7 +377,7 @@ main( int argc, char *argv[] )
     GenerateThunkC();
     GenerateCStubs();
     ClosingComments();
-    exit( 0 );
+    return( 0 );
 
 } /* main */
 

@@ -88,6 +88,7 @@ h\os2\sys\time.h
 h\os2\sys\uio.h
 h\os2\sys\un.h
 h\os21x\bse.h
+h\os21x\bsedev.h
 h\os21x\bsedos.h
 h\os21x\bseerr.h
 h\os21x\bsesub.h
@@ -98,6 +99,8 @@ h\os21x\pmbitmap.h
 h\os21x\pmdev.h
 h\os21x\pmerr.h
 h\os21x\pmgpi.h
+h\os21x\pmhelp.h
+h\os21x\pmmle.h
 h\os21x\pmshl.h
 h\os21x\pmwin.h
 lib286\os2\os2.lib

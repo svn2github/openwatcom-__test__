@@ -24,16 +24,9 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Produce Watcom style debugging information in load file.
 *
 ****************************************************************************/
-
-
-/*
- *  DBGINFO -- produce WVIDEO debugging information in load file
- *
-*/
 
 #include <string.h>
 #include <malloc.h>
@@ -105,6 +98,9 @@ static class_entry *TypeClass;
 static void             ReadSegInfo( section *, void ** );
 static snamelist *      LangAlloc( byte len, void *buff );
 static void             ODBIGenAddrInfo( seg_leader * );
+static void             AllocDBIClasses( class_entry *class );
+static void             NewArea( section *sect );
+static void             DoName( char *cname, char *intelname, int len );
 
 #ifdef _INT_DEBUG
 struct {
@@ -523,7 +519,7 @@ static bool CheckFirst( void *_seg, void *_firstseg )
 {
     segdata *seg = _seg;
     segdata **firstseg = _firstseg;
-        
+
     if( seg->a.delta < (*firstseg)->a.delta
             && seg->o.addrinfo == (*firstseg)->o.addrinfo ) {
         *firstseg = seg;
@@ -638,26 +634,28 @@ extern void ODBIAddAddrInfo( seg_leader *seg )
     }
 }
 
-static void ODBIGenAddrInit( segdata *sdata, void *prevaddroff )
+static void ODBIGenAddrInit( segdata *sdata, void *_prevaddroff )
 /**************************************************************/
 {
     segheader   seghdr;
     seg_leader *seg;
+    unsigned_32 *prevaddroff = (unsigned_32*)_prevaddroff;
 
     seg = sdata->u.leader;
     seghdr.off = seg->seg_addr.off;
     seghdr.seg = seg->seg_addr.seg;
     seghdr.num = seg->num;
     DumpInfo( CurrSect->dbg_info, &seghdr, sizeof(segheader) );
-    prevaddroff = (void *)(((debug_info *)CurrSect->dbg_info)->DBIWrite);
+    *prevaddroff = ((debug_info *)CurrSect->dbg_info)->DBIWrite;
 }
 
 static void ODBIGenAddrAdd( segdata *sdata, offset delta, offset size,
-                            void *prevaddroff, bool isnewmod )
+                            void *_prevaddroff, bool isnewmod )
 /************************************************************/
 {
     addrinfo    addr;
     debug_info *dptr;
+    unsigned_32 *prevaddroff = (unsigned_32*)_prevaddroff;
 
     delta = delta;
     dptr = CurrSect->dbg_info;
@@ -666,8 +664,8 @@ static void ODBIGenAddrAdd( segdata *sdata, offset delta, offset size,
         addr.mod_idx = sdata->o.mod->d.o->modnum;
         DumpInfo( dptr, &addr, sizeof(addrinfo) );
     }
-    sdata->o.addrinfo = *(unsigned_32 *)prevaddroff - dptr->addr.init;
-    prevaddroff = (void *)(dptr->DBIWrite);
+    sdata->o.addrinfo = *prevaddroff - dptr->addr.init;
+    *prevaddroff = dptr->DBIWrite;
 }
 
 static void ODBIGenAddrInfo( seg_leader *seg )
@@ -804,7 +802,7 @@ extern void OWriteDBI( void )
     Master.debug_size = DBISize;
     if( Master.obj_major_ver == 0 ) Master.obj_major_ver = 1;
     WriteLoad( &Master, sizeof(dbgheader) );
-#if _INT_DEBUG
+#ifdef _INT_DEBUG
     if( TraceInfo.sizeadded != TraceInfo.sizegenned ) {
         LnkMsg( WRN+MSG_INTERNAL, "s", "size mismatch in watcom dbi" );
     }

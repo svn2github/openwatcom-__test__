@@ -43,7 +43,6 @@
 
 a_definition_struct Definition = { 0, NULL, NULL };
 
-extern dir_node         *dir_insert( char *, int );
 extern void             InputQueueLine( char * );
 extern void             PushLineQueue(void);
 
@@ -133,8 +132,8 @@ int InitializeStructure( asm_sym *sym, int i )
         strcat( buffer, " " );
         if( ptr == NULL ) {
             strcat( buffer, f->value );
-        } else if( strpbrk( ptr, "," ) != NULL ) {
-            count = (int)( strpbrk( ptr, "," ) - ptr );
+        } else if( ( ptr1 = strpbrk( ptr, "," ) ) != NULL ) {
+            count = (int)( ptr1 - ptr );
             ptr1 = ptr;
             while ( ptr1 < ptr + count ) {
                 if ( *ptr1 != ' ' ) break;

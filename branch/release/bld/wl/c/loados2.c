@@ -24,16 +24,11 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Utilities for processing creation of NE format files,
+*               used by 16-bit OS/2 and Windows.
 *
 ****************************************************************************/
 
-
-/*
-   LOADOS2 : utilities for processing creation of OS2 EXE file
-
-*/
 
 #include <string.h>
 #include <ctype.h>
@@ -98,6 +93,8 @@ typedef struct ResTable {
 
 extern  unsigned_32      Write_Stub_File( void );
 
+static  void             SetGroupFlags( void );
+
 static  char            DosStub[] = {
         0x4D, 0x5A, 0x80, 0x00, 0x01, 0x00, 0x00, 0x00,
         0x04, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00,
@@ -140,6 +137,7 @@ static void WriteOS2Data( unsigned_32 stub_len, os2_exe_header *exe_head )
 
     group_num = 0;
     for( group = Groups; group != NULL; group = group->next_group ) {
+        if( group->totalsize == 0 ) continue;   // DANGER DANGER DANGER <--!!!
         segrec.info = group->segflags;
         // write segment
         segrec.min = MAKE_EVEN( group->totalsize );
@@ -814,6 +812,7 @@ extern void FiniOS2LoadFile()
         dgroup_size = DataGroup->totalsize;
     }
     for( group = Groups; group != NULL; group = group->next_group ) {
+        if( group->totalsize == 0 ) continue;   // DANGER DANGER DANGER <--!!!
         imageguess += group->size;
         exe_head.segments++;
     }
@@ -983,7 +982,7 @@ extern void FreeImpNameTab( void )
     FmtData.u.os2.imp_tab_list = NULL;
 }
 
-#define DEF_SEG_ON (SEG_PURE|SEG_READ_ONLY|SEG_CONFORMING|SEG_MOVABLE|SEG_DISCARD|SEG_RESIDENT|SEG_CONTIGUOUS)
+#define DEF_SEG_ON (SEG_PURE|SEG_READ_ONLY|SEG_CONFORMING|SEG_MOVABLE|SEG_DISCARD|SEG_RESIDENT|SEG_CONTIGUOUS|SEG_NOPAGE)
 #define DEF_SEG_OFF (SEG_PRELOAD|SEG_INVALID)
 
 static void CheckGrpFlags( void *_leader )
@@ -1012,6 +1011,7 @@ static void SetGroupFlags( void )
     group_entry *   group;
 
     for( group = Groups; group != NULL; group = group->next_group ) {
+        if( group->totalsize == 0 ) continue;   // DANGER DANGER DANGER <--!!!
         group->segflags |= DEF_SEG_ON;
         Ring2Walk( group->leaders, CheckGrpFlags );
         /* for some insane reason, level 2 segments must be marked as

@@ -310,6 +310,7 @@ atanh.exe &
 atof.exe &
 atoi.exe &
 atol.exe &
+atoll.exe &
 cabs.exe &
 bessel.exe &
 ceil.exe &
@@ -327,9 +328,12 @@ frexp.exe &
 gcvt.exe &
 hypot.exe &
 itoa.exe &
+imaxabs.exe &
+imaxdiv.exe &
 labs.exe &
 ldexp.exe &
 ldiv.exe &
+lltoa.exe &
 log.exe &
 log10.exe &
 log2.exe &
@@ -347,6 +351,7 @@ sqrt.exe &
 srand.exe &
 tan.exe &
 tanh.exe &
+ulltoa.exe &
 ultoa.exe
 
 #File functions (all platforms & NetWare)
@@ -447,10 +452,14 @@ strrev.exe &
 strset.exe &
 strspn.exe &
 strstr.exe &
+strtoimx.exe &
+strtoumx.exe &
 strtod.exe &
 strtok.exe &
 strtol.exe &
+strtoll.exe &
 strtoul.exe &
+strtoull.exe &
 strupr.exe &
 strxfrm.exe
 
@@ -497,6 +506,7 @@ isalnum.exe &
 isalpha.exe &
 isascii.exe &
 isatty.exe &
+isblank.exe &
 iscntrl.exe &
 isdigit.exe &
 isgraph.exe &

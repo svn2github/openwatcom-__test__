@@ -157,7 +157,7 @@ unsigned RemotePut( char *snd, unsigned len )
 }
 
 #ifndef SERVER
-BackToProtMode()
+void BackToProtMode()
 {
     if( setjmp( RealModeState ) == 0 ) {
         _DBG_Writeln( "ENTERING PROTECTED MODE" );
@@ -257,16 +257,8 @@ static char *SearchPath( char far *env, char *file, char *buff, char **pendname 
     #define NAME        "ACAD.EXE"
     #define HELPNAME    ""
 #elif defined(PHARLAP)
-    #if defined(_NEC_PC)
-        // Different run386 for NEC PC-9801
-        #define NAME        "NRUN386.EXE"
-    #elif defined(_FMR_PC)
-        // Different run386 for Fujitsu FM-R
-        #define NAME        "RUN386F.EXE"
-    #else
-        #define NAME        "TNT.EXE"
-        #define OTHER_NAMES "RUN386.EXE\0"
-    #endif
+    #define NAME        "TNT.EXE"
+    #define OTHER_NAMES "RUN386.EXE\0"
     #define HELPNAME    "PLSHELP.EXP"
     #define HELPNAME_DS "PEDHELP.EXP"
     #define HELPNAME_NS "PENHELP.EXP"   /* not supported yet */

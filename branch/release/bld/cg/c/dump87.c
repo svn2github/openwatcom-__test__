@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Dump x87 instructions.
 *
 ****************************************************************************/
 
@@ -103,6 +102,30 @@ extern  void    DumpSeqs()
 }
 
 
+static  void    DumpOpcode( instruction *ins ) {
+/**********************************************/
+
+
+    switch( ins->head.opcode ) {
+    case OP_ADD:
+        DumpLiteral( "fadd" );
+        break;
+    case OP_SUB:
+        DumpLiteral( "fsub" );
+        break;
+    case OP_MUL:
+        DumpLiteral( "fmul" );
+        break;
+    case OP_DIV:
+        DumpLiteral( "fdiv" );
+        break;
+    default:
+        DumpLiteral( "ouch" );
+        break;
+    }
+}
+
+
 extern  bool    DumpFPUIns( instruction *ins ) {
 /*********************************************/
 
@@ -148,6 +171,11 @@ extern  bool    DumpFPUIns( instruction *ins ) {
     case G_MFST:
     case G_RFST:
         DumpLiteral( "fstp  " );
+        DumpFPInfo( ins );
+        DumpOperand( ins->result );
+        break;
+    case G_MFSTRND:
+        DumpLiteral( "fstrnd" );
         DumpFPInfo( ins );
         DumpOperand( ins->result );
         break;
@@ -235,28 +263,6 @@ extern  bool    DumpFPUIns( instruction *ins ) {
 }
 
 
-static  void    DumpOpcode( instruction *ins ) {
-/**********************************************/
-
-
-    switch( ins->head.opcode ) {
-    case OP_ADD:
-        DumpLiteral( "fadd" );
-        break;
-    case OP_SUB:
-        DumpLiteral( "fsub" );
-        break;
-    case OP_MUL:
-        DumpLiteral( "fmul" );
-        break;
-    case OP_DIV:
-        DumpLiteral( "fdiv" );
-        break;
-    default:
-        DumpLiteral( "ouch" );
-        break;
-    }
-}
 #else
 extern  bool    DumpFPUIns( instruction *ins ) {
 /*********************************************/
