@@ -38,6 +38,8 @@
 #include <unistd.h>
 #ifndef __UNIX__
 #include <direct.h>
+#else
+#include <dirent.h>
 #endif
 #include <process.h>
 #include <malloc.h>
@@ -47,7 +49,7 @@
 #undef  _BANEXTRA
 #define _BANEXTRA _BANEXSHORT
 
-#if defined(__OS2) || defined(__NT)
+#if defined(__OS2__) || defined(__NT__) || defined(__LINUX__)
 #define MAX_CMD 10240
 #else
 #define MAX_CMD 130
@@ -77,13 +79,19 @@
 #endif
 #ifdef __UNIX__
 #define OBJ_EXT     ".o"
+#define PATH_SEP    '/'
+#define PATH_SEP_STR "/"
 #else
 #define OBJ_EXT     ".obj"
+#define PATH_SEP    '\\'
+#define PATH_SEP_STR "\\"
 #endif
 #define LINK        "wlink"             /* WATCOM linker                   */
 #define TEMPFILE    "@__WCL__.LNK"      /* temporary linker directive file */
 #define NULLCHAR    '\0'
+#ifndef __UNIX__
 #define ATTR_MASK   _A_HIDDEN + _A_SYSTEM + _A_VOLID + _A_SUBDIR
+#endif
                                         /* mask for illegal file types     */
 #define TRUE        1
 #define FALSE       0
@@ -158,13 +166,11 @@ void    *MemAlloc( int );
 void    MakeName( char *, char * );
 void    AddName( char *, FILE * );
 char    *MakePath( char * );
-#ifndef __UNIX__
 char    *GetName( char * );
-#endif
 void    Usage( void );
 #if defined( __UNIX__ )
   #define _dos_switch_char() '-'
-#elif defined( __OS2 ) || defined( __NT )
+#elif defined( __OS2__ ) || defined( __NT__ )
   #define _dos_switch_char() '/'
 #else
   extern  int     _dos_switch_char();
@@ -231,19 +237,17 @@ void PrintMsg( char *fmt, ... )
                 for(;;) {
                     c = *p++;
                     if( c == '\0' ) break;
-                    buf[len++] = c;
+                    putchar(c);
                 }
             } else if( c == 'd' ) {
                 i = va_arg( args, int );
-                itoa( i, &buf[len], 10 );
-                while( buf[len] != '\0' ) ++len;
+                itoa( i, buf, 10 );
+                for( len = 0; buf[len] != '\0'; ++len ) putchar(buf[len]);
             }
         } else {
-            buf[len++] = c;
+            putchar(c);
         }
     }
-    buf[len] = '\0';
-    puts( buf );
 }
 
 
@@ -332,14 +336,27 @@ void  main()
     exit( rc == 0 ? 0 : 1 );
 }
 
-
 static char *ScanFName( char *end, int len )
 {
+    int quoted;
+
+    if( *Word == '=' ) {
+        quoted = ( *(Word + 1) == '"' );
+    } else {
+        quoted = ( *Word == '"' );
+    }
+    quoted ^= ( *(end - 1) == '"' );
     for(;;) {   /* 15-jan-89: Allow '-' in filenames */
         if( *end == '\0' ) break;
-        if( *end == ' '  ) break;
-        if( *end == '\t'  ) break;                  /* 16-mar-91 */
-        if( *end == Switch_Chars[1] ) break;
+        if( !quoted ) {
+            if( *end == ' '  ) break;
+            if( *end == '\t'  ) break;                  /* 16-mar-91 */
+#ifndef __UNIX__
+            if( *end == Switch_Chars[1] ) break;
+#endif
+        } else if( *end == '"'  ) {
+            quoted = 0;
+        }
         Word[ len ] = *end;
         ++len;
         ++end;
@@ -416,7 +433,9 @@ static  int  Parse( void )
                 if( *end == '\0' ) break;
                 if( *end == ' '  ) break;
                 if( *end == '\t'  ) break;              /* 16-mar-91 */
+#ifndef __UNIX__
                 if( *end == Switch_Chars[1] ) break;
+#endif
                 if( opt == '-'  ||  opt == Switch_Chars[1] ) {
                     /* if we are processing a switch, stop at a '-' */
                     if( *end == '-' ) break;
@@ -430,6 +449,7 @@ static  int  Parse( void )
             if( opt == ' ' ) {          /* if filename, add to list */
                 strncpy( Word, Cmd, len );
                 Word[ len ] = NULLCHAR;
+                end = ScanFName( end, len );
                 if( FileExtension( Word, ".lib" ) ) {
                     strcat( Libs, Libs[0] != '\0' ? "," : " " );
                     strcat( Libs, Word );
@@ -729,10 +749,9 @@ static  int  CompLink( void )
 {
     int         rc;
     char        *p;
-#ifndef __UNIX__
+    char        *end;
     char        *file;
     char        *path;
-#endif
     char        *cc_name;
     struct directives *d_list;
     char        errors_found;
@@ -756,9 +775,9 @@ static  int  CompLink( void )
 #if defined(WCLAXP)
         Fputnl( "system ntaxp", Fp );
 #elif defined(WCL386)
-  #if defined(__OS2)
+  #if defined(__OS2__)
         Fputnl( "system os2v2", Fp );           /* 04-feb-92 */
-  #elif defined(__NT)
+  #elif defined(__NT__)
         Fputnl( "system nt", Fp );
   #elif defined(__LINUX__)
         Fputnl( "system linux", Fp );
@@ -775,7 +794,7 @@ static  int  CompLink( void )
         } else if( Flags.link_for_os2 ) {
             Fputnl( "system os2", Fp );
         } else {
-#if defined(__OS2)
+#if defined(__OS2__)
             Fputnl( "system os2", Fp );
 #else
             Fputnl( "system dos", Fp );
@@ -788,21 +807,28 @@ static  int  CompLink( void )
     }
 
     errors_found = 0;                   /* 21-jan-92 */
-    p = strtok( Files, " " );           /* get first filespec */
-    while( p != NULL ) {
+    p = Files;
+    while( *p != '\0' ) {
+        if( *p == '"' ) {
+            end = strpbrk(++p, "\"");        /* get quoted filespec */
+        } else {
+            end = strpbrk(p, " ");         /* get filespec */
+        }
+        if( end != NULL ) {
+            *(end++) = 0;
+            if( *end == ' ' ) end++;
+        }
         strcpy( Word, p );
         cc_name = SrcName( Word );      /* if no extension, assume .c */
 
-#ifndef __UNIX__
         file = GetName( Word );         /* get first matching filename */
         path = MakePath( Word );        /* isolate path portion of filespec */
         while( file != NULL ) {         /* while more filenames: */
             strcpy( Word, path );
             strcat( Word, file );
-#endif
             if( ! FileExtension( Word, OBJ_EXT ) ) { // if not .obj, compile
                 if( ! Flags.be_quiet ) {
-                    PrintMsg( "       %s %s %s", cc_name, Word, CC_Opts );
+                    PrintMsg( "       %s %s %s\n", cc_name, Word, CC_Opts );
                     fflush( stdout );
                 }
                 rc = spawnlp( P_WAIT, CC_Path, cc_name, Word, CC_Opts, NULL );
@@ -815,14 +841,9 @@ static  int  CompLink( void )
                     }
                     errors_found = 1;           /* 21-jan-92 */
                 }
-#ifdef __UNIX__
-                p = strrchr( Word, '.' );
-                if( p != NULL )  *p = NULLCHAR;
-#else
                 p = strrchr( file, '.' );
                 if( p != NULL )  *p = NULLCHAR;
                 strcpy( Word, file );
-#endif
             }
             AddName( Word, Fp );
             if( Exe_Name[0] == '\0' ) {
@@ -830,11 +851,9 @@ static  int  CompLink( void )
                 if( p != NULL )  *p = NULLCHAR;
                 strcpy( Exe_Name, Word );
             }
-#ifndef __UNIX__
             file = GetName( NULL );     /* get next filename */
         }
-#endif
-        p = strtok( NULL, " " );        /* get next filespec */
+        p = end;        /* get next filespec */
     }
     if( errors_found )  return( 1 );            /* 21-jan-92 */
     BuildLinkFile();
@@ -924,7 +943,7 @@ static  void  *MemAlloc( int size )
 static  void  MakeName( char *name, char *ext )
 /*********************************************/
 {
-    if( strrchr( name, '.' ) <= strstr( name, "\\" ) ) {
+    if( strrchr( name, '.' ) <= strstr( name, PATH_SEP_STR ) ) {
         strcat( name, ext );
     }
 }
@@ -979,24 +998,28 @@ static  char  *MakePath( char *path )
 {
     char        *p;
 
-    p = strrchr( path ,'\\' );
+    p = strrchr( path ,PATH_SEP );
     if( p != NULL ) {
         p[ 1 ] = NULLCHAR;
     } else {
+#ifdef __UNIX__
+        *path = NULLCHAR;
+#else
         p = strchr( path, ':' );
         if( p != NULL ) {
             p[ 1 ] = NULLCHAR;
         } else {
             *path = NULLCHAR;
         }
+#endif
     }
     return( strdup( path ) );
 }
 
-#ifndef __UNIX__
 static  char  *GetName( char *path )
 /**********************************/
 {
+#ifndef __UNIX__
     static      DIR     *dirp;
     struct      dirent  *direntp;
 
@@ -1019,8 +1042,18 @@ static  char  *GetName( char *path )
     }
     closedir( dirp );
     return( NULL );
-}
+#else
+    char *name;
+    if ( path == NULL )
+            return NULL;
+    name = strrchr(path, '/');
+    if ( name == NULL )
+        name = path;
+    else
+        name++;
+    return ( strdup(name) );
 #endif
+}
 
 void FindPath( char *name, char *buf )
 /************************************/
@@ -1072,6 +1105,7 @@ static  void  Usage( void )
                 if( *list[n] == '[' ) break;
             }
             n = (n+1) / 2;                      /* half way through list */
+#ifndef __UNIX__
             if( isatty( fileno( stdout ) ) ) {
                 if( lines_printed != 0 ) {
                     if( lines_printed + n > 25 ) {
@@ -1083,6 +1117,7 @@ static  void  Usage( void )
                     }
                 }
             }
+#endif
             puts( buf );
             lines_printed++;
             for(;;) {

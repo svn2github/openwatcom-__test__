@@ -92,6 +92,7 @@ int directive( int i, long direct )
         if( Parse_Pass != PASS_1 ) ret = NOT_ERROR;
         return( ret );
     case T_DOT_DOSSEG:
+    case T_DOSSEG:
         Globals.dosseg = TRUE;
         return( NOT_ERROR );
     case T_PUBLIC:
@@ -206,12 +207,15 @@ int directive( int i, long direct )
     case T_DOT_EXIT:
         AsmError( NOT_SUPPORTED );
         return( ERROR );
+    case T_ORG:
+        ExpandTheWorld( 0, FALSE, TRUE );
+        break;
     case T_EQU:
     case T_EQU2:
     case T_TEXTEQU:
         /* expand any constants and simplify any expressions */
         //if( Parse_Pass == PASS_1 ) {
-            ExpandTheWorld( 0, FALSE );
+            ExpandTheWorld( 0, FALSE, TRUE );
         //}
         break;
     default:

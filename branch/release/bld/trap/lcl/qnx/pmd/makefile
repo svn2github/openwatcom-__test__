@@ -2,11 +2,14 @@
 #
 # Create the QNX PMD.TRP
 #
+host_CPU = 386
+host_os = qnx
 
 os      = qnx
 srv     = lcl
 cpu     = x86
 name    = pmd
+which = TRAP
 
 extra_objs = &
         qnxpmd.obj &
@@ -16,6 +19,6 @@ extra_objs = &
         supp.obj &
         core.obj
 
-extra_incs = $(trap_dir)\lcl\h
+inc_dirs = $(trap_dir)/lcl/h
 
-!include $(trap_dir)\trap.mif
+!include $(trap_dir)/master.mif

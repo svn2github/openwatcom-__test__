@@ -29,13 +29,12 @@
 *
 ****************************************************************************/
 
-
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include <io.h>
+#include <unistd.h>
 
-#include "types.h"
+#include "rctypes.h"
 
 #include "wresall.h"
 #include "global.h"
@@ -46,12 +45,22 @@
 #include "yydriver.h"
 #include "param.h"
 #include "depend.h"
-#include "ldstr.h"
+#include "rcldstr.h"
 #include "preproc.h"
 #include "dbtable.h"
 #include "rclayer0.h"
 #ifdef DLL_COMPILE
 #include "rcdll.h"
+#endif
+
+#ifndef S_IRWXU
+#define S_IRWXU 0
+#endif
+#ifndef S_IRWXG
+#define S_IRWXG 0
+#endif
+#ifndef S_IRWXO
+#define S_IRWXO 0
 #endif
 
 static bool CreatePreprocFile( void ) {
@@ -146,7 +155,9 @@ int main( int argc, char * argv[] )
 #ifndef DLL_COMPILE
     RcMemInit();
     Layer0InitStatics();
+#if !defined( __UNIX__ ) /* _grow_handles doesn't work yet */
     _grow_handles(100);
+#endif
 #endif
     if( !InitRcMsgs( argv[0] ) ) return( 1 );
 

@@ -2,5 +2,10 @@
 
 targos          = os2386
 
-!include $(posix_dir)\mif\commands.mif
-!include $(posix_dir)\mif\makeall.mif
+!ifdef prebuild
+!include $(posix_dir)/mif/bld_cmds.mif
+!else
+!include $(posix_dir)/mif/commands.mif
+!endif
+
+!include $(posix_dir)/mif/makeall.mif

@@ -33,6 +33,8 @@
 #ifndef _MPATHGRP_H
 #define _MPATHGRP_H     1
 #include <stdlib.h>
+#include <limits.h>
+#include <stdio.h>
 
 typedef struct PathGroup PGROUP;
 
@@ -41,7 +43,7 @@ struct PathGroup {
     char *dir;
     char *fname;
     char *ext;
-    char buffer[ _MAX_PATH2 ];
+    char buffer[ PATH_MAX + 4 ];
 };
 
 extern void DropPGroup( PGROUP * );

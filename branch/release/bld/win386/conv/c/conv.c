@@ -24,8 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Generate *.obj and *.asm thunks for interfacing from
+*               WIN386 (32-bit flat) to 16-bit Windows API function
+*               (16-bit segmented). It uses Pharlap Easy OMF (32-bit)
+*               for *.obj thunks.
 *
 ****************************************************************************/
 
@@ -33,7 +35,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
-#include <io.h>
+//#include <io.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
 
@@ -355,7 +358,11 @@ main( int argc, char *argv[] )
 
     while( fgets( fname, 50, pf ) != NULL ) {
         fname[ strlen( fname ) - 1 ] = 0;
+#ifdef __UNIX__
+        sprintf( defname, "%s/%s", dir, fname );
+#else
         sprintf( defname, "%s\\%s", dir, fname );
+#endif
         f = fopen( defname, "r" );
         if( f == NULL ) {
             printf("error opening file %s\n", defname );
@@ -520,7 +527,7 @@ void ProcessDefFile( FILE *f )
 
 void BuildClasses()
 {
-    int         i,j;
+    int         j;
     int         class_count;
     fcn         *tmpf;
     fcn         *cl;
@@ -1301,7 +1308,6 @@ void CloseHeader( FILE *f )
 void DLLThunkHeader( void )
 {
     int      i;
-    fcn *tmpf;
 
     fprintf( dllthunk,line );
     fprintf( dllthunk,blank );

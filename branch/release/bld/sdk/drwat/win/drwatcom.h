@@ -31,9 +31,7 @@
 
 
 #define _WINDOWS_16_
-#ifndef STRICT
 #define STRICT
-#endif
 #include <windows.h>
 #include <toolhelp.h>
 #include "pmdbg.h"
@@ -55,7 +53,7 @@
 #include "di386.h"
 #include "memwnd.h"
 #include "listbox.h"
-#include "rcstr.h"
+#include "rcstr.gh"
 #include "ldstr.h"
 #include "dbgopt.h"
 #include "rvalue.h"

@@ -35,7 +35,7 @@
 #endif
 #include <windows.h>
 #define MSG_RC_BASE     0
-#include "rcstr.h"
+#include "rcstr.gh"
 #include "ldstr.h"
 #include "hint.h"
 
@@ -133,14 +133,14 @@
 #define WM_SETICON                      0x0080
 #endif
 
-#include "..\misc\font.h"
-#include "..\misc\mem.h"
-#include "..\misc\savelbox.h"
-#include "..\misc\log.h"
+#include "font.h"
+#include "mem.h"
+#include "savelbox.h"
+#include "log.h"
 #ifdef __NT__
-#include "spymsgnt.h"
+#include "spymsgnt.gh"
 #else
-#include "spymsg.h"
+#include "spymsg.gh"
 #endif
 #include "msgs.h"
 #include "winpick.h"

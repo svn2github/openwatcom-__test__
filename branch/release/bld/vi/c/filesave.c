@@ -136,8 +136,10 @@ int SaveFileAs( void )
         return( rc );
     }
     // rename current file
-    FileLower( fn );
-    sprintf( cmd, "set filename %s", fn );
+#if (defined __DOS__ || defined __WINDOWS__ || defined __WINDOWS_386__)    // this is stupid for all case-preserving systems like NT
+    FileLower( fn );          
+#endif    
+    sprintf( cmd, "set filename \"%s\"", fn );
     RunCommandLine( cmd );
     UpdateLastFileList( fn );
 
@@ -235,7 +237,9 @@ int SaveFile( char *name, linenum start, linenum end, int dammit )
         }
     } else {
         fileHandle = 0;
+#ifdef __WATCOMC__
         setmode( fileno( stdout ), O_BINARY );
+#endif
     }
 
     /*
@@ -247,11 +251,13 @@ int SaveFile( char *name, linenum start, linenum end, int dammit )
     if( CurrentFile->check_for_crlf ) {
         if( fileHandle ) {
             EditFlags.WriteCRLF = FALSE;
+        #ifndef __LINUX__
             if( FileSysNeedsCR( fileHandle ) ) {
                 EditFlags.WriteCRLF = TRUE;
             }
+        #endif 
         } else {
-        #ifdef __QNX__
+        #ifdef __UNIX__
             EditFlags.WriteCRLF = FALSE;
         #else
             EditFlags.WriteCRLF = TRUE;

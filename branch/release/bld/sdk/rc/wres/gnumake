@@ -1,4 +1,4 @@
-include watcom.mk
+include $(DEVDIR)/build/mif/master.mk
 
 SRCDIRS = $(WRES_DIR)/c
 
@@ -46,17 +46,21 @@ LIBNAME = wres
 # host_OS = dos
 # host_CPU = 386
 
-DEFS += -D_NO_LIB_PRAGMAS_ -DNATURAL_PACK
+DEFS += -D_NO_LIB_PRAGMAS_ #-DNATURAL_PACK
 CFLAGS += $(OPT_PIC)
 
-$(OBJDIR)/lib$(LIBNAME).a : $(OBJECTS)
+$(OBJDIR)/lib$(LIBNAME).a : $(OBJDIR) $(OBJECTS)
 	@rm -f $@
 	$(AR) crs $@ $(OBJECTS)
 
+$(OBJDIR):
+	mkdir $(OBJDIR)
+
 clean	:
-	rm -f $(OBJDIR)/*
+	rm -rf $(OBJDIR)
 
 .PHONY	: dep depend make
+
 dep depend make:
 	$(MKMK) -Q -m .depend -f '$$(OBJDIR)/%s' nopath -f '$$(OBJDIR)/%s' \
 		$(foreach i,$(SRCDIRS),$i/*.[ch]) \

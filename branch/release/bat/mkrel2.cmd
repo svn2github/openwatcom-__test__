@@ -4,6 +4,7 @@ if .%relroot%. == .. goto error
 if .%defrel%. == .. goto error
 md %relroot%\%defrel%
 md %relroot%\%defrel%\n98bw
+md %relroot%\%defrel%\binl
 md %relroot%\%defrel%\binnt
 md %relroot%\%defrel%\binp
 md %relroot%\%defrel%\binw
@@ -32,6 +33,8 @@ md %relroot%\%defrel%\h\os21x
 md %relroot%\%defrel%\qh
 md %relroot%\%defrel%\qh\sys
 md %relroot%\%defrel%\lh
+md %relroot%\%defrel%\lh\arpa
+md %relroot%\%defrel%\lh\netinet
 md %relroot%\%defrel%\lh\sys
 md %relroot%\%defrel%\lib286
 md %relroot%\%defrel%\lib386
@@ -60,6 +63,7 @@ md %relroot%\%defrel%\samples\cplbexam
 md %relroot%\%defrel%\samples\dll
 md %relroot%\%defrel%\samples\goodies
 md %relroot%\%defrel%\samples\ide
+md %relroot%\%defrel%\samples\os2
 md %relroot%\%defrel%\samples\win
 md %relroot%\%defrel%\samples\clibexam\kanji
 md %relroot%\%defrel%\samples\clibexam\test
@@ -94,6 +98,7 @@ md %relroot%\%defrel%\samples\ide\fortran\os2
 md %relroot%\%defrel%\samples\ide\fortran\win
 md %relroot%\%defrel%\samples\ide\fortran\win32
 md %relroot%\%defrel%\samples\ide\fortran\win386
+md %relroot%\%defrel%\samples\os2\dll
 md %relroot%\%defrel%\samples\win\alarm
 md %relroot%\%defrel%\samples\win\datactl
 md %relroot%\%defrel%\samples\win\edit
@@ -153,16 +158,13 @@ md %relroot%\%defrel%\src\startup
 md %relroot%\%defrel%\src\cpplib\contain
 md %relroot%\%defrel%\src\os2\pdd
 md %relroot%\%defrel%\src\startup\386
-md %relroot%\%defrel%\src\startup\ads
 md %relroot%\%defrel%\src\startup\dos
 md %relroot%\%defrel%\src\startup\os2
 md %relroot%\%defrel%\src\startup\win
 md %relroot%\%defrel%\src\fortran
 md %relroot%\%defrel%\src\fortran\dos
 md %relroot%\%defrel%\src\fortran\win
-md %relroot%\%defrel%\src\fortran\ads
 md %relroot%\%defrel%\src\fortran\os2
-md %relroot%\%defrel%\src\fortran\ads\rel12
 goto end
 :error
 @echo The relroot and defrel environment variables need to be set!

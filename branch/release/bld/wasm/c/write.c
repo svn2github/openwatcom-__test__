@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <limits.h>
+#include <time.h>
 
 #include "myassert.h"
 #include "watcom.h"
@@ -55,6 +56,7 @@
 #include "pcobj.h"
 #include "fixup.h"
 #include "queue.h"
+#include "autodept.h"
 
 #define JUMP_OFFSET(cmd)    ((cmd)-CMD_POBJ_MIN_CMD)
 
@@ -109,7 +111,63 @@ extern uint             extdefidx;      // Number of Extern definition
 
 char                    **NameArray;
 
+typedef struct  fname_list {
+        struct  fname_list *next;
+        time_t  mtime;
+        char    *name;
+} FNAME, *FNAMEPTR;
+
 global_vars     Globals = { 0, 0, 0, 0, 0, 0, 0 };
+
+static FNAMEPTR FNames = NULL;
+
+void AddFlist( char const *filename )
+{
+    FNAMEPTR    flist;
+    FNAMEPTR    last;
+    int         index;
+    char        *fname;
+    char        buff[2*_MAX_PATH];
+        
+    if( !Options.emit_dependencies ) return;
+
+    index = 0;
+    last = FNames;
+    for( flist = last; flist != NULL; flist = flist->next ) {
+        if( strcmp( filename, flist->name ) == 0 ) return;
+        index++;
+        last = flist;
+    }
+    fname = _getFilenameFullPath( buff, filename, sizeof(buff) );
+    flist = (FNAMEPTR)AsmAlloc( sizeof( FNAME ) );
+    flist->name = (char *)AsmAlloc( strlen( fname ) + 1 );
+    strcpy( flist->name, fname );
+    flist->mtime = _getFilenameTimeStamp( fname );
+    flist->next = NULL;
+    if( FNames == NULL ) {
+        FNames = flist;
+    } else {
+        last->next = flist;
+    }
+    return;
+}
+
+static void FreeFlist( void )
+{
+    FNAMEPTR      curr;
+    FNAMEPTR      last;
+
+    if( !Options.emit_dependencies ) return;
+
+    for( curr = FNames; curr != NULL; ) {
+        AsmFree(curr->name);
+        last = curr;
+        curr = curr->next;
+        AsmFree(last);
+    }
+    FNames = NULL;
+    return;
+}
 
 static void write_init( void )
 {
@@ -523,7 +581,7 @@ static void write_comm( void )
     uint        num = 0;
     uint        total_size = 0;
     uint        varsize = 0;
-    uint        mem_type;
+    uint        symsize;
     uint        i = 0;
     uint        j = 0;
     char        *name;
@@ -588,9 +646,9 @@ static void write_comm( void )
             }
             if( varsize > 1 ) varsize--; /* we already output 1 byte */
 
-            mem_type = opsize( curr->sym.mem_type );
+            symsize = opsize( curr->sym.mem_type );
             if( curr->e.comminfo->distance != T_FAR ) {
-                value *= mem_type;
+                value *= symsize;
             }
 
             for( j=0; j < varsize; j++ ) {
@@ -600,8 +658,8 @@ static void write_comm( void )
 
             if( curr->e.comminfo->distance == T_FAR ) {
                 /* mem type always needs <= 1 byte */
-                myassert( mem_type < UCHAR_MAX );
-                name[i++] = mem_type;
+                myassert( symsize < UCHAR_MAX );
+                name[i++] = symsize;
             }
         }
         ObjAttachData( objr, name, total_size );
@@ -624,21 +682,7 @@ static void write_header( void )
     if( Options.module_name != NULL ) {
         name = Options.module_name;
     } else {
-        _fullpath( full_name, AsmFiles.fname[ASM], sizeof( full_name ) );
-        name = full_name;
-        #if defined(__UNIX__)
-            if( full_name[0] == '/'
-             && full_name[1] == '/'
-             && (AsmFiles.fname[ASM][0] != '/' || AsmFiles.fname[ASM][1] != '/') ) {
-                /*
-                   if the _fullpath result has a node number and
-                   the user didn't specify one, strip the node number
-                   off before returning
-                */
-                name += 2;
-                while( *name != '/' ) ++name;
-            }
-        #endif
+        name = _getFilenameFullPath( full_name, AsmFiles.fname[ASM], sizeof( full_name ) );
     }
     objr->is_32 = Use32;
     len = strlen( name );
@@ -655,6 +699,49 @@ static int write_modend( void )
         return ERROR;
     }
     write_record( ModendRec, TRUE );
+    return NOT_ERROR;
+}
+
+static int write_autodep( void )
+{
+    obj_rec       *objr;
+    char          buff[2*PATH_MAX + 5];
+    unsigned int len;
+    FNAMEPTR      curr;
+    FNAMEPTR      last;
+
+    if( !Options.emit_dependencies ) return NOT_ERROR;
+
+    // add source file to autodependency list
+    AddFlist( AsmFiles.fname[ASM] );
+
+    for( curr = FNames; curr != NULL; ) {
+        objr = ObjNewRec( CMD_COMENT );
+        objr->d.coment.attr = 0x80;
+        objr->d.coment.class = CMT_DEPENDENCY;
+
+        len = strlen(curr->name);
+        *((time_t *)buff) = _timet2dos(curr->mtime);
+        *(buff + 4) = (unsigned char)len;
+        strcpy(buff + 5, curr->name);
+        len += 5;
+
+        ObjAttachData( objr, buff, len );
+
+        write_record( objr, TRUE );
+
+        AsmFree(curr->name);
+        last = curr;
+        curr = curr->next;
+        AsmFree(last);
+    }
+    FNames = NULL;
+    // one NULL dependency record must be on the end
+    objr = ObjNewRec( CMD_COMENT );
+    objr->d.coment.attr = 0x80;
+    objr->d.coment.class = CMT_DEPENDENCY;
+    ObjAttachData( objr, "", 0 );
+    write_record( objr, TRUE );
     return NOT_ERROR;
 }
 
@@ -813,11 +900,11 @@ static void write_alias()
 
         *new = len1;
         new++;
-        strcpy( new, alias );
+        strncpy( new, alias, len1 );
         new+=len1;
         *new = len2;
         new++;
-        strcpy( new, subst );
+        strncpy( new, subst, len2 );
         new -= len1 + 2;
 
         objr = ObjNewRec( CMD_ALIAS );
@@ -1004,6 +1091,7 @@ static void writepass1stuff( void )
         return;
     }
     write_header();
+    write_autodep();
     if( Globals.dosseg ) write_dosseg();
     write_lib();
     write_lnames();
@@ -1093,10 +1181,13 @@ void WriteObjModule( void )
         }
         prev_total = curr_total;
     }
-    if( write_to_file && Options.error_count == 0 ) write_modend();
+    if( write_to_file && Options.error_count == 0 )
+        write_modend();
 
+    FreeFlist();
     AsmSymFini();
     FreeIncludePath();
     write_fini();
     AsmEvalFini();
 }
+

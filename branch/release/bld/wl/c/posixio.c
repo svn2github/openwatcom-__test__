@@ -38,17 +38,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <process.h>
-#include <conio.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
 #include <sys/stat.h>
+#ifdef __WATCOMC__
+#include <process.h>
+#endif
 #include "linkstd.h"
 #include "msg.h"
 #include "alloc.h"
-#if _OS != LINUX
+#if _OS != _LINUX
 #include <sys/proc_msg.h>
 #endif
 #include "wlnkmsg.h"
@@ -83,6 +84,7 @@ static int DoOpen( char *name, unsigned mode, bool isexe )
 {
     int     h;
     int     perm;
+    struct stat st;
 
     perm = 0666;
     CheckBreak();
@@ -90,6 +92,8 @@ static int DoOpen( char *name, unsigned mode, bool isexe )
     mode |= O_BINARY;
     for( ;; ) {
         if( OpenFiles >= MAX_OPEN_FILES ) CleanCachedHandles();
+        if ( ( mode & O_CREAT ) && !stat( name, &st) )
+            unlink( name );
         h = open( name, mode, perm );
         if( h != -1 ) {
             OpenFiles++;

@@ -303,6 +303,9 @@ STATIC DEPEND *buildDepend( TATTR *pattr )
             case DOT_EXPLICIT:
                 pattr->explicit = TRUE;
                 break;
+            case DOT_EXISTSONLY:
+                pattr->existsonly = TRUE;
+                break;
             default:
                 ignoring( TOK_DOTNAME, TRUE );
                 break;
@@ -394,7 +397,7 @@ STATIC void parseTargWarning( TLIST *walk )
     while( walk != NULL ) {
         if( !walk->target->special ) {
             PrtMsg( DBG|WRN|LOC| ASSUMING_SYMBOLIC,
-                DotNames[ DOT_SYMBOLIC ] );
+                walk->target->node.name );
             break;
         }
         walk = walk->next;

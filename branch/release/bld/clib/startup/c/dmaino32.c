@@ -44,6 +44,7 @@
 #include <wos2.h>
 #include "initfini.h"
 #include "osthread.h"
+#include "stacklow.h"
 
 extern  unsigned            __hmodule;
 
@@ -66,7 +67,6 @@ extern  int                 __disallow_single_dgroup(unsigned);
     extern      unsigned    __MaxThreads;
     extern      unsigned    __ASTACKSIZ;        /* alternate stack size */
     extern      char        *__ASTACKPTR;       /* alternate stack pointer */
-    extern      char        *_STACKLOW;
 
     extern      void        __OS2Init(int, void *);
     extern      void        __OS2Fini(void);
@@ -92,6 +92,14 @@ unsigned __LibMain( unsigned hmod, unsigned termination )
     unsigned    rc;
 
     if( termination != 0 ) {
+        // If we're running with single DGROUP and tried to load
+        // twice, do not run any termination code! Also reset the
+        // process counter so that the already loaded DLL can
+        // terminate properly
+        if( processes > 1 ) {
+            --processes;
+            return( 0 );
+        }
         rc = LibMain( hmod, termination );
         --processes;
         #ifndef __SW_BR
@@ -141,7 +149,7 @@ unsigned __LibMain( unsigned hmod, unsigned termination )
         PTIB        pptib;
         PPIB        pppib;
         unsigned    i;
-        
+
         DosGetInfoBlocks( &pptib, &pppib );
         _Envptr = pppib->pib_pchenv;
         _LpCmdLine = pppib->pib_pchcmd;
@@ -185,7 +193,7 @@ unsigned __LibMain( unsigned hmod, unsigned termination )
     __CommonInit();
     #ifndef __SW_BR
         /* allocate alternate stack for F77 */
-        __ASTACKPTR = _STACKLOW + __ASTACKSIZ;
+        __ASTACKPTR = (char *)_STACKLOW + __ASTACKSIZ;
     #endif
     return( LibMain( hmod, termination ) );
 }

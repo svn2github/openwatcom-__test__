@@ -30,28 +30,65 @@
 ****************************************************************************/
 
 
-#include <process.h>
 #include <unistd.h>
 #include <signal.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <direct.h>
 #include <assert.h>
+#include <errno.h>
+#ifdef __UNIX__
+#include <sys/wait.h>
+#include <sys/stat.h>
+#else
+#include <direct.h>
+#include <process.h>
 #include <dos.h>
+#endif
 #include <setjmp.h>
 #include <stdarg.h>
+#include "watcom.h"
 #include "pmake.h"
 
 #if defined(__OS2__)
     #define TMPBAT "tmp.cmd"
+#elif defined(__UNIX__)
+    #define TMPBAT "./tmp.sh"
 #else
     #define TMPBAT "tmp.bat"
 #endif
 
+#ifndef __LINUX__
+#define intSystem system
+#endif
 
 static char     buffer[512];
+
+#ifdef __LINUX__
+static int intSystem( char *cmd )
+/* interruptable "system" (so that ctrl-c works) */
+{
+    pid_t pid = fork();
+    int status;
+    
+    if ( pid == -1 )
+        return -1;
+    if ( pid == 0 ) {
+        execl( "/bin/sh", "sh", "-c", cmd, NULL );
+        exit( 127 );
+    }
+    for (;;) {
+        if ( waitpid( pid, &status, 0) == -1 ) {
+            if ( errno == EINTR ) {
+                continue;
+            }
+            status = -1;
+        }
+        return status;
+    }
+}
+#endif
 
 void WriteCmdFile( pmake_data *data )
 {
@@ -64,7 +101,13 @@ void WriteCmdFile( pmake_data *data )
             TMPBAT, strerror( errno ) );
         exit( EXIT_FAILURE );
     }
+#ifdef __UNIX__
+    fprintf( fp, "#!/bin/sh\n" );
+    fprintf( fp, "rm "TMPBAT"\n" );
+    fchmod( fileno( fp ), 0777 );
+#else    
     fprintf( fp, "@echo off\n" );
+#endif
     for( curr = data->dir_list; curr != NULL ; curr = curr->next ) {
         if( curr->dir_name[0] != '\0' ) {
             fprintf( fp, "cd %s\n", curr->dir_name );
@@ -134,8 +177,16 @@ void PrintHelp( void )
 
 char                    CmdBuff[512];
 
+#ifndef __WATCOMC__
+char **_argv;
+
+int main( int argc, char **argv )
+{
+    _argv = argv;
+#else
 int main( void )
 {
+#endif
     pmake_data *data;
 
     getcmd( CmdBuff );
@@ -151,16 +202,18 @@ int main( void )
     PMakeCleanup( data );
 
     if( !data->batch ) {
-        if( system( TMPBAT ) ) {
+        if( intSystem( TMPBAT ) ) {
             printf( "PMAKE: error during attempt to run %s: %s\n",
                 TMPBAT, strerror( errno ) );
             return( EXIT_FAILURE );
         }
+#ifndef __UNIX__
         if( remove( TMPBAT ) ) {
             printf( "PMAKE: unable to remove %s: %s\n",
                 TMPBAT, strerror( errno ) );
             return( EXIT_FAILURE );
         }
+#endif
     }
     return( EXIT_SUCCESS );
 }

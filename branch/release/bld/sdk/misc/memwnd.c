@@ -34,12 +34,13 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include <sys\types.h>
-#include <sys\stat.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <io.h>
 #include <time.h>
 #define STRICT
+#define INCLUDE_TOOLHELP_H
 #include <windows.h>
 #include "font.h"
 #include "segmem.h"
@@ -53,10 +54,7 @@
 #include "ctl3d.h"
 #include "win1632.h"
 #include "ldstr.h"
-#include "rcstr.h"
-#ifndef __NT__
-#include "toolhelp.h"
-#endif
+#include "rcstr.gh"
 
 #define  ISCODE( x )    ( (x)->disp_type == MEMINFO_CODE_16 || \
                           (x)->disp_type == MEMINFO_CODE_32 )

@@ -28,7 +28,6 @@
 *
 ****************************************************************************/
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,13 +36,14 @@
 #include <fcntl.h>
 #include <time.h>
 #include "preproc.h"
-#ifdef UNIX
+
+#if defined( __UNIX__ ) && !defined( __WATCOMC__ )
     #include "clibext.h"
     #include "rotate.h"
 #endif
 
 #ifndef SLASH_CHAR
-    #ifdef UNIX
+    #ifdef __UNIX__
         #define SLASH_CHAR      '/'
     #else
         #define SLASH_CHAR      '\\'
@@ -143,6 +143,9 @@ char *PP_FindInclude( char *filename, char *path, char *buffer )
             for(;;) {
                 c = *path++;
                 if( c == ';' ) break;
+#ifdef __UNIX__
+                if( c == ':' ) break;
+#endif
                 if( c == '\0' ) break;
                 buffer[len++] = c;
             }
@@ -209,10 +212,10 @@ static void PP_GenLine()
     fname = PP_File->filename;
     while( *fname != '\0' ) {
 //      24-may-94       if( *fname == '\\' )  *p++ = '\\';
-#ifndef UNIX
+#ifndef __UNIX__
         if( *fname == SLASH_CHAR )  *p++ = SLASH_CHAR;          // 14-sep-94
 #endif
-        if( DBChar[*fname] )  {
+        if( DBChar[(unsigned char)*fname] )  {
             *p = *fname;
             p++;
             fname++;
@@ -958,7 +961,7 @@ char *PPScanLiteral( char *p )
 
     quote_char = *p++;
     for(;;) {
-        if( DBChar[*p] )  {
+        if( DBChar[(unsigned char)*p] )  {
             p += 2;             /* 07-jul-93 */
             continue;           /* 09-jul-93 */
         }

@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Implementation of ltoa().
 *
 ****************************************************************************/
 
@@ -33,6 +32,8 @@
 #include "variety.h"
 #include "widechar.h"
 #include <stdlib.h>
+
+extern const char __based(__segname("_CODE")) __Alphabet[];
 
 unsigned long __uldiv( unsigned long, unsigned _WCNEAR * );
 #if defined(__386__)
@@ -83,13 +84,11 @@ unsigned long __uldiv( unsigned long, unsigned _WCNEAR * );
     #error missing __uldiv #pragma
 #endif
 
-static const char _WCI86FAR Alphabet[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-
 
 _WCRTLINK CHAR_TYPE *__F_NAME(ultoa,_ultow)( value, buffer, radix )
         unsigned long value;
         CHAR_TYPE *buffer;
-        unsigned radix;
+        int radix;
     {
         CHAR_TYPE *p = buffer;
         char *q;
@@ -99,14 +98,14 @@ _WCRTLINK CHAR_TYPE *__F_NAME(ultoa,_ultow)( value, buffer, radix )
         buf[0] = '\0';
         q = &buf[1];
         do {
-            #if defined(__AXP__) || defined(__PPC__)
+            #if defined(__AXP__) || defined(__PPC__) || !defined(__WATCOMC__)
                 rem = value % radix;
                 value = value / radix;
             #else
                 rem = radix;
                 value = __uldiv( value, (unsigned _WCNEAR *) &rem );
             #endif
-            *q = Alphabet[ rem ];
+            *q = __Alphabet[ rem ];
             ++q;
         } while( value != 0 );
         while( *p++ = (CHAR_TYPE)*--q );

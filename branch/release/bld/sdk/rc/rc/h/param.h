@@ -29,14 +29,17 @@
 *
 ****************************************************************************/
 
-
 #ifndef PARAM_INCLUDED
 #define PARAM_INCLUDED
 
 #include <stdlib.h>
-#include "types.h"
-#ifdef UNIX
+#include "rctypes.h"
+#if defined( __UNIX__ ) && !defined( __WATCOMC__ )
     #include "clibext.h"
+#endif
+#ifndef _MAX_PATH
+#include <limits.h>
+#define _MAX_PATH PATH_MAX+1
 #endif
 
 #define DB_CHAR         1

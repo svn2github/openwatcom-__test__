@@ -29,7 +29,6 @@
 *
 ****************************************************************************/
 
-
 #include <stdlib.h>
 
 #ifndef __NT__
@@ -48,7 +47,7 @@ int _dos_switch_char()
 {
 #if defined(__NT__) || defined(__OS2__) || defined(__OSI__)
     return( '/' );
-#elif defined( UNIX )
+#elif defined( __UNIX__ )
     return( '-' );
 #else
     #ifdef __386__

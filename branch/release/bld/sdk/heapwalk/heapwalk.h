@@ -31,29 +31,27 @@
 
 
 #define _WINDOWS_16_
-#ifndef STRICT
 #define STRICT
-#endif
 #include <windows.h>
 #include <toolhelp.h>
 #include <stdio.h>
 #include "heapwlk.h"
 #include "hwbiglb.h"
-#include "..\misc\segmem.h"
-#include "..\misc\mythelp.h"
-#include "..\misc\descript.h"
-#include "..\misc\mem.h"
-#include "..\misc\font.h"
-#include "..\misc\seginfo.h"
-#include "..\misc\savelbox.h"
-#include "..\misc\memwnd.h"
-#include "..\misc\srchmsg.h"
-#include "..\misc\pushwin.h"
-#include "..\misc\ctl3d.h"
+#include "segmem.h"
+#include "mythelp.h"
+#include "descript.h"
+#include "mem.h"
+#include "font.h"
+#include "seginfo.h"
+#include "savelbox.h"
+#include "memwnd.h"
+#include "srchmsg.h"
+#include "pushwin.h"
+#include "ctl3d.h"
 #include "memman.h"
 #include "heapinfo.h"
 #include "lclinfo.h"
-#include "rcstr.h"
+#include "rcstr.gh"
 #include "ldstr.h"
 #include "config.h"
 #include "menu.h"

@@ -31,7 +31,7 @@
 
 
 #include <string.h>
-//#define INCLUDE_COMMDLG_H
+#define INCLUDE_COMMDLG_H
 #include "winvi.h"
 #include <commdlg.h>
 #include <dlgs.h>
@@ -47,7 +47,8 @@ static char *FileNameList;
 
 typedef UINT (WINEXP * OPENHOOKTYPE)( HWND, UINT, WPARAM, LPARAM );
 
-UINT WINEXP OpenHook( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam )
+
+BOOL WINEXP OpenHook( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam )
 {
     int len;
     static OPENFILENAME *of;
@@ -67,7 +68,7 @@ UINT WINEXP OpenHook( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam )
         case IDOK:
             len = SendDlgItemMessage( hwnd, edt1, WM_GETTEXTLENGTH, 0, 0 );
             if( len >= of->nMaxFile ) {
-                FileNameList = MemAlloc( len + 1 );
+                FileNameList = MemAlloc( len + 1 );         
                 len = SendDlgItemMessage( hwnd, edt1, WM_GETTEXT, len+1, (LPARAM)FileNameList );
             }
         }
@@ -115,10 +116,13 @@ int SelectFileOpen( char *dir, char **result, char *mask, bool want_all_dirs  )
     if( is_chicago ) {
         of.Flags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
     } else {
-    #endif
+        of.Flags = OFN_PATHMUSTEXIST | OFN_ENABLEHOOK |
+                   OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY | OFN_EXPLORER;
+    #else
         of.Flags = OFN_PATHMUSTEXIST | OFN_ENABLEHOOK |
                    OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY;
-        of.lpfnHook = (OPENHOOKTYPE) MakeProcInstance( (FARPROC) OpenHook,
+    #endif
+        of.lpfnHook = (LPOFNHOOKPROC) MakeProcInstance( (FARPROC) OpenHook,
                           InstanceHandle );
     #ifdef __NT__
     }
@@ -174,9 +178,14 @@ int SelectFileSave( char *result )
     of.nMaxFile = _MAX_PATH;
     of.lpstrTitle = NULL;
     of.lpstrInitialDir = CurrentFile->home;
+#ifdef __NT__    
+    of.Flags = OFN_PATHMUSTEXIST | OFN_ENABLEHOOK | OFN_OVERWRITEPROMPT |
+               OFN_HIDEREADONLY | OFN_NOREADONLYRETURN | OFN_EXPLORER;
+#else
     of.Flags = OFN_PATHMUSTEXIST | OFN_ENABLEHOOK | OFN_OVERWRITEPROMPT |
                OFN_HIDEREADONLY | OFN_NOREADONLYRETURN;
-    of.lpfnHook = (OPENHOOKTYPE) MakeProcInstance( (FARPROC) OpenHook,
+#endif                      
+    of.lpfnHook = (LPOFNHOOKPROC) MakeProcInstance( (FARPROC) OpenHook,
                       InstanceHandle );
     doit = GetSaveFileName( &of );
     #ifndef __NT__

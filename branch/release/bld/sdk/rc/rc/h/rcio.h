@@ -29,7 +29,6 @@
 *
 ****************************************************************************/
 
-
 #ifndef RCIO_INCLUDED
 #define RCIO_INCLUDED
 
@@ -37,11 +36,11 @@
 #include <stdlib.h>
 #include "watcom.h"
 #include "wresall.h"
-#include "types.h"
+#include "rctypes.h"
 #include "semstr.h"
 #include "semsingl.h"
 #include "sharedio.h"
-#ifdef UNIX
+#if defined( __UNIX__ ) && !defined( __WATCOMC__ )
     #include "clibext.h"
 #endif
 

@@ -29,18 +29,14 @@
 *
 ****************************************************************************/
 
-
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <io.h>
-#ifndef UNIX
-    #include <env.h>
-#endif
+#include <unistd.h>
 #include "errors.h"
 #include "global.h"
 #include "param.h"
-#include "types.h"
+#include "rctypes.h"
 #include "rcmem.h"
 #include "swchar.h"
 #include "dbtable.h"
@@ -48,6 +44,12 @@
  #include "ostype.h"
 #endif
 #include "leadbyte.h"
+
+#if defined(__UNIX__)
+# define PATH_SPLIT_S       ":"     /* path seperator in string form        */
+#else
+# define PATH_SPLIT_S       ";"     /* path seperator in string form        */
+#endif
 
 /* forward declaration */
 static bool scanEnvVar( const char *varname, int *nofilenames );
@@ -175,7 +177,7 @@ extern void AddNewIncludeDirs( const char * arg )
         /* + 2 for the '\0' and the ';' */
         oldlen = strlen( NewIncludeDirs );
         NewIncludeDirs = RcMemRealloc( NewIncludeDirs, oldlen + len + 2 );
-        strcat( NewIncludeDirs + oldlen , ";" );
+        strcat( NewIncludeDirs + oldlen , PATH_SPLIT_S );
         oldlen ++; //for the semicolon
     }
     if( scanString( NewIncludeDirs + oldlen, arg, len + 1 ) ) {

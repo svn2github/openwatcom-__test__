@@ -31,10 +31,13 @@
 
 
 #include <malloc.h>
+#ifdef __WATCOMC__
 #include <process.h>
+#endif
 #ifdef IDE_PGM
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 char *ImageName;
 #endif
 #include "idedrv.h"
@@ -45,10 +48,13 @@ static IDEDRV info =
 {   DLL_NAME
 };
 
+#ifndef __WATCOMC__
+const char **_argv;
+#endif
 
 int main                        // MAIN-LINE FOR DLL DRIVER
     ( int count                 // - # args
-    , char* args[] )            // - arguments
+    , char *args[] )            // - arguments
 {
     int retcode;                // - return code
 #ifndef __UNIX__
@@ -57,7 +63,16 @@ int main                        // MAIN-LINE FOR DLL DRIVER
 #endif
 
 #ifdef IDE_PGM
+#ifdef __UNIX__
+    static char buffer[PATH_MAX];
+    _cmdname( buffer );
+    ImageName = buffer;
+#else
     ImageName = args[0];
+#endif
+#endif
+#ifndef __WATCOMC__
+    _argv = args;
 #endif
 #ifndef __UNIX__
     count = count;

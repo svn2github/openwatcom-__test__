@@ -42,10 +42,13 @@ switch  Character Set           of a double-byte character
 
 00000 - increment to force compile
 */
+#include "cvars.h"
+
+#if defined( __WATCOMC__ ) || !defined( __UNIX__ )
 #include <mbstring.h>
 #include <mbctype.h>
+#endif
 
-#include "cvars.h"
 #include "scan.h"
 
 #define LEAD_BYTE_INIT  ( C_DB | C_EX )
@@ -77,7 +80,7 @@ void SetDBChar( int character_set )
         setRange( 0xa1, 0xfe );
         break;
     case -1:
-#ifndef __LINUX__
+#if defined( __WATCOMC__ ) || !defined( __UNIX__ )
         {
             unsigned i; 
             _setmbcp( _MB_CP_ANSI );

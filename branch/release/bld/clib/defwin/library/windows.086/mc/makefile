@@ -3,7 +3,8 @@ processor=086
 model=mc
 system=windows
 linkage=static
-!include ..\..\..\objects.mif
-!include $(clib_dir)\master.mif
-!include $(clib_dir)\mklib.mif
-!include ..\..\..\deps.mif
+default_windowing=1
+!include ../../../objects.mif
+!include $(clib_dir)/master.mif
+!include $(clib_dir)/mklib.mif
+!include ../../../deps.mif

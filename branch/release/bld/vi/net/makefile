@@ -43,7 +43,7 @@ EXES = vi.exe vip.exe
 all : .symbolic $(VIS) $(DATS) $(HLPS) $(BINDERS) $(EXES)
 
 netcopy : .procedure
-        copy $[@ $^@
+        cp $[@ $^@
 
 ed.cfg :: $(lang)\eddat\ed.cfg
         @%make netcopy
@@ -114,12 +114,12 @@ clean: .SYMBOLIC
         @%create $[*.scr
         @%append $[*.scr comp $[*.vi
         @%append $[*.scr quit
-        vi -c -q -s$[*.scr
+        $(vi) -c -s $[*.scr
         @erase $[*.scr
 
 ed._vi : ed.cfg
         @%create ed.scr
         @%append ed.scr comp -a ed.cfg
         @%append ed.scr quit
-        vi -c -q -sed.scr
+        $(vi) -c -s ed.scr
         @erase ed.scr

@@ -24,21 +24,28 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Sweep utility - run a command recursively in subtree.
 *
 ****************************************************************************/
 
 #include <ctype.h>
+#ifdef __WATCOMC__
 #include <process.h>
+#endif
 #include <unistd.h>
 #include <signal.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef __UNIX__
+#include <dirent.h>
+#include <sys/stat.h>
+#else
 #include <direct.h>
 #include <dos.h>
+#endif
+#include "watcom.h"
 
 char *Help[] = {
 "Usage: SWEEP [options] cmd",
@@ -95,6 +102,12 @@ dirstack        *Stack = NULL;
 int             DoneFlag = 0;
 
 
+void SetDoneFlag()
+{
+    DoneFlag = 1;
+}
+
+
 void *SafeMalloc( size_t n )
 {
     void *p = malloc( n );
@@ -130,7 +143,7 @@ char *CurrPath()
 
 char *StringCopy( char *dst, char *src )
 {
-    while( *dst = *src ) {
+    while( (*dst = *src) ) {
         ++dst;
         ++src;
     }
@@ -302,23 +315,25 @@ void ExecuteCommands()
         SubstituteAndRun( "" );
         return;
     }
-    dirh = opendir( "*.*" );
+    dirh = opendir( "." );
     if( dirh != NULL ) {
         for( ;; ) {
             if( DoneFlag ) return;
             dp = readdir( dirh );
             if( dp == NULL ) break;
+#ifdef __UNIX__
+            {
+                struct stat buf;
+                stat( dp->d_name, &buf );
+                if ( S_ISDIR( buf.st_mode ) ) continue;
+            }
+#else
             if( dp->d_attr & _A_SUBDIR ) continue;
+#endif
             SubstituteAndRun( dp->d_name );
         }
         closedir( dirh );
     }
-}
-
-
-void SetDoneFlag()
-{
-    DoneFlag = 1;
 }
 
 
@@ -332,14 +347,22 @@ void ProcessCurrentDirectory()
         ExecuteCommands();
     }
     if( Options.levels != 0 ) {
-        dirh = opendir( "*.*" );
+        dirh = opendir( "." );
         if( dirh != NULL ) {
             --Options.levels;
             for( ;; ) {
                 if( DoneFlag ) return;
                 dp = readdir( dirh );
                 if( dp == NULL ) break;
+#ifdef __UNIX__
+                {
+                    struct stat buf;
+                    stat( dp->d_name, &buf );
+                    if ( !S_ISDIR( buf.st_mode ) ) continue;
+                }
+#else
                 if( !( dp->d_attr & _A_SUBDIR ) ) continue;
+#endif
                 if( dp->d_name[0] == '.' ) {
                     if( dp->d_name[1] == '.' || dp->d_name[1] == '\0' ) continue;
                 }
@@ -389,7 +412,15 @@ int GetNumber( int default_num )
 }
 
 
-int main() {
+#ifndef __WATCOMC__
+char **_argv;
+
+int main( int argc, char **argv ) {
+
+    _argv = argv;
+#else
+int main( void ) {
+#endif
 
     getcmd( CmdBuff );
     CmdLine = CmdBuff;

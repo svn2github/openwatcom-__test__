@@ -33,6 +33,7 @@ msuffix.obj     &
 msysdep.obj     &
 mtarget.obj     &
 mupdate.obj     &
+autodept.obj    &
 mvecstr.obj
 
 !ifeq host_OS nt
@@ -56,11 +57,7 @@ objs += idemsgpr.obj
 objs += winmain.wbj
 !endif
 
-!ifdef on_build_machine
-!define release_wmake 1
-!endif
-
-!ifndef release_wmake
+!ifeq release 0
 objs += massert.obj
 !ifndef wmake_trmem
 wmake_trmem = 1

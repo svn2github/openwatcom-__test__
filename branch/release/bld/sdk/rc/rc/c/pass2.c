@@ -29,8 +29,7 @@
 *
 ****************************************************************************/
 
-
-#include <io.h>
+#include <unistd.h>
 #include <string.h>
 #include "watcom.h"
 #include "exeos2.h"
@@ -560,7 +559,7 @@ HANDLE_ERROR:
 
 STOP_ERROR:
     RcFatalError( ERR_STOP_REQUESTED );
-#if defined( __ALPHA__ ) || defined( UNIX )
+#if defined( __ALPHA__ ) || defined( __UNIX__ ) && !defined( __WATCOMC__ )
     return( FALSE );
 #endif
 
@@ -687,7 +686,7 @@ HANDLE_ERROR:
 
 STOP_ERROR:
     RcFatalError( ERR_STOP_REQUESTED );
-#if defined( __ALPHA__ ) || defined( UNIX )
+#if defined( __ALPHA__ ) || defined( __UNIX__ )
     return( FALSE );
 #endif
 

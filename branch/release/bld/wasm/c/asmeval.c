@@ -47,7 +47,6 @@ extern void             AsmError( int );
 extern void             DefFlatGroup();
 
 extern struct asm_tok   *AsmBuffer[];
-extern char             Parse_pass;
 
 static int              TakeOut[ MAX_TOKEN ];
 static int              TokCnt;
@@ -356,7 +355,7 @@ static void MakeConst( expr_list *token )
     token->type = EXPR_CONST;
     token->indirect = FALSE;
     token->explicit = FALSE;
-    token->expr_type = FALSE;
+    token->expr_type = EMPTY;
 }
 
 static void TokenAssign( expr_list *t1, expr_list *t2 )
@@ -426,7 +425,7 @@ static int_8 calculate( expr_list *token_1,expr_list *token_2, uint_8 index )
                 }
                 if( token_1->label == EMPTY ) {
                     token_1->label = token_2->label;
-                } else if( token_2->label != EMPTY && Parse_pass > PASS_1 ) {
+                } else if( token_2->label != EMPTY && Parse_Pass > PASS_1 ) {
                     AsmError( LABEL_NOT_DEFINED );
                 }
                 token_1->indirect |= token_2->indirect;
@@ -767,7 +766,7 @@ static int_8 calculate( expr_list *token_1,expr_list *token_2, uint_8 index )
     return( NOT_ERROR );
 }
 
-static expr_list *evaluate( int *i, int end )
+static expr_list *evaluate( int *i, int end, bool flag_msg )
 {
     expr_list           *token_1 = NULL;
     expr_list           *token_2 = NULL;
@@ -787,11 +786,11 @@ static expr_list *evaluate( int *i, int end )
     if( cmp_token( *i, T_OP_BRACKET ) ) {
         (*i)++;
         if( *i > end ) {
-            AsmError( OPERAND_EXPECTED );
+            if( flag_msg ) AsmError( OPERAND_EXPECTED );
             return( NULL );
         }
 
-        token_1 = evaluate( i, end );
+        token_1 = evaluate( i, end, flag_msg );
         if( token_1 == NULL ) {
             return( NULL );
         }
@@ -804,7 +803,7 @@ static expr_list *evaluate( int *i, int end )
         }
         /**/myassert( !cmp_token( (*i)-1, T_CL_BRACKET ) );
         (*i)++;
-        token_1 = evaluate( i, end );
+        token_1 = evaluate( i, end, flag_msg );
         if( token_1 == NULL ) {
             return( NULL );
         }
@@ -835,7 +834,7 @@ static expr_list *evaluate( int *i, int end )
         } else if( cmp_token( *i, T_OP_SQ_BRACKET ) ) {
             AsmBuffer[*i]->token = '+';
         } else if( !is_optr(*i) ) {
-            AsmError( OPERATOR_EXPECTED );
+            if( flag_msg ) AsmError( OPERATOR_EXPECTED );
             expr_free( token_1 );
             return( NULL );
         }
@@ -852,7 +851,7 @@ static expr_list *evaluate( int *i, int end )
         (*i)++;
         start_token_2 = *i;
         if( *i > end ) {
-            AsmError( OPERAND_EXPECTED );
+            if( flag_msg ) AsmError( OPERAND_EXPECTED );
             expr_free( token_1 );
             return( NULL );
         }
@@ -860,19 +859,19 @@ static expr_list *evaluate( int *i, int end )
         if( cmp_token( *i, T_OP_BRACKET ) ||
             cmp_token( *i, T_OP_SQ_BRACKET ) ) {
             (*i)++;
-            token_2 = evaluate( i, end );
+            token_2 = evaluate( i, end, flag_msg );
             if( token_2 == NULL ) {
                 expr_free( token_1 );
                 return( NULL );
             }
         } else if( is_unary( *i, TRUE ) ) {
-            token_2 = evaluate( i, end );
+            token_2 = evaluate( i, end, flag_msg );
             if( token_2 == NULL ) {
                 expr_free( token_1 );
                 return( NULL );
             }
         } else if( is_optr( *i ) ) {
-            AsmError( OPERAND_EXPECTED );
+            if( flag_msg ) AsmError( OPERAND_EXPECTED );
             expr_free( token_1 );
             return( NULL );
         } else {
@@ -900,7 +899,7 @@ static expr_list *evaluate( int *i, int end )
         if( *i <= end ) {
             if( !is_optr( *i ) || is_unary( *i, FALSE ) ||
                 cmp_token( *i, T_OP_BRACKET ) ) {
-                AsmError( OPERATOR_EXPECTED );
+                if( flag_msg ) AsmError( OPERATOR_EXPECTED );
                 expr_free( token_1 );
                 expr_free( token_2 );
                 return( NULL );
@@ -913,7 +912,7 @@ static expr_list *evaluate( int *i, int end )
                 if( get_precedence( *i ) < get_precedence( queue[0] ) ) {
                     (*i) = start_token_2;
                     expr_free( token_2 );
-                    token_2 = evaluate( i, end );
+                    token_2 = evaluate( i, end, flag_msg );
                     if( token_2 == NULL ) {
                         expr_free( token_1 );
                         return( NULL );
@@ -1279,7 +1278,7 @@ static void fix_final( void )
     }
 }
 
-extern int EvalExpr( int count, int start_tok, int end_tok )
+extern int EvalExpr( int count, int start_tok, int end_tok, bool flag_msg )
 /******************************/
 {
     int         i = start_tok;
@@ -1314,9 +1313,9 @@ extern int EvalExpr( int count, int start_tok, int end_tok )
                 // skip
             } else {
                 i = start;
-                result = evaluate( &i, i + num );
+                result = evaluate( &i, i + num, flag_msg );
                 if( result == NULL ) {
-    //          AsmError( SYNTAX_ERROR );
+    //          if( flag_msg ) AsmError( SYNTAX_ERROR );
                     return( ERROR );
                 }
                 i = fix( result, start, start + num );

@@ -36,7 +36,9 @@
 #ifdef __OS2__
    #include <stdio.h>
 #endif
+#ifdef __WATCOMC__
 #include <process.h>
+#endif
 
 #include "macros.h"
 #include "make.h"
@@ -153,14 +155,14 @@ STATIC void handleMacroDefn( char *buf )
         /* NOP - eat all the characters */
     }
 
-    if (Glob.microsoft) {
+    if( Glob.microsoft ) {
         Glob.macreadonly = FALSE;
         /* Insert twice because in nmake declaring a macro in the command line */
         /* is equivalent to declaring one as is and one that is all upper case */
         pos = 0;
-        while (buf[pos] != NULLCHAR &&
-               buf[pos] != '=') {
-            buf[pos] = toupper(buf[pos]);
+        while( buf[ pos ] != NULLCHAR &&
+               buf[ pos ] != '=' ) {
+            buf[ pos ] = toupper( buf[ pos ] );
             ++pos;
         }
 
@@ -170,6 +172,7 @@ STATIC void handleMacroDefn( char *buf )
         }
         Glob.macreadonly = TRUE;
     }
+    FreeSafe( buf );
 }
 
 
@@ -512,8 +515,8 @@ STATIC void init( const char **argv )
 }
 
 
-extern void ExitSafe( int rc )
-/****************************/
+extern int ExitSafe( int rc )
+/***************************/
 {
     static BOOLEAN busy = FALSE;    /* recursion protection */
 
@@ -553,37 +556,46 @@ extern void ExitSafe( int rc )
         LogFini();
     }
 
-    exit( rc );
+    return( rc );
 }
 
-#pragma off(unreferenced);
-#if !defined( __WINDOWS__ )
-extern void main( int argc, const char **argv )
+#ifndef __WATCOMC__
+char **_argv;
 #else
-extern void wmake_main( int argc, const char **argv )
+#pragma off(unreferenced);
 #endif
+#if !defined( __WINDOWS__ )
+extern int main( int argc, char **argv )
+#else
+extern int wmake_main( int argc, char **argv )
+#endif
+#ifdef __WATCOMC__
 #pragma on (unreferenced);
+#endif
 /*********************************************/
 {
 
     assert( argv[argc] == NULL );       /* part of ANSI standard */
+#ifndef __WATCOMC__
+    _argv = argv;
+#endif
     InitSignals();
     InitHardErr();
-    init( argv );                       /* initialize, process cmdline */
+    init( (const char **)argv );        /* initialize, process cmdline */
     Header();
     parseFiles();
     if( Glob.print ) {
         print();
-        ExitSafe( EXIT_OK );
+        return( ExitSafe( EXIT_OK ) );
     }
     if( Glob.erroryet ) {
-        ExitSafe( EXIT_ERROR );
+        return( ExitSafe( EXIT_ERROR ) );
     }
     if( doMusts() != RET_SUCCESS ) {
-        ExitSafe( EXIT_ERROR );
+        return( ExitSafe( EXIT_ERROR ) );
     }
     ParseFini();
-    ExitSafe( EXIT_OK );
+    return( ExitSafe( EXIT_OK ) );
 }
 
 #if 0
