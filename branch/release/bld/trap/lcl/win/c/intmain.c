@@ -31,9 +31,10 @@
 
 
 #include <stdio.h>
+#define STRICT
 #include <windows.h>
 
-int PASCAL LibMain( HANDLE hmod, WORD dataseg, WORD heap, LPSTR cmdline )
+int WINAPI LibMain( HINSTANCE hmod, WORD dataseg, WORD heap, LPSTR cmdline )
 {
     hmod = hmod;
     dataseg = dataseg;
@@ -42,7 +43,7 @@ int PASCAL LibMain( HANDLE hmod, WORD dataseg, WORD heap, LPSTR cmdline )
     return( 1 );
 }
 
-int FAR PASCAL WEP( int res )
+int WINAPI WEP( int res )
 {
     res = res;
 

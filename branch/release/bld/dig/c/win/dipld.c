@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <i86.h>
+#define STRICT
 #include <windows.h>
 #include "watcom.h"
 #include "dip.h"
@@ -97,11 +98,11 @@ dip_status DIPSysLoad( char *path, dip_client_routines *cli,
     dll = LoadModule( newpath, &parm_block );
     DIPLastHandle = dll;
     SetErrorMode( prev );
-    if( dll < 32 ) {
+    if( (UINT)dll < 32 ) {
         return( DS_ERR|DS_FOPEN_FAILED );
     }
     *sys_hdl = (unsigned long)transfer_block.unload;
-    init_func = transfer_block.load;
+    init_func = ( dip_imp_routines *(DIPENTRY *)( dip_status *, dip_client_routines * ))transfer_block.load;
     if( init_func == NULL ) {
         DIPSysUnload( *sys_hdl );
         return( DS_ERR|DS_INVALID_DIP );

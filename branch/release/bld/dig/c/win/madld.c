@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <i86.h>
+#define STRICT
 #include <windows.h>
 #include "watcom.h"
 #include "mad.h"
@@ -54,7 +55,7 @@ void Say( char *buff )
 mad_status MADSysLoad( char *path, mad_client_routines *cli,
                                 mad_imp_routines **imp, unsigned long *sys_hdl )
 {
-    HANDLE              dll;
+    HINSTANCE           dll;
     mad_imp_routines    *(DIGENTRY *init_func)( mad_status *, mad_client_routines * );
     char                newpath[256];
     mad_status          status;
@@ -97,11 +98,11 @@ mad_status MADSysLoad( char *path, mad_client_routines *cli,
     dll = LoadModule( newpath, &parm_block );
     MADLastHandle = dll;
     SetErrorMode( prev );
-    if( dll < 32 ) {
+    if( (UINT)dll < 32 ) {
         return( MS_ERR|MS_FOPEN_FAILED );
     }
     *sys_hdl = (unsigned long)transfer_block.unload;
-    init_func = transfer_block.load;
+    init_func = (mad_imp_routines*(DIGENTRY*)(mad_status*,mad_client_routines*)) transfer_block.load;
     if( init_func == NULL ) {
         MADSysUnload( *sys_hdl );
         return( MS_ERR|MS_INVALID_MAD );

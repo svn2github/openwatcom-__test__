@@ -321,7 +321,8 @@ enum ostypes {                  //NYI: redo these for PIL
         OS_PENPOINT,
         OS_NT,
         OS_AUTOCAD,
-        OS_NEUTRINO
+        OS_NEUTRINO,
+        OS_LINUX
 };
 
 typedef struct {                //NYI: redo this for PIL
@@ -340,7 +341,7 @@ enum {
 };
 
 #if defined(__WINDOWS__) && !defined(__NT__)
-#define DIGREGISTER     __pascal
+#define DIGREGISTER     __far __pascal
 #define DIGENTRY        __export DIGREGISTER
 #define DIGCLIENT       __loadds
 #endif
