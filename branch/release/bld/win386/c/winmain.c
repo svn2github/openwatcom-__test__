@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  C/C++ Windows 386 Supervisor WinMain code (16-bit).
 *
 ****************************************************************************/
 
@@ -37,7 +36,7 @@ extern DWORD ReturnCode;
 
 extern void PASCAL InvokeWin32( void );
 
-int PASCAL WinMain( HANDLE thishandle, HANDLE prevhandle, LPSTR cmdline,
+int PASCAL WinMain( HINSTANCE thishandle, HINSTANCE prevhandle, LPSTR cmdline,
                     int cmdshow )
 {
     if( !Init32BitTask( thishandle, prevhandle, cmdline, cmdshow ) ) {
