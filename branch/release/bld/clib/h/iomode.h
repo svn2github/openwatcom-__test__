@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  prototypes and definitions for iomode array manipulation
 *
 ****************************************************************************/
 
@@ -62,7 +61,8 @@ extern  HANDLE      *__OSHandles;
 
 extern  unsigned    __GetIOMode( int __handle );
 extern  unsigned    __SetIOMode( int __handle, unsigned __value );
-extern  unsigned    __CloseIOMode( int __handle );
+extern  unsigned    __SetIOMode_nogrow( int __handle, unsigned __value );
+extern  void        __ChkTTYIOMode( int __handle );
 
 #endif
 
