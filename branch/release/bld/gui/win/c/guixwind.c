@@ -99,6 +99,12 @@ extern void TrayCallBack( HWND hwnd, WPI_PARAM1 wParam, WPI_PARAM2 lParam );
 // Function to allow use of system tray when objects are minimized - include in app
 extern void WndSizeChange( HWND hwnd, WPI_PARAM1 wParam, WPI_PARAM2 lParam );
 
+#ifdef __NT__
+#if !defined(WM_MOUSEWHEEL)
+#define WM_MOUSEWHEEL (WM_MOUSELAST + 1)
+#endif
+#endif
+
 gui_window      *GUICurrWnd     = NULL;
 WPI_INST        GUIMainHInst;
 extern WPI_INST GUIResHInst;
@@ -396,7 +402,7 @@ bool GUIWndInit( unsigned DClickInterval, gui_window_styles style )
     GUISysInit( 0 );
     _wpi_setdoubleclicktime( DClickInterval );
     GUISetScreen( 0, 0, _wpi_getsystemmetrics( SM_CXSCREEN ),
-                  _wpi_getsystemmetrics( SM_CYSCREEN ) );
+                        _wpi_getsystemmetrics( SM_CYSCREEN ) );
     GUIInitDialog();
     return( TRUE );
 }
@@ -611,10 +617,10 @@ bool GUIXCreateWindow( gui_window *wnd, gui_create_info *info,
         }
     }
 #else
-    hwnd = _wpi_createwindow_ex( WS_EX_NOPARENTNOTIFY,
-                                 class_name, info->text, style, 0, 0, pos.x,
-                                 pos.y, size.x, size.y, parent_hwnd, hmenu,
-                                 GUIMainHInst, &wmcreateinfo, &frame_hwnd );
+        hwnd = _wpi_createwindow_ex( WS_EX_NOPARENTNOTIFY,
+                   class_name, info->text, style, 0, 0, pos.x,
+                   pos.y, size.x, size.y, parent_hwnd, hmenu,
+                   GUIMainHInst, &wmcreateinfo, &frame_hwnd );
 #endif
     if( hwnd == NULLHANDLE ) {
         return( FALSE );
@@ -911,7 +917,7 @@ WPI_MRESULT CALLBACK GUIWindowProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
         case WM_MOVE :
             return( _wpi_defwindowproc( hwnd, msg, wparam, lparam ) );
             break;
-        case WM_VSCROLL:
+        case WM_VSCROLL :
         case WM_HSCROLL :
         case WM_CLOSE :
             return( _wpi_defwindowproc( hwnd, msg, wparam, lparam ) );
@@ -1059,7 +1065,7 @@ WPI_MRESULT CALLBACK GUIWindowProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
         }
         if( !EditControlHasFocus ) {
             if( SetFocusToParent() ) {
-                return( 0l );
+                return( 0L );
             }
         }
         break;
@@ -1067,7 +1073,44 @@ WPI_MRESULT CALLBACK GUIWindowProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
     case WM_VSCROLL :
     case WM_HSCROLL :
         GUIProcessScrollMsg( wnd, msg, wparam, lparam );
-        return( 0l );
+        return( 0L );
+#ifdef __NT__
+    case WM_MOUSEWHEEL :
+        {
+        // Try to handle mousewheel messages...
+        // Fake them into GUIProcessScrollMsg()
+        // as "normal" vertical scroll messages.
+        short gcWheelDelta; //wheel delta from roll
+        WORD  wKey;
+
+        // The wnd I get is not the same as WM_VSCROLL : above gets...
+        // Note to self: Fix it...
+        // Seems like the main app window gets the message, rather than
+        // the MDI clients...
+
+        gcWheelDelta = HIWORD(wparam);
+        wKey = LOWORD(wparam);
+        // Scroll wheel upwards  gives  120
+        //    "     "   downward   "   -120
+
+        if (gcWheelDelta > 0) {
+            // positive - scroll up
+            if (wKey == MK_CONTROL || wKey == MK_SHIFT)
+               GUIProcessScrollMsg( wnd, WM_VSCROLL, SB_PAGEUP, 0L );
+            else
+               GUIProcessScrollMsg( wnd, WM_VSCROLL, SB_LINEUP, 0L );
+        } else {
+            // negative - scroll down
+            if (wKey == MK_CONTROL || wKey == MK_SHIFT)
+               GUIProcessScrollMsg( wnd, WM_VSCROLL, SB_PAGEDOWN, 0L );
+            else
+               GUIProcessScrollMsg( wnd, WM_VSCROLL, SB_LINEDOWN, 0L );
+        }
+        // Inform GUI system we are done with scrolling for now.
+        GUIProcessScrollMsg( wnd, WM_VSCROLL, SB_ENDSCROLL, 0 );
+        }
+        return( 0L );
+#endif
     case WM_MOVE :
         use_defproc = TRUE;
         if( wnd->flags & DOING_CLOSE ) {
@@ -1222,7 +1265,7 @@ WPI_MRESULT CALLBACK GUIWindowProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
         es.endsession = (bool)wparam;
         es.logoff = (bool)( lparam == 0x80000000L );
         GUIEVENTWND( wnd, GUI_ENDSESSION, &es );
-        return( 0l );
+        return( 0L );
     }
     case WM_QUERYENDSESSION : {
         gui_end_session     es;
@@ -1232,7 +1275,7 @@ WPI_MRESULT CALLBACK GUIWindowProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
         if( !GUIEVENTWND( wnd, GUI_QUERYENDSESSION, &es ) ) {
             return( TRUE );
         }
-        return( 0l );
+        return( 0L );
     }
 #endif
     case WM_COMMAND:
@@ -1278,12 +1321,12 @@ WPI_MRESULT CALLBACK GUIWindowProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
                 }
             }
         }
-        return( 0l );
+        return( 0L );
 
     // Message to deal with tray icons (Win 95 and NT 4.0 ).
     case WM_TRAYCALLBACK :
         TrayCallBack( hwnd, wparam, lparam );
-        return( 0l );
+        return( 0L );
 
     case WM_DESTROY :
         wnd->flags |= DOING_DESTROY;
@@ -1299,7 +1342,7 @@ WPI_MRESULT CALLBACK GUIWindowProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
             _wpi_postquitmessage( 0 );
             Posted = TRUE;
         }
-        return( 0l );
+        return( 0L );
     default:
         use_defproc = TRUE;
     }
@@ -1400,6 +1443,7 @@ WPI_MRESULT CALLBACK GUIFrameProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
         case WM_HSCROLL :
             GUIProcessScrollMsg( wnd, msg, wparam, lparam );
             call_def = FALSE;
+            break;
         }
     }
 

@@ -1312,7 +1312,7 @@ static int reg( int i )
 
     temp = AsmOpcode[AsmBuffer[i]->value].position;
     reg = AsmOpTable[temp].opcode;
-    Code->info.opnd_type[Opnd_Count] = AsmOpTable[temp].opnd_type[1];
+    Code->info.opnd_type[Opnd_Count] = AsmOpTable[temp].opnd_type[OPND2];
     switch( AsmOpTable[temp].opnd_type[OPND2] ) {
     case OP_AL:
     case OP_R8:
@@ -1366,7 +1366,7 @@ static int reg( int i )
     case OP_SR3:                        // 386 segment register
         if( (Code->info.cpu&(P_CPU_MASK|P_PM)) <= P_286p ) {
             // 8086 ins cannot use 80386 segment register
-            AsmError( CANNOT_USE_386_SEGMEMT_REGISTER_WITH_CURRENT_CPU_SETTING );
+            AsmError( CANNOT_USE_386_SEGMENT_REGISTER_WITH_CURRENT_CPU_SETTING );
             return( ERROR );
         }
     case OP_SR:                                 // any seg reg
