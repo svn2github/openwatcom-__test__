@@ -24,24 +24,44 @@
 *
 *  ========================================================================
 *
-* Description:  C/C++ Windows 386 Supervisor LibMain startup code (16-bit).
+* Description:  VxD device description block
 *
 ****************************************************************************/
 
+#ifndef _VXD_DDB_H
+#define _VXD_DDB_H
 
-#include <stddef.h>
-#define STRICT
-#include <windows.h>
-#include "winext.h"
-extern DWORD ReturnCode;
-extern int PASCAL StartDLL32( void );
+#pragma pack(push, 1)
 
-#pragma off(unreferenced);
-int WINAPI LibMain( HINSTANCE hmod, WORD dataseg, WORD heap, LPSTR cmdline )
-#pragma on(unreferenced);
-{
+typedef struct {
+    unsigned_32 next;
+    unsigned_16 SDK_version;
+    unsigned_16 req_device_number;
+    unsigned char device_major_version;
+    unsigned char device_minor_version;
+    unsigned_16 flags;
+    unsigned char name[8];
+    unsigned_32 init_order;
+    unsigned_32 control_proc;
+    unsigned_32 V86_API_proc;
+    unsigned_32 PM_API_proc;
+    unsigned_32 V86_API_CSIP;
+    unsigned_32 PM_API_CSIP;
+    unsigned_32 reference_data;
+    unsigned_32 service_table_ptr;
+    unsigned_32 service_table_size;
+    //********************
+    // Windows 9x, Me
+    //********************
+    unsigned_32 win32_service_table;
+    unsigned_32 prev;
+    unsigned_32 size;
+    unsigned_32 reserved1;
+    unsigned_32 reserved2;
+    unsigned_32 reserved3;
+    //********************
+} vxd_ddb;
 
-    if( !Init32BitTask( hmod, NULL, cmdline, 0 ) ) return( 0 );
-    StartDLL32();
-    return( (int) ReturnCode );
-}
+#pragma pack(pop)
+
+#endif
