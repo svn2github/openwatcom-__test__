@@ -41,7 +41,7 @@
 #include "cgdata.h"
 #include "pragdefn.h"
 #include "pdefn2.h"
-#include "asmsym.h"
+#include "asminlin.h"
 #include "fnovload.h"
 #include "cgswitch.h"
 #include "initdefs.h"
@@ -625,8 +625,8 @@ static enum sym_type PtrType( type_flag flags )
 #define ENTRY_UINT              SYM_INT,
 #define ENTRY_SLONG             SYM_INT4,
 #define ENTRY_ULONG             SYM_INT4,
-#define ENTRY_SLONG64           SYM_INT4,       // SYM_INT8 NYI
-#define ENTRY_ULONG64           SYM_INT4,       // SYM_INT8 NYI
+#define ENTRY_SLONG64           SYM_INT8,
+#define ENTRY_ULONG64           SYM_INT8,
 #define ENTRY_FLOAT             SYM_FLOAT4,
 #define ENTRY_DOUBLE            SYM_FLOAT8,
 #define ENTRY_LONG_DOUBLE       SYM_FLOAT8,
@@ -724,19 +724,22 @@ static int insertFixups( VBUF *code_buffer, unsigned char *buff, unsigned i )
     unsigned            skip;
     int                 mutate_to_segment;
     boolean             uses_auto;
+#if _CPU == 8086
+    int                 fixup_padding;
+#endif
 
     uses_auto = FALSE;
     perform_fixups = 0;
     head = FixupHead;
     if( head != NULL ) {
         FixupHead = NULL;
-        /* sort the fixup list in increasing fix_loc's */
+        /* sort the fixup list in increasing fixup_loc's */
         for( fix = head; fix != NULL; fix = next ) {
             owner = &FixupHead;
             for( ;; ) {
                 chk = *owner;
                 if( chk == NULL ) break;
-                if( chk->fix_loc > fix->fix_loc ) break;
+                if( chk->fixup_loc > fix->fixup_loc ) break;
                 owner = &chk->next;
             }
             next = fix->next;
@@ -752,7 +755,7 @@ static int insertFixups( VBUF *code_buffer, unsigned char *buff, unsigned i )
         while( src < end ) {
             /* reserve at least ASM_BLOCK bytes in the buffer */
             VbufReqd( code_buffer, ( (dst+ASM_BLOCK) + (ASM_BLOCK-1) ) & ~(ASM_BLOCK-1) );
-            if( fix != NULL && fix->fix_loc == (src - buff) ) {
+            if( fix != NULL && fix->fixup_loc == (src - buff) ) {
                 name = fix->name;
                 if( name != NULL ) {
                     sym = ScopeASMUseSymbol( name, &uses_auto );
@@ -764,7 +767,10 @@ static int insertFixups( VBUF *code_buffer, unsigned char *buff, unsigned i )
                 skip = 0;
                 code_buffer->buf[ dst++ ] = FLOATING_FIXUP_BYTE;
                 mutate_to_segment = 0;
-                switch( fix->fix_type ) {
+#if _CPU == 8086
+                fixup_padding = 0;
+#endif
+                switch( fix->fixup_type ) {
                 case FIX_SEG:
                     if( name == NULL ) {
                         /* special case for floating point fixup */
@@ -786,6 +792,9 @@ static int insertFixups( VBUF *code_buffer, unsigned char *buff, unsigned i )
                 case FIX_RELOFF32:
                     skip = 4;
                     cg_fix = FIX_SYM_RELOFF;
+#if _CPU == 8086
+                    fixup_padding = 1;
+#endif
                     break;
                 case FIX_PTR16:
                     mutate_to_segment = 1;
@@ -800,6 +809,9 @@ static int insertFixups( VBUF *code_buffer, unsigned char *buff, unsigned i )
                 case FIX_OFF32:
                     skip = 4;
                     cg_fix = FIX_SYM_OFFSET;
+#if _CPU == 8086
+                    fixup_padding = 1;
+#endif
                     break;
                 }
                 if( skip != 0 ) {
@@ -810,6 +822,15 @@ static int insertFixups( VBUF *code_buffer, unsigned char *buff, unsigned i )
                     dst += sizeof( long );
                     src += skip;
                 }
+#if _CPU == 8086
+                if( fixup_padding ) {
+                    // add offset fixup padding to 32-bit
+                    // cg create only 16-bit offset fixup
+                    code_buffer->buf[ dst++ ] = 0;
+                    code_buffer->buf[ dst++ ] = 0;
+                    //
+                }
+#endif
                 if( mutate_to_segment ) {
                     /*
                         Since the CG escape sequences don't allow for
@@ -818,8 +839,8 @@ static int insertFixups( VBUF *code_buffer, unsigned char *buff, unsigned i )
                         mutating the fixup structure to look like a segment
                         fixup one near pointer size later.
                     */
-                    fix->fix_type = FIX_SEG;
-                    fix->fix_loc += skip;
+                    fix->fixup_type = FIX_SEG;
+                    fix->fixup_loc += skip;
                     fix->offset = 0;
                 } else {
                     head = fix;
@@ -862,10 +883,10 @@ static void AddAFix(
 
     fix = (struct asmfixup *)CMemAlloc( sizeof( *fix ) );
     fix->external = 1;
-    fix->fix_loc = i;
+    fix->fixup_loc = i;
     fix->name = name;
     fix->offset = off;
-    fix->fix_type = type;
+    fix->fixup_type = type;
     fix->next = FixupHead;
     FixupHead = fix;
 }
