@@ -6,7 +6,11 @@ plusplus_autodepends = .autodepend
 suppress_zc = 1
 
 # Extra files to delete on clean
-additional_cleanup = *.c y.out
+!ifdef refcomp
+additional_cleanup = *.c *.u *.int y.out ../bin/$(exe_ref_name).$(exe)
+!else
+additional_cleanup = *.c *.u *.int y.out
+!endif
 
 !include cproj.mif
 !include defrule.mif
@@ -45,7 +49,6 @@ inc_dirs += -I"$(wasm_dir)/h"
 inc_dirs += -I"$(as_dir)/h"
 inc_dirs += -I"$(dwarf_dir)/dw/h"
 inc_dirs += -I"$(cc_dir)/h"
-inc_dirs += -I"$(watcom_dir)/h"
 !ifdef comp_cfg_dir
 inc_dirs += -I"$(comp_cfg_dir)/h"
 !endif
@@ -75,8 +78,6 @@ comp_objs_dll = $(comp_objs) $(dll_objs)
 cflags += -si
 !endif
 !endif
-
-cflags_386 += -fpc
 
 !ifdef plusplus_rtdll
 cflags += -br
@@ -182,11 +183,6 @@ wlink_opt_common_dll = OPTION symfile
 !endif
 !ifeq host_os nt
 wlink_opt_common_dll += OPTION offset=0x69000000
-!endif
-
-# WLINK debug info format
-!ifndef wlink_dbgfmt
-wlink_dbgfmt = DEBUG all
 !endif
 
 # final executable extensions for the various hosts
@@ -388,10 +384,10 @@ $(dll_dbg_name).dll : $(depends_dll) pdlldbg.lnk
     $(linker) $(lflags_dll) NAME $^* @pdlldbg
 
 ./genverrc.exe: $(fe_misc_dir)/c/genverrc.c
-        $(bld_cl) $(wcl_util_opts) -D_VERSION=$(bld_ver) $[@
+    $(bld_cl) -D_VERSION=$(bld_ver) $[@ $(wcl_util_opts)
 
 plusplus.rc : ./genverrc.exe ../rc/r_$(host_os)$(host_cpu).rc
-        $[@ $]@ $^@ $$ $(dll_bld_name).dll $(patch_level)
+    $[@ $]@ $^@ $$ $(dll_bld_name).dll $(patch_level)
 
 !endif
 
@@ -413,7 +409,6 @@ plusplus.rc : ./genverrc.exe ../rc/r_$(host_os)$(host_cpu).rc
 #
 pexe.lnk : $(__MAKEFILES__)
     %create $^@
-    @%append $^@ $(wlink_dbgfmt)
     @%append $^@ $(wlink_opt_common_exe)
     @for %i in ($(comp_objs_exe)) do @%append $^@ file %i
     @%append $^@ library { $(xlibs) }
@@ -439,7 +434,6 @@ pexedbg.lnk : pexe.lnk
 #
 pdrv.lnk : $(__MAKEFILES__)
     %create $^@
-    @%append $^@ $(wlink_dbgfmt)
     @%append $^@ $(wlink_opt_common_drv)
     @for %i in ($(dlldrv_objs)) do @%append $^@ file %i
 
@@ -464,7 +458,6 @@ pdrvdbg.lnk : pdrv.lnk
 #
 pdll.lnk : $(__MAKEFILES__)
     %create $^@
-    @%append $^@ $(wlink_dbgfmt)
     @%append $^@ $(wlink_dll_$(host_os)_$(host_cpu))
     @%append $^@ $(wlink_opt_common_dll)
     @for %i in ($(comp_objs_dll)) do @%append $^@ file %i
@@ -491,7 +484,7 @@ pdlldbg.lnk : pdll.lnk
 # miscellaneous build rules
 #
 ./intlbin.exe: $(fe_misc_dir)/c/intlbin.c
-    $(bld_cl) $[@ $(wcl_util_opts) -I"$(fe_misc_dir)/h"
+    $(bld_cl) -I"$(fe_misc_dir)/h" $[@ $(wcl_util_opts)
 
 wpp$(target_cpu)01.int : ./intlbin.exe errors01.int usage01.int
     $[@ wpp$(target_cpu)
@@ -501,7 +494,7 @@ wpp$(target_cpu)01.int : ./intlbin.exe errors01.int usage01.int
 #!endif
 
 ./msgencod.exe: $(fe_misc_dir)/c/msgencod.c
-    $(bld_cl) $[@ $(wcl_util_opts) -I"$(fe_misc_dir)/h"
+    $(bld_cl) -I"$(fe_misc_dir)/h" $[@ $(wcl_util_opts)
 
 errmsgs.c errmsgs.gh errlevel.gh errors01.int : ./msgencod.exe ../gml/messages.gml
     $[@ $(msgencod_opts) -i -q ../gml/messages.gml errmsgs.c errmsgs.gh errlevel.gh
@@ -544,7 +537,7 @@ ytab.c ytab.gh : ../y/plusplus.y ../c/yydriver.c
     rm -f ytab.h
 
 ./optencod.exe: $(fe_misc_dir)/c/optencod.c
-    $(bld_cl) $[@ $(wcl_util_opts) -I"$(fe_misc_dir)/h"
+    $(bld_cl) -I"$(fe_misc_dir)/h" $[@ $(wcl_util_opts)
 
 cmdlnprs.c cmdlnprs.gh cmdlnusg.gh usage.u usage01.int : ./optencod.exe ../gml/options.gml
     $[@ -i -q $(optencod_opt_$(host_os)) $]@ cmdlnprs.gh cmdlnprs.c cmdlnusg.gh $(target_cpu) $(optencod_targ_dbg) $(optencod_targ_$(host_os))
@@ -556,10 +549,10 @@ ic_mask.gh : ./icmask.exe ../h/ic.h ../c/dwarf.c ../c/cgbkcgrf.c ../c/cgio.c ../
     $[@ ../h/ic.h ../c/dwarf.c ../c/cgbkcgrf.c ../c/cgio.c ../c/brmwrite.c
 
 ./mkopcode.exe: $(wasm_dir)/mkopcode.c
-        $(bld_cl) $[@ $(wcl_util_opts)
+    $(bld_cl) $[@ $(wcl_util_opts)
 
 inlnops.gh: ./mkopcode.exe $(wasm_dir)/inlnops.tok
-        $[@ $(wasm_dir)/inlnops.tok $^@
+    $[@ $(wasm_dir)/inlnops.tok $^@
 
 #
 # list of target architectures that have built-in code bursts
@@ -569,7 +562,7 @@ has_prag_386 = yes
 !ifdef has_prag_$(target_cpu)
 
 code$(target_cpu).gh : xcode$(target_cpu).tmp ./mkcode.exe
-        $]@ $[@ $^@
+    $]@ $[@ $^@
 
 target_as_axp=wasmaxp -zq -w4
 target_as_i86=bwasm -zq -w4
@@ -577,11 +570,11 @@ target_as_386=bwasm -zq -3 -w4
 target_as_ppc=wasmppc -zq -w4
 
 xcode$(target_cpu).tmp: $(cc_dir)/a/code$(target_cpu).asm
-        $(target_as_$(target_cpu)) -fo=.obj $[@
-        $(linker) format dos com op nodefault file code$(target_cpu).obj name $^@ disable 1023,1080
+    $(target_as_$(target_cpu)) -fo=.obj -I$(watcom_h) $[@
+    $(linker) format dos com op nodefault file code$(target_cpu).obj name $^@ disable 1023,1080
 
 ./mkcode.exe: $(cc_dir)/a/mkcode.c
-        $(bld_cl) $[@ $(wcl_util_opts)
+    $(bld_cl) $[@ $(wcl_util_opts)
 
 !endif
 
@@ -591,11 +584,11 @@ xcode$(target_cpu).tmp: $(cc_dir)/a/code$(target_cpu).asm
 reference : .symbolic $(exe_ref_name).$(exe)
 !ifdef __LINUX__
     cp $(exe_ref_name).$(exe) ../bin/$(exe_ref_name)
-    rm -f $(exe_ref_name).*
 !else
-    copy /b $(exe_ref_name).$(exe)+$(exe_ref_name).sym ..\bin\$(exe_ref_name).$(exe)
-    del $(exe_ref_name).*
+    cp $(exe_ref_name).$(exe) ../bin/$(exe_ref_name).$(exe)
 !endif
+    cp $(exe_ref_name).sym ../bin/$(exe_ref_name).sym
+    rm -f $(exe_ref_name).*
 
 #
 # list of projects required to build the plusplus project
