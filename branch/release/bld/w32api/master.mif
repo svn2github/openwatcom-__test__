@@ -1,5 +1,7 @@
-lib = wlib
-cc = wcc386
+proj_name = w32api
+
+!include cproj.mif
+!include deftarg.mif
 
 .EXTENSIONS : .lbc .def
 
@@ -45,6 +47,7 @@ libs =               &
         odbc32.lib &
         odbccp32.lib &
         ole32.lib &
+        oleacc.lib &
         oleaut32.lib &
         olecli32.lib &
         oledlg.lib &
@@ -87,40 +90,35 @@ libs =               &
         wsock32.lib &
         wst.lib
 
-.def: ..\lib
+.def: ../lib
 
-.c: ..\lib
+.c: ../lib
 
 .def.lbc:
-        vi -i -q -k ":source ../def2lbc.vi ../lib/$[. $*\n"
+        vi -s ../def2lbc.vi -p"../lib/$[. $*"
 
 .lbc.lib:
-        $(lib) -b -c -q -n -io -ii $@ @$<
+        $(librarian) -b -c -n -io -ii $@ @$<
 
 .obj.lib:
-        $(lib) -b -c -q -n $@ $<
+        $(librarian) -b -c -n $@ $<
 
 .c.obj:
-        $(cc) -i$(inc_dirs) -zq-w4-we-dNDEBUG -zc -bt=nt -oaxt -d1 $<
+        $(cc) $(cflags) -fo=.obj -i"$(inc_dirs)" $<
 
 $(libs):
 
 
 kernel32.lib: kernel32.lbc
-        $(lib) -b -c -q -n -io -ii $@ @$<
+        $(librarian) -b -c -n -io -ii $@ @$<
 
 dinput.lib: dinput.lbc dinput.obj
-        $(lib) -b -c -q -n -io -ii $@ @$*
-        $(lib) -b -c -q  $@ +$*
+        $(librarian) -b -c -n -io -ii $@ @$[@
+        $(librarian) -b -c $@ +$]@
 
 shell32.lib: shell32.lbc shell32.obj
-        $(lib) -b -c -q -n -io -ii $@ @$*
-        $(lib) -b -c -q  $@ +$*
+        $(librarian) -b -c -n -io -ii $@ @$[@
+        $(librarian) -b -c $@ +$]@
 
-clean: .SYMBOLIC .EXPLICIT
-        @if exist *.lbc @del *.lbc
-        @if exist *.lib @del *.lib
-        @if exist *.bak @del *.bak
-        @if exist *.obj @del *.obj
+uuid.lib: uuid.obj mshtml-u.obj
 
-
