@@ -55,9 +55,29 @@ PTREE AsmStmt( void )
 
 static void ensureBufferReflectsCurToken( void )
 {
-    if( !TokenUsesBuffer( CurToken ) ) {
+    if( TokenUsesBuffer( CurToken ) ) {
+        if( CurToken == T_CONSTANT ) {
+            switch( ConstType ) {
+            case TYP_UCHAR:
+            case TYP_UINT:
+            case TYP_ULONG:
+                ultoa( U32Fetch( Constant64 ), Buffer, 10 );
+                break;
+            case TYP_SCHAR:
+            case TYP_SINT:
+            case TYP_SLONG:
+                ltoa( U32Fetch( Constant64 ), Buffer, 10 );
+                break;
+            case TYP_ULONG64:
+            case TYP_SLONG64:
+                sti64cpy( Buffer, Constant64.u._64[0] );
+                break;
+            }
+        }
+    } else {
         strcpy( Buffer, Tokens[ CurToken ] );
     }
+
 }
 
 static PTREE genFnCall( char *name )
@@ -74,22 +94,6 @@ static boolean endOfAsmStmt( void )
     if( CurToken == T_ALT_RIGHT_BRACE ) return( TRUE );
     if( CurToken == T_SEMI_COLON ) return( TRUE );
     return( FALSE );
-}
-
-static void absorbASMConstant( char *buff, unsigned size )
-{
-    // 0a0b3h is a valid .ASM constant
-    for(;;) {
-        NextToken();
-        if( endOfAsmStmt() ) {
-            return;
-        }
-        ensureBufferReflectsCurToken();
-        if(( CharSet[ Buffer[0] ] & (C_AL|C_DI) ) == 0 ) {
-            return;
-        }
-        strncat( buff, Buffer, size );
-    }
 }
 
 static boolean isId( unsigned token )
@@ -122,18 +126,20 @@ static void getAsmLine( VBUF *buff )
     for(;;) {
         if( endOfAsmStmt() ) break;
         strncat( line, Buffer, sizeof(line)-1 );
-        if( CurToken == T_CONSTANT ) {
-            absorbASMConstant( line, sizeof(line)-1 );
+        switch( CurToken ) {
+        case T_ALT_XOR:
+        case T_ALT_EXCLAMATION:
+        case T_ALT_AND_AND:
+        case T_ALT_OR_OR:
             strncat( line, " ", sizeof(line)-1 );
-        } else {
-            if( isId( CurToken ) ) {
-                NextToken();
+            break;
+        default:
+            if( isId( CurToken ) )
                 strncat( line, " ", sizeof(line)-1 );
-            } else {
-                NextToken();
-            }
-            ensureBufferReflectsCurToken();
+            break;
         }
+        NextToken();
+        ensureBufferReflectsCurToken();
     }
     if( line[0] != '\0' ) {
         AsmSysParseLine( line );

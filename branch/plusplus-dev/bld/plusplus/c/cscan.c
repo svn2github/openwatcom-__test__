@@ -791,7 +791,7 @@ static int doScanName( int c, int expanding )
     MEPTR fmentry;
 
     SrcFileScanName( c );
-    if( expanding || ( PPState & PPS_NO_EXPAND ) || PPStateAsm ) {
+    if( expanding || ( PPState & PPS_NO_EXPAND ) ) {
         return( T_ID );
     }
     CurToken = idLookup( TokenLen, &fmentry );
@@ -834,6 +834,20 @@ static int scanName( int expanding )
     Buffer[1] = c;
     TokenLen = 2;
     return( doScanName( c, expanding ) );
+}
+
+static int doScanAsmToken( void )
+{
+    TokenLen = 0;
+    do {
+        Buffer[TokenLen++] = CurrChar;
+        if( CurrChar == '.' ) {
+            CurrChar = saveNextChar();
+        }
+        SrcFileScanName( CurrChar );
+    } while( CurrChar == '.' );
+    CurToken = T_ID;
+    return( CurToken );
 }
 
 static int scanWide( int expanding )    // scan something that starts with L
@@ -901,6 +915,9 @@ static int scanNum( int expanding )
     char max_digit;
 
     SrcFileCurrentLocation();
+    if( PPStateAsm )
+        return( doScanAsmToken() );
+
     U64Clear( Constant64 );
     value = 0;
     too_big = 0;
@@ -1481,6 +1498,9 @@ static int scanFloat( int expanding )
 {
     expanding = expanding;
     SrcFileCurrentLocation();
+    if( PPStateAsm )
+        return( doScanAsmToken() );
+
     Buffer[0] = CurrChar;
     TokenLen = 1;
     return( doScanFloat() );
