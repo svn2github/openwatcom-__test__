@@ -1,0 +1,1 @@
+wmake ccomp=%1
