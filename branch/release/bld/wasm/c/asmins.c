@@ -974,7 +974,7 @@ static int comp_opt( uint direct )
          uint_16        direct;
          signed char    value;
     }    processor[] = {
-                        T_NO87, P_NO87,
+                        T_DOT_NO87, P_NO87,
                         T_DOT_8086, P_86,
                         T_DOT_8087, P_87,
                         T_DOT_186,  P_186,
@@ -1043,9 +1043,6 @@ int cpu_directive( uint_16 i )
     if( ( temp = comp_opt( i ) ) != EMPTY ) {
         if( temp == P_NO87 ) {
             Code->info.cpu &= ~P_FPU_MASK;              // turn off FPU bits
-            #ifdef _WASM_
-                Options.floating_point = NO_FP_ALLOWED;
-            #endif
         } else if( temp & P_FPU_MASK ) {
             Code->info.cpu &= ~P_FPU_MASK;              // turn off FPU bits
             Code->info.cpu |= temp;             // turn on desired bit(s)
