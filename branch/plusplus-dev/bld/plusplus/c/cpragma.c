@@ -24,14 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Target independent pragma processing.
 *
 ****************************************************************************/
 
-
-#include <stdlib.h>
-#include <string.h>
 
 #include "plusplus.h"
 #include "preproc.h"
@@ -256,13 +252,13 @@ static void pragCodeSeg(        // SET NEW CODE SEGMENT
     if( CurToken == T_LEFT_PAREN ) {
         PPState = PPS_EOL;
         NextToken();
-        if( CurToken == T_STRING ) {
+        if( (CurToken == T_STRING) || (CurToken == T_ID) ) {
             seg_name = strsave( Buffer );
             seg_class = NULL;
             NextToken();
             if( CurToken == T_COMMA ) {
                 NextToken();
-                if( CurToken == T_STRING ) {
+                if( (CurToken == T_STRING) || (CurToken == T_ID) ) {
                     seg_class = strsave( Buffer );
                     NextToken();
                 } else {
@@ -300,13 +296,13 @@ static void pragDataSeg(        // SET NEW DATA SEGMENT
     if( CurToken == T_LEFT_PAREN ) {
         PPState = PPS_EOL;
         NextToken();
-        if( CurToken == T_STRING ) {
+        if( (CurToken == T_STRING) || (CurToken == T_ID) ) {
             seg_name = strsave( Buffer );
             seg_class = NULL;
             NextToken();
             if( CurToken == T_COMMA ) {
                 NextToken();
-                if( CurToken == T_STRING ) {
+                if( (CurToken == T_STRING) || (CurToken == T_ID) ) {
                     seg_class = strsave( Buffer );
                     NextToken();
                 } else {
@@ -1058,9 +1054,8 @@ void PragInit(
     SyscallInfo = DefaultInfo;
     OptlinkInfo = DefaultInfo;
     StdcallInfo = DefaultInfo;
-#ifdef __OLD_STDCALL
-    OldStdcallInfo = DefaultInfo;
-#endif
+
+    FastcallInfo.use = 2;
 
     CompInfo.init_priority = INIT_PRIORITY_PROGRAM;
 }
@@ -1093,6 +1088,7 @@ static MAGIC_WORD magicWords[] = {
     { "optlink",    M_OPTLINK },
     { "pascal",     M_PASCAL  },
     { "stdcall",    M_STDCALL },
+    { "fastcall",   M_FASTCALL},
     { "syscall",    M_SYSCALL },
     { "system",     M_SYSCALL },
     { NULL,         M_UNKNOWN },
@@ -1116,7 +1112,7 @@ static int lookupMagicKeyword(  // LOOKUP A MAGIC KEYWORD
     return( mptr->index );
 }
 
-static char *retrieveName( unsigned m_type )
+static char *retrieveName( int m_type )
 {
     MAGIC_WORD *mptr;           // - current entry
 
@@ -1180,6 +1176,9 @@ static boolean setAuxInfo(          // SET CURRENT INFO. STRUCTURE
     case M_STDCALL:
         CurrInfo = &StdcallInfo;
         break;
+    case M_FASTCALL:
+        CurrInfo = &FastcallInfo;
+        break;
     default:
         if( create_new ) {
             CreateAux( Buffer );
@@ -1210,6 +1209,8 @@ boolean PragmaName( void *pragma, char **id )
         *id = retrieveName( M_OPTLINK );
     } else if( pragma == &StdcallInfo ) {
         *id = retrieveName( M_STDCALL );
+    } else if( pragma == &FastcallInfo ) {
+        *id = retrieveName( M_FASTCALL );
     }
     if( *id != NULL ) {
         return( TRUE );
@@ -1257,6 +1258,9 @@ void PragCurrAlias(             // LOCATE ALIAS FOR PRAGMA
         break;
     case M_STDCALL:
         CurrAlias = &StdcallInfo;
+        break;
+    case M_FASTCALL:
+        CurrAlias = &FastcallInfo;
         break;
     default:
         search = AuxLookup( Buffer );
@@ -1517,15 +1521,6 @@ boolean ReverseParms( void *pragma )
     AUX_INFO *aux = pragma;
 
     if( aux->_class & REVERSE_PARMS ) {
-        return( TRUE );
-    }
-    return( FALSE );
-}
-
-boolean AddParmSize( void *pragma )
-/*********************************/
-{
-    if( pragma == &StdcallInfo ) {
         return( TRUE );
     }
     return( FALSE );

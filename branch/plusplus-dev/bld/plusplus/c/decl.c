@@ -30,11 +30,10 @@
 ****************************************************************************/
 
 
-#include <stddef.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include "plusplus.h"
+
+#include <stddef.h>
+
 #include "errdefns.h"
 #include "fnovload.h"
 #include "memmgr.h"
@@ -334,6 +333,7 @@ void DeclDefaultStorageClass( SCOPE scope, SYMBOL sym )
         break;
 #ifndef NDEBUG
     case SCOPE_TEMPLATE_PARM:
+    case SCOPE_TEMPLATE_SPEC_PARM:
     case SCOPE_TEMPLATE_DECL:
     case SCOPE_TEMPLATE_INST:
         break;

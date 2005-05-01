@@ -34,12 +34,11 @@
 CLASS.C : handles processing of declarations within classes
 
 */
-#include <stdlib.h>
-#include <string.h>
+#include "plusplus.h"
+
 #include <malloc.h>
 #include <limits.h>
 
-#include "plusplus.h"
 #include "codegen.h"
 #include "cgfront.h"
 #include "errdefns.h"
@@ -318,8 +317,14 @@ void ClassInitState( type_flag class_variant, CLASS_INIT extra, TYPE class_mod_l
     }
     prev_data = data->next;
     if( prev_data != NULL ) {
-        /* our inline fns go where any previous class' inline fns go */
-        data->inline_data = prev_data->inline_data;
+        if( ( prev_data->info != NULL ) && prev_data->info->defined ) {
+            data->inline_data = NULL;
+        } else {
+            /* our inline fns go where any previous class' inline fns
+             * go, but only if the previous class isn't already fully
+             * defined */
+            data->inline_data = prev_data->inline_data;
+        }
     } else {
         data->inline_data = NULL;
     }
@@ -738,7 +743,8 @@ TYPE ClassTagDefinition( TYPE type, char *name )
     // class T, struct T        if type is a class
     // union T                  if type is an union
     if( type->id == TYP_TYPEDEF ) {
-        if( ScopeId( type->u.t.scope ) == SCOPE_TEMPLATE_PARM ) {
+        if( ScopeType( type->u.t.scope, SCOPE_TEMPLATE_PARM )
+         || ScopeType( type->u.t.scope, SCOPE_TEMPLATE_SPEC_PARM ) ) {
             if( type->u.t.sym->name->name == name ) {
                 return( class_type );
             }
@@ -806,6 +812,7 @@ CLNAME_STATE ClassName( PTREE id, CLASS_DECL declaration )
     SCOPE scope;
     SYMBOL sym;
     SYMBOL_NAME sym_name;
+    SEARCH_RESULT *result;
 
     data = classDataStack;
     if( id == NULL ) {
@@ -816,46 +823,25 @@ CLNAME_STATE ClassName( PTREE id, CLASS_DECL declaration )
         return( CLNAME_NULL );
     }
 
+    scoped_id = FALSE;
+    scope = GetCurrScope();
 
     if( id->op == PT_ID ) {
+        name = id->u.id.name;
+    } else {
         boolean ClassTypeName( SYMBOL_NAME sym_name );
 
-        scoped_id = FALSE;
-        name = id->u.id.name;
         sym_name = id->sym_name;
-        if( sym_name == NULL ) {
-            scope = GetCurrScope();
-        } else if( ! ClassTypeName( sym_name ) ) {
-            SEARCH_RESULT *result;
+        DbgAssert( sym_name != NULL );
 
-            scope = sym_name->containing;
-            result = ScopeFindLexicalClassType( scope, name );
-            if( result != NULL ) {
-                sym_name = result->sym_name;
-                scope = result->scope;
-                ScopeFreeResult( result );
-            } else {
-                sym_name = NULL;
-                scope = GetCurrScope();
-            }
-        } else {
+        if( ClassTypeName( sym_name ) ) {
+            PTREE right = id->u.subtree[1];
+
+            scoped_id = TRUE;
+            name = right->u.id.name;
+
             scope = sym_name->containing;
         }
-    } else {
-        /* we are dealing with a scoped class name here */
-        PTREE right;
-
-        DbgAssert( NodeIsBinaryOp( id, CO_STORAGE ) );
-
-        scoped_id = TRUE;
-        right = id->u.subtree[1];
-        DbgAssert( ( right->op == PT_ID ) );
-
-        name = right->u.id.name;
-        sym_name = id->sym_name;
-
-        DbgAssert( sym_name != NULL );
-        scope = sym_name->containing;
     }
 
     data->name = name;
@@ -875,8 +861,19 @@ CLNAME_STATE ClassName( PTREE id, CLASS_DECL declaration )
         }
     }
 
-    if( sym_name != NULL )
-    {
+    if( ! scoped_id ) {
+        result = ScopeFindLexicalClassType( scope, name );
+        if( result != NULL ) {
+            sym_name = result->sym_name;
+            scope = result->scope;
+            ScopeFreeResult( result );
+        } else {
+            sym_name = NULL;
+            scope = GetCurrScope();
+        }
+    }
+
+    if( sym_name != NULL ) {
         sym = sym_name->name_type;
         type = sym->sym_type;
         class_type = ClassTagDefinition( type, name );
@@ -957,9 +954,13 @@ void ClassSpecificInstantiation( PTREE tree, CLASS_DECL declaration )
             data->specific_defn = TRUE;
             data->tflag |= TF1_SPECIFIC | TF1_INSTANTIATION;
             TemplateSpecificDefnStart( id, args );
+        } else if ( ScopeType( GetCurrScope(), SCOPE_TEMPLATE_INST ) ) {
+            /* new template specialization syntax: instantiation */
+            PTreeFreeSubtrees( args );
         } else if ( ScopeType( GetCurrScope(), SCOPE_TEMPLATE_DECL )
                  && ScopeType( GetCurrScope()->enclosing, SCOPE_FILE ) ) {
-            /* TODO: new template specialization syntax */
+            /* new template specialization syntax: definition */
+            TemplateSpecializationDefn( id, args );
         } else {
             PTreeFreeSubtrees( args );
             CErr1( ERR_ONLY_GLOBAL_SPECIFICS );
@@ -968,6 +969,17 @@ void ClassSpecificInstantiation( PTREE tree, CLASS_DECL declaration )
         break;
     case CLASS_DECLARATION:
         tci_control |= TCI_NO_CLASS_DEFN;
+        if( ScopeType( GetCurrScope(), SCOPE_TEMPLATE_INST ) ) {
+            PTreeFreeSubtrees( args );
+            ClassName( id, declaration );
+            break;
+        } else if( ScopeType( GetCurrScope(), SCOPE_TEMPLATE_DECL )
+                && ScopeType( GetCurrScope()->enclosing, SCOPE_FILE ) ) {
+            /* new template specialization syntax: declaration */
+            TemplateSpecializationDefn( id, args );
+            ClassName( id, declaration );
+            break;
+        }
         data->nameless_OK = TRUE;
         /* fall through */
     case CLASS_REFERENCE:

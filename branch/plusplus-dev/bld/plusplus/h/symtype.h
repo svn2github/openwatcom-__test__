@@ -54,6 +54,7 @@ typedef struct reloc_list RELOC_LIST;
 typedef struct parse_tree_node *PTREE;          // defined in PTREE.H
 typedef struct rewrite_package REWRITE;         // defined in REWRITE.H
 typedef struct template_info TEMPLATE_INFO;     // defined in TEMPLATE.H
+typedef struct template_specialization TEMPLATE_SPECIALIZATION; // defined in TEMPLATE.H
 typedef struct fn_template_defn FN_TEMPLATE_DEFN;//defined in TEMPLATE.H
 typedef struct func_list FNOV_LIST;             // defined in FNOVLOAD.H
 typedef struct pool_con POOL_CON;               // defined in CONPOOL.H
@@ -638,6 +639,7 @@ PCH_struct type {
 ,SCOPE_DEF(SCOPE_TEMPLATE_DECL, MIN_HASHTAB_SIZE )   /* template declaration scope  */\
 ,SCOPE_DEF(SCOPE_TEMPLATE_INST, MIN_HASHTAB_SIZE )   /* template instantiation scope*/\
 ,SCOPE_DEF(SCOPE_TEMPLATE_PARM, MIN_HASHTAB_SIZE )   /* template parameters scope   */\
+,SCOPE_DEF(SCOPE_TEMPLATE_SPEC_PARM, MIN_HASHTAB_SIZE ) /* template parameters (for template specializations) scope   */\
 ,SCOPE_DEF(SCOPE_FREE,          MIN_HASHTAB_SIZE )   /* unused scope (pcheader)     */
 
 typedef enum {

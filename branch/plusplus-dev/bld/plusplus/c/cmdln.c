@@ -30,11 +30,11 @@
 ****************************************************************************/
 
 
+#include "plusplus.h"
+
 #include <ctype.h>
-#include <string.h>
 #include <banner.h>
 
-#include "plusplus.h"
 #include "errdefns.h"
 #include "memmgr.h"
 #include "preproc.h"
@@ -52,7 +52,7 @@
 #include "vstk.h"
 #include "vbuf.h"
 
-#include "cmdlnprs.gh"
+#include "cmdlnpr1.gh"
 #include "cmdlnsys.h"
 
 static  RINGNAMECTL undef_names =       // #UNDEF NAMES LIST
@@ -211,8 +211,7 @@ static void defineKeywordMacros(   // PREDEFINE KEYWORD MACROS
     , "__inline=inline"
     , "_inline=inline"
     , "_stdcall=__stdcall"
-    , "_fastcall="
-    , "__fastcall="
+    , "_fastcall=__fastcall"
     , "_asm=__asm"
     , "_emit=__emit"
     , NULL

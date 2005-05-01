@@ -160,6 +160,7 @@ Modified        By              Reason
 %token Y_TRUE
 %token Y_TYPEDEF
 %token Y_TYPEID
+%token Y_TYPENAME
 %token Y_UNION
 %token Y_UNSIGNED
 %token Y_USING
@@ -286,6 +287,7 @@ Modified        By              Reason
 %token Y___EXPORT
 %token Y___FAR
 %token Y___FAR16
+%token Y___FASTCALL
 %token Y___FORTRAN
 %token Y___HUGE
 %token Y___INT64
@@ -313,6 +315,7 @@ Modified        By              Reason
 %type <flags> packed-class-opt
 
 %type <token> class-key
+%type <token> template-typename-key
 %type <token> operator-function-type
 
 %type <type> class-mod-opt
@@ -348,6 +351,7 @@ Modified        By              Reason
 %type <dspec> cv-qualifier
 %type <dspec> class-specifier
 %type <dspec> enum-specifier
+%type <dspec> typename-specifier
 %type <dspec> class-substance
 %type <dspec> class-body
 %type <dspec> qualified-type-specifier
@@ -380,6 +384,7 @@ Modified        By              Reason
 %type <dinfo> simple-template-arg-declaration
 %type <dinfo> arg-declaration
 %type <dinfo> template-arg-declaration
+%type <dinfo> type-parameter
 %type <dinfo> arg-declaration-list
 %type <dinfo> template-arg-declaration-list
 %type <dinfo> actual-exception-declaration
@@ -444,7 +449,8 @@ Modified        By              Reason
 %type <tree> field-expression
 %type <tree> field-name
 %type <tree> new-placement
-%type <tree> class-name-id  /* experimental */
+%type <tree> class-name-id
+%type <tree> enum-name
 %type <tree> make-id
 %type <tree> literal
 %type <tree> strings pragma-id
@@ -477,6 +483,15 @@ goal-symbol
     : Y_EXPRESSION_SPECIAL expression
     {
         $$ = $2;
+        t = YYEOFTOKEN;
+    }
+    | Y_EXPRESSION_SPECIAL type-specifiers declaring-declarator initializer
+    {
+        CheckDeclarationDSpec( state->gstack->u.dspec, GetCurrScope() );
+        GStackPop( &(state->gstack) );
+        $$ = $3->id;
+        $3->id = NULL;
+        FreeDeclInfo( $3 );
         t = YYEOFTOKEN;
     }
     | Y_EXPR_DECL_SPECIAL expr-decl-stmt
@@ -532,6 +547,10 @@ goal-symbol
             CErr1( ERR_MISPLACED_RIGHT_BRACE );
             what = P_DIAGNOSED;
         }
+    }
+    | /* nothing */
+    {
+        what = P_DIAGNOSED;
     }
     ;
 
@@ -1015,6 +1034,17 @@ member-selection-expression
 function-like-cast-expression
     : simple-type-specifier Y_LEFT_PAREN expression-list-opt Y_RIGHT_PAREN %ambig 0 Y_LEFT_PAREN
     { $$ = setLocation( MakeFunctionLikeCast( $1, $3 ), &yylp[2] ); }
+    | Y_TYPENAME Y_SCOPED_TYPE_NAME Y_LEFT_PAREN expression-list-opt Y_RIGHT_PAREN
+    {
+        $$ = setLocation( MakeFunctionLikeCast( sendType( $2 ), $4 ),
+                          &yylp[2] );
+    }
+    | Y_TYPENAME template-class-id Y_TEMPLATE_SCOPED_TYPE_NAME Y_LEFT_PAREN expression-list-opt Y_RIGHT_PAREN
+    {
+        $$ = setLocation( MakeFunctionLikeCast( sendType( $3 ), $5 ),
+                          &yylp[2] );
+        PTypeRelease( $2 );
+    }
     ;
 
 primary-expression
@@ -1054,6 +1084,16 @@ class-name-id
     | Y_SCOPED_TEMPLATE_NAME
     | Y_TEMPLATE_SCOPED_TYPE_NAME
     | Y_TEMPLATE_SCOPED_TEMPLATE_NAME
+    ;
+
+enum-name
+    : Y_ID
+    | Y_TYPE_NAME
+    | Y_TEMPLATE_NAME
+    | Y_NAMESPACE_NAME
+    | Y_GLOBAL_TYPE_NAME
+    | Y_SCOPED_TYPE_NAME
+    | Y_TEMPLATE_SCOPED_TYPE_NAME
     ;
 
 destructor-name
@@ -1502,6 +1542,7 @@ type-specifier
     | class-specifier
     | enum-specifier
     | typeof-specifier
+    | typename-specifier
     ;
 
 typeof-specifier
@@ -1595,6 +1636,13 @@ qualified-class-type
     | template-class-id
     ;
 
+typename-specifier
+    : Y_TYPENAME Y_SCOPED_TYPE_NAME
+    { $$ = sendType( $2 ); }
+    | Y_TYPENAME template-class-id Y_TEMPLATE_SCOPED_TYPE_NAME
+    { $$ = sendType( $3 ); PTypeRelease( $2 ); }
+    ;
+
 enum-specifier
     : enum-key enum-start enumerator-list Y_COMMA Y_RIGHT_BRACE
     {
@@ -1611,10 +1659,11 @@ enum-specifier
         $$ = MakeEnumType( &(state->gstack->u.enumdata) );
         GStackPop( &(state->gstack) );
     }
-    | enum-key
+    | Y_ENUM enum-name
     {
-        $$ = EnumReference( &(state->gstack->u.enumdata) );
-        GStackPop( &(state->gstack) );
+        ENUM_DATA edata;
+        InitEnumState( &edata, $2 );
+        $$ = EnumReference( &edata );
     }
     ;
 
@@ -1902,6 +1951,8 @@ pragma-modifier
     { $$ = MakeIndexPragma( M_OPTLINK ); }
     | Y___STDCALL
     { $$ = MakeIndexPragma( M_STDCALL ); }
+    | Y___FASTCALL
+    { $$ = MakeIndexPragma( M_FASTCALL ); }
     ;
 
 pragma-id
@@ -2155,6 +2206,42 @@ arg-declaration
 template-arg-declaration
     : simple-template-arg-declaration
     { GStackPop( &(state->gstack) ); }
+    | type-parameter
+    { $$ = $1; }
+    | type-parameter template-defarg-copy
+    { $$ = $1; }
+    ;
+
+type-parameter
+    : template-typename-key
+    {
+        DECL_SPEC *dspec;
+
+        pushClassData( state, TF1_NULL, CLINIT_NULL, NULL);
+        ClassName( NULL, CLASS_GENERIC );
+        dspec = ClassRefDef();
+        GStackPop( &(state->gstack) );
+        $$ = DeclSpecDeclarator( dspec );
+        PTypeRelease( dspec );
+    }
+    | template-typename-key make-id
+    {
+        DECL_SPEC *dspec;
+
+        pushClassData( state, TF1_NULL, CLINIT_NULL, NULL);
+        ClassName( $2, CLASS_GENERIC );
+        dspec = ClassRefDef();
+        GStackPop( &(state->gstack) );
+        $$ = DeclSpecDeclarator( dspec );
+        PTypeRelease( dspec );
+    }
+    ;
+
+template-typename-key
+    : Y_TYPENAME
+    { }
+    | Y_CLASS
+    { }
     ;
 
 simple-arg-declaration
@@ -2469,13 +2556,6 @@ class-name
         case Y_SEMI_COLON:
             decl_type = CLASS_DECLARATION;
             break;
-        case Y_COMMA:
-        case Y_GT:
-        case Y_EQUAL:
-            if( state->template_args ) {
-                decl_type = CLASS_GENERIC;
-            }
-            break;
         }
         after_name = ClassName( $1, decl_type );
         switch( after_name ) {
@@ -2769,14 +2849,12 @@ template-key
             CErr1( ERR_ONLY_GLOBAL_TEMPLATES );
         }
         state->template_decl = TRUE;
-        state->template_args = TRUE;
     }
     ;
 
 template-argument-decl
     : template-abstract-args
     {
-        state->template_args = FALSE;
         GStackPush( &(state->gstack), GS_TEMPLATE_DATA );
         TemplateDeclInit( &(state->gstack->u.templatedata), $1 );
         pushDefaultDeclSpec( state );

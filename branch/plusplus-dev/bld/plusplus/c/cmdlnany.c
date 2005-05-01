@@ -29,13 +29,12 @@
 ****************************************************************************/
 
 
-#include <stdlib.h>
+#include "plusplus.h"
+
 #include <ctype.h>
-#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "plusplus.h"
 #include "memmgr.h"
 #include "errdefns.h"
 #include "preproc.h"
@@ -57,7 +56,7 @@
 #include "brinfo.h"
 #include "langenv.h"
 
-#include "cmdlnprs.gh"
+#include "cmdlnpr1.gh"
 #include "cmdlnsys.h"
 
 
@@ -668,7 +667,7 @@ static void handleOptionFC( OPT_STORAGE *data, int value )
     }
 }
 
-#include "cmdlnprs.c"
+#include "cmdlnpr2.gh"
 
 static boolean openCmdFile(     // OPEN A COMMAND FILE
     char const *filename,       // - file name

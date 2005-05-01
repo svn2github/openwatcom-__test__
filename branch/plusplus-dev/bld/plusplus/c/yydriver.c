@@ -3,8 +3,6 @@ YYDRIVER: driver code to make use of YACC generated parser tables and support
 
 00002 - increment to force compile
 */
-#include <stdlib.h>
-#include <string.h>
 
 #include "plusplus.h"
 #include "errdefns.h"
@@ -1750,12 +1748,14 @@ static YYACTIONTYPE lookAheadYYAction( YYTOKENTYPE t, PARSE_STACK *state, PARSE_
         what_to_do = response[expr_what][decl_what];
         if( what_to_do > DONE ) {
             if( what_to_do == DECL ) {
-                CErr1( WARN_AMBIGUOUS_CONSTRUCT_DECL );
+                // This warning seems inappropriate. --PeterC
+                // CErr1( WARN_AMBIGUOUS_CONSTRUCT_DECL );
                 yyaction = YYACTION_REDUCE_RULE( YYAMBIGR0 );
                 break;
             }
             if( what_to_do == EXPR ) {
-                CErr1( WARN_AMBIGUOUS_CONSTRUCT_EXPR );
+                // This warning seems inappropriate. --PeterC
+                // CErr1( WARN_AMBIGUOUS_CONSTRUCT_EXPR );
                 yyaction = YYACTION_SHIFT_STATE( YYAMBIGH0 );
                 break;
             }
@@ -1837,7 +1837,8 @@ static p_action doAction( YYTOKENTYPE t, PARSE_STACK *state )
             } else if( state->favour_reduce ) {
                 yyaction = YYACTION_REDUCE_RULE( YYAMBIGR0 );
             } else {
-                CErr1( WARN_AMBIGUOUS_CONSTRUCT );
+                // This warning seems inappropriate. --PeterC
+                // CErr1( WARN_AMBIGUOUS_CONSTRUCT );
                 yyaction = lookAheadYYAction( t, state, state );
             }
         } else {
@@ -2042,15 +2043,14 @@ static void syntaxError( void )
     }
 }
 
-PTREE ParseExpr( int end_token )
-/******************************/
+static PTREE genericParseExpr( YYTOKENTYPE tok, int end_token )
 {
     int t;
     PARSE_STACK expr_state;
     p_action what;
     PTREE expr_tree;
 
-    newExprStack( &expr_state, Y_EXPRESSION_SPECIAL );
+    newExprStack( &expr_state, tok );
     syncLocation();
     /* do parse */
     for(;;) {
@@ -2061,6 +2061,7 @@ PTREE ParseExpr( int end_token )
         if( what != P_SHIFT ) break;
         nextYYLexToken( &expr_state );
     }
+    expr_tree = NULL;
     if( what > P_SPECIAL ) {
         if( what > P_ERROR ) {
             switch( what ) {
@@ -2072,7 +2073,6 @@ PTREE ParseExpr( int end_token )
                 break;
             }
             makeStable( end_token );
-            expr_tree = NULL;
         }
 #ifndef NDEBUG
         else {
@@ -2086,112 +2086,34 @@ PTREE ParseExpr( int end_token )
     return( expr_tree );
 }
 
-PTREE ParseMemInit( void )
-/************************/
+PTREE ParseExpr( int end_token )
 {
-    int t;
-    PARSE_STACK mem_init_state;
-    p_action what;
-    PTREE mem_init_tree;
-
-    newExprStack( &mem_init_state, Y_MEM_INIT_SPECIAL );
-    syncLocation();
-    /* do parse */
-    for(;;) {
-        do {
-            t = yylex( &mem_init_state );
-            what = doAction( t, &mem_init_state );
-        } while( what == P_RELEX );
-        if( what != P_SHIFT ) break;
-        nextYYLexToken( &mem_init_state );
-    }
-    if( what > P_SPECIAL ) {
-        if( what > P_ERROR ) {
-            switch( what ) {
-            case P_SYNTAX:
-                syntaxError();
-                break;
-            case P_OVERFLOW:
-                CErr1( ERR_COMPLICATED_EXPRESSION );
-                break;
-            }
-            makeStable( T_LEFT_BRACE );
-            mem_init_tree = NULL;
-        }
-#ifndef NDEBUG
-        else {
-            CFatal( "invalid return from doAction" );
-        }
-#endif
-    } else {
-        mem_init_tree = mem_init_state.vsp->tree;
-    }
-    deleteStack( &mem_init_state );
-    return( mem_init_tree );
+    return genericParseExpr( Y_EXPRESSION_SPECIAL, end_token );
 }
 
-PTREE ParseGenericDefArg( int start_tok )
-/***********************/
+PTREE ParseExprDecl( void )
 {
-    int t;
-    PARSE_STACK defarg_start;
-    p_action what;
-    PTREE defarg_tree;
+    return genericParseExpr( Y_EXPR_DECL_SPECIAL, T_SEMI_COLON );
+}
 
-    newExprStack( &defarg_start, start_tok );
-    syncLocation();
-    /* do parse */
-    for(;;) {
-        do {
-            t = yylex( &defarg_start );
-#ifndef NDEBUG
-            if( PragDbgToggle.dump_parse ){
-                printf("ParseGenericDefArg t = %d - '%s'\n", t, yytoknames[ t ]);
-            }
-#endif
-            what = doAction( t, &defarg_start );
-        } while( what == P_RELEX );
-        if( what != P_SHIFT ) break;
-        nextYYLexToken( &defarg_start );
-    }
-    if( what > P_SPECIAL ) {
-        if( what > P_ERROR ) {
-            switch( what ) {
-            case P_SYNTAX:
-                syntaxError();
-                break;
-            case P_OVERFLOW:
-                CErr1( ERR_COMPLICATED_EXPRESSION );
-                break;
-            }
-            makeStable( T_DEFARG_END );
-            defarg_tree = NULL;
-        }
-#ifndef NDEBUG
-        else {
-            CFatal( "invalid return from doAction" );
-        }
-#endif
-    } else {
-        defarg_tree = defarg_start.vsp->tree;
-    }
-    deleteStack( &defarg_start );
-    return( defarg_tree );
+PTREE ParseMemInit( void )
+{
+    return genericParseExpr( Y_MEM_INIT_SPECIAL, T_LEFT_BRACE );
 }
 
 PTREE ParseDefArg( )
 {
-    return ParseGenericDefArg( Y_DEFARG_SPECIAL );
+    return genericParseExpr( Y_DEFARG_SPECIAL, T_DEFARG_END );
 }
 
 PTREE ParseTemplateIntDefArg( )
 {
-    return ParseGenericDefArg( Y_TEMPLATE_INT_DEFARG_SPECIAL );
+    return genericParseExpr( Y_TEMPLATE_INT_DEFARG_SPECIAL, T_DEFARG_END );
 }
 
 PTREE ParseTemplateTypeDefArg( )
 {
-    return ParseGenericDefArg( Y_TEMPLATE_TYPE_DEFARG_SPECIAL );
+    return genericParseExpr( Y_TEMPLATE_TYPE_DEFARG_SPECIAL, T_DEFARG_END );
 }
 
 DECL_INFO *ParseException( void )
@@ -2317,54 +2239,6 @@ void ParseDecls( void )
         LinkageReset();
     }
     parseEpilogue();
-}
-
-PTREE ParseExprDecl( void )
-/*************************/
-{
-    int t;
-    PARSE_STACK expr_decl_state;
-    p_action what;
-    PTREE expr_tree;
-
-    newExprStack( &expr_decl_state, Y_EXPR_DECL_SPECIAL );
-    syncLocation();
-    /* do parse */
-    for(;;) {
-        do {
-            t = yylex( &expr_decl_state );
-            what = doAction( t, &expr_decl_state );
-        } while( what == P_RELEX );
-        if( what != P_SHIFT ) break;
-        nextYYLexToken( &expr_decl_state );
-    }
-    expr_tree = NULL;           /* assume declaration or error */
-    if( what > P_SPECIAL ) {
-        if( what > P_ERROR ) {
-            switch( what ) {
-            case P_SYNTAX:
-                syntaxError();
-                break;
-            case P_OVERFLOW:
-                CErr1( ERR_COMPLICATED_STATEMENT );
-                break;
-            }
-            makeStable( T_SEMI_COLON );
-        }
-#ifndef NDEBUG
-        else {
-            CFatal( "invalid return from doAction" );
-        }
-#endif
-    } else {
-        /* statement accepted! */
-        if( expr_decl_state.vsp->tree != NULL ) {
-            expr_tree = expr_decl_state.vsp->tree;
-        }
-    }
-    deleteStack( &expr_decl_state );
-
-    return( expr_tree );
 }
 
 DECL_SPEC *ParseClassInstantiation( REWRITE *defn, boolean defer_defn )

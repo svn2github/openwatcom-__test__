@@ -30,9 +30,6 @@
 ****************************************************************************/
 
 
-#include <stdlib.h>
-#include <string.h>
-
 #include "plusplus.h"
 #include "preproc.h"
 #include "cgfront.h"
@@ -414,20 +411,27 @@ void DumpCgFront(               // DUMP GENERATED CODE
 
 static void dumpTemplateInfo( TEMPLATE_INFO *tinfo )
 {
+#if 0
     VBUF prefix, suffix;
     int i;
+#endif
     char delim;
 
     printf( "    TEMPLATE_INFO" F_BADDR
+#if 0
             " defn"         F_PTR
             " num_args"     F_HEX_4
+#endif
                             F_EOL
           , tinfo
+#if 0
           , tinfo->defn
           , tinfo->num_args
+#endif
           );
     printf( "  " );
     delim = '<';
+#if 0
     for( i = 0; i < tinfo->num_args; ++i ) {
         FormatType( tinfo->type_list[i], &prefix, &suffix );
         printf( "%c %s<id> %s", delim, prefix.buf, suffix.buf );
@@ -435,6 +439,7 @@ static void dumpTemplateInfo( TEMPLATE_INFO *tinfo )
         VbufFree( &suffix );
         delim = ',';
     }
+#endif
     printf( ">\n" );
 }
 

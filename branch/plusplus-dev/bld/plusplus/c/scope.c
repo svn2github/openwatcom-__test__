@@ -30,13 +30,12 @@
 ****************************************************************************/
 
 
+#include "plusplus.h"
+
 #include <stddef.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <limits.h>
 
-#include "plusplus.h"
 #include "errdefns.h"
 #include "memmgr.h"
 #include "ring.h"
@@ -4423,7 +4422,11 @@ static boolean removeDuplicateNS( lookup_walk *data )
 
 static boolean processNSLookup( lookup_walk *data )
 {
+    PATH_CAP *cap;
+    SYMBOL sym;
+    SYMBOL aliasee;
     unsigned path_count;
+    boolean dead;
 
     path_count = data->path_count;
     if( path_count <= 1 ) {
@@ -4435,6 +4438,30 @@ static boolean processNSLookup( lookup_walk *data )
             return( path_count != 0 );
         }
     }
+
+    // remove duplicate aliases for the same entity
+    aliasee = NULL;
+    dead = FALSE;
+    for( cap = data->paths; cap != NULL; cap = cap->next ) {
+        sym = cap->sym_name->name_syms;
+        if( sym != NULL ) {
+            sym = SymDeAlias( sym );
+            if( aliasee == NULL ) {
+                aliasee = sym;
+            } else if( aliasee == sym ) {
+                cap->throw_away = TRUE;
+                dead = TRUE;
+            }
+        }
+    }
+    if( dead ) {
+        removeDead( data );
+        path_count = data->path_count;
+        if( path_count <= 1 ) {
+            return( path_count != 0 );
+        }
+    }
+
     if( ! allFunctionNames( data ) ) {
         data->lookup_error = TRUE;
         data->error_msg = ERR_AMBIGUOUS_NAMESPACE_LOOKUP;
@@ -6928,7 +6955,7 @@ SYMBOL ScopeIntrinsic( boolean turn_on )
     TYPE type;
 
     name = NameCreateLen( Buffer, TokenLen );
-    result = ScopeFindNaked( GetFileScope(), name );
+    result = ScopeFindNaked( ScopeNearestFile( GetCurrScope() ), name );
     if( result == NULL ) {
         return( NULL );
     }
