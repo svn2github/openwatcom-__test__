@@ -1323,7 +1323,6 @@ static boolean cantHaveDefaultArgs( int err_msg, DECL_INFO *dinfo )
 //      Supposedly checks for gaps in default arguments. Don't think it works!
 //  called from:
 //      ForceNoDefaultArgs  (called from FinishDeclarator)
-//      FreeArgsDefaultsOK  (only called from template.c)
 //      FreeArgs            (only called from template.c (not any more!))
 //      checkUsefulParms    (called from FinishDeclarator)
 */
@@ -1403,7 +1402,6 @@ void FreeArgsDefaultsOK( DECL_INFO * dinfo)
 }
 
 void FreeArgs( DECL_INFO *dinfo )
-/*******************************/
 {
     cantHaveDefaultArgGaps( dinfo );
     cantHaveDefaultArgs( ERR_DEFAULT_ARGS_IN_A_TYPE, dinfo );
@@ -6464,7 +6462,12 @@ DECL_INFO *InsertDeclInfo( SCOPE insert_scope, DECL_INFO *dinfo )
     boolean is_redefined;
     boolean is_block_sym;
 
-    verifySpecialFunction( insert_scope, dinfo );
+    scope = insert_scope;
+    if( ScopeType( scope, SCOPE_TEMPLATE_DECL )
+     || ScopeType( scope, SCOPE_TEMPLATE_INST ) ) {
+        scope = ScopeNearestFileOrClass( scope );
+    }
+    verifySpecialFunction( scope, dinfo );
     complainAboutMemInit( dinfo );
     sym = dinfo->sym;
     is_block_sym = FALSE;
@@ -6497,7 +6500,7 @@ DECL_INFO *InsertDeclInfo( SCOPE insert_scope, DECL_INFO *dinfo )
             scope = dinfo->friend_scope;
         } else if( ScopeId( scope ) == SCOPE_TEMPLATE_DECL ) {
             TemplateFunctionCheck( sym, dinfo );
-            scope = ScopeNearestFile( GetCurrScope() );
+            scope = ScopeNearestFileOrClass( GetCurrScope() );
         } else if( ScopeId( scope ) == SCOPE_BLOCK ||
                    ScopeId( scope ) == SCOPE_FUNCTION ) {
             /* handle promotions from local scope to file scope */
@@ -7215,46 +7218,6 @@ boolean TypeIsAnonymousEnum( TYPE type )
         return( TRUE );
     }
     return( FALSE );
-}
-
-static boolean validateTemplateArgType( TYPE type )
-{
-    TYPE trimmed_type;
-
-    trimmed_type = type;
-    TypeStripTdMod( trimmed_type );
-    switch( trimmed_type->id ) {
-    case TYP_POINTER:
-        /* TF1_REFERENCE; references are allowed also */
-        /* fall through */
-    case TYP_GENERIC:
-        return( TRUE );
-    default:
-        if( IntegralType( trimmed_type ) != NULL ) {
-            return( FALSE );
-        }
-    }
-    CErr2p( ERR_INVALID_TEMPLATE_ARG_TYPE, type );
-    return( FALSE );
-}
-
-boolean ProcessTemplateArgs( DECL_INFO *dinfo )
-/*********************************************/
-{
-    DECL_INFO *curr;
-    boolean all_generics;
-    boolean some_generics;
-
-    some_generics = FALSE;
-    all_generics = TRUE;
-    RingIterBeg( dinfo, curr ) {
-        if( validateTemplateArgType( curr->type ) ) {
-            some_generics = TRUE;
-        } else {
-            all_generics = FALSE;
-        }
-    } RingIterEnd( curr )
-    return( all_generics && some_generics );
 }
 
 static boolean markAllUnused( SCOPE scope, void (*diag)( SYMBOL ) )
@@ -8547,6 +8510,7 @@ static boolean performBinding( VSTK_CTL *stk, TOKEN_LOCN *locn )
             break;
         case TYP_FUNCTION:
             new_type = dupFunction( old_type, DF_NULL );
+            // TODO: add typename support (new_type->of == TypeError)
             old_args = TypeArgList( old_type );
             old_arg = old_args->type_list;
             new_args = TypeArgList( new_type );

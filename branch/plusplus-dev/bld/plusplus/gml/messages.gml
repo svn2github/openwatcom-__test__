@@ -11890,3 +11890,35 @@ struct A<T, U *> { };
 
 A<int *, int *> a;
 :eerrbad.
+
+:MSGSYM. ERR_STATIC_ASSERTION_FAILURE
+:MSGTXT. static assertion failed '%s'
+:MSGJTXT.
+:errbad.
+static_assert( false, "false" );
+:eerrbad.
+
+:MSGSYM. WARN_UNSUPPORTED_TEMPLATE_EXPORT
+:MSGTXT. Exported templates are not supported by Open Watcom C++
+:MSGJTXT.
+:WARNING. 1
+:errbad.
+export template< class T >
+struct A {
+};
+:eerrbad.
+
+:MSGSYM. ERR_CANNOT_REDECLARE_MEMBER_FUNCTION
+:MSGTXT. redeclaration of member function '%S' not allowed
+:MSGJTXT.
+:errbad.
+struct A {
+    void f();
+    void f();
+};
+:eerrbad.
+
+:MSGSYM. INF_CANDIATE_DEFINITION
+:MSGTXT. candidate defined %L
+:MSGJTXT.
+:INFO.

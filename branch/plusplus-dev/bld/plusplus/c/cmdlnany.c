@@ -928,13 +928,18 @@ static void analyseAnyTargetOptions( OPT_STORAGE *data )
         break;
     }
     switch( data->opt_level ) {
-    case OPT_opt_level_ox:  /* -ox => -oilmr -s */
+    case OPT_opt_level_ox:  /* -ox => -obmiler -s */
         GenSwitches &= ~ NO_OPTIMIZATION;
         GenSwitches |= BRANCH_PREDICTION;       // -ob
         GenSwitches |= LOOP_OPTIMIZATION;       // -ol
         GenSwitches |= INS_SCHEDULING;          // -or
         CmdSysSetMaxOptimization();             // -om
         CompFlags.inline_intrinsics = 1;        // -oi
+        data->oe = 1;                           // -oe
+        if( data->oe_value == 0 ) {
+            // keep in sync with options.gml
+            data->oe_value = 100;
+        }
         PragToggle.check_stack = 0;             // -s
         break;
     case OPT_opt_level_od:
@@ -1215,6 +1220,9 @@ static void analyseAnyTargetOptions( OPT_STORAGE *data )
     if( data->oz ) {
         GenSwitches |= NULL_DEREF_OK;
     }
+    if( data->pil ) {
+        CompFlags.cpp_ignore_line = 1;
+    }
     if( data->p ) {
         CompFlags.cpp_output_requested = 1;
     }
@@ -1305,6 +1313,9 @@ static void analyseAnyTargetOptions( OPT_STORAGE *data )
     }
     if( data->zat ) {
         CompFlags.no_alternative_tokens = 1;
+    }
+    if( data->za0x ) {
+        CompFlags.enable_std0x = 1;
     }
     if( data->zf ) {
         CompFlags.use_old_for_scope = 1;
