@@ -3,8 +3,7 @@
 
 set PROJDIR=<CWD>
 
-[ INCLUDE <LANG_BLD>/master.ctl ]
-[ INCLUDE <LANG_BLD>/wproj.ctl ]
+[ INCLUDE <OWROOT>/bat/master.ctl ]
 [ LOG <LOGFNAME>.<LOGEXT> ]
 
 cdsay .
@@ -14,8 +13,13 @@ cdsay .
 
 [ BLOCK <1> rel2 cprel2 ]
 #========================
-#    <CPCMD> <PROJDIR>/cw32/dosi86/cw32.exe <RELROOT>/rel2/binw/cwstub.exe
+    <CPCMD> <PROJDIR>/cw32/dosi86/cw32.exe <RELROOT>/rel2/binw/cwstub.exe
 
 [ BLOCK <1> clean ]
 #==================
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
+
+[ BLOCK . . ]
+#============
+
+cdsay <PROJDIR>

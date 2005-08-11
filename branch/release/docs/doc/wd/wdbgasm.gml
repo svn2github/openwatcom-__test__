@@ -15,11 +15,13 @@ features:
 :HDREF refid='wndfpu'.
 .bull
 :HDREF refid='wndmmx'.
+.bull
+:HDREF refid='wndxmm'.
 .endbull
 .*
 .section *refid=wndreg The CPU Register Window
 .*
-.figure *depth='1.31' *scale=100 *file='dbgreg2' The CPU Register Window
+.figure *depth='1.70' *scale=70 *file='dbgreg' The CPU Register Window
 .*
 .*
 .np
@@ -58,7 +60,7 @@ Displays the Extended 386 register set.
 .*
 .section *refid=wndasm The Assembly Window
 .*
-.figure *depth='3.66' *scale=150 *file='dbgass' The Assembly Window
+.figure *depth='3.66' *scale=60 *file='dbgass' The Assembly Window
 .np
 You can open the
 .wnddef Assembly
@@ -116,7 +118,7 @@ Toggle the Assembly window display between hexadecimal and decimal.
 .*
 .section *refid=wndio The I/O Ports Window
 .*
-.figure *depth='3.66' *scale=150 *file='dbgio' The I/O Window
+.figure *depth='1.50' *scale=70 *file='dbgio' The I/O Window
 .np
 Use the
 .wnddef I/O
@@ -167,7 +169,7 @@ how much is read from or written to the I/O port.
 .*
 .section *refid=wndfpu The FPU Registers Window
 .*
-.figure *depth='1.28' *scale=100 *file='dbgfpu' The FPU Registers Window
+.figure *depth='1.20' *scale=48 *file='dbgfpu' The FPU Registers Window
 .np
 .ix '8087' 'examining'
 .ix '8087' 'modifying'
@@ -192,13 +194,13 @@ Change the value of the selected register, or bit.  You will
 be prompted for a new value, unless you are modifying a bit.
 A bit will toggle between 0 and 1.
 .menuitem Hex
-Toggle the FPU window display between hexadecimal and floating point display.
+Toggle the FPU window display between hexadecimal and floating-point display.
 :INCLUDE file='wdbgopt.gml'
 .endmenu
 .*
 .section *refid=wndmmx The MMX Registers Window
 .*
-.figure *depth='1.74' *scale=100 *file='dbgmmxb' The MMX Registers Window
+.figure *depth='1.80' *scale=70 *file='dbgmmxb' The MMX Registers Window
 .np
 .ix 'MMX' 'examining'
 .ix 'MMX' 'modifying'
@@ -209,7 +211,7 @@ Choose
 to open the
 .wnddef MMX
 window.
-This window displays the current values and status of all the MMX
+This window displays the current values of all the MMX
 registers.
 You can change a value by double-clicking on, it or by cursoring to it
 and pressing ENTER.
@@ -224,19 +226,77 @@ as described above.
 This item has no function in the MMX register window.
 .menuitem Hex
 Toggle the MMX register window display between hexadecimal and
-floating point display.
+floating-point display.
 :INCLUDE file='wdbgopt.gml'
 .menuitem Signed
 Toggle the display of the contents of the MMX registers as signed or
 unsigned quantities.
-When "signed" is enabled, each byte, word or double-word is displayed
-as a signed quantity.
-When "signed" is disabled, each byte, word or double-word is displayed
-as an unsigned quantity.
+When "signed" is enabled, each byte, word, doubleword or quadword
+is displayed as a signed quantity.
+When "signed" is disabled, each byte, word, doubleword or quadword
+is displayed as an unsigned quantity.
 .menuitem Byte
 Display the contents of the MMX registers as a series of 8 bytes.
 .menuitem Word
 Display the contents of the MMX registers as a series of 4 words.
 .menuitem DWord
-Display the contents of the MMX registers as a series of 2 double-words.
+Display the contents of the MMX registers as a series of 2 doublewords.
+.menuitem QWord
+Display the contents of the MMX registers as single quadwords.
+.menuitem Float
+Display the contents of the MMX registers as a series of 2 IEEE
+single-precision floating-point values.
+.endmenu
+.*
+.section *refid=wndxmm The XMM Registers Window
+.*
+.figure *depth='1.74' *scale=55 *file='dbgxmmb' The XMM Registers Window
+.np
+.ix 'XMM' 'examining'
+.ix 'XMM' 'modifying'
+.ix 'XMM/SSE registers' 'examining'
+.ix 'XMM/SSE registers' 'modifying'
+Choose
+.menuref 'XMM Registers' 'Data'
+to open the
+.wnddef XMM
+window.
+This window displays the current values of all the XMM
+registers, as well as the contents of XMM status registers.
+You can change a value by double-clicking on, it or by cursoring to it
+and pressing ENTER.
+Press the right mouse button to access the following pop-up menu items:
+.begmenu XMM Pop-up
+.menuitem Modify
+Change the value of the selected register component.
+You will be prompted for a new value.
+The same action can be performed by pressing ENTER or double-clicking
+as described above.
+.menuitem Inspect
+This item has no function in the XMM register window.
+.menuitem Hex
+Toggle the XMM register window display between hexadecimal and
+floating-point display.
+:INCLUDE file='wdbgopt.gml'
+.menuitem Signed
+Toggle the display of the contents of the XMM registers as signed or
+unsigned quantities.
+When "signed" is enabled, each byte, word, doubleword or quadword
+is displayed as a signed quantity.
+When "signed" is disabled, each byte, word, doubleword or quadword
+is displayed as an unsigned quantity.
+.menuitem Byte
+Display the contents of the XMM registers as a series of 16 bytes.
+.menuitem Word
+Display the contents of the XMM registers as a series of 8 words.
+.menuitem DWord
+Display the contents of the XMM registers as a series of 4 doublewords.
+.menuitem QWord
+Display the contents of the XMM registers as a series of 2 quadwords.
+.menuitem Float
+Display the contents of the XMM registers as a series of 4 single-precision
+floating-point values.
+.menuitem Double
+Display the contents of the XMM registers as a series of 2 double-precision
+floating-point values.
 .endmenu

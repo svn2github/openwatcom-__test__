@@ -30,7 +30,6 @@
 ****************************************************************************/
 
 
-#define STRICT
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -70,6 +69,8 @@
 
 #include "wwinhelp.h"
 #include "jdlg.h"
+#include "watini.h"
+#include "inipath.h"
 
 /****************************************************************************/
 /* macro definitions                                                        */
@@ -110,7 +111,7 @@ static WAccelEditInfo *WCurrEditInfo     = NULL;
 static char            WMainClass[]      = "WAccMainClass";
 static char            WMainMenuName[]   = "WMainMenu";
 static char            WMainSOMenuName[] = "WSOMenu";
-static char            WProfileName[]    = "watcom.ini";
+static char            WProfileName[_MAX_PATH] = WATCOM_INI;
 static char            WSectionName[]    = "waccel";
 static char            WItemClipbdFmt[]  = "WACCEL_ITEM_CLIPFMT";
 
@@ -381,6 +382,8 @@ Bool WInit( HINSTANCE inst )
     }
 
     if( ok ) {
+        GetConfigFilePath( WProfileName, sizeof(WProfileName) );
+        strcat( WProfileName, "\\" WATCOM_INI );
         WInitOpts( WProfileName, WSectionName );
         WInitEditWindows( inst );
         ok = WInitRibbons( inst );

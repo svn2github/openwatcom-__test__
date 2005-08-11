@@ -207,10 +207,10 @@ static TYPEPTR Object( TYPEPTR typ )
 }
 
 static void DumpPointer( TYPEPTR typ, STRCHUNK *pch )      ;
-static void DumpTail( TYPEPTR typ, SYMPTR funcsym, int pointer_flags, STRCHUNK *pch );
+static void DumpTail( TYPEPTR typ, SYMPTR funcsym, type_modifiers pointer_flags, STRCHUNK *pch );
 static void DumpDecl( TYPEPTR typ, SYMPTR funcsym, STRCHUNK *pch );
 static void put_keyword( int keyword, STRCHUNK *pch );
-static void DumpFlags( int flags, TYPEPTR typ, STRCHUNK *fp );
+static void DumpFlags( type_modifiers flags, TYPEPTR typ, STRCHUNK *fp );
 static void DumpBaseType( TYPEPTR typ, STRCHUNK *pch );
 static void DumpArray( TYPEPTR typ, STRCHUNK *pch );
 static void DumpParmTags( TYPEPTR *parm, FILE *fp );
@@ -265,7 +265,7 @@ static void DumpPointer( TYPEPTR typ, STRCHUNK *pch )        /* 26-may-89 */
 }
 
 
-static void DumpTail( TYPEPTR typ, SYMPTR funcsym, int pointer_flags, STRCHUNK *pch )
+static void DumpTail( TYPEPTR typ, SYMPTR funcsym, type_modifiers pointer_flags, STRCHUNK *pch )
 {
     TYPEPTR     top_typ;
     TYPEPTR     obj;
@@ -307,34 +307,39 @@ static void DumpTail( TYPEPTR typ, SYMPTR funcsym, int pointer_flags, STRCHUNK *
 
 static void DumpDecl( TYPEPTR typ, SYMPTR funcsym, STRCHUNK *pch )
 {
-    TYPEPTR     obj;
-    int         flags;
+    TYPEPTR         obj;
+    type_modifiers  flags;
 
     switch( typ->decl_type ) {
     case TYPE_FUNCTION:
         DumpDecl( Object( typ ), NULL, pch );
         if ( funcsym ) {
             flags = funcsym->attrib;
-            if( flags & FLAG_LOADDS )  put_keyword( T___LOADDS, pch );
-            if( flags & FLAG_EXPORT )  put_keyword( T___EXPORT, pch );
-            if( flags & FLAG_SAVEREGS) put_keyword( T___SAVEREGS, pch );
+            if( flags & FLAG_LOADDS )
+                put_keyword( T___LOADDS, pch );
+            if( flags & FLAG_EXPORT )
+                put_keyword( T___EXPORT, pch );
+            if( flags & FLAG_SAVEREGS)
+                put_keyword( T___SAVEREGS, pch );
             flags &= ~(FLAG_LOADDS | FLAG_EXPORT | FLAG_SAVEREGS);
             DumpFlags( flags, typ, pch );               /* 03-aug-88, FWC */
             ChunkSaveStr( pch, funcsym->name );
         }
     case TYPE_ARRAY:
-        DumpTail( typ, funcsym, 0, pch );
+        DumpTail( typ, funcsym, FLAG_NONE, pch );
         break;
     case TYPE_POINTER:
         obj = Object( typ );
-        while( obj->decl_type == TYPE_POINTER ) obj = Object( obj );
+        while( obj->decl_type == TYPE_POINTER )
+            obj = Object( obj );
         switch( obj->decl_type ) {
         case TYPE_FUNCTION:
             DumpDecl( Object( obj ), NULL, pch );
             ChunkSaveChar( pch, '(' );
             break;
         case TYPE_ARRAY:
-            while( obj->decl_type == TYPE_ARRAY ) obj = Object( obj );
+            while( obj->decl_type == TYPE_ARRAY )
+                obj = Object( obj );
             DumpDecl( obj, NULL, pch );
             ChunkSaveChar( pch, '(' );
             break;
@@ -355,18 +360,21 @@ static void put_keyword( int keyword, STRCHUNK *pch )
 }
 
 
-static void DumpFlags( int flags, TYPEPTR typ, STRCHUNK *fp )
+static void DumpFlags( type_modifiers flags, TYPEPTR typ, STRCHUNK *fp )
 {
     SYM_NAMEPTR p;
     SYM_ENTRY   sym;
 
-    if( flags & FLAG_VOLATILE ) put_keyword( T_VOLATILE, fp );
-    if( flags & FLAG_CONST )    put_keyword( T_CONST, fp );
-    if( flags & FLAG_RESTRICT ) put_keyword( T_RESTRICT, fp );
-    if( flags & FLAG_NEAR ) {
-        if( flags & FLAG_FAR  ) {
-            put_keyword( T___INTERRUPT, fp );
-        } else if( flags & FLAG_BASED ) {               /* 13-nov-91 */
+    if( flags & FLAG_VOLATILE )
+        put_keyword( T_VOLATILE, fp );
+    if( flags & FLAG_CONST )
+        put_keyword( T_CONST, fp );
+    if( flags & FLAG_RESTRICT )
+        put_keyword( T_RESTRICT, fp );
+    if( ( flags & FLAG_INTERRUPT ) == FLAG_INTERRUPT ) {
+        put_keyword( T___INTERRUPT, fp );
+    } else if( flags & FLAG_NEAR ) {
+        if( flags & FLAG_BASED ) {
             ChunkSaveStr( fp, "__based(" );
             if( typ->u.p.based_sym == 0 ) {
                 ChunkSaveStr( fp, "void" );
@@ -379,10 +387,15 @@ static void DumpFlags( int flags, TYPEPTR typ, STRCHUNK *fp )
         } else {
             put_keyword( T___NEAR, fp );
         }
+    } else if( flags & FLAG_FAR ) {
+        put_keyword( T___FAR, fp );
     }
-    if( flags & FLAG_FAR  )     put_keyword( T___FAR, fp );
-    if( flags & FLAG_HUGE )     put_keyword( T___HUGE, fp );
+    if( flags & FLAG_HUGE )
+        put_keyword( T___HUGE, fp );
     switch( flags & FLAG_LANGUAGES ) {
+    case LANG_WATCALL:
+        put_keyword( T___WATCALL, fp );
+        break;
     case LANG_CDECL:
         put_keyword( T___CDECL, fp );
         break;
@@ -395,13 +408,13 @@ static void DumpFlags( int flags, TYPEPTR typ, STRCHUNK *fp )
     case LANG_SYSCALL:
         put_keyword( T__SYSCALL, fp );
         break;
-    case LANG_STDCALL:                          /* 08-jan-92 */
+    case LANG_STDCALL:
         put_keyword( T___STDCALL, fp );
         break;
-    case LANG_OPTLINK:                          /* 08-jan-92 */
+    case LANG_OPTLINK:
         put_keyword( T__OPTLINK, fp );
         break;
-    case LANG_FASTCALL:                         /* 08-jan-92 */
+    case LANG_FASTCALL:
         put_keyword( T___FASTCALL, fp );
         break;
     }
@@ -413,14 +426,18 @@ static void DumpBaseType( TYPEPTR typ, STRCHUNK *pch )
     TYPEPTR             obj;
 
     for(;;) {
-        if( typ->decl_type == TYPE_TYPEDEF ) break;
+        if( typ->decl_type == TYPE_TYPEDEF )
+            break;
         obj = Object( typ );
-        if( obj == NULL ) break;
+        if( obj == NULL )
+            break;
         typ = obj;
     }
     for(;;) {
-        if( typ->decl_type != TYPE_TYPEDEF ) break;
-        if( !(typ->type_flags & TF2_DUMMY_TYPEDEF) ) break;
+        if( typ->decl_type != TYPE_TYPEDEF )
+            break;
+        if( !(typ->type_flags & TF2_DUMMY_TYPEDEF) )
+            break;
         typ = typ->object;                      // skip over dummy typedef
     }
     if( typ->decl_type == TYPE_TYPEDEF ) {

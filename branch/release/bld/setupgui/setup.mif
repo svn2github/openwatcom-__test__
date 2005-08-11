@@ -6,9 +6,11 @@ setupgui_autodepends = .AUTODEPEND
 
 .ERROR:
 
+additional_cleanup = *.i
+
 !include cproj.mif
 !include defrule.mif
-#!include deftarg.mif
+!include deftarg.mif
 
 !include wres.mif
 
@@ -16,10 +18,6 @@ setupgui_autodepends = .AUTODEPEND
 ##########
 objs = &
     setup.obj       &
-    decode.obj      &
-    qsort.obj       &
-    lookup.obj      &
-    common.obj      &
     setupfil.obj    &
     setupinf.obj    &
     guistat.obj     &
@@ -30,35 +28,44 @@ objs = &
     genvbl.obj      &
     dynarray.obj    &
     gendlg.obj      &
-    io.obj          &
     hash.obj        &
     nlmver.obj
 
 !ifdef patch
-objs += exetype.obj
+objs +=             &
+    common.obj      &
+    decode.obj      &
+    exetype.obj     &
+    io.obj          &
+    lookup.obj      &
+    qsort.obj
 !endif
 
 !ifeq host_os win
 objs += &
+    setupiod.obj    &
     utils.obj       &
     winutil.obj     &
     winddeml.obj
 !else ifeq host_os nt
 objs += &
+    setupio.obj     &
     utils.obj       &
     winutil.obj     &
-    winddeml.obj    &
-    ntservic.obj
+    winddeml.obj
 !else ifeq host_os os2
 objs += &
+    setupio.obj     &
     utils.obj       &
     winutil.obj     &
     os2util.obj
 !else ifeq host_os linux
 objs += &
+    setupio.obj     &
     unixutil.obj
 !else
 objs += &
+    setupio.obj     &
     utils.obj
 !endif
 
@@ -90,22 +97,26 @@ $(wres_lib)
 
 !endif
 
+libs_os2   += ../zlib/osi386/zlib.lib ../ziplib/osi386/ziplib.lib
+libs_nt    += ../zlib/osi$(host_cpu)/zlib.lib ../ziplib/osi$(host_cpu)/ziplib.lib
+libs_dos   += ../zlib/osi386/zlib.lib ../ziplib/osi386/ziplib.lib
+libs_linux += ../zlib/osi386/zlib.lib ../ziplib/osi386/ziplib.lib
+
 libs = $(libs_$(host_os))
 
 gendeps = _guimsgs.gh $(objs) $(libs) setup.lnk
 
 # cflags
 #########
-extra_c_flags = -DINSTALL_PROGRAM -DGUISETUP -s
+extra_c_flags = -s
 !ifneq sys_windowed 1
-extra_c_flags += -d_UI
+extra_c_flags += -D_UI
 !endif
 !ifdef patch
 extra_c_flags += -DPATCH
 !endif
 
-extra_c_flags_i86 = -fpc -zc
-extra_c_flags_386 = -fpc
+extra_c_flags_i86 = -zc
 
 #extra_c_flags_common = -fi=setupmem.h
 #extra_c_flags_io = -fi=setupmem.h
@@ -116,13 +127,15 @@ extra_l_flags = op map op symfile
 
 # rc flags
 ###########
-extra_rc_flags_win = -30 -d_WIN
-extra_rc_flags_nt = -d_WINNT
-extra_rc_flags = -r $(extra_rc_flags_$(host_os))
+extra_rc_flags     = -r
+extra_rc_flags_win = -30 -D_WIN
+extra_rc_flags_nt  = -D_WINNT
 
-rcx_out_os2 = $(rc_os2) -p -x
+res_dir = ../res/$(host_os)
+
+rcx_out_os2 = $(rc)
 rcx_out_win = $(rc) -30 -k
-rcx_out_nt = $(rc) -k
+rcx_out_nt  = $(rc) -k
 rc_out = $(rcx_out_$(host_os))
 
 !ifeq host_os os2
@@ -143,19 +156,14 @@ dep_res1 = ../h/setup.h setup.ico disk.ico gui.rc _guimsgs.gh
 ########################
 
 .c : ../c;$(build_root)/bdiff;$(build_root)/wpack/c;$(trmem_dir)
-.rc : res;$(gui_dir)/h
-.ico : res
+.rc : ../res;$(res_dir);$(gui_dir)/h
+.ico : $(res_dir)
 
-#inc_dirs_dos = $(guidir)/ui/dos$(host_cpu)
-#inc_dirs_linux = $(guidir)/ui/linux$(host_cpu)
-#inc_dirs_nt = $(guidir)/win/nt$(host_cpu)
-#inc_dirs_os2 = $(guidir)/win/os2$(host_cpu)
-#inc_dirs_win = $(guidir)/win/win$(host_cpu)
+res_inc_dirs = -I"$(res_dir)" -I"../res" -I"$(gui_dir)/h" $(inc_dirs_sys)
 
-inc_dirs = ../h;$(sdk_dir)/misc;$(build_root)/wpack/h;$(build_root)/wpack/o;$(uidir)/h;$(wpi_dir)/h;$(aui_dir)/h;$(gui_dir)/h;$(build_root)/bdiff/h;$(trmem_dir)
-
-.BEFORE
-    @set include=$(inc_path)
+inc_dirs  = -I"../h" -I"$(sdk_dir)/misc" -I"$(build_root)/wpack/h"
+inc_dirs += -I"$(uidir)/h" -I"$(wpi_dir)/h" -I"$(aui_dir)/h" -I"$(gui_dir)/h"
+inc_dirs += -I"$(build_root)/bdiff/h" -I$(trmem_dir) -I"$(libzip_dir)/lib"
 
 
 # explicit rules
@@ -248,7 +256,7 @@ setup.lnk : makefile ../setup.mif
     @%append setup.lnk option stack=30K
 !else ifeq host_os nt
     @%append setup.lnk option stack=30K, heap=20K
-! ifneq host_CPU axp
+! ifneq host_cpu axp
     @%append setup.lnk lib shell32.lib
     @%append setup.lnk lib uuid.lib
 ! endif
@@ -264,88 +272,32 @@ setup.lnk : makefile ../setup.mif
 
 nonibm.obj : $(new_clib)/startup/c/nonibm.c
 
-setupui.res : ../setupui.rc $(dep_res1)
-    $(rc_aui) -i="$(gui_dir)/h;$(inc_dirs_sys_win)" $[@ -fo=setupui.res
+setupui.res : setupui.rc $(dep_res1)
+    $(rc_aui) -I"$(gui_dir)/h" $(inc_dirs_sys_win) $[@ -fo=setupui.res
 
-csetup.res : setup.rc $(dep_res1) ../wcc.bmp
-    cp ../wcc.bmp ../splash.bmp > $(nulldevice)
-!ifeq host_os os2
-    $(bld_cc) -p -fo=$[&.i -i"$(gui_dir)/h" $[@
-    $(rc_os2) -r foros2pm.rc
-    cp foros2pm.res $^@ > $(nulldevice)
-!else
-    $(rc) $(rc_flags) $(extra_rc_flags) -i"../h" $[@ -fo=$^@
-!endif
+csetup.res : setup.rc $(dep_res1) ../res/wcc.bmp
+    $(rc) $(rc_flags) -DCSETUP $(res_inc_dirs) $[@ -fo=$^@
 
-jcsetup.res : setup.rc $(dep_res1) ../wcc.bmp
-    cp ../wcc.bmp ../splash.bmp > $(nulldevice)
-!ifeq host_os os2
-    $(bld_cc) -p -dJAPANESE_MESSAGES -zk0 -fo=$[&.i -i"$(gui_dir)/h" $[@
-    $(rc_os2) -r foros2pm.rc
-    cp foros2pm.res $^@ > $(nulldevice)
-!else
-    $(rc) $(rc_flags) $(extra_rc_flags) -dJAPANESE_MESSAGES -zk0 -i"../h" $[@ -fo=$^@
-!endif
+jcsetup.res : setup.rc $(dep_res1) ../res/wcc.bmp
+    $(rc) $(rc_flags) -DJCSETUP -DJAPANESE_MESSAGES -zk0 $(res_inc_dirs) $[@ -fo=$^@
 
-f77setup.res : setup.rc $(dep_res1) ../f77.bmp
-    cp ../f77.bmp ../splash.bmp > $(nulldevice)
-!ifeq host_os os2
-    $(bld_cc) -p -fo=$[&.i -i"$(gui_dir)/h" $[@
-    $(rc_os2) -r foros2pm.rc
-    cp foros2pm.res $^@ > $(nulldevice)
-!else
-    $(rc) $(rc_flags) $(extra_rc_flags) -i"../h" $[@ -fo=$^@
-!endif
+f77setup.res : setup.rc $(dep_res1) ../res/f77.bmp
+    $(rc) $(rc_flags) -DF77SETUP $(res_inc_dirs) $[@ -fo=$^@
 
-jfsetup.res : setup.rc $(dep_res1) ../f77.bmp
-    cp ../f77.bmp ../splash.bmp > $(nulldevice)
-!ifeq host_os os2
-    $(bld_cc) -p -dJAPANESE_MESSAGES -zk0 -fo=$[&.i -i"$(gui_dir)/h" $[@
-    $(rc_os2) -r foros2pm.rc
-    cp foros2pm.res $^@ > $(nulldevice)
-!else
-    $(rc) $(rc_flags) $(extra_rc_flags) -dJAPANESE_MESSAGES -zk0 -i"../h" $[@ -fo=$^@
-!endif
+jfsetup.res : setup.rc $(dep_res1) ../res/f77.bmp
+    $(rc) $(rc_flags) -DJFSETUP -DJAPANESE_MESSAGES -zk0 $(res_inc_dirs) $[@ -fo=$^@
 
-dbsetup.res : setup.rc $(dep_res1) ../wsql.bmp
-    cp ../wsql.bmp ../splash.bmp > $(nulldevice)
-!ifeq host_os os2
-    $(bld_cc) -p -fo=$[&.i -i"$(gui_dir)/h" $[@
-    $(rc_os2) -r foros2pm.rc
-    cp foros2pm.res $^@ > $(nulldevice)
-!else
-    $(rc) $(rc_flags) $(extra_rc_flags) -i"../h" $[@ -fo=$^@
-!endif
+dbsetup.res : setup.rc $(dep_res1) ../res/wsql.bmp
+    $(rc) $(rc_flags) -DDBSETUP $(res_inc_dirs) $[@ -fo=$^@
 
-jdbsetup.res : setup.rc $(dep_res1) ../wsql.bmp
-    cp ../wsql.bmp ../splash.bmp > $(nulldevice)
-!ifeq host_os os2
-    $(bld_cc) -p -dJAPANESE_MESSAGES -zk0 -fo=$[&.i -i"$(gui_dir)/h" $[@
-    $(rc_os2) -r foros2pm.rc
-    cp foros2pm.res $^@ > $(nulldevice)
-!else
-    $(rc) $(rc_flags) $(extra_rc_flags) -dJAPANESE_MESSAGES -zk0 -i"../h" $[@ -fo=$^@
-!endif
+jdbsetup.res : setup.rc $(dep_res1) ../res/wsql.bmp
+    $(rc) $(rc_flags) -DJDBSETUP -DJAPANESE_MESSAGES -zk0 $(res_inc_dirs) $[@ -fo=$^@
 
-sdbsetup.res : setup.rc $(dep_res1) ../sqlserv.bmp
-    cp ../sqlserv.bmp ../splash.bmp > $(nulldevice)
-!ifeq host_os os2
-    $(bld_cc) -p -fo=$[&.i -i"$(gui_dir)/h" $[@
-    $(rc_os2) -r foros2pm.rc
-    cp foros2pm.res $^@ > $(nulldevice)
-!else
-    $(rc) $(rc_flags) $(extra_rc_flags) -i"../h" $[@ -fo=$^@
-!endif
+sdbsetup.res : setup.rc $(dep_res1) ../res/sqlserv.bmp
+    $(rc) $(rc_flags) -DSDBSETUP $(res_inc_dirs) $[@ -fo=$^@
 
-setup.res : setup.rc $(dep_res1) ../generic.bmp
-    cp ../generic.bmp ../splash.bmp > $(nulldevice)
-!ifeq host_os os2
-    $(bld_cc) -p -fo=$[&.i -i"$(gui_dir)/h" $[@
-    $(rc_os2) -r foros2pm.rc
-    cp foros2pm.res $^@ > $(nulldevice)
-!else
-    $(rc) $(rc_flags) $(extra_rc_flags) -i"../h" $[@ -fo=$^@
-!endif
+setup.res : setup.rc $(dep_res1) ../res/generic.bmp
+    $(rc) $(rc_flags) $(res_inc_dirs) $[@ -fo=$^@
 
 dosstub.exe : ../stub/dosstub.c
     wcl -zq -l=dos -os -d0 -bt=dos ..\stub\dosstub
@@ -384,10 +336,7 @@ sdbsetup.exe: virgin.exe sdbsetup.res
     $(rc_out) $]@ $^@
 
 ./guimkstr.exe: $(gui_dir)/c/mkstr.c $(gui_dir)/h/gui.msg
-    $(bld_cl) -i"$(gui_dir)/h" $(wcl_util_opts) $[@
+    $(bld_cl) -I"$(gui_dir)/h" $(wcl_util_opts) $[@
 
 _guimsgs.gh: ./guimkstr.exe $(gui_dir)/h/gui.msg
     $[@ $^@ $(gui_msg_id_modifier)
-
-clean : .SYMBOLIC
-    rm -f *.obj *.exe *.err *.lnk *.res *.gh *.i *.map *.sym

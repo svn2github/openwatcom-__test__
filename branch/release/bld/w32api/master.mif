@@ -1,6 +1,16 @@
-proj_name = w32api
+base_autodepends    = .autodepend
+ddk_autodepends     = .autodepend
+directx_autodepends = .autodepend
+
+base_cleanup    = ../include/*.h ../include/GL/*.h
+ddk_cleanup     = ../include/ddk/*.h
+directx_cleanup = ../include/directx/*.h
+
+additional_cleanup = $($(proj_name)_cleanup)
 
 !include cproj.mif
+!include defrule.mif
+!include deftarg.mif
 
 .EXTENSIONS : .lbc .def
 
@@ -123,41 +133,51 @@ vfw32_libs = &
         avicap32.lbc &
         avifil32.lbc
 
+ddk_libs = &
+        apcups.lib &
+        cfgmgr32.lib &
+        dxapi.lib &
+        hal.lib &
+        hid.lib &
+        hidparse.lib &
+        mcd.lib &
+        ndis.lib &
+        ntoskrnl.lib &
+        scsiport.lib &
+        tdi.lib &
+        usbcamd.lib &
+        usbcamd2.lib &
+        videoprt.lib &
+        win32k.lib
 
-libs = $(base_libs) $(directx_libs)
+libs = $($(proj_name)_libs)
 
-.def: ../lib;../lib/directx
+.def: ../../lib;../../lib/directx;../../lib/ddk;
 
-.c: ../lib;../lib/directx
+.c: ../../lib;../../lib/directx;../../lib/ddk;
 
 .def.lbc:
-        $(vi) -s ../def2lbc.vi -p"$[@ $*"
+        $(vi) -s ../../def2lbc.vi -p"$[@ $*"
 
 .lbc.lib:
-        $(librarian) -b -c -n -io -ii $@ @$<
+        $(librarian) -b -c -p=16 -n -io -ii $@ @$<
 
 .obj.lib:
-        $(librarian) -b -c -n $@ $<
+        $(librarian) -b -c -p=16 -n $@ $<
 
-.c.obj:
-        $(cc) $(cflags) -fpc -zld -fo=.obj -i"$(inc_dirs)" $<
-
-# the __UNIX__ has to be here until at least "for" is fixed in wmake for UNIX:
-# wmake exploits the special WATCOM readdir(wildcard) property...
 all: $(libs) .SYMBOLIC
-!ifdef __UNIX__
-        /bin/sh -c 'for i in ../include/*.h; do wmake -h -f ../fix/new_h.mif file=$$i; done'
-        /bin/sh -c 'for i in ../include/directx/*.h; do wmake -h -f ../fix/new_h.mif file=$$i; done'
-        /bin/sh -c 'for i in ../include/GL/*.h; do wmake -h -f ../fix/new_h.mif file=$$i; done'
-!else
-        @for %i in (../include/*.h) do @wmake -h -f ../fix/new_h.mif file=%i
-        @for %i in (../include/directx/*.h) do @wmake -h -f ../fix/new_h.mif file=%i
-        @for %i in (../include/GL/*.h) do @wmake -h -f ../fix/new_h.mif file=%i
+!ifeq proj_name base
+        @for %i in (../../include/*.h) do @wmake -h -f ../../fix/new_h.mif file=%i
+        @for %i in (../../include/GL/*.h) do @wmake -h -f ../../fix/new_h.mif file=%i
+!else ifeq proj_name ddk
+        @for %i in (../../include/ddk/*.h) do @wmake -h -f ../../fix/new_h.mif file=%i
+!else ifeq proj_name directx
+        @for %i in (../../include/directx/*.h) do @wmake -h -f ../../fix/new_h.mif file=%i
 !endif
-        $(vi) -s ../fix/fix_h.vi
+        $(vi) -s ../../fix/fix_h.vi
 
 kernel32.lib: kernel32.lbc
-        $(librarian) -b -c -n -io -ii $@ @$<
+        $(librarian) -b -c -p=16 -n -io -ii $@ @$<
 
 dinput_objs = dinput_joy.obj dinput_joy2.obj dinput_kbd.obj dinput_mouse.obj &
         dinput_mouse2.obj
@@ -165,28 +185,28 @@ dinput_objs = dinput_joy.obj dinput_joy2.obj dinput_kbd.obj dinput_mouse.obj &
 dinput8.lib: dinput8.lbc $(dinput_objs)
         @%create tmp.lbc
         @for %i in ($(dinput_objs)) do @%append tmp.lbc -+%i
-        $(librarian) -b -c -n -io -ii $@ @$[@
-        $(librarian) -b -c $@ @tmp.lbc
+        $(librarian) -b -c -p=16 -n -io -ii $@ @$[@
+        $(librarian) -b -c -p=16 $@ @tmp.lbc
 
 dinput.lib: dinput.lbc $(dinput_objs)
         @%create tmp.lbc
         @for %i in ($(dinput_objs)) do @%append tmp.lbc -+%i
-        $(librarian) -b -c -n -io -ii $@ @$[@
-        $(librarian) -b -c $@ @tmp.lbc
+        $(librarian) -b -c -p=16 -n -io -ii $@ @$[@
+        $(librarian) -b -c -p=16 $@ @tmp.lbc
 
 dxerr8.lib: dxerr8.obj dxerr8w.obj
-        $(librarian) -b -c -n $@ +$[@ +$]@
+        $(librarian) -b -c -p=16 -n $@ +$[@ +$]@
 
 dxerr9.lib: dxerr9.obj dxerr9w.obj
-        $(librarian) -b -c -n $@ +$[@ +$]@
+        $(librarian) -b -c -p=16 -n $@ +$[@ +$]@
 
 ksuser.lib: ksuser.lbc ksuser.obj
-        $(librarian) -b -c -n -io -ii $@ @$[@
-        $(librarian) -b -c $@ +$]@
+        $(librarian) -b -c -p=16 -n -io -ii $@ @$[@
+        $(librarian) -b -c -p=16 $@ +$]@
 
 shell32.lib: shell32.lbc shell32.obj
-        $(librarian) -b -c -n -io -ii $@ @$[@
-        $(librarian) -b -c $@ +$]@
+        $(librarian) -b -c -p=16 -n -io -ii $@ @$[@
+        $(librarian) -b -c -p=16 $@ +$]@
 
 vfw32.lbc : $(vfw32_libs)
         @%create $@
@@ -194,6 +214,5 @@ vfw32.lbc : $(vfw32_libs)
 
 uuid.lib: uuid.obj mshtml-u.obj
 
-clean : .SYMBOLIC
-        @rm -f *.?bj *.lib *.lbc 
-        @rm -f include/*.h include/GL/*.h
+mshtml-u.obj: mshtml-u.c .autodepend
+        $(cc) $(cflags) $(inc_path) $<

@@ -44,7 +44,7 @@
 
 
 /* just for people to copy in */
-const TATTR FalseAttr = { FALSE, FALSE, FALSE, FALSE };
+const TATTR FalseAttr = { FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE };
 
 #define HASH_PRIME    211
 #define CASESENSITIVE FALSE  // Is Target Name case sensitive
@@ -63,7 +63,7 @@ FLIST *NewFList( void )
  * allocate a FLIST, fill in default values
  */
 {
-    FLIST *f;
+    FLIST   *f;
 
     if( freeFLists != NULL ) {
         f = freeFLists;
@@ -71,15 +71,16 @@ FLIST *NewFList( void )
         memset( f, 0, sizeof( *f ) );
         return( f );
     }
-    return( (FLIST *) CallocSafe( sizeof( FLIST ) ) );
+    return( (FLIST *)CallocSafe( sizeof( FLIST ) ) );
 }
+
 
 NKLIST *NewNKList( void )
 /************************
  * allocate a NKLIST, fill in default values
  */
 {
-    NKLIST *nk;
+    NKLIST  *nk;
 
     if( freeNKLists != NULL ) {
         nk = freeNKLists;
@@ -87,7 +88,7 @@ NKLIST *NewNKList( void )
         memset( nk, 0, sizeof( *nk ) );
         return( nk );
     }
-    return( (NKLIST *) CallocSafe( sizeof( NKLIST ) ) );
+    return( (NKLIST *)CallocSafe( sizeof( NKLIST ) ) );
 }
 
 
@@ -96,7 +97,7 @@ SLIST *NewSList( void )
  * allocate a NKLIST, fill in default values
  */
 {
-    SLIST *s;
+    SLIST   *s;
 
     if( freeSLists != NULL ) {
         s = freeSLists;
@@ -104,7 +105,7 @@ SLIST *NewSList( void )
         memset( s, 0, sizeof( *s ) );
         return( s );
     }
-    return( (SLIST *) CallocSafe( sizeof( SLIST ) ) );
+    return( (SLIST *)CallocSafe( sizeof( SLIST ) ) );
 }
 
 
@@ -113,7 +114,7 @@ TLIST *NewTList( void )
  * allocate a TLIST, fill in default values
  */
 {
-    TLIST *t;
+    TLIST   *t;
 
     if( freeTLists != NULL ) {
         t = freeTLists;
@@ -128,7 +129,7 @@ TLIST *NewTList( void )
 void RenameTarget( TARGET *targ, const char *newname )
 /****************************************************/
 {
-    (void) RemHashNode( targTab, targ->node.name, CASESENSITIVE );
+    (void)RemHashNode( targTab, targ->node.name, CASESENSITIVE );
     if( targ->node.name != NULL ) {
         FreeSafe( targ->node.name );
     }
@@ -142,13 +143,11 @@ TARGET *NewTarget( const char *name )
  * allocate a newtarget with name, and default values
  */
 {
-    TARGET *new;
+    TARGET  *new;
 
     new = CallocSafe( sizeof( *new ) );
     new->executed = TRUE;
-#if OLDEST_DATE != 0L
     new->date = OLDEST_DATE;
-#endif
     new->node.name = FixName( StrDupSafe( name ) );
     AddHashNode( targTab, (HASHNODE *)new );
 
@@ -167,17 +166,19 @@ TARGET *FindTarget( const char *name )
 }
 
 
+#ifdef __WATCOMC__
 #pragma on (check_stack);
+#endif
 CLIST *DotCList( enum DotNames dot )
 /***********************************
  * find clist associated with dotname
  */
 {
-    char                name[ MAX_DOT_NAME ];
-    TARGET const       *cur;
+    char                name[MAX_DOT_NAME];
+    TARGET const        *cur;
 
-    name[ 0 ] = DOT;
-    FixName( strcpy( name + 1, DotNames[ dot ] ) );
+    name[0] = DOT;
+    FixName( strcpy( name + 1, DotNames[dot] ) );
 
     cur = FindTarget( name );
 
@@ -186,13 +187,15 @@ CLIST *DotCList( enum DotNames dot )
     }
     return( cur->depend->clist );
 }
+#ifdef __WATCOMC__
 #pragma off(check_stack);
+#endif
 
 
 DEPEND *NewDepend( void )
 /***********************/
 {
-    DEPEND *dep;
+    DEPEND  *dep;
 
     if( freeDepends != NULL ) {
         dep = freeDepends;
@@ -200,14 +203,14 @@ DEPEND *NewDepend( void )
         memset( dep, 0, sizeof( *dep ) );
         return( dep );
     }
-    return( (DEPEND *) CallocSafe( sizeof( DEPEND ) ) );
+    return( (DEPEND *)CallocSafe( sizeof( DEPEND ) ) );
 }
 
 
 CLIST *NewCList( void )
 /*********************/
 {
-    CLIST *c;
+    CLIST   *c;
 
     if( freeCLists != NULL ) {
         c = freeCLists;
@@ -215,16 +218,18 @@ CLIST *NewCList( void )
         memset( c, 0, sizeof( *c ) );
         return( c );
     }
-    return( (CLIST *) CallocSafe( sizeof( CLIST ) ) );
+    return( (CLIST *)CallocSafe( sizeof( CLIST ) ) );
 }
 
-// Duplicate the inline file information of the CLIST
+
 STATIC FLIST *DupFList( const FLIST *old )
-/****************************************/
+/*****************************************
+ * Duplicate the inline file information of the CLIST
+ */
 {
-    FLIST *new;
-    FLIST *cur;
-    FLIST *head;   // resulting FLIST
+    FLIST   *new;
+    FLIST   *cur;
+    FLIST   *head;  // resulting FLIST
 
     if( old == NULL ) {
         return( NULL );
@@ -232,10 +237,10 @@ STATIC FLIST *DupFList( const FLIST *old )
 
     head = NewFList();
     head->fileName = StrDupSafe( old->fileName );
-    if (old->body != NULL) {
-        head->body     = StrDupSafe( old->body );
+    if( old->body != NULL ) {
+        head->body = StrDupSafe( old->body );
     } else {
-        head->body     = NULL;
+        head->body = NULL;
     }
     head->keep     = old->keep;
 
@@ -244,10 +249,10 @@ STATIC FLIST *DupFList( const FLIST *old )
     while( old != NULL ) {
         new = NewFList();
         new->fileName = StrDupSafe( old->fileName );
-        if (old->body != NULL) {
-            new->body     = StrDupSafe( old->body );
+        if( old->body != NULL ) {
+            new->body = StrDupSafe( old->body );
         } else {
-            new->body      = NULL;
+            new->body = NULL;
         }
         new->keep     = old->keep;
         cur->next     = new;
@@ -259,21 +264,22 @@ STATIC FLIST *DupFList( const FLIST *old )
     return( head );
 }
 
+
 STATIC SLIST *DupSList( const SLIST *old )
 /****************************************/
 {
-    SLIST *new;
-    SLIST *cur;
-    SLIST *head;
+    SLIST   *new;
+    SLIST   *cur;
+    SLIST   *head;
 
     if( old == NULL ) {
         return( NULL );
     }
 
     head = NewSList();
-    head->targ_path  = StrDupSafe( old->targ_path );
-    head->dep_path   = StrDupSafe( old->dep_path );
-    head->clist      = DupCList  ( old->clist );
+    head->targ_path = StrDupSafe( old->targ_path );
+    head->dep_path  = StrDupSafe( old->dep_path );
+    head->clist     = DupCList  ( old->clist );
 
     cur = head;
     old = old->next;
@@ -294,9 +300,9 @@ STATIC SLIST *DupSList( const SLIST *old )
 CLIST *DupCList( const CLIST *old )
 /*********************************/
 {
-    CLIST *new;
-    CLIST *cur;
-    CLIST *head;
+    CLIST   *new;
+    CLIST   *cur;
+    CLIST   *head;
 
     if( old == NULL ) {
         return( NULL );
@@ -321,6 +327,7 @@ CLIST *DupCList( const CLIST *old )
     return( head );
 }
 
+
 TLIST *DupTList( const TLIST * old )
 /***********************************
  *  duplicate the tlist
@@ -331,7 +338,7 @@ TLIST *DupTList( const TLIST * old )
     TLIST const        *currentOld;
 
     new = NULL;
-    if ( old != NULL ) {
+    if( old != NULL ) {
         new = NewTList();
         new ->target = old->target;
         currentNew = new;
@@ -344,13 +351,14 @@ TLIST *DupTList( const TLIST * old )
 
         }
     }
-    return (new);
-
+    return( new );
 }
 
+
 DEPEND *DupDepend( const DEPEND *old )
-/************************************/
-/* doesn't recursively descend old->next, or old->targs->target->depend */
+/*************************************
+ * doesn't recursively descend old->next, or old->targs->target->depend
+ */
 {
     DEPEND  *new;
 
@@ -359,7 +367,7 @@ DEPEND *DupDepend( const DEPEND *old )
     }
 
     new = NewDepend();
-    new->targs    = DupTList(old->targs);
+    new->targs    = DupTList( old->targs );
     new->clist    = DupCList( old->clist );
     new->slist    = DupSList( old->slist );
     new->slistCmd = old->slistCmd;
@@ -381,20 +389,22 @@ void FreeTList( TLIST *tlist )   /* non-recursive */
     }
 }
 
+
 /* frees the no keep list */
 void FreeNKList( NKLIST *nklist )   /* non-recursive */
 /*******************************/
 {
-    NKLIST   *cur;
+    NKLIST  *cur;
 
     while( nklist != NULL ) {
         cur = nklist;
         nklist = nklist->next;
-        FreeSafe(cur->fileName);
+        FreeSafe( cur->fileName );
         cur->next = freeNKLists;
         freeNKLists = cur;
     }
 }
+
 
 /* frees the sufsuf list */
 void FreeSList( SLIST *slist )   /* non-recursive */
@@ -404,8 +414,8 @@ void FreeSList( SLIST *slist )   /* non-recursive */
 
     while( slist != NULL ) {
         cur = slist;
-        FreeSafe ( cur->targ_path);
-        FreeSafe ( cur->dep_path);
+        FreeSafe( cur->targ_path );
+        FreeSafe( cur->dep_path );
         FreeCList( cur->clist );
         slist = slist->next;
         cur->next = freeSLists;
@@ -414,9 +424,10 @@ void FreeSList( SLIST *slist )   /* non-recursive */
 }
 
 
-/* frees the inline file information for the clist */
 void FreeFList( FLIST *flist )   /* non-recursive */
-/****************************/
+/*****************************
+ * frees the inline file information for the clist
+ */
 {
     FLIST   *cur;
 
@@ -424,8 +435,8 @@ void FreeFList( FLIST *flist )   /* non-recursive */
         cur        = flist;
         flist      = flist->next;
         cur->next  = freeFLists;
-        FreeSafe(cur->body);
-        FreeSafe(cur->fileName);
+        FreeSafe( cur->body );
+        FreeSafe( cur->fileName );
         freeFLists = cur;
     }
 }
@@ -434,23 +445,25 @@ void FreeFList( FLIST *flist )   /* non-recursive */
 void FreeCList( CLIST *clist )
 /****************************/
 {
-    CLIST    *cur;
+    CLIST   *cur;
 
     while( clist != NULL ) {
         cur = clist;
         clist = clist->next;
         FreeSafe( cur->text );
-        FreeFList(cur->inlineHead);
+        FreeFList( cur->inlineHead );
         cur->next = freeCLists;
         freeCLists = cur;
     }
 }
 
 
-void FreeDepend( DEPEND *dep )   /* free's tlist, and clist */
-/****************************/
+void FreeDepend( DEPEND *dep )
+/*****************************
+ * frees tlist, and clist
+ */
 {
-    DEPEND *cur;
+    DEPEND  *cur;
 
     while( dep != NULL ) {
         cur = dep;
@@ -481,11 +494,11 @@ void KillTarget( const char *name )
  * function that the target is not a member of some TLIST
  */
 {
-    TARGET *kill;
+    void    *mykill;
 
-    kill = (TARGET *) RemHashNode( targTab, name, CASESENSITIVE );
-    if( kill != NULL ) {
-        freeTarget( kill );
+    mykill = RemHashNode( targTab, name, CASESENSITIVE );
+    if( mykill != NULL ) {
+        freeTarget( mykill );
     }
 }
 
@@ -495,34 +508,34 @@ STATIC TARGET *findOrNewTarget( const char *tname, BOOLEAN mentioned )
  * Return a pointer to a target with name name.  Create target if necessary.
  */
 {
-    char    name[ _MAX_PATH ];
+    char    name[_MAX_PATH];
     TARGET  *targ;
 
     targ = FindTarget( FixName( strcpy( name, tname ) ) );
     if( targ == NULL ) {
         targ = NewTarget( name );
-        if( name[ 0 ] == DOT && isextc( name[ 1 ] ) ) {
+        if( name[0] == DOT && isextc( name[1] ) ) {
             targ->special = TRUE;
-            if (strcmpi(name+1,BEFORE_S) == 0 ||
-                strcmpi(name+1,AFTER_S)  == 0 ) {
+            if( strcmpi( name + 1, BEFORE_S ) == 0 ||
+                strcmpi( name + 1, AFTER_S )  == 0 ) {
                 targ->before_after = TRUE;
             }
-            if (strcmpi(name+1,DEFAULT_S) == 0) {
+            if( strcmpi( name + 1, DEFAULT_S ) == 0 ) {
                 targ->dot_default = TRUE;
             }
         }
     }
 
-         /* mentioned in a makefile */
+    /* mentioned in a makefile */
     targ->mentioned = targ->mentioned || mentioned;
 
     return( targ );
 }
 
 
-RET_T WildTList( TLIST **list, const char *base, BOOLEAN mentioned ,
-                        BOOLEAN expandWildCardPath)
-/********************************************************************
+RET_T WildTList( TLIST **list, const char *base, BOOLEAN mentioned,
+                 BOOLEAN expandWildCardPath)
+/******************************************************************
  * Build a TLIST using base as a wildcarded path.  Uses DoWildCard().
  * Pushes targets onto list.
  */
@@ -535,12 +548,12 @@ RET_T WildTList( TLIST **list, const char *base, BOOLEAN mentioned ,
     TLIST       *endOfList;
     const char  *file;
 
-    if (expandWildCardPath) {
+    if( expandWildCardPath ) {
         /* we want to expand the wildCard path */
         file = DoWildCard( base );
         assert( file != NULL );
         if( strpbrk( file, WILD_METAS ) != NULL ) {
-            PrtMsg( ERR|LOC| NO_EXISTING_FILE_MATCH, file );
+            PrtMsg( ERR | LOC | NO_EXISTING_FILE_MATCH, file );
             return( RET_ERROR );
         }
     } else {
@@ -563,17 +576,17 @@ RET_T WildTList( TLIST **list, const char *base, BOOLEAN mentioned ,
     temp    = temp->next;
     current->next = NULL;
 
-    while (temp != NULL) {
+    while( temp != NULL ) {
         temp2      = temp->next;
         temp->next = current;
         current    = temp;
         temp       = temp2;
     }
-    if (*list == NULL) {
+    if( *list == NULL ) {
         *list = current;
     } else {
         endOfList = *list;
-        while (endOfList->next != NULL) {
+        while( endOfList->next != NULL ) {
             endOfList = endOfList->next;
         }
         endOfList->next = current;
@@ -586,8 +599,8 @@ void PrintCList( const CLIST *clist )
 /***********************************/
 {
     for( ; clist != NULL; clist = clist->next ) {
-        PrtMsg( INF|NEOL| JUST_A_TAB );
-        PrtMsg( INF| PRNTSTR, clist->text );
+        PrtMsg( INF | NEOL | JUST_A_TAB );
+        PrtMsg( INF | PRNTSTR, clist->text );
     }
 }
 
@@ -596,70 +609,70 @@ void PrintTargFlags( const TARGET *targ )
 /***************************************/
 {
     if( targ->attr.prec ) {
-        PrtMsg( INF|NEOL| PTARG_DOTNAME, DotNames[ DOT_PRECIOUS ] );
+        PrtMsg( INF | NEOL | PTARG_DOTNAME, DotNames[DOT_PRECIOUS] );
     }
     if( targ->attr.symb ) {
-        PrtMsg( INF|NEOL| PTARG_DOTNAME, DotNames[ DOT_SYMBOLIC ] );
+        PrtMsg( INF | NEOL | PTARG_DOTNAME, DotNames[DOT_SYMBOLIC] );
     }
     if( targ->attr.multi ) {
-        PrtMsg( INF|NEOL| PTARG_DOTNAME, DotNames[ DOT_MULTIPLE ] );
+        PrtMsg( INF | NEOL | PTARG_DOTNAME, DotNames[DOT_MULTIPLE] );
     }
     if( targ->attr.explicit ) {
-        PrtMsg( INF|NEOL| PTARG_DOTNAME, DotNames[ DOT_EXPLICIT ] );
+        PrtMsg( INF | NEOL | PTARG_DOTNAME, DotNames[DOT_EXPLICIT] );
     }
     if( targ->attr.always ) {
-        PrtMsg( INF|NEOL| PTARG_DOTNAME, DotNames[ DOT_ALWAYS ] );
+        PrtMsg( INF | NEOL | PTARG_DOTNAME, DotNames[DOT_ALWAYS] );
     }
     if( targ->attr.auto_dep ) {
-        PrtMsg( INF|NEOL| PTARG_DOTNAME, DotNames[ DOT_AUTO_DEPEND ] );
+        PrtMsg( INF | NEOL | PTARG_DOTNAME, DotNames[DOT_AUTO_DEPEND] );
     }
 }
 
 
 STATIC BOOLEAN printTarg( void *node, void *ptr )
-#pragma on (unreferenced);
-/*****************************************************/
+/***********************************************/
 {
-    TARGET const       * const targ = node;
-    DEPEND const       *curdep;
-    TLIST const        *curtlist;
+    TARGET const * const    targ = node;
+    DEPEND const            *curdep;
+    TLIST const             *curtlist;
 
+    (void)ptr; // Unused
     if( targ->special ) {
         return( FALSE );             /* don't print special targets */
     } else {
         if( !targ->scolon && targ->depend == NULL ) {
-            PrtMsg( INF|NEOL| PTARG_NAME, targ->node.name );
+            PrtMsg( INF | NEOL | PTARG_NAME, targ->node.name );
         } else {
-            PrtMsg( INF|NEOL| PTARG_IS_TYPE_M, targ->node.name,
+            PrtMsg( INF | NEOL | PTARG_IS_TYPE_M, targ->node.name,
                 targ->scolon ? M_SCOLON : M_DCOLON );
         }
         PrintTargFlags( targ );
-        PrtMsg( INF| NEWLINE );
+        PrtMsg( INF | NEWLINE );
     }
     if( targ->depend ) {
         curdep = targ->depend;
         while( curdep != NULL ) {
             if( curdep->targs != NULL ) {
-                PrtMsg( INF| PTARG_DEPENDS_ON );
+                PrtMsg( INF | PTARG_DEPENDS_ON );
                 for( curtlist = curdep->targs; curtlist != NULL;
                     curtlist = curtlist->next ) {
-                    PrtMsg( INF| PTARG_TAB_TAB_ENV,
+                    PrtMsg( INF | PTARG_TAB_TAB_ENV,
                         curtlist->target->node.name );
                 }
             }
             if( curdep->clist ) {
-                PrtMsg( INF| PTARG_WOULD_EXECUTE_CMDS );
+                PrtMsg( INF | PTARG_WOULD_EXECUTE_CMDS );
                 PrintCList( curdep->clist );
             }
             curdep = curdep->next;
             if( curdep != NULL ) {
-                PrtMsg( INF| NEWLINE );
+                PrtMsg( INF | NEWLINE );
             }
         }
     } else {
-        PrtMsg( INF| PTARG_NO_DEPENDENTS );
+        PrtMsg( INF | PTARG_NO_DEPENDENTS );
     }
-    PrtMsg( INF| NEWLINE );
+    PrtMsg( INF | NEWLINE );
 
     return( FALSE );
 }
@@ -668,17 +681,17 @@ STATIC BOOLEAN printTarg( void *node, void *ptr )
 STATIC void printDot( enum DotNames dot )
 /***************************************/
 {
-    char                buf[ MAX_DOT_NAME ];
-    CLIST const        *cmds;
+    char                buf[MAX_DOT_NAME];
+    CLIST const         *cmds;
 
     cmds = DotCList( dot );
     if( cmds == NULL ) {
         return;
     }
-    FmtStr( buf, ".%s", DotNames[ dot ] );
-    PrtMsg( INF| PDOT_CMDS, buf );
+    FmtStr( buf, ".%s", DotNames[dot] );
+    PrtMsg( INF | PDOT_CMDS, buf );
     PrintCList( cmds );
-    PrtMsg( INF| NEWLINE );
+    PrtMsg( INF | NEWLINE );
 }
 
 
@@ -696,39 +709,43 @@ void PrintTargets( void )
     WalkHashTab( targTab, printTarg, NULL );
 }
 
+
 void TargInitAttr( TATTR *attr )
 /******************************/
 {
-    attr->prec = FALSE;
-    attr->symb = FALSE;
-    attr->multi = FALSE;
-    attr->explicit = FALSE;
-    attr->always = FALSE;
-    attr->auto_dep = FALSE;
+    attr->prec       = FALSE;
+    attr->symb       = FALSE;
+    attr->multi      = FALSE;
+    attr->explicit   = FALSE;
+    attr->always     = FALSE;
+    attr->auto_dep   = FALSE;
     attr->existsonly = FALSE;
+    attr->recheck    = FALSE;
 }
+
 
 void TargOrAttr( TARGET *targ, TATTR attr )
 /*****************************************/
 {
-    targ->attr.prec |= attr.prec;
-    targ->attr.symb |= attr.symb;
-    targ->attr.multi |= attr.multi;
-    targ->attr.explicit |= attr.explicit;
-    targ->attr.always |= attr.always;
-    targ->attr.auto_dep |= attr.auto_dep;
+    targ->attr.prec       |= attr.prec;
+    targ->attr.symb       |= attr.symb;
+    targ->attr.multi      |= attr.multi;
+    targ->attr.explicit   |= attr.explicit;
+    targ->attr.always     |= attr.always;
+    targ->attr.auto_dep   |= attr.auto_dep;
     targ->attr.existsonly |= attr.existsonly;
+    targ->attr.recheck    |= attr.recheck;
 }
 
 
-#pragma off(unreferenced);
 STATIC BOOLEAN resetEx( void *targ, void *ptr )
-#pragma on (unreferenced);
 /*********************************************/
 {
+    (void)ptr; // Unused
     ((TARGET *)targ)->executed = TRUE;
     return( FALSE );
 }
+
 
 void ResetExecuted( void )
 /************************/
@@ -736,16 +753,17 @@ void ResetExecuted( void )
     WalkHashTab( targTab, resetEx, NULL );
 }
 
+
 #if defined( USE_SCARCE ) || !defined( NDEBUG )
 STATIC RET_T cleanupLeftovers( void )
 /***********************************/
 {
-    DEPEND     *dep;
-    CLIST      *c;
-    SLIST      *s;
-    TLIST      *t;
-    FLIST      *f;
-    NKLIST *nk;
+    DEPEND      *dep;
+    CLIST       *c;
+    SLIST       *s;
+    TLIST       *t;
+    FLIST       *f;
+    NKLIST      *nk;
 
     if( freeDepends != NULL ) {
         do {
@@ -799,28 +817,29 @@ STATIC RET_T cleanupLeftovers( void )
 }
 #endif
 
+
 void TargetInit( void )
 /*********************/
 {
-    targTab = NULL;
+    targTab     = NULL;
     freeDepends = NULL;
-    freeTLists = NULL;
-    freeCLists = NULL;
-    freeFLists = NULL;
+    freeTLists  = NULL;
+    freeCLists  = NULL;
+    freeFLists  = NULL;
     freeNKLists = NULL;
-    freeSLists = NULL;
+    freeSLists  = NULL;
     targTab = NewHashTab( HASH_PRIME );
 #ifdef USE_SCARCE
     IfMemScarce( cleanupLeftovers );
 #endif
 }
 
+
 #ifndef NDEBUG
-#pragma off(unreferenced);
 STATIC BOOLEAN walkFree( void *targ, void *ptr )
-#pragma on (unreferenced);
 /**********************************************/
 {
+    (void)ptr; // Unused
     freeTarget( (TARGET*)targ );
     return( FALSE );
 }

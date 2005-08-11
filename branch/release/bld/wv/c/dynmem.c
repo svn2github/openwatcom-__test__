@@ -24,13 +24,11 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Dynamic memory management routines for debugger.
 *
 ****************************************************************************/
 
 
-//#include <i86.h>
 #include "dbglit.h"
 /* it's important that <malloc> is included up here */
 #define __fmemneed foo
@@ -53,6 +51,7 @@
  #define TRMemFree(p)           free(p)
 #endif
 #include <stdlib.h>
+#include <stdio.h>
 #include <dip.h>
 
 
@@ -145,7 +144,7 @@ extern int TRMemChkRange( void * start, size_t len )
 
 static void MemTrackInit()
 {
-    char        name[256];
+    char        name[FILENAME_MAX];
 
     TrackFile = STDERR_FILENO;
     if( DUIEnvLkup( "TRMEMFILE", name, sizeof( name ) ) ) {
@@ -177,6 +176,7 @@ static void MemTrackFini()
  * Dynamic Memory management routines
  */
 
+#ifdef __WATCOMC__
 #ifdef __386__
 #define __fmemneed __nmemneed
 #endif
@@ -187,6 +187,7 @@ int __saveregs __fmemneed( size_t size )
     if( DUIInfoRelease() ) return( TRUE );
     return( FALSE );
 }
+#endif
 
 void *DbgAlloc( unsigned size )
 {
@@ -231,7 +232,7 @@ void MemFini()
 {
 #ifdef TRMEM
     MemTrackFini();
-#else
+#elif defined( __WATCOMC__ )
 
     struct _heapinfo    h_info;
     int                 status;

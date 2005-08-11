@@ -29,6 +29,7 @@ COMMANDS = &
 #    ps &
 #    pwd &
     rev &
+    sed &
 #    split &
 #    strings &
 #    tail &
@@ -57,7 +58,7 @@ COMMANDS += &
     ls &
 #    mkdir &
 #    od &
-    rm &
+#    rm &      # included into builder project
 #    rmdir &
     sleep &
     which

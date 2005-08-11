@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Build tables that drive the disassembler.
 *
 ****************************************************************************/
 
@@ -223,7 +222,7 @@ unsigned X86InsNum[] = {
 };
 
 ins_decode_data *X86DecodeTable[] = {
-    X86DecodeTable1, 
+    X86DecodeTable1,
     X86DecodeTable2,
     X86DecodeTable3,
     X86DecodeTable4,
@@ -328,6 +327,49 @@ string_data *SPARCInsTable[] = {
 
 #endif
 
+#if DISCPU & DISCPU_mips
+
+ins_decode_data MIPSDecodeTable1[] = {
+    #undef inspick
+    #define inspick( idx, name, opcode, mask, handler ) { opcode, mask, DI_MIPS_##idx, #idx, #handler },
+    #include "insmips.h"
+};
+
+string_data MIPSInsTable1[] = {
+    #undef inspick
+    #define inspick( idx, name, opcode, mask, handler ) { name, 0 },
+    #include "insmips.h"
+};
+
+string_data MIPSRegTable[] = {
+    #undef regpick
+    #define regpick( idx, name ) { name, 0 },
+    #include "regmips.h"
+};
+
+string_data MIPSRefTable[] = {
+    #undef refpick
+    #define refpick( idx, name ) { name, 0 },
+    #include "refmips.h"
+};
+
+unsigned MIPSInsNum[] = {
+    NUM_ELTS( MIPSDecodeTable1 ),
+    0
+};
+
+ins_decode_data *MIPSDecodeTable[] = {
+    MIPSDecodeTable1,
+    NULL
+};
+
+string_data *MIPSInsTable[] = {
+    MIPSInsTable1,
+    NULL
+};
+
+#endif
+
 typedef struct {
     string_data         *reg_names;
     unsigned            num_reg_names;
@@ -367,6 +409,9 @@ machine_data AMachine[] = {
 #if DISCPU & DISCPU_sparc
     TABLE( SPARC ),
 #endif
+#if DISCPU & DISCPU_mips
+    TABLE( MIPS ),
+#endif
 };
 
 typedef struct string_list string_list;
@@ -377,7 +422,7 @@ struct string_list {
     unsigned            len;
 };
 
-#define MAX_ENTRIES     32*1024
+#define MAX_ENTRIES     96*1024
 string_list     *Strings;
 char            StringTable[MAX_ENTRIES];
 unsigned        StringIndex;
@@ -502,7 +547,7 @@ static int BuildRanges( FILE *fp, ins_decode_data **_data, unsigned *_num,
     range               *new;
     unsigned            first_sel;
     int                 dumped_entries;
-    
+
     unsigned            num = *_num;
     ins_decode_data     *data = *_data;
 
@@ -607,6 +652,10 @@ static int BuildRanges( FILE *fp, ins_decode_data **_data, unsigned *_num,
                 }
             }
             SelIndex += shifted_mask + 1;
+            if( SelIndex >= MAX_ENTRIES ) {
+                fprintf( stderr, "internal error (MAX_ENTRIES may need increasing)\n" );
+                exit( 1 );
+            }
         } else {
             /* multiple opcode/mask pairs going to same bit pattern */
             fprintf( stderr, "internal error constructing range table\n" );

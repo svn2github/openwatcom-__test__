@@ -254,6 +254,7 @@ getdrive.exe &
 getfattr.exe &
 getftime.exe &
 getdate.exe &
+getopt.exe &
 getpid.exe &
 gettime.exe &
 locking.exe &
@@ -394,6 +395,7 @@ gets.exe &
 open.exe &
 opendir.exe &
 mkdir.exe &
+mkstemp.exe &
 printf.exe &
 putc.exe &
 putch.exe &
@@ -428,7 +430,9 @@ vsscanf.exe &
 write.exe
 
 # String Functions (all + NetWare)
-FN_STRING = strcat.exe &
+FN_STRING = &
+strcase.exe &
+strcat.exe &
 strchr.exe &
 strcmp.exe &
 strcmpi.exe &
@@ -439,8 +443,11 @@ strdup.exe &
 strerror.exe &
 strftime.exe &
 stricmp.exe &
+strlcat.exe &
+strlcpy.exe &
 strlen.exe &
 strlwr.exe &
+strncase.exe &
 strncat.exe &
 strncmp.exe &
 strncpy.exe &
@@ -498,6 +505,7 @@ creat.exe &
 cscanf.exe &
 ctime.exe &
 exit.exe &
+ffs.exe &
 getcmd.exe &
 getenv.exe &
 getosfha.exe &

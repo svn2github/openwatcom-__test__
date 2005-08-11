@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Implementation of getcwd() for Linux. 
 *
 ****************************************************************************/
 
@@ -37,7 +36,7 @@
 #include "seterrno.h"
 #include "liballoc.h"
 
-#include "syslinux.h"
+#include "../../linux/h/syslinux.h"
 
 _WCRTLINK CHAR_TYPE *__F_NAME(getcwd,_wgetcwd)( CHAR_TYPE *buf, size_t size )
 {

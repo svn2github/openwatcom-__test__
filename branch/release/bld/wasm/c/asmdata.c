@@ -98,9 +98,16 @@ static void output_float( char index, char no_of_bytes, char negative )
         if( negative )
             double_value *= -1;
         switch( no_of_bytes ) {
+        case BYTE_1:
+        case BYTE_2:
+#ifdef _WASM_
+            AsmWarn( 4, FLOAT_OPERAND );
+#endif
+            char_ptr = (char *)&AsmBuffer[index]->value;
+            break;
         case BYTE_4:
             float_value = double_value;
-            char_ptr = (char*)&float_value;
+            char_ptr = (char *)&float_value;
             break;
         case BYTE_8:
             char_ptr = (char *)&double_value;
@@ -161,15 +168,13 @@ static int array_element( asm_sym *sym, char start_pos, char no_of_bytes )
 #ifdef _WASM_
             if( !struct_field ) {
                 ChangeCurrentLocation( TRUE, no_of_bytes, 
-                      ( ( CurrSeg != NULL ) && CurrSeg->seg->e.seginfo->iscode ) );
+                      ( ( CurrSeg != NULL ) && SEGISCODE( CurrSeg ) ) );
             } else {
                 Definition.curr_struct->e.structinfo->size += no_of_bytes;
                 the_struct->total_size+=no_of_bytes;
                 the_struct->total_length++;
-                if( first ) {
-                    the_struct->first_size+=no_of_bytes;
-                    the_struct->first_length++;
-                }
+                the_struct->first_size+=no_of_bytes;
+                the_struct->first_length++;
             }
             
             if( sym && Parse_Pass == PASS_1 ) {

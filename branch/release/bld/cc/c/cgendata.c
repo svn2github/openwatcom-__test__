@@ -24,13 +24,9 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Interface to Optimizing code generator for DATA
 *
 ****************************************************************************/
-
-
-// Interface to Optimizing code generator for DATA
 
 #include "cvars.h"
 #include "cg.h"
@@ -54,7 +50,7 @@ void EmitZeros( unsigned long amount )
 
 void AlignIt( TYPEPTR typ )
 {
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
     if( OptSize == 0 ) {        /* optimize for time */
         DGAlign( GetTypeAlignment( typ ) );
     }

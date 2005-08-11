@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Instruction decoding for Java Virtual Machine.
 *
 ****************************************************************************/
 
@@ -34,8 +33,6 @@
 #include <ctype.h>
 #include "distypes.h"
 #include "dis.h"
-
-#if DISCPU & DISCPU_jvm
 
 extern long SEX( unsigned long v, unsigned bit );
 
@@ -271,8 +268,23 @@ static dis_handler_return JVMDecodeTableCheck( int page, dis_dec_ins *ins )
     return( DHR_DONE );
 }
 
-const dis_cpu_data JVMData = {
-    JVMRangeTable, JVMRangeTablePos, JVMDecodeTableCheck, JVMInsHook, JVMFlagHook, JVMOpHook, &JVMMaxInsName, 1
-};
+static void ByteSwap( dis_handle *h, void *d, dis_dec_ins *ins )
+{
+    // FIXME !!!!
+}
 
-#endif
+static void JVMPreprocHook( dis_handle *h, void *d, dis_dec_ins *ins )
+{
+    ByteSwap( h, d, ins );
+}
+
+static unsigned JVMPostOpHook( dis_handle *h, void *d, dis_dec_ins *ins,
+        dis_format_flags flags, unsigned op_num, char *op_buff )
+{
+    // Nothing to do
+    return( 0 );
+}
+
+const dis_cpu_data JVMData = {
+    JVMRangeTable, JVMRangeTablePos, JVMPreprocHook, JVMDecodeTableCheck, JVMInsHook, JVMFlagHook, JVMOpHook, JVMPostOpHook, &JVMMaxInsName, 1
+};

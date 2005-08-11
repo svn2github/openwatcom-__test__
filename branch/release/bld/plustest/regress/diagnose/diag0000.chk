@@ -52,7 +52,9 @@ File: source\diag0007.c
 (6,10): Error! E172: floating-point constant too large to represent
 (7,9): Error! E173: floating-point constant too small to represent
 File: source\diag0008.c
-(5,2): Error! E080: fill in test after MJC has scanner working
+(7,28): Error! E175: range of enum constants cannot be represented
+(9,1): Error! E175: range of enum constants cannot be represented
+(13,29): Error! E175: range of enum constants cannot be represented
 File: source\diag0009.c
 (22,12): Error! E584: constructor for variable 'a' cannot be bypassed
   definition: 'S a' in 'void test2( void )'
@@ -63,10 +65,6 @@ File: source\diag0009.c
 File: source\diag0010.c
 (12,18): Error! E085: maximum class size has been exceeded
 File: source\diag0011.c
-(3,10): Warning! W604: must look ahead to determine whether construct is a declaration/type or an expression
-(3,20): Warning! W594: construct resolved as a declaration/type
-(4,8): Warning! W604: must look ahead to determine whether construct is a declaration/type or an expression
-(5,1): Warning! W594: construct resolved as a declaration/type
 (5,1): Warning! W014: no reference to symbol 'fp'
   definition: 'void (* fp)( int, int )' in 'void foo( void )'
 (5,1): Warning! W014: no reference to symbol 'a'
@@ -89,10 +87,7 @@ File: source\diag0011.c
   definition: 'int a' in 'void decl( void )'
 (21,1): Warning! W014: no reference to symbol 'c'
   definition: 'int c[1]' in 'void decl( void )'
-(25,8): Warning! W604: must look ahead to determine whether construct is a declaration/type or an expression
 (25,17): Warning! W597: encountered another ambiguous construct during disambiguation
-(25,21): Warning! W594: construct resolved as a declaration/type
-(25,34): Warning! W594: construct resolved as a declaration/type
 (25,12): Warning! W836: symbol has different type than previous symbol in same declaration
   companion definition is 'a'
   definition: 'int a' in 'void expr_decl( void )'
@@ -131,6 +126,8 @@ File: source\diag0013.c
   rejected function: void ff( double ) defined at: (17,6)
 (37,5): Error! E229: function 'foo' has already been defined
   definition: 'int foo( int )'
+(43,24): Error! E907: redeclaration of member function 'A::operator int ' not allowed
+  definition: 'A::operator int ()'
 (44,30): Error! E226: function 'A::operator int ' is not distinct
   definition: 'A::operator int ()'
 (51,23): Error! E226: function 'bar' is not distinct
@@ -233,7 +230,6 @@ File: source\diag0018.c
 File: source\diag0019.c
 (27,1): Warning! W744: 'operator ->' does not have a return type specified (int assumed)
 (27,1): Error! E266: 'operator ->' must be a non-static member function
-(27,1): Warning! W730: return type of 'operator ->' will not allow '->' to be applied
 (32,30): Error! E267: 'operator ->' must have one argument
   argument count is 2 since there is an implicit 'this' argument
 (34,25): Error! E267: 'operator ->' must have one argument
@@ -241,7 +237,6 @@ File: source\diag0019.c
 (35,29): Error! E267: 'operator ->' must have one argument
   argument count is 2 since there is an implicit 'this' argument
 (36,18): Warning! W744: 'operator ->' does not have a return type specified (int assumed)
-(36,18): Warning! W730: return type of 'operator ->' will not allow '->' to be applied
 File: source\diag0020.c
 (3,25): Error! E272: 'operator new' must have a return type of pointer to void
 (3,25): Error! E273: the first argument of 'operator new' must be of type size_t
@@ -302,7 +297,7 @@ Warning! W014: no reference to symbol 'bad1'
   definition: 'int const bad1[3]'
 File: source\diag0025.c
 (1,4): Error! E118: nameless declaration is not allowed
-(3,5): Error! E251: enum references must have an identifier
+(3,5): Error! E121: syntax error
 (5,7): Error! E240: enum 'A' has not been declared
 (18,13): Error! E125: invalid redefinition of the typedef name 'C'
   definition: 'C'
@@ -786,6 +781,8 @@ File: source\diag0049.c
   target conversion type is 'void *'
 (16,9): Error! E418: destructor is not declared in its proper class
 (17,9): Error! E418: destructor is not declared in its proper class
+(17,9): Error! E907: redeclaration of member function 'X::~X' not allowed
+  definition: 'X::~X( void )'
 (21,10): Error! E359: union 'U' referenced as a class
 (24,19): Error! E125: invalid redefinition of the typedef name 'colour'
   definition: 'colour'
@@ -1731,18 +1728,15 @@ File: source\diag0082.c
   definition: 'priv_dtor::~priv_dtor( void )'
 File: source\diag0083.c
 (6,17): Warning! W066: 'delete' expression size is not allowed
-(10,11): Error! E016: template argument list cannot be empty
+(10,24): Error! E016: template argument list cannot be empty
 (11,40): Error! E084: function templates can only have type arguments
-(21,8): Error! E241: class or namespace 'T' has not been declared
-(22,1): Error! E012: template argument cannot be type 'double'
-(22,1): Error! E012: template argument cannot be type 'int X::*'
-(22,1): Error! E180: template arguments must be named
+(16,9): Error! E012: template argument cannot be type 'double'
+(18,9): Error! E012: template argument cannot be type 'int X::*'
+(22,1): Error! E012: template argument cannot be type 'int <member pointer>::*'
 (24,27): Error! E176: 'S' cannot be in the same scope as a class template
   definition: 'S'
-(30,5): Error! E121: syntax error
-(33,2): Error! E121: syntax error
+(33,1): Warning! W011: all members are private
 File: source\diag0084.c
-(1,30): Error! E180: template arguments must be named
 (3,16): Error! E179: declaration cannot be in the same scope as class template 'TC1'
   definition: '<class template> TC1'
 (5,8): Error! E179: declaration cannot be in the same scope as class template 'TC2'
@@ -1869,10 +1863,6 @@ File: source\diag0090.c
   definition: 'T'
 (41,23): Error! E409: template argument 'W' is not used in the function argument list
   definition: 'W'
-(44,16): Warning! W604: must look ahead to determine whether construct is a declaration/type or an expression
-(44,18): Warning! W594: construct resolved as a declaration/type
-(47,16): Warning! W604: must look ahead to determine whether construct is a declaration/type or an expression
-(47,18): Warning! W594: construct resolved as a declaration/type
 (60,1): Error! E454: function template 'f9' already has a definition
   template function 'void f9( ? *, ? *, ? *, ? * )' defined at: (56,10)
 File: source\diag0091.c
@@ -1993,8 +1983,6 @@ File: source\diag0098.c
   target conversion type is 'X const (lvalue)'
   class 'X' has not been defined
 File: source\diag0099.c
-(18,9): Warning! W604: must look ahead to determine whether construct is a declaration/type or an expression
-(18,18): Warning! W594: construct resolved as a declaration/type
 (28,14): Error! E331: access permission of nested class 'X23::N' conflicts with previous declaration
 (25,26): Warning! W726: no reference to formal parameter 'n'
   definition: 'int n' in 'X23::X23( int )'

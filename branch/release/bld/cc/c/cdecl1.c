@@ -24,16 +24,15 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Parse functions, prototypes, handle argument promotion.
 *
 ****************************************************************************/
 
 
 #include "cvars.h"
-#include "toggle.h"
 #include "pragdefn.h"
 #include "cgswitch.h"
+#include "langenv.h"
 
 
 extern   TREEPTR         CurFuncNode;
@@ -187,6 +186,7 @@ static char const *MainNames[MAIN_NUM] =
 local void BeginFunc( void )
 {
     char        *name;
+    char        *segname;
     enum main_names main_entry;
 
     if( CurFunc->seginfo == NULL )
@@ -199,7 +199,11 @@ local void BeginFunc( void )
                 name = "";                          /* 05-feb-93 */
                 if( TargetSwitches & BIG_CODE )
                     name = CurFunc->name;
-                CurFunc->seginfo = NewTextSeg( name, "_TEXT", "" );
+                segname = TS_SEG_CODE; /* "_TEXT" */
+                if( TextSegName[0] != '\0' ) {
+                    segname = TextSegName;
+                }
+                CurFunc->seginfo = NewTextSeg( name, segname, "" );
             }
         }
     }

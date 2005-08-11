@@ -1,17 +1,29 @@
-# It may be best to copy this file to "setvars" and make that writable before
-# adjusting these settings
+set +v
+# *****************************************************************
+# setvars - Linux version
+# *****************************************************************
+# NOTE: Do not use this script directly, but copy it and
+#       modify it as necessary for your own use!!
+
+# Setup environment variables for Perforce
+export P4PORT=perforce.scitechsoft.com:3488
+export P4USER=YourName
+export P4CLIENT=YOURCLIENT
+export P4PASSWD=YourPassword
 
 # root of source tree
 export OWROOT=`cd \`dirname $0\` && pwd`
 
 # Change this to point to an existing Watcom compiler (if applicable)
-# or alternatively to the release directory
 export WATCOM=$OWROOT/rel2
 
-export MAKE=make
+# placeholder
+# placeholder
 
-# Subdirectory to be used for bootstrapping
-export OBJDIR=bootstrp
+# Change this to the install location of GhostScript for PDF creation (optional)
+export GHOSTSCRIPT=/usr/bin/gs
+
+# Modifications beyond this point should not be necessary
 
 # Set this variable to 1 to get debug build
 export DEBUG_BUILD=0
@@ -20,29 +32,42 @@ export DEBUG_BUILD=0
 export DEFAULT_WINDOWING=0
 
 # Set this variable to 0 to suppress documentation build
-export DOC_BUILD=0
+export DOC_BUILD=0      # Documentation building uses DOS programs.
+
+# Documentation related variables - none likely to work in Linux
+# set appropriate variables to blank for help compilers which you haven't installed
+# export WIN95HC=hcrtf
+# export OS2HC=ipfc
+
+# Set up default path information variable
+[ -n "$DEFPATH" ] || export DEFPATH=$PATH
+
+# Subdirectory to be used for bootstrapping
+export OBJDIR=bootstrp
+
+# Subdirectory to be used for building prerequisite utilities
+export PREOBJDIR=prebuild
 
 # Stuff for the Open Watcom build environment
-export BATDIR=$OWROOT
-export BUILDER_CTL=lang.ctl
 export BUILD_PLATFORM=linux386
-export BLD_VER=13
-export BLD_VER_STR=1.3
-export DEFPATH=$PATH
-export DEFREL=rel2
+export BLD_VER=14
+export BLD_VER_STR=1.4
+export BUILDER_CTL=lang.ctl
 export DEVDIR=$OWROOT/bld
+# Subdirectory to be used for bootstrapping/prebuild binaries
+export OWBINDIR=$DEVDIR/build/binl
+export DISTROOT=$OWROOT/distrib
+export RELROOT=$OWROOT
 export DWATCOM=$WATCOM
 export DOC_ROOT=$OWROOT/docs
 export INCLUDE=$WATCOM/lh:$DEVDIR/watcom/h
 export LIB=$OWROOT/bld/watcom/lib
-export LANG_BLD=$OWROOT/bat
-export PATH=$OWROOT/bin:$DEVDIR/build/binl:$OWROOT/bat:$WATCOM/binl:$DOC_ROOT/cmds:$DEFPATH
-export RELROOT=$OWROOT
+export EDPATH=$WATCOM/eddat
+export PATH=$OWBINDIR:$OWROOT/bat:$WATCOM/binl:$DOC_ROOT/cmds:$DEFPATH
+
+echo Open Watcom compiler build environment
+
+# OS specifics
+
 export WD_PATH=$WATCOM/binl
-
-# Setup environment variables for Perforce
-export P4PORT=perforce.scitechsoft.com:3488
-export P4USER=YourName
-export P4CLIENT=YOURCLIENT
-export P4PASSWD=YourPassword
-
+export MAKE=make

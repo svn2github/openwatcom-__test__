@@ -36,12 +36,12 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #ifdef __WATCOMC__
-#if (_OS != _QNX) && (_OS != _LINUX)
+#if ! defined( __UNIX__ )
     #include <direct.h>
 #endif
     #include <share.h>
 #endif
-#if (_OS == _QNX) || (_OS == _LINUX)
+#if defined( __UNIX__ )
     #define PMODE       S_IRUSR+S_IWUSR+S_IRGRP+S_IWGRP+S_IROTH+S_IWOTH
 #else
     #define PMODE       S_IRWXU
@@ -60,7 +60,22 @@ extern  TAGPTR  TagHash[TAG_HASH_SIZE + 1];
 
 #define PH_BUF_SIZE     32768
 #define PCH_SIGNATURE   (unsigned long) 'WPCH'
-#define PCH_VERSION     ((_HOST << 16) | 0x0196)
+#define PCH_VERSION     0x0198
+#if defined(__I86__)
+#define PCH_VERSION_HOST ( ( 1L << 16 ) | PCH_VERSION )
+#elif defined(__386__)
+#define PCH_VERSION_HOST ( ( 2L << 16 ) | PCH_VERSION )
+#elif defined(__AXP__)
+#define PCH_VERSION_HOST ( ( 3L << 16 ) | PCH_VERSION )
+#elif defined(__PPC__)
+#define PCH_VERSION_HOST ( ( 4L << 16 ) | PCH_VERSION )
+#elif defined(__SPARC__)
+#define PCH_VERSION_HOST ( ( 5L << 16 ) | PCH_VERSION )
+#elif defined(__MIPS__)
+#define PCH_VERSION_HOST ( ( 6L << 16 ) | PCH_VERSION )
+#else
+#define PCH_VERSION_HOST ( ( 128L << 16 ) | PCH_VERSION )
+#endif
 
 static  jmp_buf         PH_jmpbuf;
 static  int             PH_handle;
@@ -93,7 +108,7 @@ static  struct  rdir_list *PCHRDirNames;  /* list of read only directorys */
 
 struct  pheader {
     unsigned long       signature;      //  'WPCH'
-    unsigned            version;
+    unsigned long       version;
     unsigned            size_of_header;
     unsigned            size_of_int;
     unsigned            pack_amount;    // PackAmount
@@ -120,16 +135,17 @@ struct  pheader {
     unsigned            msgflags_len;   // length of MsgFlags array
 };
 
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
 static struct aux_info *BuiltinInfos[] = {
         &DefaultInfo,
+        &WatcallInfo,
         &CdeclInfo,
         &PascalInfo,
         &FortranInfo,
         &SyscallInfo,
         &StdcallInfo,
+        &FastcallInfo,
         &OptlinkInfo,
-        &FastCallInfo,
         NULL
 };
 #endif
@@ -183,7 +199,8 @@ static int WritePHeader( void *bufptr, unsigned len )
         if( PH_Buffer != NULL ) {
             for(;;) {
                 amt_written = len;
-                if( amt_written > PH_BufSize )  amt_written = PH_BufSize;
+                if( amt_written > PH_BufSize )
+                    amt_written = PH_BufSize;
                 memcpy( PH_BufPtr, buf, amt_written );
                 PH_BufSize -= amt_written;
                 PH_BufPtr += amt_written;
@@ -192,17 +209,21 @@ static int WritePHeader( void *bufptr, unsigned len )
                 if( PH_BufSize == 0 ) {         // if buffer is full
                     PH_BufSize = PH_BUF_SIZE;
                     PH_BufPtr = PH_Buffer;
-                    if( write( PH_handle, PH_Buffer, PH_BUF_SIZE ) !=
-                                        PH_BUF_SIZE ) {
+                    amt_written = write( PH_handle, PH_Buffer, PH_BUF_SIZE );
+                    if( amt_written != PH_BUF_SIZE ) {
                         return( 1 );
                     }
 
                 }
-                if( len == 0 ) break;
+                if( len == 0 ) {
+                    break;
+                }
             }
         } else {
             amt_written = write( PH_handle, buf, len );
-            if( amt_written != len )  return( 1 );
+            if( amt_written != len ) {
+                return( 1 );
+            }
         }
     }
     return( 0 );
@@ -233,7 +254,7 @@ static void OutPutHeader()
     struct pheader      pch;
 
     pch.signature       = PCH_SIGNATURE;
-    pch.version         = PCH_VERSION;
+    pch.version         = PCH_VERSION_HOST;
     pch.size_of_header  = sizeof(struct pheader);
     pch.size_of_int     = TARGET_INT;
     pch.pack_amount     = PackAmount;
@@ -621,7 +642,7 @@ static void OutPutTypes()
     OutPutTypeIndexes();
 }
 
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
 static void OutPutAuxInfo( struct aux_info *info )
 {
     hw_reg_set          *regs;
@@ -834,7 +855,7 @@ void OutPutEverything()
     OutPutSegInfo();
     OutPutTypes();
     OutPutTags();
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
     OutPutPragmaInfo();
 #endif
     OutPutSymHashTable();
@@ -860,7 +881,7 @@ void BuildPreCompiledHeader( char *filename )
     int         rc;
     char        *cwd;
 
-    if( FirstStmt != 0 || DataQuadSegIndex != -1 ) {
+    if( FirstStmt != 0 || DataQuadsAvailable() ) {
         PCHNote( PCHDR_NO_OBJECT );
         return;
     }
@@ -909,15 +930,14 @@ static char *FixupIncFileList( char *p, unsigned incfile_count )
     IncFileList = NULL;
     if( incfile_count != 0 ) {
         IncFileList = (INCFILE *)p;
-        for(;;) {
+        do {
             ifile = (INCFILE *)p;
             len = sizeof(INCFILE) + ifile->len;
             len = (len + (sizeof(int) - 1)) & - sizeof(int);
             p += len;
-            --incfile_count;
-            if( incfile_count == 0 ) break;
             ifile->nextfile = (INCFILE *)p;
-        }
+        } while( --incfile_count > 0 );
+        ifile->nextfile = NULL;
     }
     return( p );
 }
@@ -930,15 +950,13 @@ static char *FixupIncludes( char *p, unsigned file_count )
     FNameList = NULL;
     if( file_count != 0 ) {
         FNameList = (FNAMEPTR)p;
-        for(;;) {
+        do {
             flist = (FNAMEPTR)p;
             len = flist->fname_len;
             flist->fullpath = NULL;
             p += len;
             flist->next = (FNAMEPTR)p;
-            --file_count;
-            if( file_count == 0 ) break;
-        }
+        } while( --file_count > 0 );
         flist->next = NULL;
     }
     return( p );
@@ -1273,6 +1291,7 @@ static char *FixupTypes( char *p, unsigned type_count )
         if( typ->decl_type == TYPE_ARRAY ) {
             array = (struct array_info *)CMemAlloc(sizeof(struct array_info));
             array->dimension = typ->u.array_dimension;
+            array->unspecified_dim = ( array->dimension == 0 );
             typ->u.array = array;
         }
         AddTypeHash( typ );
@@ -1404,7 +1423,7 @@ static char *FixupTags( char *p, unsigned tag_count )
     return( p );
 }
 
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
 static char *FixupAuxInfo( char *p, struct aux_info *info )
 {
     unsigned            len;
@@ -1471,22 +1490,30 @@ static char *FixupPragmaInfo( char *p, unsigned pragma_count )
 void FixupFNames( void ){
     FNAMEPTR    *lnk;
     FNAMEPTR    flist;
+    unsigned    index;
 
+    index = 0;
     lnk = &FNames;
     while( (flist = *lnk) != NULL ){
+        index = flist->index;
         lnk  = &flist->next;
     }
     *lnk = FNameList;
+    for( flist = FNameList; flist != NULL; flist = flist->next ) {
+        ++index;
+        flist->index = index;
+        flist->index_db = -1;
+    }
 }
 
 int ValidHeader( struct pheader *pch )
 {
-    if( pch->signature      == PCH_SIGNATURE  &&
-        pch->version        == PCH_VERSION    &&
-        pch->size_of_header == sizeof(struct pheader)  &&
-        pch->size_of_int    == TARGET_INT       &&
-        pch->specialsyms_count    == SpecialSyms      &&
-        pch->pack_amount    == PackAmount ) {
+    if( ( pch->signature == PCH_SIGNATURE )
+      && ( pch->version == PCH_VERSION_HOST )
+      && ( pch->size_of_header == sizeof(struct pheader) )
+      && ( pch->size_of_int == TARGET_INT )
+      && ( pch->specialsyms_count == SpecialSyms )
+      && ( pch->pack_amount == PackAmount ) ) {
         return( 1 );
     }
     return( 0 );                // indicate unusable pre-compiled header
@@ -1509,7 +1536,7 @@ static int FixupDataStructures( char *p, struct pheader *pch )
     p = FixupSegInfo( p, pch->seg_count );
     p = FixupTypes( p, pch->type_count );
     p = FixupTags( p, pch->tag_count );
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
     p = FixupPragmaInfo( p, pch->pragma_count );
 #endif
     p = FixupSymHashTable( p, pch->symhash_count );

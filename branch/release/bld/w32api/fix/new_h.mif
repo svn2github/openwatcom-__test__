@@ -1,2 +1,2 @@
-include/$(file) : $(file) ../fix/readonly.h
-    @cat $[@ $]@ > $@
+include/$(file) : $(file) ../../fix/readonly.h
+    cat $[@ $]@ > $@

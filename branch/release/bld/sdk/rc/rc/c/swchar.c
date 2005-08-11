@@ -33,7 +33,7 @@
 #if defined( __DOS__ )
 extern  unsigned char     _DOS_Switch_Char();
 
-#pragma aux _DOS_Switch_Char = \
+#pragma aux     _DOS_Switch_Char = \
     "push dx"    \
     "mov ah,37h" \
     "mov al,00h" \

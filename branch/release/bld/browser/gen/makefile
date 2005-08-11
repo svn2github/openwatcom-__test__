@@ -1,3 +1,5 @@
+#pmake/50: build os_nt os_os2 os_osi os_win cpu_axp cpu_i86 cpu_386
+
 dialogs = &
 dgenums.$(ext) &
 dgeddll.$(ext) &
@@ -35,8 +37,7 @@ parse = ..\dlgprs\o\dlgprs $[@ ..\bnd\$[&.bnd $[&.gh $^@
 .extensions:
 .extensions: .gpp .gh .dlg .bnd
 
-compile.tim : $(dialog_source) $(dialog_headers)
-    wtouch $^@
+all : $(dialog_source) $(dialog_headers)
 
 .dlg: $(dlg_dir)
 .dlg.gpp:

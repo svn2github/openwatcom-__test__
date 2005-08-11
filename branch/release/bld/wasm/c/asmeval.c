@@ -305,12 +305,18 @@ static int get_operand( expr_list *new, int *start, int end, bool (*is_expr)(int
             }
         } else {
             new->sym = AsmGetSymbol( AsmBuffer[i]->string_ptr );
+            if( new->sym == NULL ) {
+                if( error_msg )
+                    AsmErr( SYMBOL_NOT_DEFINED, AsmBuffer[i]->string_ptr );
+                new->type = EXPR_UNDEF;
+                return( ERROR );
+            }
 #if 0
 // FIXME !!!!! 
 // problem with aliases and equ directive
             if( ( new->sym == NULL ) || ( new->sym->state == SYM_UNDEFINED ) ) {
                 if( error_msg )
-                    AsmErr( SYMBOL_S_NOT_DEFINED, AsmBuffer[i]->string_ptr );
+                    AsmErr( SYMBOL_NOT_DEFINED, AsmBuffer[i]->string_ptr );
                 new->type = EXPR_UNDEF;
                 return( ERROR );
             }
@@ -971,11 +977,11 @@ static int calculate( expr_list *token_1, expr_list *token_2, uint_8 index )
             if( sym == NULL )
                 return( ERROR );
 
+#ifdef _WASM_
             if( AsmBuffer[token_1->label]->token == T_RES_ID ) {
                 /* Kludge for "FLAT" */
                 AsmBuffer[token_1->label]->token = T_ID;
             }
-#ifdef _WASM_
             if( sym->state == SYM_GRP || sym->state == SYM_SEG ) {
                 token_2->override = token_1->label;
                 token_2->indirect |= token_1->indirect;
@@ -1023,7 +1029,7 @@ static int calculate( expr_list *token_1, expr_list *token_2, uint_8 index )
                 || ( AsmBuffer[index + 1]->value != T_PTR ) ) {
                 // Missing PTR operator
                 if( error_msg )
-                    AsmError( SYNTAX_ERROR );
+                    AsmError( MISSING_PTR_OPERATOR );
                 token_1->type = EXPR_UNDEF;
                 return( ERROR );
             }
@@ -1405,10 +1411,10 @@ static int evaluate(
                         }
                         if( cmp_token( *i, T_OP_SQ_BRACKET ) ) {
                             if( proc_flag == PROC_BRACKET ) {
-                            AsmBuffer[*i]->token = '+';
-                            op_sq_bracket_level++;
-                            next_operator = TRUE;
-                        }
+                                AsmBuffer[*i]->token = '+';
+                                op_sq_bracket_level++;
+                                next_operator = TRUE;
+                            }
                         }
                     } else if( proc_flag == PROC_BRACKET ) {
                         next_operator = TRUE;
@@ -2063,7 +2069,7 @@ static int is_expr_const( int i )
         if( i == 0 ) {
             /* It is a label */
             return( FALSE );
-    } else {
+        } else {
             return( TRUE );
         }
     case T_STRING:

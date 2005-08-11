@@ -30,9 +30,6 @@
 ****************************************************************************/
 
 
-#include <stdlib.h>
-#include <string.h>
-
 #include "plusplus.h"
 #include "errdefns.h"
 #include "memmgr.h"
@@ -45,7 +42,7 @@
  #include "ostype.h"
 #endif
 
-#include "cmdlnprs.gh"
+#include "cmdlnpr1.gh"
 #include "cmdlnsys.h"
 
 #define DEF_SWITCHES_ALL        ( MEMORY_LOW_FAILS )

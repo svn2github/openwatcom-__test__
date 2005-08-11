@@ -24,16 +24,11 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Routines for creation of DOS EXE and COM files.
 *
 ****************************************************************************/
 
 
-/*
-   DOSLOAD : utilities for processing creation of DOS EXE file
-
-*/
 #include <string.h>
 #include "linkstd.h"
 #include <exedos.h>
@@ -52,7 +47,7 @@
 #include "dbgall.h"
 #include "loaddos.h"
 
-#define PARA_ALIGN( quant ) (((quant)+0xf) & ~0xf)
+#define PARA_ALIGN( quant ) ( ( ( quant ) + 0xf ) & ~0xf )
 
 unsigned_32             OvlTabOffset;
 
@@ -90,7 +85,7 @@ static void WriteDOSSectRelocs( section *sect, bool repos )
                 out->file_loc = loc;
             }
         }
-        loc += sect->relocs * sizeof(dos_addr);
+        loc += sect->relocs * sizeof( dos_addr );
         DumpRelocList( sect->reloclist );
         if( loc > out->file_loc ) {
             out->file_loc = loc;
@@ -102,12 +97,12 @@ static void AssignFileLocs( section *sect )
 /*****************************************/
 {
     if( FmtData.u.dos.pad_sections ) {
-        sect->outfile->file_loc = (sect->outfile->file_loc+(SECTOR_SIZE-1))
-                                        & ~(SECTOR_SIZE-1);
+        sect->outfile->file_loc = ( sect->outfile->file_loc + ( SECTOR_SIZE - 1 ) )
+                                        & ~( SECTOR_SIZE - 1 );
     }
     sect->u.file_loc = sect->outfile->file_loc;
     sect->outfile->file_loc += PARA_ALIGN( sect->size )
-                            + PARA_ALIGN( sect->relocs * sizeof(dos_addr));
+                            + PARA_ALIGN( sect->relocs * sizeof( dos_addr ) );
     DEBUG((DBG_LOADDOS, "section %d assigned to %l in %s",
             sect->ovl_num, sect->u.file_loc, sect->outfile->fname ));
 }
@@ -175,7 +170,7 @@ static unsigned long WriteDOSData()
     Root->outfile->file_loc = Root->u.file_loc;
     Root->sect_addr = Groups->grp_addr;
 
-/* write groups and relocations for overlays */
+/* write groups and relocations */
     group = Groups;
     while( group != NULL ) {
         sect = group->section;
@@ -186,14 +181,16 @@ static unsigned long WriteDOSData()
         }
         repos = WriteDOSGroup( group );
         group = group->next_group;
-        if( group == NULL || sect != group->section ) {
+        if( ( group == NULL ) || ( sect != group->section ) ) {
             if( sect == Root ) {
                 root_size = fnode->file_loc;
             } else {
                 WriteDOSSectRelocs( sect, repos );
             }
         }
-        if( repos ) SeekLoad( fnode->file_loc );
+        if( repos ) {
+            SeekLoad( fnode->file_loc );
+        }
     }
     return( root_size );
 }
@@ -213,9 +210,10 @@ static bool WriteSegData( void *_sdata, void *_start )
     signed long newpos;
     signed long pad;
 
-    if( !sdata->isuninit && !sdata->isdead && sdata->length > 0 ) {
+    if( !sdata->isuninit && !sdata->isdead && ( sdata->length > 0 ) ) {
         newpos = *start + sdata->a.delta;
-        if( newpos + sdata->length <= 0 ) return FALSE;
+        if( newpos + (signed long)sdata->length <= 0 )
+            return( FALSE );
         pad = newpos - COMAmountWritten;
         if( pad > 0 ) {
             PadLoad( pad );
@@ -225,7 +223,7 @@ static bool WriteSegData( void *_sdata, void *_start )
         WriteInfo( sdata->data - pad, sdata->length + pad );
         COMAmountWritten += sdata->length + pad;
     }
-    return FALSE;
+    return( FALSE );
 }
 
 static bool DoCOMGroup( void *_seg, void *chop )
@@ -233,10 +231,10 @@ static bool DoCOMGroup( void *_seg, void *chop )
 {
     seg_leader *seg = _seg;
     signed long newstart;
-    
+
     newstart = *(signed long *)chop + GetLeaderDelta( seg );
     RingLookup( seg->pieces, WriteSegData, &newstart );
-    return FALSE;
+    return( FALSE );
 }
 
 static bool WriteCOMGroup( group_entry *group, signed long chop )
@@ -270,7 +268,7 @@ static bool WriteCOMGroup( group_entry *group, signed long chop )
     if( loc > finfo->file_loc ) {
         finfo->file_loc = loc;
     }
-    return repos;
+    return( repos );
 }
 
 static void WriteCOMFile( void )
@@ -287,7 +285,7 @@ static void WriteCOMFile( void )
         LnkMsg( ERR+MSG_INV_COM_START_ADDR, NULL );
         return;
     }
-    if( StackAddr.seg != 0 || StackAddr.off != 0 ) {
+    if( ( StackAddr.seg != 0 ) || ( StackAddr.off != 0 ) ) {
         LnkMsg( WRN+MSG_STACK_SEG_IGNORED, NULL );
     }
     OrderGroups( CompareDosSegments );
@@ -304,7 +302,9 @@ static void WriteCOMFile( void )
         }
         if( (signed long)group->size + chop > 0 ) {
             repos = WriteCOMGroup( group, chop );
-            if( repos ) SeekLoad( fnode->file_loc );
+            if( repos ) {
+                SeekLoad( fnode->file_loc );
+            }
         }
 #if 0
         if( loc < 0 ) {
@@ -313,7 +313,7 @@ static void WriteCOMFile( void )
 #endif
     }
     root_size = fnode->file_loc;
-    if( root_size > (64*1024L - 102)) {
+    if( root_size > (64 * 1024L - 0x200) ) {
         LnkMsg( ERR+MSG_COM_TOO_LARGE, NULL );
     }
     WriteDBI();
@@ -333,12 +333,14 @@ extern void FiniDOSLoadFile( void )
         WriteCOMFile();
         return;
     }
-    hdr_size = sizeof(dos_exe_header) + sizeof(unsigned_32);
+    hdr_size = sizeof( dos_exe_header ) + sizeof( unsigned_32 );
     SeekLoad( hdr_size );
     root_size = WriteDOSData();
     if( FmtData.type & MK_OVERLAYS ) {
         PadOvlFiles();
     }
+    // output debug info into root main output file
+    CurrSect = Root;
     WriteDBI();
     hdr_size = PARA_ALIGN( (unsigned long)Root->relocs * sizeof( dos_addr )
                                                                  + hdr_size );
@@ -348,12 +350,12 @@ extern void FiniDOSLoadFile( void )
     temp = hdr_size / 16U;
     _HostU16toTarg( temp, exe_head.hdr_size );
     _HostU16toTarg( root_size % 512U, exe_head.mod_size );
-    temp = (root_size + 511U) / 512U;
+    temp = ( root_size + 511U ) / 512U;
     _HostU16toTarg( temp, exe_head.file_size );
     _HostU16toTarg( Root->relocs, exe_head.num_relocs );
 
-    min_size = MemorySize() - (root_size - hdr_size) + 15;
-    min_size >>= 4;
+    min_size = MemorySize() - ( root_size - hdr_size ) + FmtData.SegMask;
+    min_size >>= FmtData.SegShift;
     _HostU16toTarg( min_size, exe_head.min_16 );
     _HostU16toTarg( 0xffff, exe_head.max_16 );
     _HostU16toTarg( StartInfo.addr.off, exe_head.IP );
@@ -361,7 +363,8 @@ extern void FiniDOSLoadFile( void )
     _HostU16toTarg( StackAddr.seg, exe_head.SS_offset );
     _HostU16toTarg( StackAddr.off, exe_head.SP );
     _HostU16toTarg( 0, exe_head.chk_sum );
-    _HostU16toTarg(sizeof(dos_exe_header)+sizeof(unsigned_32),exe_head.reloc_offset);
+    _HostU16toTarg( sizeof( dos_exe_header ) + sizeof( unsigned_32 ),
+                    exe_head.reloc_offset );
     _HostU16toTarg( 0, exe_head.overlay_num );
     WriteLoad( &exe_head, sizeof( dos_exe_header ) );
     WriteLoad( &OvlTabOffset, sizeof( unsigned_32 ) );

@@ -3,15 +3,76 @@ proj_name=hdr
 !include cproj.mif
 
 splice = wsplice -i.. -k$(system) $(options) ../common.sp $[@ $^@
-
-# Used to build the cname headers.
-csplice = wsplice -i.. -k$(system) -kCNAME $(options) ../common.sp $[@ $^@
+psplice = wsplice -i.. -k$(system) $(options) $(options_$^&) ../common.sp $[@ $^@
 
 .EXTENSIONS
 .EXTENSIONS : .h .hpp .cnv .mh .mhp
 
+#
+# Handle C++ and cname style headers through .default command.
+#
+
+.DEFAULT
+        $(psplice)
+
+common_no_ext = &
+        algorith &
+        bitset &
+        cassert &
+        cctype &
+        cerrno &
+        cfloat &
+        ciso646 &
+        climits &
+        clocale &
+        cmath &
+        complex &
+        csetjmp &
+        csignal &
+        cstdarg &
+        cstddef &
+        cstdio &
+        cstdlib &
+        cstring &
+        ctime &
+        cwchar &
+        cwctype &
+        deque &
+        exceptio &
+        fstream &
+        function &
+        iomanip &
+        ios &
+        iosfwd &
+        iostream &
+        istream &
+        iterator &
+        limits &
+        list &
+        locale &
+        map &
+        memory &
+        new &
+        numeric &
+        ostream &
+        queue &
+        set &
+        sstream &
+        stack &
+        stdexcep &
+        streambu &
+        string &
+        strstrea &
+        typeinfo &
+        utility &
+        valarray &
+        vector
+
 common = &
+        $(common_no_ext) &
         _comdef.h &
+        _rbtree.h &
+        _strdef.h &
         assert.h &
         complex.h &
         conio.h &
@@ -22,29 +83,20 @@ common = &
         except.h &
         exceptio.h &
         excpt.h &
-        exstring.h &
         fcntl.h &
         fenv.h &
         float.h &
-        fstream &
         fstream.h &
-        function &
         generic.h &
         graph.h &
         i86.h &
         inttypes.h &
-        iomanip &
         iomanip.h &
-        ios &
         ios.h &
-        iosfwd &
         iosfwd.h &
-        iostream &
         iostream.h &
         iso646.h &
-        istream &
         istream.h &
-        iterator &
         jctype.h &
         jstring.h &
         jtime.h &
@@ -55,10 +107,8 @@ common = &
         mbctype.h &
         mbstring.h &
         mem.h &
-        memory &
         mmintrin.h &
         new.h &
-        ostream &
         ostream.h &
         pgchart.h &
         process.h &
@@ -66,6 +116,7 @@ common = &
         setjmp.h &
         share.h &
         signal.h &
+        sstream.h &
         stdarg.h &
         stdbool.h &
         stddef.h &
@@ -74,16 +125,18 @@ common = &
         stdio.h &
         stdiobuf.h &
         stdlib.h &
-        streambu &
         streambu.h &
         string.h &
         string.hpp &
-        strstrea &
+	strings.h &
         strstrea.h &
+        sys/locking.h &
+        sys/stat.h &
+        sys/timeb.h &
+        sys/types.h &
         tchar.h &
         time.h &
         typeinfo.h &
-        utility &
         varargs.h &
         wcdefs.h &
         wcexcept.h &
@@ -105,28 +158,7 @@ common = &
         wctype.h &
         wcvbase.h &
         wcvector.h &
-        sys/locking.h &
-        sys/stat.h &
-        sys/timeb.h &
-        sys/types.h &
-        cassert &
-        cctype &
-        cerrno &
-        cfloat &
-        ciso646 &
-        climits &
-        clocale &
-        cmath &
-        csetjmp &
-        csignal &
-        cstdarg &
-        cstddef &
-        cstdio &
-        cstdlib &
-        cstring &
-        ctime &
-        cwchar &
-        cwctype
+        wsample.h
 
 DOS_files = &
       $(common) &
@@ -147,8 +179,8 @@ DOS_files = &
         win/win16.h &
         win/windows.h &
         win/win386.h &
-        wsample.h &
-        unistd.h
+        unistd.h &
+	utime.h
 
 QNX_files = &
       $(common) &
@@ -252,74 +284,17 @@ LINUX_files = &
         sys/time.h &
         sys/times.h &
         sys/ioctl.h &
+        sys/mman.h &
         sys/mount.h &
         sys/ptrace.h &
+        sys/sysmips.h &
+        sys/utsname.h &
         sys/wait.h &
         sys/socket.h &
+        sys/un.h &
         netinet/in.h &
         netinet/tcp.h &
         arpa/inet.h
-
-SNAPDRV_files = &
-        _comdef.h &
-        assert.h &
-        ctype.h &
-        errno.h &
-        fcntl.h &
-        float.h &
-        limits.h &
-        locale.h &
-        malloc.h &
-        math.h &
-        search.h &
-        setjmp.h &
-        share.h &
-        signal.h &
-        stdarg.h &
-        stddef.h &
-        stdio.h &
-        stdlib.h &
-        string.h &
-        time.h &
-        unistd.h &
-        complex.h &
-        except.h &
-        exceptio.h &
-        exstring.h &
-        fstream.h &
-        generic.h &
-        iomanip.h &
-        iostream.h &
-        new.h &
-        stdexcep.h &
-        stdiobuf.h &
-        streambu.h &
-        string.hpp &
-        strstrea.h &
-        typeinfo.h &
-        wcdefs.h &
-        wcexcept.h &
-        wchash.h &
-        wchbase.h &
-        wchiter.h &
-        wclbase.h &
-        wclcom.h &
-        wclibase.h &
-        wclist.h &
-        wclistit.h &
-        wcqueue.h &
-        wcsbase.h &
-        wcsibase.h &
-        wcskip.h &
-        wcskipit.h &
-        wcstack.h &
-        wcvbase.h &
-        wcvector.h &
-        sys/stat.h &
-        sys/types.h
-
-SNAP_files = &
-      $(SNAPDRV_files)
 
 all : $($(system)_files) .symbolic
     @%null
@@ -347,114 +322,59 @@ sys/time.h : ../quantum/sys_time.mh ../poppack.sp ../pshpackl.sp
 sys/time.h : linux/sys_time.mh ../readonly.sp ../cpluspro.sp ../lnxkpack.sp ../poppack.sp ../cplusepi.sp
         $(splice)
 !endif
+#
+# Special case for sys/utime.h since there is also a utime.h
+#
+!ifeq system DOS
+sys/utime.h : dos/sys_utim.mh
+        $(splice)
+!endif
 
 !include ../deps.mif
 
-# Handle cname style headers as special cases. Implicit rules for
-# extensionless files seem awkward (especially for Linux?). Another
-# approach would be to define a temporary extension for these files and
-# change their names when they are copied to the release tree.
 #
-cassert : $(assert_deps)
-        $(csplice)
-
-cctype  : $(ctype_deps)
-        $(csplice)
-
-cerrno  : $(errno_deps)
-        $(csplice)
-
-cfloat  : $(float_deps)
-        $(csplice)
-
-ciso646 : $(iso646_deps)
-        $(csplice)
-
-climits : $(limits_deps)
-        $(csplice)
-
-clocale : $(locale_deps)
-        $(csplice)
-
-cmath   : $(math_deps)
-        $(csplice)
-
-csetjmp : $(setjmp_deps)
-        $(csplice)
-
-csignal : $(signal_deps)
-        $(csplice)
-
-cstdarg : $(stdarg_deps)
-        $(csplice)
-
-cstddef : $(stddef_deps)
-        $(csplice)
-
-cstdio  : $(stdio_deps)
-        $(csplice)
-
-cstdlib : $(stdlib_deps)
-        $(csplice)
-
-cstring : $(string_deps)
-        $(csplice)
-
-ctime   : $(time_deps)
-        $(csplice)
-
-cwchar  : $(wchar_deps)
-        $(csplice)
-
-cwctype : $(wctype_deps)
-        $(csplice)
-
-# Standard IOStream headers.
-
-fstream  : $(fstream_deps)
-         $(csplice)
-
-iomanip  : $(iomanip_deps)
-         $(csplice)
-
-ios      : $(ios_deps)
-         $(csplice)
-
-iosfwd   : $(iosfwd_deps)
-         $(csplice)
-
-iostream : $(iostream_deps)
-         $(csplice)
-
-istream  : $(istream_deps)
-         $(csplice)
-
-ostream  : $(ostream_deps)
-         $(csplice)
-
-streambu : $(streambu_deps)
-         $(csplice)
-
-strstrea : $(strstrea_deps)
-         $(csplice)
-
-# Other headers from the C++ standard library.
-
-function : $(function_deps)
-         $(csplice)
-
-iterator : $(iterator_deps)
-         $(csplice)
-
-memory   : $(memory_deps)
-         $(csplice)
-
-utility  : $(utility_deps)
-         $(csplice)
-
+# Special case for cname style headers
+#
+options_cassert  = -kCNAME
+options_cctype   = -kCNAME
+options_cerrno   = -kCNAME
+options_cfloat   = -kCNAME
+options_ciso646  = -kCNAME
+options_climits  = -kCNAME
+options_clocale  = -kCNAME
+options_cmath    = -kCNAME
+options_complex  = -kCPPCOMPLEX
+options_csetjmp  = -kCNAME
+options_csignal  = -kCNAME
+options_cstdarg  = -kCNAME
+options_cstddef  = -kCNAME
+options_cstdio   = -kCNAME
+options_cstdlib  = -kCNAME
+options_cstring  = -kCNAME
+options_ctime    = -kCNAME
+options_cwchar   = -kCNAME
+options_cwctype  = -kCNAME
+options_exceptio = -kCNAME
+options_fstream  = -kCNAME
+options_iomanip  = -kCNAME
+options_ios      = -kCNAME
+options_iosfwd   = -kCNAME
+options_iostream = -kCNAME
+options_istream  = -kCNAME
+options_limits   = -kCPPLIMITS
+options_locale   = -kCPPLOCALE
+options_memory   = -kCPPMEMORY
+options_new      = -kCNAME
+options_ostream  = -kCNAME
+options_sstream  = -kCNAME
+options_stdexcep = -kCNAME
+options_streambu = -kCNAME
+options_string   = -kCPPSTRING
+options_strstrea = -kCNAME
+options_typeinfo = -kCNAME
 
 clean: .SYMBOLIC
-      rm -f *.h sys/*.h *.hpp common.cnv
+      rm -f *.h sys/*.h *.hpp common.cnv $(common_no_ext)
 !ifeq system DOS
       rm -f win/*.h
 !else ifeq system LINUX

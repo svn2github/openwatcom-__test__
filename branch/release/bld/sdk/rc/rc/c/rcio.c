@@ -28,6 +28,7 @@
 *
 ****************************************************************************/
 
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -36,8 +37,9 @@
 #include <string.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <time.h>
 #ifndef __UNIX__
-#include <process.h>
+    #include <process.h>
 #endif
 #include "watcom.h"
 #include "wresall.h"
@@ -50,7 +52,6 @@
 #include "exeutil.h"
 #include "rcio.h"
 #include "preproc.h"
-#include "banner.h"
 #include "reserr.h"
 #include "tmpctl.h"
 #include "autodep.h"
@@ -58,8 +59,12 @@
 #include "util.h"
 #include "rcldstr.h"
 #include "iortns.h"
+#include <banner.h>
 
-#include <time.h>
+#ifdef _BANEXTRA
+#undef  _BANEXTRA
+#define _BANEXTRA _BANEXSHORT
+#endif
 
 #ifdef __UNIX__
 #define PATH_SEP '/'
@@ -127,8 +132,10 @@ static int Pass1InitRes( void )
 
     if( CmdLineParms.TargetOS == RC_TARGET_OS_WIN16 ) {
         WResSetTargetOS( CurrResFile.dir, WRES_OS_WIN16 );
-    } else {
+    } else if( CmdLineParms.TargetOS == RC_TARGET_OS_WIN32 ) {
         WResSetTargetOS( CurrResFile.dir, WRES_OS_WIN32 );
+    } else {
+        WResSetTargetOS( CurrResFile.dir, WRES_OS_OS2 );
     }
 
     /* open the tempory file */
@@ -265,6 +272,9 @@ static int PreprocessInputFile( void )
         PP_Define( rcdefine );
         strcpy( rcdefine, "_WIN32" );
         PP_Define( rcdefine );
+    } else if( CmdLineParms.TargetOS == RC_TARGET_OS_OS2 ) {
+        strcpy( rcdefine, "__OS2__" );
+        PP_Define( rcdefine );
     }
     cppargs = CmdLineParms.CPPArgs;
     if( cppargs != NULL ) {
@@ -302,6 +312,8 @@ extern int RcPass1IoInit( void )
             includepath = RcGetEnv( "WINDOWS_INCLUDE" );
         } else if( CmdLineParms.TargetOS == RC_TARGET_OS_WIN32 ) {
             includepath = RcGetEnv( "NT_INCLUDE" );
+        } else if( CmdLineParms.TargetOS == RC_TARGET_OS_OS2 ) {
+            includepath = RcGetEnv( "OS2_INCLUDE" );
         }
     }
     if( includepath != NULL ) {
@@ -392,6 +404,22 @@ static void WriteTables( void )
     }
 }
 
+static void WriteOS2Tables( void )
+/********************************/
+{
+    if( CurrResFile.StringTable != NULL ) {
+        SemOS2WriteStringTable( CurrResFile.StringTable,
+                    WResIDFromNum( OS2_RT_STRING ) );
+    }
+    if( CurrResFile.ErrorTable != NULL ) {
+        SemOS2WriteStringTable( CurrResFile.ErrorTable,
+                    WResIDFromNum( OS2_RT_MESSAGE ) );
+    }
+    if( CurrResFile.FontDir != NULL ) {
+        SemOS2WriteFontDir();
+    }
+}
+
 static void Pass1ResFileShutdown( void )
 /**************************************/
 {
@@ -399,7 +427,10 @@ static void Pass1ResFileShutdown( void )
 
     error = FALSE;
     if( CurrResFile.IsOpen ) {
-        WriteTables();
+        if( CmdLineParms.TargetOS == RC_TARGET_OS_OS2 )
+            WriteOS2Tables();
+        else
+            WriteTables();
         if( ErrorHasOccured ) {
             ResCloseFile( CurrResFile.handle );
             CurrResFile.IsOpen = false;
@@ -446,7 +477,8 @@ static int OpenResFileInfo( ExeType type )
     ExtraRes        *curfile;
 
 
-    if( type == EXE_TYPE_NE && CmdLineParms.ExtraResFiles != NULL ) {
+    if( (type == EXE_TYPE_NE_WIN || type == EXE_TYPE_NE_OS2)
+        && CmdLineParms.ExtraResFiles != NULL ) {
         RcError( ERR_FR_NOT_VALID_FOR_WIN );
         return( FALSE );
     }
@@ -490,10 +522,11 @@ static int openExeFileInfoRO( char * filename, ExeFileInfo * info )
         return( FALSE );
     }
     info->IsOpen = TRUE;
-    info->Type = FindNEPEHeader( info->Handle, &info->WinHeadOffset );
+    info->Type = FindNEPELXHeader( info->Handle, &info->WinHeadOffset );
     info->name = filename;
     switch( info->Type ) {
-    case EXE_TYPE_NE:
+    case EXE_TYPE_NE_WIN:
+    case EXE_TYPE_NE_OS2:
         status = SeekRead( info->Handle, info->WinHeadOffset,
                             &info->u.NEInfo.WinHead, sizeof(os2_exe_header) );
         if( status != RS_OK ) {
@@ -514,6 +547,16 @@ static int openExeFileInfoRO( char * filename, ExeFileInfo * info )
             info->DebugOffset = info->WinHeadOffset + sizeof(pe_header);
         }
         break;
+    case EXE_TYPE_LX:
+        status = SeekRead( info->Handle, info->WinHeadOffset,
+                           &info->u.LXInfo.OS2Head, sizeof(os2_flat_header) );
+        if( status != RS_OK ) {
+            RcError( ERR_NOT_VALID_EXE, filename );
+            return( FALSE );
+        } else {
+            info->DebugOffset = info->WinHeadOffset + sizeof(os2_flat_header);
+        }
+        break;
     default:
         RcError( ERR_NOT_VALID_EXE, filename );
         return( FALSE );
@@ -527,7 +570,7 @@ static int openExeFileInfoRO( char * filename, ExeFileInfo * info )
 static int openNewExeFileInfo( char *filename, ExeFileInfo *info )
 /******************************************************************/
 {
-    info->Handle = RcOpen( filename, O_RDWR|O_CREAT|O_TRUNC|O_BINARY, 
+    info->Handle = RcOpen( filename, O_RDWR|O_CREAT|O_TRUNC|O_BINARY,
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH );
     if( info->Handle == -1 ) {
         RcError( ERR_OPENING_TMP, filename, strerror( errno ) );
@@ -566,6 +609,20 @@ static void FreePEFileInfoPtrs( PEExeInfo * info )
     }
 }
 
+static void FreeLXFileInfoPtrs( LXExeInfo *info )
+/***********************************************/
+{
+    if( info->Objects != NULL ) {
+        RcMemFree( info->Objects );
+    }
+    if( info->Pages != NULL ) {
+        RcMemFree( info->Pages );
+    }
+    if( info->Res.resources != NULL ) {
+        RcMemFree( info->Res.resources );
+    }
+}
+
 extern void ClosePass2FilesAndFreeMem( void )
 /*******************************************/
 {
@@ -582,11 +639,15 @@ extern void ClosePass2FilesAndFreeMem( void )
         old->IsOpen = FALSE;
     }
     switch( old->Type ) {
-    case EXE_TYPE_NE:
+    case EXE_TYPE_NE_WIN:
+    case EXE_TYPE_NE_OS2:
         FreeNEFileInfoPtrs( &old->u.NEInfo );
         break;
     case EXE_TYPE_PE:
         FreePEFileInfoPtrs( &old->u.PEInfo );
+        break;
+    case EXE_TYPE_LX:
+        FreeLXFileInfoPtrs( &old->u.LXInfo );
         break;
     default: //EXE_TYPE_UNKNOWN
         break;
@@ -597,11 +658,15 @@ extern void ClosePass2FilesAndFreeMem( void )
         tmp->IsOpen = FALSE;
     }
     switch( tmp->Type ) {
-    case EXE_TYPE_NE:
+    case EXE_TYPE_NE_WIN:
+    case EXE_TYPE_NE_OS2:
         FreeNEFileInfoPtrs( &tmp->u.NEInfo );
         break;
     case EXE_TYPE_PE:
         FreePEFileInfoPtrs( &tmp->u.PEInfo );
+        break;
+    case EXE_TYPE_LX:
+        FreeLXFileInfoPtrs( &tmp->u.LXInfo );
         break;
     default: //EXE_TYPE_UNKNOWN
         break;
@@ -625,7 +690,7 @@ extern int RcPass2IoInit( void )
         noerror = openNewExeFileInfo( Pass2Info.TmpFileName,
                                       &(Pass2Info.TmpFile) );
     }
-    tmpexe_exists = noerror;
+        tmpexe_exists = noerror;
 
     if( noerror ) {
         Pass2Info.TmpFile.Type = Pass2Info.OldFile.Type;
@@ -636,7 +701,8 @@ extern int RcPass2IoInit( void )
             *Pass2Info.TmpFile.u.PEInfo.WinHead =
                                         *Pass2Info.OldFile.u.PEInfo.WinHead;
         }
-        if( Pass2Info.OldFile.Type == EXE_TYPE_NE
+        if( (Pass2Info.OldFile.Type == EXE_TYPE_NE_WIN
+            || Pass2Info.OldFile.Type == EXE_TYPE_NE_OS2)
             && CmdLineParms.ExtraResFiles != NULL ) {
             RcError( ERR_FR_NOT_VALID_FOR_WIN );
             noerror = FALSE;
@@ -676,7 +742,7 @@ extern void RcPass2IoShutdown( int noerror )
 } /* RcPass2IoShutdown */
 
 static const char * BannerText =
-    banner1w( "Windows Resource Compiler", _WRC_VERSION_ )"\n"
+    banner1w( "Windows and OS/2 Resource Compiler", _WRC_VERSION_ )"\n"
     banner2("1993") "\n"
     banner3         "\n"
     banner3a        "\n"

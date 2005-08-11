@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  MAD imports interface.
 *
 ****************************************************************************/
 
@@ -118,12 +117,19 @@ mad_imp_routines        MadImpInterface = {
 };
 
 
-#if defined(__386__)
+#if defined( __386__ )
+
+#if defined( __WATCOMC__ )
 #pragma aux MADLOAD "*"
+
+/* WD looks for this symbol to determine module bitness */
+int __nullarea;
+#pragma aux __nullarea "*";
+#endif
+
 #elif defined( __WINDOWS__)
 
 #include <stdlib.h>
-#define STRICT
 #include <windows.h>
 #include <i86.h>
 
@@ -185,22 +191,20 @@ int PASCAL WinMain( HINSTANCE this_inst, HINSTANCE prev_inst,
     }
     link->load = (INTER_FUNC *)MakeProcInstance( (FARPROC)MADLOAD, this_inst );
     link->unload = (INTER_FUNC *)MakeProcInstance( (FARPROC)MADUNLOAD, this_inst );
-    while( GetMessage( &msg, NULL, NULL, NULL ) ) {
+    while( GetMessage( &msg, NULL, 0, 0 ) ) {
         TranslateMessage( &msg );
         DispatchMessage( &msg );
     }
 
     return( 0 );
 }
-#elif defined(M_I86)
+#elif defined( M_I86 )
 #pragma aux MADLOAD "*" loadds
-#elif defined(__AXP__)
-  /* nothing to do */
 #else
-#error MADIMP.C not configured for system
+/* nothing to do for Alpha, PowerPC etc. */
 #endif
 
-#if defined(__DOS__) || defined(__LINUX__)
+#if defined( __DOS__ ) || defined( __UNIX__ )
     const char __based( __segname( "_CODE" ) ) Signature[4] = "MAD";
 #endif
 

@@ -24,8 +24,7 @@
 ;*
 ;*  ========================================================================
 ;*
-;* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-;*               DESCRIBE IT HERE!
+;* Description:  Memory model setup for interfacing with C code.
 ;*
 ;*****************************************************************************
 
@@ -96,7 +95,9 @@ endif
 if _MODEL and _BIG_CODE
 
 modstart        macro   modname,alignment
+ifdef NDEBUG
                 name    modname
+endif
                 ifb <alignment>
 _TEXT           segment word public 'CODE'
                 else
@@ -184,10 +185,17 @@ xref            macro   p1,p2
                 endif
                 endm
 
+lcall           macro   dest
+                push    cs
+                call    near ptr dest
+                endm
+
 else
 
 modstart        macro   modname,alignment
+ifdef NDEBUG
                 name    modname
+endif
                 if _MODEL and _USE_32_SEGS
 _TEXT               segment use32 alignment public 'CODE'
                 else
@@ -276,6 +284,10 @@ xref            macro   p1,p2
                 else
                 extrn "&p1",`p2` : near
                 endif
+                endm
+
+lcall           macro   dest
+                call    dest
                 endm
 
 endif

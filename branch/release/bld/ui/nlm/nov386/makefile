@@ -1,8 +1,7 @@
-#pmake: all cpu_386 os_nov
+#pmake: cpu_386 os_nov
 host_CPU = 386
 host_OS = nov
-
-memory_model_386 = s
+extra_files = $(nlm)
 
 !include ../nov.mif
 

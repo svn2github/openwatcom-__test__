@@ -39,7 +39,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <process.h>
+#ifdef __WATCOMC__
+    #include <process.h>
+#else
+    #include "clibext.h"
+#endif
 
 #if defined (__NETWARE__)
 /*
@@ -51,7 +55,6 @@ _WCRTLINK extern char *_cmdname( char *__name );
 #include "wmsg.h"
 #include "wreslang.h"
 #if defined(__WINDOWS__)
- #define STRICT
  #include "windows.h"
 #else
  #include "wressetr.h"
@@ -139,10 +142,10 @@ int MsgInit()
                 MsgArray[i-ERR_FIRST_MESSAGE] = alloc( strlen( buffer ) + 1 );
 
                 if( MsgArray[i-ERR_FIRST_MESSAGE] == NULL ) break;
-#if defined(__386__) || defined(__ALPHA__)
-                strcpy( MsgArray[i-ERR_FIRST_MESSAGE], buffer );
-#else
+#if defined( __I86__ )
                 _fstrcpy( MsgArray[i-ERR_FIRST_MESSAGE], buffer );
+#else
+                strcpy( MsgArray[i-ERR_FIRST_MESSAGE], buffer );
 #endif
             }
             CloseResFile( &hInstance );

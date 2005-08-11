@@ -53,6 +53,48 @@ if errorlevel 1 goto err2
     @echo Error: Long FileName #3 unsuccessful!!! | tee -a %2
 
 :test4
+echo # ---------------------------
+echo #   Long FileName Test 4
+echo # ---------------------------
+rm tmp.out
+%1 -h -m -f LONG04 > tmp.out 2>&1
+diff -b LONG04.CMP tmp.out
+if errorlevel 1 goto err2
+    @echo # LONG04 successful
+    goto test5
+:err2
+    @echo ## Long FileName ## >> %2
+    @echo Error: Long FileName #4 unsuccessful!!! | tee -a %2
+
+:test5
+echo # ---------------------------
+echo #   Long FileName Test 5
+echo # ---------------------------
+rm tmp.out
+%1 -h -m -f LONG05 > tmp.out 2>&1
+diff -b LONG05.CMP tmp.out
+if errorlevel 1 goto err2
+    @echo # LONG05 successful
+    goto test6
+:err2
+    @echo ## Long FileName ## >> %2
+    @echo Error: Long FileName #5 unsuccessful!!! | tee -a %2
+
+:test6
+echo # ---------------------------
+echo #   Long FileName Test 6
+echo # ---------------------------
+rm tmp.out
+%1 -h -m -f LONG06 > tmp.out 2>&1
+diff -b LONG06.CMP tmp.out
+if errorlevel 1 goto err2
+    @echo # LONG06 successful
+    goto test7
+:err2
+    @echo ## Long FileName ## >> %2
+    @echo Error: Long FileName #6 unsuccessful!!! | tee -a %2
+
+:test7
 
 goto done
 :usage

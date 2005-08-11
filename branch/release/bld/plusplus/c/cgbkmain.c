@@ -30,11 +30,10 @@
 ****************************************************************************/
 
 
-#include <float.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "plusplus.h"
+
+#include <float.h>
+
 #include "cgfront.h"
 #include "cgback.h"
 #include "memmgr.h"
@@ -3359,7 +3358,6 @@ void CgBackEnd(                 // BACK-END CONTROLLER
         ExitPointAcquire( cgback );
         SegmentCgInit();
         BEStart();
-        DBSrcFile( SrcFileFullName( CompInfo.primary_srcfile ) );
         CgBackStatHandlesInit();
         thisSym = AllocSymbol();
         thisSym->id = SC_AUTO;

@@ -138,9 +138,6 @@ static struct
     unsigned    nd_used         : 1;
 } SwData;
 
-// local functions.
-local void SetStackConventions( void );
-
 // local variables
 static int character_encoding = 0;
 static long unicode_CP = 0;
@@ -212,32 +209,38 @@ local void SetTargSystem()                               /* 07-aug-90 */
 {
     char        buff[128];
 
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
     PreDefine_Macro( "M_ALPHA" );
     PreDefine_Macro( "_M_ALPHA" );
     PreDefine_Macro( "__ALPHA__" );
     PreDefine_Macro( "_ALPHA_" );
     PreDefine_Macro( "__AXP__" );
     PreDefine_Macro( "_STDCALL_SUPPORTED" );
-#elif _MACHINE == _SPARC
+#elif _CPU == _SPARC
     PreDefine_Macro( "M_SPARC" );
     PreDefine_Macro( "_M_SPARC" );
     PreDefine_Macro( "__SPARC__" );
     PreDefine_Macro( "_SPARC_" );
-#elif _MACHINE == _PPC
+#elif _CPU == _PPC
     PreDefine_Macro( "M_PPC" );
     PreDefine_Macro( "_M_PPC" );
     PreDefine_Macro( "__POWERPC__" );
     PreDefine_Macro( "__PPC__" );
     PreDefine_Macro( "_PPC_" );
+#elif _CPU == _MIPS
+    PreDefine_Macro( "M_MRX000" );
+    PreDefine_Macro( "_M_MRX000" );
+    PreDefine_Macro( "__MIPS__" );
 #elif _CPU == 386
     PreDefine_Macro( "M_I386" );                    /* 03-jul-91 */
+    PreDefine_Macro( "_M_I386" );
     PreDefine_Macro( "__386__" );
     PreDefine_Macro( "__X86__" );
     PreDefine_Macro( "_X86_" );
     PreDefine_Macro( "_STDCALL_SUPPORTED" );
 #elif _CPU == 8086
     PreDefine_Macro( "M_I86" );
+    PreDefine_Macro( "_M_I86" );
     PreDefine_Macro( "__I86__" );
     PreDefine_Macro( "__X86__" );
     PreDefine_Macro( "_X86_" );
@@ -267,20 +270,20 @@ local void SetTargSystem()                               /* 07-aug-90 */
                 }
             #elif defined( __NOVELL__ )
                 _SetConstTarg( "netware" );
-            #elif _OS == _QNX
+            #elif defined( __QNX__ )
                 _SetConstTarg( "qnx" );
-            #elif _OS == _LINUX
+            #elif defined( __LINUX__ )
                 _SetConstTarg( "linux" );
-            #elif _OS == _OS2
+            #elif defined( __OS2__ )
                 _SetConstTarg( "os2" );
-            #elif _OS == _NT
+            #elif defined( __NT__ )
                 _SetConstTarg( "nt" );
-            #elif _OS == _DOS
+            #elif defined( __DOS__ )
                 _SetConstTarg( "dos" );
             #else
                 #error "Target OS not defined"
             #endif
-        #elif _MACHINE == _ALPHA || _MACHINE == _PPC || _MACHINE == _SPARC
+        #elif _CPU == _AXP || _CPU == _PPC || _CPU == _SPARC || _CPU == _MIPS
             /* we only have NT libraries for Alpha right now */
             _SetConstTarg( "nt" );
         #else
@@ -585,6 +588,11 @@ static void MacroDefs()
         Define_Macro( "__SW_OF" );
     }
 #endif
+#if _CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
+    if( GenSwitches & OBJ_ENDIAN_BIG ) {
+        Define_Macro( "__BIG_ENDIAN__" );
+    }
+#endif
     if( GenSwitches & SUPER_OPTIMAL ) {
         Define_Macro( "__SW_OH" );
     }
@@ -631,13 +639,13 @@ static void MacroDefs()
     if( CompFlags.unique_functions ) {
         Define_Macro( "__SW_OU" );
     }
-    #if _CPU == 386
-        if( CompFlags.register_conventions ) {
-            Define_Macro( "__SW_3R" );
-        } else {
-            Define_Macro( "__SW_3S" );
-        }
-    #endif
+#if _CPU == 386
+    if( CompFlags.register_conventions ) {
+        Define_Macro( "__SW_3R" );
+    } else {
+        Define_Macro( "__SW_3S" );
+    }
+#endif
     if( CompFlags.emit_names ) {
         Define_Macro( "__SW_EN" );
     }
@@ -862,7 +870,7 @@ static void EnsureEndOfSwitch()
     }
 }
 
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
 static void SetStructPack()    { CompFlags.align_structs_on_qwords = 1; }
 #endif
 
@@ -906,7 +914,7 @@ static void SetExtendedDefines()
 }
 static void SetBrowserInfo()   { CompFlags.emit_browser_info = 1; }
 
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
 static void Set_AS()
 {
     TargetSwitches |= ALIGNED_SHORT;
@@ -954,6 +962,37 @@ static void DefineMacro()      { OptScanPtr = Define_UserMacro( OptScanPtr ); }
 static void SetErrorLimit()    { ErrLimit = OptValue; }
 
 #if _CPU == 8086 || _CPU == 386
+static void SetDftCallConv( void ){
+#if 0
+    switch( OptValue ) {
+    case 1:
+        DftCallConv = &CdeclInfo;
+        break;
+    case 2:
+        DftCallConv = &StdcallInfo;
+        break;
+    case 3:
+        DftCallConv = &FastcallInfo;
+        break;
+    case 4:
+        DftCallConv = &OptlinkInfo;
+        break;
+    case 5:
+        DftCallConv = &PascalInfo;
+        break;
+    case 6:
+        DftCallConv = &SyscallInfo;
+        break;
+    case 7:
+        DftCallConv = &FortranInfo;
+        break;
+    case 8:
+    default:
+        DftCallConv = &WatcallInfo;
+        break;
+    }
+#endif
+}
 static void Set_EC()           { CompFlags.ec_switch_used = 1; }
 #endif
 
@@ -973,6 +1012,18 @@ static void Set_ESP()          { TargetSwitches |= STATEMENT_COUNTING; }
 
 #if _CPU == 386
 static void Set_EZ()           { TargetSwitches |= EZ_OMF; }
+static void Set_OMF()          { TargetSwitches &= ~(OBJ_ELF | OBJ_COFF); }
+#endif
+
+#if /*_CPU == 386 || */_CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
+static void Set_ELF()          { GenSwitches &= ~OBJ_OWL;
+                                 GenSwitches |= OBJ_ELF; }
+static void Set_COFF()         { GenSwitches &= ~OBJ_OWL;
+                                 GenSwitches |= OBJ_COFF; }
+#endif
+#if _CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
+static void Set_EndianLittle() { GenSwitches &= ~OBJ_ENDIAN_BIG; }
+static void Set_EndianBig()    { GenSwitches |= OBJ_ENDIAN_BIG; }
 #endif
 
 static void Set_EP()
@@ -1047,6 +1098,11 @@ static void Set_FI()
 static void Set_FLD()
 {
     CompFlags.use_long_double = 1;
+}
+
+static void SetTrackInc( void )
+{
+    CompFlags.track_includes = 1;
 }
 
 static void Set_FO()
@@ -1124,7 +1180,7 @@ static void Set_R()            { CompFlags.save_restore_segregs = 1; }
 static void Set_SG()           { CompFlags.sg_switch_used = 1; }
 static void Set_ST()           { CompFlags.st_switch_used = 1; }
 #endif
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP || _CPU == _MIPS
 static void Set_SI()           { TargetSwitches |= STACK_INIT; }
 #endif
 static void Set_S()            { Toggles &= ~TOGGLE_CHECK_STACK; }
@@ -1156,7 +1212,7 @@ static void Set_WCD()          { EnableDisableMessage( 0, OptValue ); }
 static void Set_WCE()          { EnableDisableMessage( 1, OptValue ); }
 
 #if _CPU == 386
-static void Set_XGV()          { GenSwitches |= INDEXED_GLOBALS; }
+static void Set_XGV()          { TargetSwitches |= INDEXED_GLOBALS; }
 #endif
 
 static void Set_XBSA()
@@ -1164,7 +1220,7 @@ static void Set_XBSA()
     CompFlags.unaligned_segs = 1;
 }
 
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
 static void Set_XD()           { TargetSwitches |= EXCEPT_FILTER_USED; }
 #endif
 
@@ -1324,6 +1380,13 @@ static void SetAutoDependSrcDepend()
     SrcDepName = GetAFileName();
 }
 
+static void SetAutoDependHeaderPath()
+{
+    CompFlags.generate_auto_depend = 1;
+    CMemFree( DependHeaderPath );
+    DependHeaderPath = GetAFileName();
+}
+
 static void SetAutoDependForeSlash()
 {
     DependForceSlash = '/';
@@ -1334,6 +1397,7 @@ static void SetAutoDependBackSlash()
     DependForceSlash = '\\';
 }
 
+static void Set_PIL()          { CompFlags.cpp_ignore_line = 1; }
 static void Set_PL()           { CompFlags.cpp_line_wanted = 1; }
 static void Set_PC()
 {
@@ -1361,7 +1425,9 @@ static void Set_OC()           { TargetSwitches |= NO_CALL_RET_TRANSFORM; }
 static void Set_OF()
 {
     TargetSwitches |= NEED_STACK_FRAME;
-    if( OptValue != 0 )  DefaultInfo.class |= GENERATE_STACK_FRAME;
+    if( OptValue != 0 ) {
+        WatcallInfo.class |= GENERATE_STACK_FRAME;
+    }
 }
 static void Set_OM()           { TargetSwitches |= I_MATH_INLINE; }
 static void Set_OP()           { CompFlags.op_switch_used = 1; } // force floats to memory
@@ -1472,10 +1538,11 @@ static struct option const CFE_Options[] = {
     { "adbs",   0,              SetAutoDependBackSlash },
     { "add=@",  0,              SetAutoDependSrcDepend },
     { "adfs",   0,              SetAutoDependForeSlash },
+    { "adhp=@", 0,              SetAutoDependHeaderPath },
     { "ad=@",   0,              SetGenerateMakeAutoDepend },
     { "ai",     0,              Set_AI },
     { "aq",     0,              Set_AQ },
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
     { "as",     0,              Set_AS },
 #endif
     { "d0*",    0,              Set_D0 },
@@ -1493,13 +1560,30 @@ static struct option const CFE_Options[] = {
     { "ei",     0,              Set_EI },
     { "em",     0,              Set_EM },
 #if _CPU == 8086 || _CPU == 386
+    { "ecc",    1,              SetDftCallConv },
+    { "ecd",    2,              SetDftCallConv },
+    { "ecf",    3,              SetDftCallConv },
+    { "eco",    4,              SetDftCallConv },
+    { "ecp",    5,              SetDftCallConv },
+    { "ecs",    6,              SetDftCallConv },
+    { "ecr",    7,              SetDftCallConv },
+    { "ecw",    8,              SetDftCallConv },
     { "ec",     0,              Set_EC },
     { "et",     0,              Set_ET },
     { "eq",     0,              Set_EQ },
     { "etp",    0,              Set_ETP },
     { "esp",    0,              Set_ESP },
 #endif
+#if /*_CPU == 386 ||*/ _CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
+    { "eoe",    0,              Set_ELF },
+    { "eoc",    0,              Set_COFF },
+#endif
+#if _CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
+    { "el",     0,              Set_EndianLittle },
+    { "eb",     0,              Set_EndianBig },
+#endif
 #if _CPU == 386
+    { "eoo",    0,              Set_OMF },
     { "ez",     0,              Set_EZ },
 #endif
     { "e=#",    0,              SetErrorLimit },
@@ -1540,6 +1624,7 @@ static struct option const CFE_Options[] = {
     { "nt=$",   0,              SetTextSegName },
 #endif
     { "nm=$",   0,              SetModuleName },
+    { "pil",    0,              Set_PIL },
     { "p*",     0,              SetPreprocessOptions },
     { "rod=@",  0,              SetReadOnlyDir },
 #if _CPU == 8086 || _CPU == 386
@@ -1549,7 +1634,7 @@ static struct option const CFE_Options[] = {
     { "sg",     0,              Set_SG },
     { "st",     0,              Set_ST },
 #endif
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP || _CPU == _MIPS
     { "si",     0,              Set_SI },
 #endif
     { "s",      0,              Set_S },
@@ -1568,6 +1653,7 @@ static struct option const CFE_Options[] = {
     { "fld",    0,              Set_FLD },
     { "fo=@",   0,              Set_FO },
     { "fr=@",   0,              Set_FR },
+    { "fti",    0,              SetTrackInc },
 #if _CPU == 8086 || _CPU == 386
     { "fp2",    SW_FPU0,        SetFPU },
     { "fp3",    SW_FPU3,        SetFPU },
@@ -1593,7 +1679,7 @@ static struct option const CFE_Options[] = {
     { "xgv",    0,              Set_XGV },
 #endif
     { "xbsa",   0,              Set_XBSA },
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
     { "xd",     0,              Set_XD },
 #endif
     { "za99",   0,              Set_ZA99 },
@@ -1627,7 +1713,7 @@ static struct option const CFE_Options[] = {
     { "zm",     0,              Set_ZM },
     { "zpw",    0,              Set_ZPW },
     { "zp=#",   1,              SetPackAmount },
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
     { "zps",    0,              SetStructPack },
 #endif
 #if _CPU == 8086 || _CPU == 386
@@ -1721,7 +1807,7 @@ static char *ProcessOption( struct option const *op_table, char *p, char *option
                             if( c == '\0' ) break;
                             if( c == ' ' ) break;
                             if( c == '\t' ) break;
-                            #if (_OS != _QNX) && (_OS != _LINUX)
+                            #if ! defined( __UNIX__ )
                                 if( c == SwitchChar ) break;
                             #endif
                             ++j;
@@ -1785,7 +1871,7 @@ static char *CollectEnvOrFileName( char *str )
         ++str;
         if( ch == ' ' ) break;
         if( ch == '\t' ) break;
-        #if (_OS != _QNX) && (_OS != _LINUX)
+        #if ! defined( __UNIX__ )
             if( ch == '-' ) break;
             if( ch == SwitchChar ) break;
         #endif
@@ -1818,7 +1904,7 @@ static char *ReadIndirectFile()
             if( ch == '\r' || ch == '\n' ) {
                 *str = ' ';
             }
-            #if (_OS != _QNX) && (_OS != _LINUX)
+            #if ! defined( __UNIX__ )
                 if( ch == 0x1A ) {      // if end of file
                     *str = '\0';        // - mark end of str
                     break;
@@ -1888,7 +1974,7 @@ local void ProcOptions( char *str )
                         if( *str == '\0' ) break;
                         if( *str == ' '  ) break;
                         if( *str == '\t'  ) break;              /* 16-mar-91 */
-                        #if (_OS != _QNX) && (_OS != _LINUX)
+                        #if ! defined( __UNIX__ )
                             if( *str == SwitchChar ) break;
                         #endif
                         ++str;
@@ -1917,13 +2003,18 @@ static void InitCPUModInfo()
     PCH_FileName  = NULL;
     TargetSwitches = 0;
     TargSys = TS_OTHER;
-#if _MACHINE == _ALPHA | _MACHINE == _PPC | _MACHINE == _SPARC
+#if _CPU == _AXP || _CPU == _PPC || _CPU == _SPARC || _CPU == _MIPS
     TextSegName   = ".text";
     DataSegName   = ".data";
     GenCodeGroup  = "";
     DataPtrSize   = TARGET_POINTER;
     CodePtrSize   = TARGET_POINTER;
     GenSwitches   = MEMORY_LOW_FAILS;
+  #if _CPU == _AXP
+    GenSwitches  |= OBJ_COFF;
+  #else
+    GenSwitches  |= OBJ_ELF;
+  #endif
 #elif _CPU == 386 || _CPU == 8086
     Stack87 = 8;
     TextSegName   = "";
@@ -1960,7 +2051,7 @@ local void Define_Memory_Model()
         break;
     case BIG_CODE:                      /* -mm */
         model = 'm';
-        DefaultInfo.class |= FAR;
+        WatcallInfo.class |= FAR;
         CodePtrSize = TARGET_FAR_POINTER;
         Define_Macro( "M_I86MM" );
         Define_Macro( "__MEDIUM__" );
@@ -1974,7 +2065,7 @@ local void Define_Memory_Model()
         DataPtrSize = TARGET_FAR_POINTER;                       /* 04-may-90 */
         break;
     case BIG_CODE | BIG_DATA:
-        DefaultInfo.class |= FAR;
+        WatcallInfo.class |= FAR;
         CodePtrSize = TARGET_FAR_POINTER;                       /* 04-may-90 */
         if( TargetSwitches & CHEAP_POINTER ) {
             model = 'l';
@@ -2048,7 +2139,7 @@ local void Define_Memory_Model()
             }
             EmuLib_Name = "9noemu387";
         }
-    #elif _MACHINE == _ALPHA || _MACHINE == _PPC || _MACHINE == _SPARC
+    #elif _CPU == _AXP || _CPU == _PPC || _CPU == _SPARC || _CPU == _MIPS
         if( CompFlags.br_switch_used ) {                /* 15-may-95 */
             strcpy( CLIB_Name, "1clbdll" );
             strcpy( MATHLIB_Name, "8mthdll" );
@@ -2065,6 +2156,26 @@ local void Define_Memory_Model()
     #endif
 }
 
+#if _CPU == 386
+
+static hw_reg_set MetaWareParms[] = {
+    HW_D( HW_EMPTY )
+};
+
+local void SetStackConventions( void )
+{
+    WatcallInfo.class &= (GENERATE_STACK_FRAME | FAR); /* 19-nov-93 */
+    WatcallInfo.class |= CALLER_POPS | NO_8087_RETURNS;
+    WatcallInfo.parms = (hw_reg_set *)CMemAlloc( sizeof(MetaWareParms) );
+    memcpy( WatcallInfo.parms, MetaWareParms, sizeof( MetaWareParms ) );
+    HW_CTurnOff( WatcallInfo.save, HW_EAX );
+    HW_CTurnOff( WatcallInfo.save, HW_EDX );
+    HW_CTurnOff( WatcallInfo.save, HW_ECX );
+    HW_CTurnOff( WatcallInfo.save, HW_FLTS );
+    WatcallInfo.objname = CStrSave( "*" );   /* DefaultObjName; */
+}
+#endif
+
 void GenCOptions( char **cmdline )
 {
     memset( &SwData,0, sizeof( SwData ) ); //re-useable
@@ -2073,95 +2184,62 @@ void GenCOptions( char **cmdline )
     EnableDisableMessage( 0, ERR_LOSE_PRECISION );
     InitModInfo();
     InitCPUModInfo();
-    #if _CPU == 386
-        ProcOptions( FEGetEnv( "WCC386" ) );              /* 12-mar-90 */
-    #elif _CPU == 8086
-        ProcOptions( FEGetEnv( "WCC" ) );                 /* 12-mar-90 */
-    #elif _MACHINE == _ALPHA
-        ProcOptions( FEGetEnv( "WCCAXP" ) );
-    #elif _MACHINE == _PPC
-        ProcOptions( FEGetEnv( "WCCPPC" ) );
-    #elif _MACHINE == _SPARC
-        ProcOptions( FEGetEnv( "WCCSPC" ) );
-    #else
-        #error Compiler environment variable not configured
-    #endif
+#if _CPU == 386
+    ProcOptions( FEGetEnv( "WCC386" ) );              /* 12-mar-90 */
+#elif _CPU == 8086
+    ProcOptions( FEGetEnv( "WCC" ) );                 /* 12-mar-90 */
+#elif _CPU == _AXP
+    ProcOptions( FEGetEnv( "WCCAXP" ) );
+#elif _CPU == _PPC
+    ProcOptions( FEGetEnv( "WCCPPC" ) );
+#elif _CPU == _MIPS
+    ProcOptions( FEGetEnv( "WCCMPS" ) );
+#elif _CPU == _SPARC
+    ProcOptions( FEGetEnv( "WCCSPC" ) );
+#else
+    #error Compiler environment variable not configured
+#endif
     for( ;*cmdline != NULL; ++cmdline ) {
         ProcOptions( *cmdline );
     }
-    if( CompFlags.cpp_output_requested )  CompFlags.cpp_output = 1;
-    if( CompFlags.cpp_output )  CompFlags.quiet_mode = 1;       /* 29-sep-90 */
+    if( CompFlags.cpp_output_requested )
+        CompFlags.cpp_output = 1;
+    if( CompFlags.cpp_output )
+        CompFlags.quiet_mode = 1;       /* 29-sep-90 */
     CBanner();          /* print banner if -zq not specified */
     GblPackAmount = PackAmount;
     SetTargSystem();
     SetGenSwitches();
     SetCharacterEncoding();
     Define_Memory_Model();
-    #ifdef __PCODE__                                                /* 04-feb-91 */
-        if( Toggles & TOGGLE_PCODE )  CompFlags.inline_functions = 0;
-    #endif
-    #if _CPU == 8086 || _CPU == 386
-        if( GET_CPU( ProcRevision ) < CPU_386 ) {
-            /* issue warning message if /zf[f|p] or /zg[f|p] spec'd? */
-            TargetSwitches &= ~(FLOATING_FS|FLOATING_GS);
+#ifdef __PCODE__                                                /* 04-feb-91 */
+    if( Toggles & TOGGLE_PCODE )
+        CompFlags.inline_functions = 0;
+#endif
+#if _CPU == 8086 || _CPU == 386
+    if( GET_CPU( ProcRevision ) < CPU_386 ) {
+        /* issue warning message if /zf[f|p] or /zg[f|p] spec'd? */
+        TargetSwitches &= ~(FLOATING_FS|FLOATING_GS);
+    }
+    if( ! CompFlags.save_restore_segregs ) {                /* 11-apr-91 */
+        if( TargetSwitches & FLOATING_DS ) {
+            HW_CTurnOff( WatcallInfo.save, HW_DS );
         }
-        if( ! CompFlags.save_restore_segregs ) {                /* 11-apr-91 */
-            if( TargetSwitches & FLOATING_DS ) {
-                HW_CTurnOff( DefaultInfo.save, HW_DS );
-            }
-            if( TargetSwitches & FLOATING_ES ) {
-                HW_CTurnOff( DefaultInfo.save, HW_ES );
-            }
-            if( TargetSwitches & FLOATING_FS ) {
-                HW_CTurnOff( DefaultInfo.save, HW_FS );
-            }
-            if( TargetSwitches & FLOATING_GS ) {
-                HW_CTurnOff( DefaultInfo.save, HW_GS );
-            }
+        if( TargetSwitches & FLOATING_ES ) {
+            HW_CTurnOff( WatcallInfo.save, HW_ES );
         }
-        FastCallInfo = DefaultInfo; // save reg conventions
-        #if _CPU == 386
-            if( ! CompFlags.register_conventions )  SetStackConventions();
-        #endif
-    #endif
+        if( TargetSwitches & FLOATING_FS ) {
+            HW_CTurnOff( WatcallInfo.save, HW_FS );
+        }
+        if( TargetSwitches & FLOATING_GS ) {
+            HW_CTurnOff( WatcallInfo.save, HW_GS );
+        }
+    }
+  #if _CPU == 386
+    if( ! CompFlags.register_conventions )
+        SetStackConventions();
+  #endif
+#endif
     MacroDefs();                                        /* 07-aug-90 */
     MiscMacroDefs();
 }
-
-#if _CPU == 386
-
-static hw_reg_set MetaWareParms[] = {
-        {0}, {0}
-};
-
-local void SetStackConventions( void )
-{
-    DefaultInfo.class &= (GENERATE_STACK_FRAME | FAR); /* 19-nov-93 */
-    DefaultInfo.class |= CALLER_POPS | NO_8087_RETURNS;
-    DefaultInfo.code  = NULL;
-    DefaultInfo.parms = (hw_reg_set *)CMemAlloc( sizeof(MetaWareParms) );
-    memcpy( DefaultInfo.parms, MetaWareParms, sizeof( MetaWareParms ) );
-    HW_CAsgn( DefaultInfo.returns, HW_EMPTY );
-    HW_CAsgn( DefaultInfo.streturn, HW_EMPTY );
-    HW_CTurnOff( DefaultInfo.save, HW_EAX );
-    HW_CTurnOff( DefaultInfo.save, HW_EDX );
-    HW_CTurnOff( DefaultInfo.save, HW_ECX );
-    if( ! CompFlags.save_restore_segregs ) {            /* 11-apr-91 */
-        if( TargetSwitches & FLOATING_DS ) {
-            HW_CTurnOff( DefaultInfo.save, HW_DS );
-        }
-        if( TargetSwitches & FLOATING_ES ) {
-            HW_CTurnOff( DefaultInfo.save, HW_ES );
-        }
-        if( TargetSwitches & FLOATING_FS ) {
-            HW_CTurnOff( DefaultInfo.save, HW_FS );
-        }
-        if( TargetSwitches & FLOATING_GS ) {
-            HW_CTurnOff( DefaultInfo.save, HW_GS );
-        }
-    }
-    HW_CTurnOff( DefaultInfo.save, HW_FLTS );
-    DefaultInfo.use     = 0;
-    DefaultInfo.objname = CStrSave( "*" );   /* DefaultObjName; */
-}
-#endif

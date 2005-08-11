@@ -313,7 +313,7 @@ comment end
 :MSGJTXT. 比較の結果は常に%dです
 :WARNING. 1
 .np
-The line contains a comparison that is alway true (1) or false (0).
+The line contains a comparison that is always true (1) or false (0).
 For example comparing an unsigned expression to see if it is >= 0 or < 0
 is redundant.
 Check to see if the expression should be signed instead of unsigned.
@@ -376,8 +376,8 @@ of one size to another, different size. For instance, you may be
 losing precision by passing a long argument to a function that
 takes a short.
 This warning is initially disabled. It must be explicitly enabled with
-.us #pragma enable_message(130).
-It can be disabled later by using
+.us #pragma enable_message(130)
+or option "-wce=130". It can be disabled later by using
 .us #pragma disable_message(130).
 :MSGSYM. ERR_ASSUMED_IMPORT
 :MSGTXT. No prototype found for function '%s'
@@ -412,6 +412,45 @@ However,
 i;
 .exam end
 is not a correctly formed declaration.
+:MSGSYM. ERR_SYMBOL_NAME_TOO_LONG
+:MSGTXT. Symbol name truncated for '%s'
+:MSGJTXT.
+:WARNING. 1
+.np
+Symbol is longer than the object file format allows and has been truncated
+to fit. Maximum length is 255 characters for OMF and 1024 characters for
+COFF or ELF object files.
+:MSGSYM. ERR_SHIFT_AMOUNT_NEGATIVE
+:MSGTXT. Shift amount negative
+:MSGJTXT.
+:WARNING. 1
+.np
+The right operand of a left or right shift operator is a negative value.
+The result of the shift operation is undefined.
+:errbad.
+int a = 1 << -2;
+:eerrbad.
+The value of 'a' in the above example is undefined.
+:MSGSYM. ERR_SHIFT_AMOUNT_TOO_BIG
+:MSGTXT. Shift amount too large
+:MSGJTXT.
+:WARNING. 1
+.np
+The right operand of a left or right shift operator is a value greater than
+or equal to the width in bits of the type of the promoted left operand.
+The result of the shift operation is undefined.
+:errbad.
+int a = 1 >> 123;
+:eerrbad.
+The value of 'a' in the above example is undefined.
+:MSGSYM. ERR_COMPARE_UNSIGNED_VS_ZERO
+:MSGTXT. Comparison equivalent to 'unsigned == 0'
+:MSGJTXT. 比較の結果は常に%dです
+:WARNING. 1
+.np
+Comparing an unsigned expression to see whether it is <= 0 is equivalent to
+testing for == 0.
+Check to see if the expression should be signed instead of unsigned.
 :eMSGGRP. Warn1
 :cmt -------------------------------------------------------------------
 :MSGGRP. Warn2
@@ -504,8 +543,8 @@ You can prevent the message from being issued through use of
 .us #pragma off(unreferenced).
 .np
 This warning is initially disabled. It must be specifically enabled with
-.us #pragma enable_message(303).
-It can be disabled later by using
+.us #pragma enable_message(303)
+or option "-wce=303". It can be disabled later by using
 .us #pragma disable_message(303).
 :MSGSYM. ERR_NO_RET_TYPE_GIVEN
 :MSGTXT. Return type 'int' assumed for function '%s'
@@ -530,6 +569,14 @@ register count;
 .exam end
 then its type will be assumed to be
 .kw int
+.
+:MSGSYM. ERR_ASSEMBLER_WARNING
+:MSGTXT. Assembler warning: '%s'
+:MSGJTXT.
+:WARNING. 3
+.np
+A problem has been detected by the in-line assembler.
+The message indicates the problem detected.
 .
 :eMSGGRP. Warn3
 :cmt -------------------------------------------------------------------
@@ -985,7 +1032,7 @@ Make sure that the file name is spelled correctly, or that the
 appropriate path for the file is included in the list of paths
 specified in the
 .id &incvarup
-environment variable or the "i=" option on the command line.
+environment variable or the "-I" option on the command line.
 :MSGSYM. ERR_TOO_MANY_MACRO_PARMS
 :MSGTXT. Too many parameters given for macro '%s'
 :MSGJTXT. マクロ'%s'に与えられたパラメータが多すぎます
@@ -1059,8 +1106,8 @@ Do not
 header files that are not required.
 .np
 For the 16-bit C compiler,
-the "/d2" switch causes the compiler to use more memory.
-Try compiling with the "/d1" switch instead.
+the "-d2" option causes the compiler to use more memory.
+Try compiling with the "-d1" option instead.
 :MSGSYM. ERR_INV_CHAR_CONSTANT
 :MSGTXT. Invalid character constant
 :MSGJTXT. 不適切な文字定数です
@@ -1776,10 +1823,10 @@ The system dependent reason is also displayed in the message.
 The compiler does not have any segment registers available to access the
 desired far memory location.
 :MSGSYM. ERR_NO_MACRO_ID_COMMAND_LINE
-:MSGTXT. No identifier provided for /D option
+:MSGTXT. No identifier provided for '-D' option
 :MSGJTXT. /Dオプションに対する識別子がありません
 .np
-The command line option /D must be followed by the name of the macro
+The command line option "-D" must be followed by the name of the macro
 to be defined.
 :MSGSYM. ERR_BAD_PEG_REG
 :MSGTXT. Invalid register pegged to a segment in '%s'
@@ -1985,6 +2032,14 @@ preceding conversion diagnostic.
 :INFO.
 This informational message indicates the target type of the conversion,
 for the preceding conversion diagnostic.
+:MSGSYM. INFO_INCLUDING_FILE
+:MSGTXT. Including file '%s'
+:MSGJTXT.
+:INFO.
+This informational message indicates that the specified file was opened
+as a result of
+.id #include
+directive processing.
 :eMSGGRP. Info
 :cmt -------------------------------------------------------------------
 :MSGGRP. PCHDR

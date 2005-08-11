@@ -78,7 +78,6 @@ extern  instruction     *MakeCondition(opcode_defs,name*,name*,int,int,type_clas
 extern  void            ReplIns(instruction*,instruction*);
 extern  void            PrefixIns(instruction*,instruction*);
 extern  void            DupSeg(instruction*,instruction*);
-extern  void            DoNothing(instruction*);
 extern  name            *SegName(name*);
 extern  name            *ScaleIndex(name*,name*,type_length,type_class_def,type_length,int,i_flags);
 extern  name            *AllocS32Const(signed_32);
@@ -89,6 +88,7 @@ extern  void            CnvOpToInt( instruction *, int );
 extern  name            *Int64Equivalent( name * );
 
 extern    type_class_def        HalfClass[];
+extern    type_class_def        Unsigned[];
 
 extern  name    *LowPart( name *tosplit, type_class_def class ) {
 /************************************************************/
@@ -563,6 +563,7 @@ extern  instruction     *rCLRHI_D( instruction *ins ) {
     ins->head.opcode = OP_MOV;
     ins->result = low;
     new_ins = MakeMove( AllocS32Const( 0 ), high, tipe );
+    DupSegRes( ins, new_ins );         /* 2004-11-01  RomanT (same as bug #341) */
     PrefixIns( ins, new_ins );
     return( new_ins );
 }
@@ -700,11 +701,21 @@ extern  instruction     *rCONVERT_UP( instruction *ins ) {
 
     // change a CNV I8 I1 op -> res into a pair of instructions
     //          CNV I4 I1 op -> temp and CNV I8 I4 temp -> res
+    //
+    // 2004-10-31 RomanT
+    // Optimization: if source operand is unsigned (U1/U2),
+    // use unsigned temporary variable (U4):
+    // U1->U4->I8 generates better code then U1->I4->I8.
+    //
     tipe = HalfClass[ ins->type_class ];
+    if ( Unsigned[ ins->base_type_class ] == ins->base_type_class )
+        tipe = Unsigned[ tipe ];
     temp = AllocTemp( tipe );
     ins1 = MakeConvert( ins->operands[ 0 ], temp, tipe, ins->base_type_class );
+    DupSeg( ins, ins1 );         // 2004-10-31 RomanT (bug #341)
     PrefixIns( ins, ins1 );
     ins2 = MakeConvert( temp, ins->result, ins->type_class, tipe );
+    DupSegRes( ins, ins2 );      // 2004-11-01 RomanT (same as bug #341, *pInt64=char)
     ReplIns( ins, ins2 );
     return( ins1 );
 }

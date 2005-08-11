@@ -29,6 +29,8 @@
 ****************************************************************************/
 
 
+#include "curses.h"
+#define BOOL_DEFINED    // curses.h typedefs 'bool'
 #include "dbgdefn.h"
 #include "dbgio.h"
 #include "dbgmem.h"
@@ -49,7 +51,6 @@
 #include <signal.h>
 #include <ctype.h>
 #include <errno.h>
-#include "curses.h"
 #include "term.h"
 #include "stdui.h"
 #include "../unix/h/ctkeyb.h"
@@ -157,6 +158,7 @@ static bool TryXWindows()
     DbgConHandle = slavefd;
     if( DbgConHandle == -1 ) {
         StartupErr( "unable to open debugger console" );
+        return( FALSE );            
     }
     tcgetattr(slavefd, &termio);
     termio.c_lflag &= ~ECHO;
@@ -171,13 +173,14 @@ static bool TryXWindows()
         *p++ = '\0';
     }
     end = p;
-    _AllocA( argv, (argc + 10) * sizeof( *argv ) );
+    _AllocA( argv, (argc + 16) * sizeof( *argv ) );
 
     argv[0] = "xterm";
-    argv[1] = "-T";
+    argv[1] = "-title";
     argv[2] = "Open Watcom Debugger";
+    argv[3] = "-ut";
 
-    argc = 3;
+    argc = 4;
 
     if( DbgLines != 0 || DbgColumns != 0 ) {
         argv[argc++] = "-geometry";
@@ -210,7 +213,12 @@ static bool TryXWindows()
     } while ( res != -1 && buf != '\n' );
     termio.c_lflag |= ECHO;
     tcsetattr(slavefd, TCSANOW, &termio);
-    
+
+    /* make slavefd a controlling tty */
+    setpgid( 0, XTermPid );
+    setsid();
+    ioctl( slavefd, TIOCSCTTY, 1 );
+
     signal( SIGHUP, &HupHandler );
     return( TRUE );
 }
@@ -224,7 +232,7 @@ static bool TryVC( void )
     char tty_name[20];
     int len;
 
-    len = readlink( "/proc/self/fd/0", tty_name, sizeof( tty_name ) );
+    len = readlink( "/proc/self/fd/0", tty_name, sizeof( tty_name ) - 1 );
     if ( len < 0 )
         return( FALSE );
     tty_name[ len ] = '\0';
@@ -324,6 +332,8 @@ bool UsrScrnMode()
     switch( ConMode ) {
     case C_TTY:
         return( TRUE );
+    default:
+        break;
     }
     return( FALSE );
 }
@@ -362,6 +372,8 @@ bool DebugScreen()
         ioctl( 0, VT_ACTIVATE, DbgConsole );
         ioctl( 0, VT_WAITACTIVE, DbgConsole );
         break;
+    default:
+        break;
     }
     return( FALSE );
 }
@@ -387,6 +399,8 @@ bool UserScreen()
     case C_VC:
         ioctl( 0, VT_ACTIVATE, PrevConsole );
         ioctl( 0, VT_WAITACTIVE, PrevConsole );
+        break;
+    default:
         break;
     }
     return( FALSE );
@@ -414,6 +428,8 @@ void FiniScreen()
     case C_XWIN:
         signal( SIGHUP, SIG_IGN );
         kill( XTermPid, SIGTERM );
+        break;
+    default:
         break;
     }
 }

@@ -46,6 +46,8 @@
 
 #define MAX_SECS    255
 
+bool    byte_swap = FALSE;
+
 struct section_data Sections[DR_DEBUG_NUM_SECTS];
 
 typedef struct _dump_options {
@@ -114,7 +116,9 @@ char *secNames[] = {
     ".debug_abbrev",
     ".debug_line",
     ".debug_macinfo",
-    ".WATCOM_references"
+    ".WATCOM_references",
+    ".debug_str",
+    ".debug_aranges"
 };
 
 unsigned long sectsizes[DR_DEBUG_NUM_SECTS];
@@ -155,6 +159,23 @@ orl_return ReadRefSec( orl_sec_handle o_shnd )
     return( ORLSecGetContents( o_shnd, &sections[DW_DEBUG_REF] ));
 }
 
+orl_return ReadStrSec( orl_sec_handle o_shnd )
+/********************************************/
+{
+    sectsizes[DW_DEBUG_STR] = ORLSecGetSize( o_shnd );
+    if( sectsizes[DW_DEBUG_STR] == 0 )
+        return( ORL_OKAY );
+    else
+        return( ORLSecGetContents( o_shnd, &sections[DW_DEBUG_STR] ));
+}
+
+orl_return ReadARSec( orl_sec_handle o_shnd )
+/*******************************************/
+{
+    sectsizes[DW_DEBUG_ARANGES] = ORLSecGetSize( o_shnd );
+    return( ORLSecGetContents( o_shnd, &sections[DW_DEBUG_ARANGES] ));
+}
+
 static int setSects( orl_file_handle o_fhnd )
 /*******************************************/
 {
@@ -183,6 +204,14 @@ static int setSects( orl_file_handle o_fhnd )
         printf( "Error reading %s section\n", secNames[4] );
         return( 5 );
     }
+    if( ORLFileScan( o_fhnd, secNames[5], &ReadStrSec ) != ORL_OKAY ) {
+        printf( "Error reading %s section\n", secNames[5] );
+        return( 6 );
+    }
+    if( ORLFileScan( o_fhnd, secNames[6], &ReadARSec ) != ORL_OKAY ) {
+        printf( "Error reading %s section\n", secNames[6] );
+        return( 6 );
+    }
 
     for( i = 0; i < DR_DEBUG_NUM_SECTS; i += 1 ) {
         Sections[i].cur_offset = 0;
@@ -206,8 +235,9 @@ void main( int argc, char *argv[] )
     orl_handle                  o_hnd;
     orl_file_handle             o_fhnd;
     orl_funcs                   funcs;
-    int                         file;
     orl_file_format             type;
+    orl_file_flags              o_flags;
+    int                         file;
     int                         c;
     char                        *secs[MAX_SECS];
     int                         num_secs = 0;
@@ -259,6 +289,18 @@ void main( int argc, char *argv[] )
         return;
     }
 
+    o_flags = ORLFileGetFlags( o_fhnd );
+
+#ifdef __BIG_ENDIAN__
+    if( o_flags & ORL_FILE_FLAG_LITTLE_ENDIAN ) {
+        byte_swap = TRUE;
+    }
+#else
+    if( o_flags & ORL_FILE_FLAG_BIG_ENDIAN ) {
+        byte_swap = TRUE;
+    }
+#endif
+
     if( num_secs ) {
         for( c = 0; c < num_secs; c++ ) {
             sectionFound = 0;
@@ -293,8 +335,8 @@ void main( int argc, char *argv[] )
     DumpSections();
 
     freeBuffList();
-    #ifdef TRMEM
+#ifdef TRMEM
     TRMemPrtList();
-    #endif
+#endif
     TRMemClose();
 }

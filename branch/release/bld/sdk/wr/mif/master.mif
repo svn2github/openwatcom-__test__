@@ -35,9 +35,9 @@ object =    wrmain.obj wrmem.obj wrmsg.obj wrfindt.obj wrtmpfil.obj &
             $(trmem_objs) &
             preproc.obj ppexpr.obj ppmacro.obj &
             rcerrprt.obj &
-            palette.obj ldstr.obj jdlg.obj &
+            palette.obj ldstr.obj jdlg.obj wrstubs.obj &
             pass2.obj exeseg.obj exeres.obj rcstr.obj ppalloc.obj &
-            exeutil.obj exeobj.obj exerespe.obj rcio.obj &
+            exeutil.obj exeobj.obj exerespe.obj rcio.obj semutil.obj &
             global.obj semstr.obj semsingl.obj semantic.obj semraw.obj &
             errors.obj tmpctl.obj autodep.obj layer0.obj param.obj &
             dbtable.obj swchar.obj sharedio.obj
@@ -45,8 +45,7 @@ object =    wrmain.obj wrmem.obj wrmsg.obj wrfindt.obj wrtmpfil.obj &
 msgfiles = $(wrc_dir)/h/rc.msg ../h/wr.msg
 
 extra_c_flags     = -DWIN_GUI -DWR_COMPILED -s
-extra_c_flags_i86 = -fpc
-extra_c_flags_386 = -fpc
+
 extra_c_flags_win = -zu-zw-zc
 
 # wr objects
@@ -95,10 +94,7 @@ extra_c_flags_trmem = $(trmem_cflags)
 
 .c:   ../c;$(trmem_dir);$(misc_dir);$(cpp_dir);$(wrc_dir)/c
 
-inc_dirs = .;../h;$(misc_dir);$(cpp_dir);$(wres_dir)/h;$(wrc_dir)/h;$(watcom_dir)/h
-
-.BEFORE
-        @set include=$(inc_path)
+inc_dirs = -I. -I"../h" -I"$(misc_dir)" -I$(cpp_dir) -I"$(wres_dir)/h" -I"$(wrc_dir)/h"
 
 #------------- LIB
 $(name).lib: $(__MAKEFILES__) $(name).dll
@@ -115,7 +111,7 @@ extra_l_flags_win = op rwr,stack=16k export WEP RESIDENT
 
 $(name).dll: $(__MAKEFILES__) ytab.gh wrcmsg.gh $(object) $(wres_lib) $(name).res
         $(linker) $(lflags) name $^@ lib $(wres_lib) file {$(object)}
-        $(rc) $(rc_flags) -k $(name).res $^@
+        $(rc) -k $(name).res $^@
 
 #---------- TEST
 test_system_win_i86= windows
@@ -133,13 +129,13 @@ wrcmsg.gh: wrtemp.gh
         $(vi) -s $(sdk_dir)/misc/msgtoh.vi -p"$^@" $[@
 
 wrtemp.gh: ../h/master.msg $(msgfiles)
-        $(cc) $(cflags) -p $[@ -fo=$^@
+        $(cc) $(cflags) $(inc_path) -p $[@ -fo=$^@
 
 ytab.gh : $(wrc_dir)/y/rc.y $(wrc_dir)/y/yydriver.c $(wrc_dir)/h/rcmem.h
-        $(yacc) -d -b $[@ $(wrc_dir)/y/yydriver.c >$(nulldevice)
+        $(byacc) -d -b $[@ $(wrc_dir)/y/yydriver.c >$(nulldevice)
         @cp ytab.h ytab.gh
         @rm -f ytab.h
         @rm -f ytab.c # ytab.c isn't used
 
 $(name).res: ../h/wr.rc .AUTODEPEND
-        $(rc) $(rc_flags) -r -ad -DWR_COMPILED $[@ -fo=$^@
+        $(rc) $(rc_flags) -r -ad $(inc_path) -DWR_COMPILED $[@ -fo=$^@

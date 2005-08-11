@@ -4,22 +4,18 @@ host_os  = os2
 host_cpu = 386
 
 #
-# Builds WDPMHELP.EXE, WDPMHOOK.DLL
+# Builds wdpmhelp.exe, wdpmhook.dll
 #
 
 !include cproj.mif
 !include defrule.mif
 !include deftarg.mif
 
-!ifdef __LINUX__
-description = \'Open Watcom Debugger PM Helper\'
-!else
 description = 'Open Watcom Debugger PM Helper'
-!endif
 
 extra_c_flags = -s -fpc
 
-inc_dirs = $(trap_dir)/h
+inc_dirs = -I"$(trap_dir)/h"
 
 w d : wdpmhook.dll wdpmhelp.exe .SYMBOLIC
         @%null
@@ -46,15 +42,12 @@ wdpmhelp.exe: _err.gh _jerr.gh pmhelp.obj pmhelp.res
     @%append $(tmplnk) option modname=wdpmhelp
     @%append $(tmplnk) option description $(description)
     $(linker) @$(tmplnk)
-    $(rc_os2) pmhelp.res $^@
+    $(rc) pmhelp.res $^@
 
 .c: ../c
 
 pmhelp.res: ../h/pmhelp.rc ../h/wdpmhelp.h
-        @set oinc=$(%include)
-        @set include=$(inc_dirs_sys_os2);../h;$(%include)
-        $(rc_os2) -r ..\h\pmhelp.rc .\pmhelp.res
-        @set include=$(%oinc)
+        $(rc) $(rc_flags) -r $(inc_dirs_sys_os2) -fo=./pmhelp.res $[@
 
 _err.gh : ./mkstr.exe
         $[@ $^@
@@ -63,7 +56,7 @@ _jerr.gh : ./jmkstr.exe
         $[@ $^@
 
 ./mkstr.exe : $(trap_dir)/c/mkstr.c $(trap_dir)/h/trap.msg
-        $(bld_cl) $[@ $(wcl_util_opts) -i"$(trap_dir)/h"
+        $(bld_cl) $[@ $(wcl_util_opts) -I"$(trap_dir)/h"
 
 ./jmkstr.exe : $(trap_dir)/c/mkstr.c $(trap_dir)/h/trap.msg
-        $(bld_cl) $[@ $(wcl_util_opts) -dJAPANESE_MESSAGES -i"$(trap_dir)/h"
+        $(bld_cl) $[@ $(wcl_util_opts) -DJAPANESE_MESSAGES -I"$(trap_dir)/h"

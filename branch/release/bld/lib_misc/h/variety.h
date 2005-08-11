@@ -63,7 +63,7 @@
 #elif defined(__HUGE__)
     #define __BIG_DATA__
     #define __BIG_CODE__
-#elif defined(__AXP__) || defined(__PPC__)
+#elif defined(__AXP__) || defined(__PPC__) || defined(__MIPS__)
     // these effectively use near data references
     #define __SMALL_DATA__
     #define __SMALL_CODE__
@@ -115,14 +115,8 @@
     #define __PROTECT_MODE__
     #if defined(__386__)
         #define __WINDOWS__
-        #if defined(__NEC98__)
-            #define __NECWIN_386__
-        #endif
     #elif defined(M_I86)
         #define __WINDOWS_286__
-        #if defined(__NEC98__)
-            #define __NECWIN_286__
-        #endif
     #else
         #error unrecognized processor for WINDOWS
     #endif
@@ -130,15 +124,9 @@
     #if defined(__386__)
         #define __PROTECT_MODE__
         #define __DOS_386__
-        #if defined(__NEC98__)
-            #define __NECDOS_386__
-        #endif
     #elif defined(M_I86)
         #define __REAL_MODE__
         #define __DOS_086__
-        #if defined(__NEC98__)
-            #define __NECDOS_086__
-        #endif
     #else
         #error unrecognized processor for DOS
     #endif
@@ -148,13 +136,6 @@
         #define __OSI_386__
     #else
         #error unrecognized processor for OSI
-    #endif
-#elif defined(__SNAP__)
-    #if defined(__386__)
-        #define __PROTECT_MODE__
-        #define __SNAP_386__
-    #else
-        #error unrecognized processor for SNAP
     #endif
 #elif defined(__QNX__)
     #define __PROTECT_MODE__
@@ -171,6 +152,10 @@
     #define __UNIX__
     #if defined(__386__)
         #define __LINUX_386__
+    #elif defined(__PPC__)
+        #define __LINUX_PPC__
+    #elif defined(__MIPS__)
+        #define __LINUX_MIPS__
     #else
         #error unrecognized processor for Linux
     #endif
@@ -195,12 +180,21 @@
         #undef _WPRTLINK
         #undef _WPIRTLINK
         #if defined(__NT__)
-            #define _WCRTLINK __declspec(dllexport)
-            #define _WCIRTLINK __declspec(dllexport)
-            #define _WMRTLINK __declspec(dllimport)
-            #define _WMIRTLINK __declspec(dllimport)
-            #define _WPRTLINK __declspec(dllimport)
-            #define _WPIRTLINK __declspec(dllimport)
+            #if defined( __MAKE_DLL_WRTLIB )
+                #define _WCRTLINK __declspec(dllexport)
+                #define _WCIRTLINK __declspec(dllexport)
+                #define _WMRTLINK
+                #define _WMIRTLINK
+                #define _WPRTLINK
+                #define _WPIRTLINK
+            #else
+                #define _WCRTLINK __declspec(dllexport)
+                #define _WCIRTLINK __declspec(dllexport)
+                #define _WMRTLINK __declspec(dllimport)
+                #define _WMIRTLINK __declspec(dllimport)
+                #define _WPRTLINK __declspec(dllimport)
+                #define _WPIRTLINK __declspec(dllimport)
+            #endif
         #elif defined(__WARP__)
             #define _WCRTLINK __declspec(dllexport)
             #define _WCIRTLINK __declspec(dllexport)
@@ -218,12 +212,21 @@
         #undef _WPRTLINK
         #undef _WPIRTLINK
         #if defined(__NT__)
-            #define _WCRTLINK __declspec(dllimport)
-            #define _WCIRTLINK __declspec(dllimport)
-            #define _WMRTLINK __declspec(dllexport)
-            #define _WMIRTLINK __declspec(dllexport)
-            #define _WPRTLINK __declspec(dllimport)
-            #define _WPIRTLINK __declspec(dllimport)
+            #if defined( __MAKE_DLL_WRTLIB )
+                #define _WCRTLINK
+                #define _WCIRTLINK
+                #define _WMRTLINK __declspec(dllexport)
+                #define _WMIRTLINK __declspec(dllexport)
+                #define _WPRTLINK
+                #define _WPIRTLINK
+            #else
+                #define _WCRTLINK __declspec(dllimport)
+                #define _WCIRTLINK __declspec(dllimport)
+                #define _WMRTLINK __declspec(dllexport)
+                #define _WMIRTLINK __declspec(dllexport)
+                #define _WPRTLINK __declspec(dllimport)
+                #define _WPIRTLINK __declspec(dllimport)
+            #endif
         #elif defined(__WARP__)
             #define _WCRTLINK
             #define _WCIRTLINK
@@ -241,12 +244,21 @@
         #undef _WPRTLINK
         #undef _WPIRTLINK
         #if defined(__NT__)
-            #define _WCRTLINK __declspec(dllimport)
-            #define _WCIRTLINK __declspec(dllimport)
-            #define _WMRTLINK __declspec(dllimport)
-            #define _WMIRTLINK __declspec(dllimport)
-            #define _WPRTLINK __declspec(dllexport)
-            #define _WPIRTLINK __declspec(dllexport)
+            #if defined( __MAKE_DLL_WRTLIB )
+                #define _WCRTLINK
+                #define _WCIRTLINK
+                #define _WMRTLINK
+                #define _WMIRTLINK
+                #define _WPRTLINK __declspec(dllexport)
+                #define _WPIRTLINK __declspec(dllexport)
+            #else
+                #define _WCRTLINK __declspec(dllimport)
+                #define _WCIRTLINK __declspec(dllimport)
+                #define _WMRTLINK __declspec(dllimport)
+                #define _WMIRTLINK __declspec(dllimport)
+                #define _WPRTLINK __declspec(dllexport)
+                #define _WPIRTLINK __declspec(dllexport)
+            #endif
         #elif defined(__WARP__)
             #define _WCRTLINK
             #define _WCIRTLINK

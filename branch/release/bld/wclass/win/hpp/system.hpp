@@ -33,22 +33,19 @@
 #ifndef system_include
 #define system_include
 
-extern "C" {
 #if defined( __WINDOWS_386__ )
     #define INCLUDE_DDEML_H
     #define INCLUDE_COMMDLG_H
     #define INCLUDE_CDERR_H
 #endif
-    #ifndef STRICT
-    #define STRICT
-    #endif
     #include <windows.h>
 #if defined( __WINDOWS__ ) && !defined( __386__ )
     #include <ddeml.h>
     #pragma library (ddeml)
 #endif
 
-extern HINSTANCE        GUIMainHInst;
+extern "C" {
+    extern HINSTANCE        GUIMainHInst;
 }
 
 #endif

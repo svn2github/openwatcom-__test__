@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Assembler directive processing.
 *
 ****************************************************************************/
 
@@ -219,11 +218,9 @@ static bool dirFuncSetOption( directive_t *dir, dir_table_enum parm ) {
         } else if( optionString( str, "nomacro" ) ) {
             _DirUnSet( MACRO );
         } else if( optionString( str, "reorder" ) ) {
-            // ignore this for now
-            // _DirSet( REORDER );
+            _DirSet( REORDER );
         } else if( optionString( str, "noreorder" ) ) {
-            // ignore this for now
-            // _DirUnSet( REORDER );
+            _DirUnSet( REORDER );
         } else if( optionString( str, "volatile" ) ) {
             // ignore this for now
             // _DirSet( VOLATILE );
@@ -567,6 +564,7 @@ static bool assignRelocType( owl_reloc_type *owlrtype, asm_reloc_type artype, di
         OWL_RELOC_ABSOLUTE,         // ASM_RELOC_UNSPECIFIED
         OWL_RELOC_WORD,
         OWL_RELOC_HALF_HI,
+        OWL_RELOC_HALF_HA,
         OWL_RELOC_HALF_LO,
     };
 
@@ -575,6 +573,7 @@ static bool assignRelocType( owl_reloc_type *owlrtype, asm_reloc_type artype, di
         reloc_translate[ ASM_RELOC_UNSPECIFIED ] = OWL_RELOC_HALF_LO; //default
         switch( artype ) {
         case ASM_RELOC_HALF_HI:
+        case ASM_RELOC_HALF_HA:
         case ASM_RELOC_HALF_LO:
         case ASM_RELOC_UNSPECIFIED:
             *owlrtype = reloc_translate[ artype ];
@@ -839,16 +838,18 @@ static dir_table asm_directives[] = {
     #ifdef _STANDALONE_
     { ".version",   dirFuncIgnore,          DT_NOPARM,      LINE },
     #endif
-    #ifdef AS_ALPHA
+    #if defined( AS_ALPHA )
     { "unop",       dirFuncNop,             DT_NOP_NOP,     NONE },
     { "fnop",       dirFuncNop,             DT_NOP_FNOP,    NONE },
     { ".s_floating",dirFuncValues,          DT_VAL_FLOAT,   FLT | RFLT },
     { ".t_floating",dirFuncValues,          DT_VAL_DOUBLE,  FLT | RFLT },
     { ".word",      dirFuncValues,          DT_VAL_INT16,   INT | RINT | SYM },
-    #else // AS_PPC
+    #elif defined( AS_PPC )
     { ".word",      dirFuncValues,          DT_VAL_INT32,   INT | RINT | SYM },
     { ".little_endian", dirFuncIgnore,      DT_NOPARM,      LINE },
     { ".big_endian",    dirFuncUnsupported, DT_NOPARM,      LINE },
+    #elif defined( AS_MIPS )
+    { ".word",      dirFuncValues,          DT_VAL_INT32,   INT | RINT | SYM },
     #endif
 };
 
@@ -919,6 +920,7 @@ extern void DirInit( void ) {
     AsDirSetOptions = NONE;
     _DirSet( AT );
     _DirSet( MACRO );
+    _DirSet( REORDER );
 }
 
 extern void DirSetNextScanState( sym_handle sym ) {

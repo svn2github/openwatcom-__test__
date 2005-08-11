@@ -54,7 +54,7 @@ extern "C" {
 #define WC_LISTVIEWW	L"SysListView32"
 #define WC_TABCONTROLA	"SysTabControl32"
 #define WC_TABCONTROLW	L"SysTabControl32"
-#define WC_TREEVIEWA	("SysTreeView32")
+#define WC_TREEVIEWA	"SysTreeView32"
 #define WC_TREEVIEWW	L"SysTreeView32"
 #define WC_HEADERA	"SysHeader32"
 #define WC_HEADERW 	L"SysHeader32"
@@ -945,14 +945,14 @@ extern "C" {
 #if (_WIN32_IE >= 0x0400)
 #define CDDS_SUBITEM 0x20000
 #endif
-/* FIXME: missing CDRF_NOTIFYSUBITEMDRAW */
-#define CDRF_DODEFAULT 0
-#define CDRF_NOTIFYITEMDRAW 32
-#define CDRF_NOTIFYITEMERASE 128
-#define CDRF_NOTIFYPOSTERASE 64
-#define CDRF_NOTIFYPOSTPAINT 16
-#define CDRF_NEWFONT 2
-#define CDRF_SKIPDEFAULT 4
+#define CDRF_DODEFAULT 0x00
+#define CDRF_NOTIFYITEMDRAW 0x20
+#define CDRF_NOTIFYSUBITEMDRAW 0x20
+#define CDRF_NOTIFYITEMERASE 0x80
+#define CDRF_NOTIFYPOSTERASE 0x40
+#define CDRF_NOTIFYPOSTPAINT 0x10
+#define CDRF_NEWFONT 0x02
+#define CDRF_SKIPDEFAULT 0x04
 #if (_WIN32_IE >= 0x0400)
 #define LVBKIF_SOURCE_NONE      0x00000000
 #define LVBKIF_SOURCE_HBITMAP   0x00000001
@@ -3066,6 +3066,11 @@ int WINAPI LBItemFromPt(HWND,POINT,BOOL);
 #define ListView_SetCheckState(w,i,f) ListView_SetItemState(w,i,INDEXTOSTATEIMAGEMASK((f)+1),LVIS_STATEIMAGEMASK)
 #define ListView_GetISearchString(w, lpsz) (BOOL)SNDMSG((w), LVM_GETISEARCHSTRING, 0, (LPARAM) (LPTSTR)(lpsz)) 
 
+#if (_WIN32_WINNT >= 0x0501)
+#define ComboBox_SetMinVisible(w,i) (BOOL)SNDMSG((w), CB_SETMINVISIBLE, (WPARAM)(i), 0);
+#define ComboBox_GetMinVisible(w) (int)SNDMSG((w), CB_GETMINVISIBLE, 0, 0);
+#endif
+
 BOOL WINAPI MakeDragList(HWND);
 void WINAPI MenuHelp(UINT,WPARAM,LPARAM,HMENU,HINSTANCE,HWND,PUINT);
 #define MonthCal_GetColor(hwnd,icolor) SNDMSG(hwnd,MCM_GETCOLOR,(WPARAM)icolor,(LPARAM)0)
@@ -3212,6 +3217,14 @@ WINBOOL WINAPI ImageList_DrawIndirect(IMAGELISTDRAWPARAMS*);
 #endif
 #if (_WIN32_IE >= 0x0500)
 #define TreeView_GetItemState(w,i,m) (UINT)SNDMSG((w),TVM_GETITEMSTATE,(WPARAM)(i),(LPARAM)(m))
+#define TreeView_SetItemState(w,i,d,m) \
+{ \
+	TVITEM _tvi;\
+	_tvi.mask=TVIF_STATE;\
+	_tvi.stateMask=m;\
+	_tvi.state=d;\
+	SNDMSG((w),TVM_SETITEM,0,(LPARAM)(TVITEM*)&_tvi);\
+}
 #endif
 
 #ifdef UNICODE

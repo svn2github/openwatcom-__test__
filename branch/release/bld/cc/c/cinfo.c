@@ -82,7 +82,7 @@ void AssignSeg( SYM_ENTRY *sym )
 void SetFarHuge( SYMPTR sym, int report )
 {
     TYPEPTR             typ;
-    unsigned            attrib;
+    type_modifiers      attrib;
     auto unsigned long  size;
 
     report = report; /* in case not used */
@@ -107,10 +107,9 @@ void SetFarHuge( SYMPTR sym, int report )
                 }
             } else if( size > DataThreshold ) {
                 attrib |= FLAG_FAR;
-            } else if( (/* sym->stg_class == SC_STATIC || 17-may-91 */
-                    CompFlags.strings_in_code_segment ) /*JD: 29-oct-90*/
-                    && sym->attrib & FLAG_CONST ) {
-                    attrib |= FLAG_FAR;
+            } else if( CompFlags.strings_in_code_segment
+                       && ( sym->attrib & FLAG_CONST ) ) {
+                attrib |= FLAG_FAR;
             }
             #if _CPU == 8086
                 if( (attrib & FLAG_FAR) && size > 0x10000 ) {
@@ -159,7 +158,7 @@ static fe_attr FESymAttr( SYMPTR sym )
     }
     if( sym->flags & SYM_FUNCTION ) {
         attr |= FE_PROC | FE_STATIC;
-        #if _MACHINE == _ALPHA || _MACHINE == _PPC
+        #if _CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
             if( VarFunc( sym ) ) attr |= FE_VARARGS;
         #endif
         if( CompFlags.unique_functions ) {
@@ -310,8 +309,6 @@ void SetSegment( SYMPTR sym )
         sym->u.var.segment = SymSegId( sym );
     }
 }
-
-#ifndef WCPP
 
 struct  seg_name {
     char        *name;
@@ -670,6 +667,15 @@ void FEMessage( msg_class class, void *parm )
     char  msgbuf[MAX_MSG_LEN];
 
     switch( class ) {
+    case MSG_SYMBOL_TOO_LONG:
+        {
+            SYM_ENTRY   *sym;
+
+            sym = SymGetPtr( (SYM_HANDLE)parm );
+            SetSymLoc( sym );
+            CWarn( WARN_SYMBOL_NAME_TOO_LONG, ERR_SYMBOL_NAME_TOO_LONG, sym->name );
+        }
+        break;
     case MSG_BLIP:
         if( ! CompFlags.quiet_mode ) {
             ConBlip();
@@ -850,7 +856,7 @@ int FELexLevel( CGSYM_HANDLE cgsym_handle )
 }
 
 
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
 int FEParmType( CGSYM_HANDLE func, CGSYM_HANDLE parm, int tipe )
 /**************************************************************/
 {
@@ -892,7 +898,7 @@ int FEParmType( CGSYM_HANDLE func, CGSYM_HANDLE parm, int tipe )
 
     parm = parm;
     switch( tipe ) {
-#if _CPU == 386 || _CPU == 370 || _CPU == 601
+#if _CPU == 386 || _CPU == 370 || _CPU == _PPC || _CPU == _MIPS
     case T_UINT_2:
     case T_INT_2:
 #endif
@@ -922,8 +928,6 @@ int FEStackChk( CGSYM_HANDLE cgsym_handle )
     sym = SymGetPtr( sym_handle );
     return( (sym->flags & SYM_CHECK_STACK) != 0 );
 }
-
-#endif
 
 void SegInit()
 {

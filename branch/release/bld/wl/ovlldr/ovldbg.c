@@ -24,23 +24,22 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Overlay debugger support.
 *
 ****************************************************************************/
 
 
-// OVLDBG:       Overlay debugger support.
-
 #include <stddef.h>
 #include <dos.h>
-#if defined(OVL_MULTITHREAD)
-#include "movlldr.h"
-#elif defined(OVL_WHOOSH)
+#if defined( OVL_MULTITHREAD )
+#include "novlldr.h"
+#elif defined( OVL_WHOOSH )
 #include "novlldr.h"
 #else
 #include "ovlstd.h"
 #endif
+
+#include "ovldbg.h"
 
 #ifndef FALSE
 #define FALSE       0
@@ -75,16 +74,6 @@ typedef struct {
 extern ovl_dbg_info far __OVLDBGINFO__;
 #endif
 
-enum {
-    GET_SIZE_OVERLAYS,
-    SAVE_OVL_STATE,
-    RESTORE_OVL_STATE,
-    CHK_VEC_ADDR,
-    CHK_RET_ADDR,
-    GET_OVL_TBL_ADDR,
-    GET_CHANGED_SECTIONS,
-    GET_SECTION_DATA
-};
 
 static int GetSizeOverlays( void )
 /********************************/
@@ -94,9 +83,9 @@ static int GetSizeOverlays( void )
 
     number = (ovltab_entry far *)&__OVLTABEND__ - __OVLTAB__.entries;
 #ifdef OVL_WHOOSH
-    __OVLDBGINFO__.bitsize = (number+7) / 8;
+    __OVLDBGINFO__.bitsize = ( number + 7 ) / 8;
 #endif
-    return( ((number+7) / 8) + sizeof( unsigned ) + 1 );
+    return( ( ( number + 7 ) / 8 ) + sizeof( unsigned ) + 1 );
 }
 
 static int GetSectionData( ovl_addr far * data )
@@ -107,7 +96,8 @@ static int GetSectionData( ovl_addr far * data )
     ovltab_entry far *  ovl;
 
     number = (ovltab_entry far *)&__OVLTABEND__ - __OVLTAB__.entries;
-    if( data->sect > number || data->sect <= 0 ) return 0;
+    if( ( data->sect > number ) || ( data->sect <= 0 ) )
+        return( 0 );
     ovl = &__OVLTAB__.entries[data->sect - 1];
     data->sect = ovl->num_paras;
 #ifdef OVL_WHOOSH
@@ -116,7 +106,7 @@ static int GetSectionData( ovl_addr far * data )
     seg = ovl->code_handle;
 #endif
     data->addr = MK_FP( seg, 0 );
-    return 1;
+    return( 1 );
 }
 
 static int SaveOvlState( char far * data )
@@ -147,14 +137,15 @@ static int SaveOvlState( char far * data )
         }
         ovl++;
     }
-    if( mask != 1 ) ++data;
+    if( mask != 1 )
+        ++data;
 #ifndef OVL_WHOOSH
     *(unsigned *)data = __BankStack__;
 #else
     *data = 1;
     if( __OVLFLAGS__ & DBGAREA_VALID ) {
-        savedata += (__OVLDBGINFO__.section - 1) / 8;
-        *savedata |= 1 << (__OVLDBGINFO__.section - 1) % 8;
+        savedata += ( __OVLDBGINFO__.section - 1 ) / 8;
+        *savedata |= 1 << ( __OVLDBGINFO__.section - 1 ) % 8;
     }
 #endif
     return( TRUE );
@@ -175,7 +166,7 @@ static int RestoreOvlState( char far * data )
 /* If we want to load a section for the debugger to look at, do it in a special
  * area so it doesn't cause the overlay loader to go tracing through the
  * debugger stack. (or run out of memory) */
-    if( *(data + __OVLDBGINFO__.bitsize) == 0 ) {
+    if( *( data + __OVLDBGINFO__.bitsize ) == 0 ) {
         ovlnum = 1;
         while( *data == 0 ) {
             ovlnum += 8;
@@ -187,9 +178,9 @@ static int RestoreOvlState( char far * data )
             ovlnum++;
         }
         ovl = &__OVLTAB__.entries[ ovlnum - 1 ];
-        if( !(ovl->flags_anc & FLAG_INMEM) ) {
+        if( !( ovl->flags_anc & FLAG_INMEM ) ) {
             if( ( __OVLFLAGS__ & DBGAREA_VALID )
-                             && ( __OVLDBGINFO__.section != ovlnum ) ) {
+                && ( __OVLDBGINFO__.section != ovlnum ) ) {
                 __OVLTAB__.entries[__OVLDBGINFO__.section - 1].flags_anc
                                                              |= FLAG_CHANGED;
             }
@@ -213,7 +204,7 @@ static int RestoreOvlState( char far * data )
     ovl = &__OVLTAB__.entries;
     while( FP_OFF( ovl ) != FP_OFF( &__OVLTABEND__ ) ) {
 #ifndef OVL_WHOOSH
-        if( !(ovl->flags_anc & FLAG_INMEM) && (*data & mask) ) {
+        if( !( ovl->flags_anc & FLAG_INMEM ) && ( *data & mask ) ) {
             NAME( LoadOverlay )( ovlnum );
         }
 #else
@@ -234,8 +225,10 @@ static int RestoreOvlState( char far * data )
         ++ovl;
     }
 #ifndef OVL_WHOOSH
-    if( mask != 1 ) ++data;
-    if( *(unsigned *)data != 0 ) __BankStack__ = *(unsigned *)data;
+    if( mask != 1 )
+        ++data;
+    if( *(unsigned *)data != 0 )
+        __BankStack__ = *(unsigned *)data;
 #else
     __OVLFLAGS__ &= ~DBGAREA_VALID;
 #endif
@@ -254,20 +247,24 @@ static int CheckVecAddr( ovl_addr far * data )
 #endif
 
     address = data->addr;
-    if( FP_SEG( address ) != FP_SEG( &__OVLSTARTVEC__ ) ) return( FALSE );
+    if( FP_SEG( address ) != FP_SEG( &__OVLSTARTVEC__ ) )
+        return( FALSE );
     addr = FP_OFF( address );
-    if( addr < FP_OFF( &__OVLSTARTVEC__ ) ) return( FALSE );
-    if( addr >= FP_OFF( &__OVLENDVEC__ ) ) return( FALSE );
+    if( addr < FP_OFF( &__OVLSTARTVEC__ ) )
+        return( FALSE );
+    if( addr >= FP_OFF( &__OVLENDVEC__ ) )
+        return( FALSE );
     addr -= FP_OFF( &__OVLSTARTVEC__ );
-    if( addr % sizeof( vector ) != 0 ) return( FALSE );
+    if( addr % sizeof( vector ) != 0 )
+        return( FALSE );
     vect = (vector *)address;
 #ifdef OVL_SMALL
-    data->addr = MK_FP(FP_SEG(address),vect->target+(unsigned)&vect->target+2);
+    data->addr = MK_FP( FP_SEG( address ), vect->target + (unsigned)&vect->target + 2 );
     data->sect = vect->sec_num;
 #elif defined( OVL_WHOOSH )
-    if( vect->u.i.cs_over == CS_OVERRIDE ) {
-        data->sect = (vect->u.i.tab_addr - FP_OFF(__OVLTAB__.entries))
-                                                    / sizeof(ovltab_entry) + 1;
+    if( vect->u.i.cs_over == OVV_CS_OVERRIDE ) {
+        data->sect = ( vect->u.i.tab_addr - FP_OFF( __OVLTAB__.entries ) )
+                                                    / sizeof( ovltab_entry ) + 1;
         data->addr = MK_FP( vect->target.seg, vect->target.off );
     } else {
         data->sect = vect->u.v.sec_num;
@@ -287,7 +284,7 @@ static int CheckVecAddr( ovl_addr far * data )
         } else {
             addr = __OVLSTARTPARA__ + __OVLTAB__.prolog.delta;
         }
-        data->addr = MK_FP( addr, vect->target.off);
+        data->addr = MK_FP( addr, vect->target.off );
     }
 #else
     data->addr = MK_FP( vect->target.seg, vect->target.off );
@@ -306,7 +303,8 @@ static int GetChangedSections( ovl_addr far *data )
     ovltab_entry *  ovl;
     unsigned        ovl_num;
 
-     if( __OVLFLAGS__ & DBGAREA_LOADED && __OVLFLAGS__ & DBGAREA_VALID ) {
+     if( ( __OVLFLAGS__ & DBGAREA_LOADED )
+         && ( __OVLFLAGS__ & DBGAREA_VALID ) ) {
         ovl_num = __OVLDBGINFO__.section;
         if( ovl_num == data->sect ) {
             __OVLFLAGS__ &= ~DBGAREA_LOADED;
@@ -371,34 +369,34 @@ int far NAME( DBG_HANDLER )( int service, void far *data )
 
     ret = FALSE;
     switch( service ) {
-    case SAVE_OVL_STATE:
+    case OVLDBG_GET_OVERLAY_STATE:
         ret = SaveOvlState( data );
         break;
-    case RESTORE_OVL_STATE:
+    case OVLDBG_SET_OVERLAY_STATE:
         ret = RestoreOvlState( data );
         break;
-    case CHK_VEC_ADDR:
+    case OVLDBG_TRANSLATE_VECTOR_ADDR:
         ret = CheckVecAddr( data );
         break;
-    case GET_SIZE_OVERLAYS:
+    case OVLDBG_GET_STATE_SIZE:
         ret = GetSizeOverlays();
         break;
-    case CHK_RET_ADDR:
+    case OVLDBG_TRANSLATE_RETURN_ADDR:
 #ifndef OVL_WHOOSH
         ret = NAME( CheckRetAddr )( data );
 #else
         ret = __NCheckRetAddr__( data );
 #endif
         break;
-    case GET_OVL_TBL_ADDR:
+    case OVLDBG_GET_OVL_TBL_ADDR:
         *(void far *far *)data = &__OVLTAB__;
         break;
 #ifdef OVL_WHOOSH
-    case GET_CHANGED_SECTIONS:
+    case OVLDBG_GET_MOVED_SECTION:
         ret = GetChangedSections( data );
         break;
 #endif
-    case GET_SECTION_DATA:
+    case OVLDBG_GET_SECTION_DATA:
         ret = GetSectionData( data );
         break;
     }

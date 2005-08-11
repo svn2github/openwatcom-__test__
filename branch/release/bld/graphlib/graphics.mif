@@ -5,10 +5,22 @@ graph_autodepends = .AUTODEPEND
 suppress_zc = 1
 
 memory_model_i86 = s
+!ifeq host_os dos
 memory_model_386 = s
+!else ifeq host_os qnx
+memory_model_386 = s
+!endif
 
 suffix_register = r
 suffix_stack = s
+
+fpu_flags_dos_i86 = -fpc
+fpu_flags_dos_386 = -fpc
+fpu_flags_qnx_i86 = -fpc
+fpu_flags_qnx_386 = -fpc
+fpu_flags_os2_i86 = -fpc
+fpu_flags_os2_386 = -fpc
+fpu_flags_win_i86 = -fpc
 
 objs = &
         sqrtf.obj &
@@ -134,13 +146,10 @@ special_objs = &
         fsmath.obj &
         dummy.obj
 
-!ifndef _WIN
-objs += $(eng_nonwin_objs)
-!endif
-
-!ifdef _WIN
+!ifeq host_os win
 objs += $(win_objs)
 !else
+objs += $(eng_nonwin_objs)
 objs += $(english_objs)
 !endif
 
@@ -148,14 +157,13 @@ objs += $(english_objs)
 !include defrule.mif
 !include deftarg.mif
 
+inc_dirs = -I"$(dev_dir)/graphlib/h"
 !ifeq host_os qnx
-inc_dirs = $(dev_dir)/graphlib/h;$(hdr_dir)/qnx;$(watcom_dir)/h;$(%watcom)/qh;$(%watcom)/h
+inc_dirs += -I"$(hdr_dir)/qnx"
+!else ifeq host_os win
+inc_dirs += -I"$(hdr_dir)/dos" -I"$(clib_dir)/h" -I"$(clib_dir)/defwin/h" -I"$(lib_misc_dir)/h" -I"$(wpi_dir)/h"
 !else
-inc_dirs = $(dev_dir)/graphlib/h;$(hdr_dir)/dos;$(watcom_dir)/h;$(%watcom)/h
-!endif
-
-!ifdef _WIN
-inc_dirs += ;$(%watcom)/h/win;$(clib_dir)/h;$(clib_dir)/defwin/h;$(wpi_dir)/h;$(inc_dirs_sys)
+inc_dirs += -I"$(hdr_dir)/dos"
 !endif
 
 !ifeq host_cpu 386
@@ -166,27 +174,26 @@ inc_dirs += ;$(%watcom)/h/win;$(clib_dir)/h;$(clib_dir)/defwin/h;$(wpi_dir)/h;$(
 
 .c: ../c
 
-extra_c_flags_ = -d_SUPERVGA
-extra_c_flags = -r -zl -zld -fpc -d_FARD= -nm=$[&$(suffix_$(convention)) -fo=$@ $(extra_c_flags_$(machine))
+extra_c_flags = -os -s -zl -nm=$[&$(suffix_$(convention)) -D_SUPERVGA -D_FARD= $(extra_c_flags_$(machine)) -fo=$@
 
+extra_c_flags_i86 = -nt=GRAPH_TEXT -D_CGRAPH=_loadds
 extra_c_flags_386_register = -3r
 extra_c_flags_386_stack = -3s -d__STACK
-extra_c_flags_386 = $(extra_c_flags_386_$(convention)) -nt=_TEXT -d_CGRAPH=
-extra_c_flags_i86 = -nt=GRAPH_TEXT -d_CGRAPH=_loadds
+extra_c_flags_386 = $(extra_c_flags_386_$(convention)) -D_CGRAPH=
 
 extra_c_flags_qnx = -bt=dos # ?????
 
-extra_a_flags = -ms -i"../inc" $(extra_a_flags_$(machine)) -zld -fo=$@
+extra_a_flags = -ms -i"../inc" $(extra_a_flags_$(machine)) -fo=$@
 
-extra_a_flags_i86 = -d_TEXT=GRAPH_TEXT
+extra_a_flags_i86 = -D_TEXT=GRAPH_TEXT
 extra_a_flags_386_register = -3r
 extra_a_flags_386_stack = -3s
 extra_a_flags_386 = $(extra_a_flags_386_$(convention))
 
-extra_a_flags_qnx = -d_QNX
+extra_a_flags_qnx = -D_QNX
 
 $(libname).lib : $(special_objs) graphics.lbc
-        $(librarian) -b -n $@ @ $]@
+        $(librarian) -b -n $@ @$]@
 
 graphics.lbc : $(objs)
         %create $@

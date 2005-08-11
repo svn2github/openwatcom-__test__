@@ -50,6 +50,7 @@
 #include "directiv.h"
 #include "queues.h"
 #include "womputil.h"
+#include "asmlabel.h"
 
 #include "myassert.h"
 
@@ -61,7 +62,6 @@
 
 extern char             *ScanLine( char *, int );
 extern void             FreeIncludePath( void );
-extern void             PrepAnonLabels( void );
 extern void             CheckForOpenConditionals();
 extern bool             PopLineQueue();
 extern void             set_cpu_parameters( void );
@@ -189,15 +189,15 @@ void OutSelect( bool starts )
     unsigned long       curr;
 
     if( starts ) {
-        if( !Options.output_data_in_code_records || Globals.data_in_code 
+        if( !Options.output_comment_data_in_code_records || Globals.data_in_code 
             || !Globals.code_seg )
             return;
         Globals.sel_start = GetCurrAddr();
         Globals.data_in_code = TRUE;
     } else {
-        if( !Options.output_data_in_code_records || !Globals.data_in_code )
+        if( !Options.output_comment_data_in_code_records || !Globals.data_in_code )
             return;
-        Globals.sel_idx = CurrSeg->seg->sym.segidx;
+        Globals.sel_idx = GetSegIdx( &CurrSeg->seg->sym );
         Globals.data_in_code = FALSE;
 
         if( (Parse_Pass > PASS_1) && !PhaseError ) {
@@ -332,9 +332,9 @@ static void write_grp( void )
         for( seg = curr->e.grpinfo->seglist; seg; seg = seg->next ) {
             writeseg = TRUE;
             segminfo = (dir_node *)(seg->seg);
-            if( ( segminfo->sym.state != SYM_SEG ) || ( segminfo->sym.segidx == 0 ) ) {
+            if( ( segminfo->sym.state != SYM_SEG ) || ( segminfo->sym.segment == NULL ) ) {
                 LineNumber = curr->line;
-                AsmError( SEG_NOT_DEFINED );
+                AsmErr( SEG_NOT_DEFINED, segminfo->sym.name );
                 write_to_file = FALSE;
                 LineNumber = line;
             } else {
@@ -345,6 +345,8 @@ static void write_grp( void )
         if( write_to_file ) {
             ObjTruncRec( grp );
             write_record( grp, TRUE );
+        } else {
+            ObjKillRec( grp );
         }
     }
 }
@@ -357,22 +359,24 @@ static void write_seg( void )
     uint        seg_index;
     uint        total_segs = 0;
 
-    for( curr = Tables[TAB_SEG].head; curr; curr = curr->next )
+    for( curr = Tables[TAB_SEG].head; curr; curr = curr->next ) {
+        if( ( curr->sym.segment == NULL ) 
+          && ( curr->e.seginfo->group == NULL ) )
+            AsmErr( SEG_NOT_DEFINED, curr->sym.name );
         total_segs++;
+    }
 
-    curr = Tables[TAB_SEG].head;
     for( seg_index = 1; seg_index <= total_segs; seg_index++ ) {
-        if( curr->sym.segidx != seg_index ) {
-            /* segment is not in order ... so find it */
-            for( curr = Tables[TAB_SEG].head; curr; curr = curr->next ) {
-                if( curr->sym.segidx == seg_index ) {
-                    break;
-                }
+        /* find segment by index */
+        for( curr = Tables[TAB_SEG].head; curr; curr = curr->next ) {
+            if( GetSegIdx( curr->sym.segment ) == seg_index ) {
+                break;
             }
         }
-        if( curr == NULL || curr->sym.state != SYM_SEG ) {
-            AsmError( SEG_NOT_DEFINED );
-            curr = Tables[TAB_SEG].head;
+        if( curr == NULL )
+            continue;
+        if( curr->sym.state != SYM_SEG ) {
+            AsmErr( SEG_NOT_DEFINED, curr->sym.name );
             continue;
         }
         objr = curr->e.seginfo->segrec;
@@ -380,6 +384,17 @@ static void write_seg( void )
         objr->d.segdef.ovl_name_idx = 1;
         objr->d.segdef.seg_name_idx = GetLnameIdx( curr->sym.name );
         write_record( objr, FALSE );
+        if( curr->e.seginfo->iscode == SEGTYPE_ISCODE ) {
+            obj_rec     *rec;
+
+            rec = ObjNewRec( CMD_COMENT );
+            rec->d.coment.attr = CMT_TNP;
+            rec->d.coment.class = CMT_LINKER_DIRECTIVE;
+            ObjAllocData( rec, 3  );
+            ObjPut8( rec, LDIR_OPT_FAR_CALLS );
+            ObjPutIndex( rec, seg_index );
+            write_record( rec, TRUE );
+        }
     }
 }
 
@@ -448,6 +463,8 @@ static dir_node *write_extdef( dir_node *start )
     if( num != 0 ) {
         objr->d.extdef.num_names = num;
         write_record( objr, TRUE );
+    } else {
+        ObjKillRec( objr );
     }
     return( curr );
 }
@@ -589,6 +606,8 @@ static dir_node *write_comdef( dir_node *start )
     if( num != 0 ) {
         objr->d.comdef.num_names = num;
         write_record( objr, TRUE );
+    } else {
+        ObjKillRec( objr );
     }
     return( curr );
 }
@@ -704,7 +723,7 @@ static void write_linnum( void )
         objr->is_32 = need_32;
         objr->d.linnum.num_lines = count;
         objr->d.linnum.lines = ldata;
-        objr->d.linnum.d.base.grp_idx = GetCurrGrp(); // fixme ?
+        objr->d.linnum.d.base.grp_idx = GetGrpIdx( GetGrp( &GetCurrSeg()->sym ) ); // fixme ?
         objr->d.linnum.d.base.seg_idx = CurrSeg->seg->e.seginfo->segrec->d.segdef.idx;
         objr->d.linnum.d.base.frame = 0; // fixme ?
 
@@ -986,10 +1005,8 @@ static void reset_seg_len( void )
     dir_node    *curr;
 
     for( curr = Tables[TAB_SEG].head; curr; curr = curr->next ) {
-        if( ( curr->sym.state != SYM_SEG ) || ( curr->sym.segidx == 0 ) ) {
-            AsmError( SEG_NOT_DEFINED );
+        if( ( curr->sym.state != SYM_SEG ) || ( curr->sym.segment == NULL ) )
             continue;
-        }
         if( curr->e.seginfo->segrec->d.segdef.combine != COMB_STACK ) {
             curr->e.seginfo->segrec->d.segdef.seg_length = 0;
         }
@@ -1041,8 +1058,9 @@ static unsigned long OnePass( char *string )
         if( ScanLine( string, MAX_LINE_LEN ) == NULL )
             break; // EOF
         AsmLine( string );
-        if( EndDirectiveFound )
+        if( EndDirectiveFound ) {
             break;
+        }
     }
     CheckProcOpen();
     return( PassTotal );
@@ -1062,8 +1080,11 @@ void WriteObjModule( void )
     write_init();
 
     Parse_Pass = PASS_1;
+#ifdef DEBUG_OUT
+    if( Options.debug )
+        printf( "*************\npass %u\n*************\n", Parse_Pass + 1 );
+#endif
     prev_total = OnePass( string );
-    CheckForOpenConditionals();
     if( EndDirectiveFound ) {
         if( !Options.stop_at_end ) {
             for( ;; ) {
@@ -1083,6 +1104,7 @@ void WriteObjModule( void )
     }
     while( PopLineQueue() ) {
     }
+    CheckForOpenConditionals();
     for( ;; ) {
         if( !write_to_file || Options.error_count > 0 )
             break;
@@ -1095,6 +1117,10 @@ void WriteObjModule( void )
         Globals.data_in_code = FALSE;
         PrepAnonLabels();
 
+#ifdef DEBUG_OUT
+        if( Options.debug )
+            printf( "*************\npass %u\n*************\n", Parse_Pass + 1 );
+#endif
         curr_total = OnePass( string );
         // remove all remaining lines and deallocate corresponding memory
         while( ScanLine( string, MAX_LINE_LEN ) != NULL ) {

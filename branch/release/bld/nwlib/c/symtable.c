@@ -288,10 +288,12 @@ static void SortSymbols()
     }
 
     if( NumSymbols == 0 ) {
-        FatalError( ERR_NO_SYMBOLS );
+        SortedSymbols = NULL;
+        Warning( ERR_NO_SYMBOLS );
+    } else {
+        SortedSymbols = MemAllocGlobal( NumSymbols * sizeof( SortedSymbols[0] ) );
     }
 
-    SortedSymbols = MemAllocGlobal( NumSymbols * sizeof( SortedSymbols[0] ) );
     sym_curr = SortedSymbols;
     for( file = FileTable.first; file != NULL; file = file->next ) {
         for( sym = file->first; sym != NULL; sym = sym->next ) {
@@ -552,8 +554,8 @@ void WriteFileTable()
     if( Options.coff_found && (Options.libtype == 0 || Options.libtype == WL_TYPE_OMF) ) {
         Options.libtype = WL_TYPE_AR;
     }
-    if( Options.elf_found && Options.libtype == 0 ) {
-        Options.libtype = WL_TYPE_MLIB;
+    if( Options.elf_found && (Options.libtype == 0 || Options.libtype == WL_TYPE_OMF) ) {
+        Options.libtype = WL_TYPE_AR;
     }
     if( Options.libtype == WL_TYPE_AR || Options.libtype == WL_TYPE_MLIB ) {
         WriteArMlibFileTable();

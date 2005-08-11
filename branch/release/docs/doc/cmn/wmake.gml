@@ -387,9 +387,14 @@ __LOADDLL__= defined if DLL loading supported
 __MSDOS__ =  defined if MS/DOS version
 __NT__ = defined if Windows NT version
 __NT386__ = defined if x86 Windows NT version
+.*__NTAXP__ = defined if Alpha AXP Windows NT version
 __OS2__ = defined if OS/2 version
 __QNX__ = defined if QNX version
 __LINUX__ = defined if Linux version
+__LINUX386__ = defined if x86 Linux version
+.*__LINUXPPC__ = defined if PowerPC Linux version
+.*__LINUXMIPS__ = defined if MIPS Linux version
+__UNIX__ = defined if QNX or Linux version
 MAKE = <name of file containing &makcmdup>
 #endif
 # clear &sysper.EXTENSIONS list
@@ -617,6 +622,10 @@ This macro is defined in the Windows NT environment.
 This macro is defined in the OS/2 environment.
 .point __LINUX__
 This macro is defined in the Linux environment.
+.point __QNX__
+This macro is defined in the QNX environment.
+.point __UNIX__
+This macro is defined in the Linux or QNX environment.
 .point __MAKEOPTS__
 contains all of the command line options that &makcmdup was invoked
 with except for any use of the "f" or "n" options.
@@ -1252,10 +1261,10 @@ for a full description of its use.
 #
 
 &sysper.error:
-    @echo it is good that "$@" is known
+        @echo it is good that "$@" is known
 
-all: .symbolic
-    false
+all : .symbolic
+        false
 .millust end
 .*
 .section Ignoring Target Timestamp (.EXISTSONLY)
@@ -1264,26 +1273,44 @@ all: .symbolic
 .ix 'EXISTSONLY' '&makcmdup directive'
 The
 .id &sysper.EXISTSONLY
-directive indicates to &maksname that the target should not be updated if it already exists, regardless of its timestamp.
+directive indicates to &maksname that the target should not be updated if it
+already exists, regardless of its timestamp.
 .millust begin
 #
 # .existsonly directive
 #
 
 foo: .existsonly
-    wtouch $@
+        wtouch $@
 .millust end
 .pc
 If absent, this file creates foo; if present, this file does nothing.
 .*
-.section (.EXPLICIT)
+.section Specifying Explicitly Updated Targets (.EXPLICIT)
 .*
 .ix '&makcmdup directives' '.EXPLICIT'
 .ix 'EXPLICIT' '&makcmdup directive'
 The
 .id &sysper.EXPLICIT
-directive seems to be largely redundant. The code only that uses it
-treats the first target of a rule as special. The author can make no sense of that.
+directive may me used to specify a target that needs to be explicitly
+updated. Normally, the first target in a makefule will be implicitly updated
+if no target is specified on &maksname command line. The
+.id &sysper.EXPLICIT
+directive prevents this, and is useful for instance when creating files
+designed to be included for other make files.
+.millust begin
+#
+# .EXPLICIT example
+#
+target : .symbolic .explicit
+        @echo updating first target
+
+next : .symbolic
+        @echo updating next target
+.millust end
+.pc
+In the above example, &maksname will not automatically update "target",
+despite the fact that it is the first one listed.
 .*
 .section *refid=extensions Defining Recognized File Extensions (.EXTENSIONS)
 .*
@@ -1369,42 +1396,24 @@ fubar.bar: .existsonly
 .pc
 The first time this example runs, &maksname creates fubar.foo.
 This example always ensures that fubar.foo is a copy of fubar.bar.
-Note the implicit connection beween the two files. A more realistic example is
-.millust begin
-#
-# Implicit use of .extensions/.suffixes
-# (Use with -ms or -u command line options.)
-#
-
-hello.exe :
-.millust end
+Note the implicit connection beween the two files.
 .*
-.section Approximate Date Matching (.FUZZY)
+.section Approximate Timestamp Matching (.FUZZY)
 .*
 .ix '&makcmdup directives' '.FUZZY'
 .ix 'FUZZY' '&makcmdup directive'
 The
 .id &sysper.FUZZY
 directive allows
+.ix '&makcmdup directives' '.AUTODEPEND'
+.ix 'AUTODEPEND' '&makcmdup directive'
 .id &sysper.AUTODEPEND
-times to be out by a minute without causing a rebuild.
-It does not work on 2003-12-03. The following example should build
-once and leave hello.c 5 seconds younger than hello.exe but not
-viewed as younger.
-.millust begin
-#
-# .fuzzy example
-#
-
-&sysper.fuzzy
-
-&sysper.c.exe: .autodepend
-    wcl386 -zq $<
-    sleep 5
-    wtouch $<
-
-hello.exe:
-.millust end
+times to be out by a minute without considering a target out of date.
+It is only useful in conjunction with the
+.ix '&makcmdup directives' '.JUST_ENOUGH'
+.ix 'JUST_ENOUGH' '&makcmdup directive'
+.id &sysper.JUST_ENOUGH
+directive when &maksname is calculating the timestamp to set the target to.
 .*
 .section Preserving Targets After Error (.HOLD)
 .*
@@ -1519,36 +1528,87 @@ use the
 directive.
 .endpoint
 .*
-.section Minimise Target Timestamp (.JUST_ENOUGH)
+.section Minimising Target Timestamp (.JUST_ENOUGH)
 .*
 .ix '&makcmdup directives' '.JUST_ENOUGH'
 .ix 'JUST_ENOUGH' '&makcmdup directive'
 The
 .id &sysper.JUST_ENOUGH
-directive is equivalent to the undocumented "j" command line option.
-The times of created targets are set to be the same as their youngest
-dependendents.
+directive is equivalent to the "j" command line option.
+The timestamps of created targets are set to be the same as those of their
+youngest dependendents.
 .millust begin
 #
-# .just_enough example
+# .JUST_ENOUGH example
 #
 
 &sysper.just_enough
 
 &sysper.c.exe:
-    wcl386 -zq $<
+        wcl386 -zq $<
 
 hello.exe:
 .millust end
 .pc
-hello.exe is given the same time as hello.c.
+hello.exe is given the same timestamp as hello.c, and not the usual timestamp
+corresponding to when hello.exe was built.
 .*
-.section (.MULTIPLE)
+.section Updating Targets Multiple Times (.MULTIPLE)
 .*
+.ix '&makcmdup directives' '.MULTIPLE'
+.ix 'MULTIPLE' '&makcmdup directive'
 The
 .id &sysper.MULTIPLE
-directive exists but no code is provided to implement its unknown
-purpose.
+directive is used to update a target multiple times. Normally, &maksname
+will only update each target once while processing a makefile. The
+.id &sysper.MULTIPLE
+directive is useful if a target needs to be updated more than once, for
+instance in case the target is destroyed during processing of other targets.
+Consider the following example:
+.millust begin
+#
+# example not using .multiple
+#
+
+all: targ1 targ2
+
+target:
+        wtouch target
+
+targ1: target
+        rm target
+        wtouch targ1
+
+targ2: target
+        rm target
+        wtouch targ2
+.millust end
+.pc
+This makefile will fail because "target" is destroyed when updating "targ1",
+and later is implicitly expected to exist when updating "targ2". Using the
+.id &sysper.MULTIPLE
+directive will work around this problem:
+.millust begin
+#
+# .MULTIPLE example
+#
+
+all : targ1 targ2
+
+target : .multiple
+        wtouch target
+
+targ1 : target
+        rm target
+        wtouch targ1
+
+targ2 : target
+        rm target
+        wtouch targ2
+.millust end
+.pc
+Now &maksname will attempt to update "target" again when updating "targ2",
+discover that "target" doesn't exist, and recreate it.
 .*
 .section Ignoring Target Timestamp (.NOCHECK)
 .*
@@ -1642,6 +1702,27 @@ all: .symbolic
 proc: .procedure
     @echo Executing procedure "proc"
 .millust end
+.*
+.section Re-Checking Target Timestamp (.RECHECK)
+.*
+.ix '&makcmdup directives' '.RECHECK'
+.ix 'RECHECK' '&makcmdup directive'
+Make will re-check the target's timestamp, rather than assuming it was updated
+by its command list. This is useful if the target is built by another make-
+style tool, as in the following example:
+.millust begin
+#
+# .RECHECK example
+#
+foo.gz : foo
+        gzip foo
+
+foo : .ALWAYS .RECHECK
+        nant -buildfile:foo.build
+.millust end
+.pc
+foo's command list will always be run, but foo will only be compressed if the
+timestamp is actually changed.
 .*
 .section Suppressing Terminal Output (.SILENT)
 .*
@@ -2039,7 +2120,8 @@ There are two other special environment macros that are predefined by
 &maksname..
 .ix '&makcmdup special macros' '$(%cdrive)'
 The macro identifier "%cdrive" will expand into one letter
-representing the current drive.
+representing the current drive. Note that it is operating system
+dependent whether the cd command changes the current drive.
 .ix '&makcmdup special macros' '$(%cwd)'
 The macro identifier "%cwd" will expand into the current working
 directory.
@@ -2422,6 +2504,52 @@ The special macro "$$" will result in a "$" when expanded and "$#"
 will expand into a "#".
 These special macros are provided so that you are not forced to work
 around the special meanings of the "$" and "#" characters.
+.np
+There is also a simple macro text substitution facility.
+We have previously seen that a macro call can be made with $(macroname).
+The construct $(macroname:string1=string2) substitutes macroname with
+each occurrence of string1 replaced by string2. We have already seen that
+it can be useful for a macro to be a set of object file names separated
+by spaces. The file directive in &lnkcmd can accept a set of names separated
+by commas.
+.millust begin
+#
+# programming example
+# (macro substitution)
+#
+
+&sysper.c.obj:
+        &compcmd -zq $*.c
+
+object_files = main.obj input.obj calc.obj output.obj
+
+plot&exe : $(object_files)
+        &lnkcmd name $@ file $(object_files: =,)
+
+.millust end
+.np
+Note that macro substitution cannot be used with special macros.
+.np
+It is also worth noting that although the above example shows a valid
+approach, the same problem, that is, providing a list of object files
+to &lnkcmd, can be solved without macro subsitutions. The solution is
+using the {} syntax of &lnkcmd, as shown in the following example.
+Refer to the &lnkname Guide for details.
+.millust begin
+#
+# programming example
+# (not using macro substitution)
+#
+
+&sysper.c.obj:
+        &compcmd -zq $*.c
+
+object_files = main.obj input.obj calc.obj output.obj
+
+plot&exe : $(object_files)
+        &lnkcmd name $@ file { $(object_files) }
+
+.millust end
 .*
 .section Implicit Rules
 .*
@@ -2928,7 +3056,7 @@ update    output.obj
 etc.
 .code end
 .pc
-Notice that &maksname checked the sub-directory "..\&srcup\PRORGAM" for
+Notice that &maksname checked the sub-directory "..\&srcup\PROGRAM" for
 the files "INPUT.&langsuffup" and "OUTPUT.&langsuffup".
 &maksname optionally may use a circular path specification search which
 may save on disk activity for large makefiles.

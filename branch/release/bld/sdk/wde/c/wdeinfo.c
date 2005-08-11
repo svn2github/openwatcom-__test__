@@ -30,7 +30,6 @@
 ****************************************************************************/
 
 
-#define STRICT
 #include <windows.h>
 #include <win1632.h>
 #include <string.h>
@@ -83,7 +82,7 @@ static void WdeAddUniqueStringToCombo( HWND hdlg, int id, char *str );
 /****************************************************************************/
 static HWND             WdeInfoWindow           = NULL;
 static HBRUSH           WdeInfoBrush            = NULL;
-static COLORREF         WdeInfoColor            = NULL;
+static COLORREF         WdeInfoColor            = 0;
 static int              WdeInfoWindowDepth      = 0;
 static DLGPROC          WdeInfoWinProc          = NULL;
 static WdeInfoStruct    WdeCurrentInfo;
@@ -301,7 +300,7 @@ void WdeWriteInfo ( WdeInfoStruct *is )
 {
     static WdeHashTable *last_table = NULL;
     static WdeResInfo   *last_res   = NULL;
-    static OBJ_ID        last_obj   = NULL;
+    static OBJ_ID        last_obj   = 0;
     char *cap_text, *id;
     Bool  same_hash;
 

@@ -38,14 +38,13 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <ctype.h>
-#if !defined( UNIX ) && !defined( __UNIX__ )
+#if !defined( __UNIX__ )
     #include <direct.h>
 #else
     #include <sys/stat.h>
 #endif
 
 #if defined( __WINDOWS__ ) || defined( __NT__ )
-    #define STRICT
     #include "windows.h"
 #endif
 
@@ -61,17 +60,9 @@
 #include "genctrl.h"
 #include "dlggen.h"
 #include "utils.h"
-#if !defined( UNIX ) && !defined( __UNIX__ )
+#include "setupio.h"
+#if !defined( __UNIX__ )
     #include "bdiff.h"
-#endif
-#if defined( WSQL )
-    #include <sys/stat.h>
-    #include <sys/utime.h>
-    #include "wsqldef.h"
-    #include "standard.h"
-    #include "license.h"
-    #include "dbparms.h"
-    #include "wsql.h"
 #endif
 
 extern char             *TrimQuote(char*);
@@ -122,10 +113,7 @@ typedef enum {
 } PATCHCOMMANDTYPE;
 
 typedef enum {
-    REG_EXE             = 0,
-    AUTH_EXE            = 1,
-    PARM_EXE            = 2,
-    LIC_EXE             = 4
+    REG_EXE             = 0
 } FILETYPE;
 
 struct patch_info {
@@ -231,7 +219,6 @@ static struct file_info {
     unsigned            add : 1;
     unsigned            remove : 1;
     unsigned            supplimental : 1;
-    unsigned            is_odbc : 1;
     unsigned            core_component : 1;
 } *FileInfo = NULL;
 
@@ -287,6 +274,7 @@ static struct force_DLL_install {
 
 static struct all_pm_groups {
     char        *group;
+    char        *group_file_name;
 } *AllPMGroups = NULL;
 
 typedef enum {
@@ -321,12 +309,12 @@ typedef enum {
 static read_state       State;
 static size_t           NoLineCount;
 static size_t           *LineCountPointer = &NoLineCount;
-static vhandle          hMakeDisks;
 static bool             NeedGetDiskSizes = FALSE;
 static bool             NeedInitAutoSetValues = TRUE;
 static char             *ReadBuf;
 static size_t           ReadBufSize;
-extern bool             RemoveODBC;
+static char             *RawReadBuf;
+static char             *RawBufPos;
 extern gui_coord        GUIScale;
 static int              MaxWidthChars;
 static int              CharWidth;
@@ -633,7 +621,7 @@ static void EndHandle( char *source )
     int         length;
 
     length = strlen( source );
-#if defined( UNIX ) || defined( __UNIX__ )
+#if defined( __UNIX__ )
     if( source[ length - 1 ] != '/' ) {
         source[ length ] = '/';
         source[ length + 1 ] = '\0';
@@ -876,11 +864,16 @@ static char *find_break( char *text, DIALOG_INFO *dlg, int *chwidth )
     char            *e;
     char            *n;
     char            *br;
+    char            *s;
     int             len;
     gui_ord         width;
     int             winwidth;
 
-    len = strlen( text );
+    // Line endings are word breaks already
+    s = text;
+    while( *s && (*s != '\r') && (*s != '\n') ) s++;
+    len = s - text;
+
     winwidth = dlg->wrap_width * CharWidth;
     // Use string length as cutoff to avoid overflow on width
     if( len < 2 * dlg->wrap_width ) {
@@ -916,60 +909,11 @@ static char *find_break( char *text, DIALOG_INFO *dlg, int *chwidth )
     return( br );
 }
 
-#if defined( WSQL )
-
-static bool word_wrap( char *text, DIALOG_INFO *dlg, char *vis_condition )
-/************************************************************************/
-{
-    int                 len;
-    int                 i;
-    bool                rc = TRUE;
-    char                savechar;
-    char                *next;
-    int                 chwidth;
-    vhandle             var_handle;
-    char                dummy_var[ DUMMY_VAR_SIZE ];
-
-    for( i = 0 ;; i++ ) {
-        while( *text == ' '  ||  *text == '\t' ) {
-            ++text;
-        }
-        next = find_break( text, dlg, &chwidth );
-        savechar = *next;
-        *next = '\0';
-        len = next - text;
-        if( vis_condition != NULL ) {
-            // condition for visibility (dynamic)
-            GUIStrDup( vis_condition,
-                       &dlg->curr_dialog->pVisibilityConds[ dlg->curr_dialog->num_controls + i ] );
-        }
-        MakeDummyVar( dummy_var );
-        // dummy_var allows control to have an id - used by dynamic visibility feature
-        var_handle = AddVariable( dummy_var );
-        set_dlg_dynamstring( dlg->curr_dialog->controls, dlg->array.num-1,
-                             text, var_handle, dlg->col_num, dlg->row_num, dlg->col_num + chwidth );
-        *next = savechar;
-        if( savechar == '\0' ) {
-            break;
-        }
-        text = next;
-        dlg->col_num = C0;
-        dlg->row_num += 1;
-        BumpArray( &dlg->array );
-    }
-    return( rc );
-}
-
-
-#endif
-
 static bool dialog_static( char *next, DIALOG_INFO *dlg )
 /*******************************************************/
 {
     char                *line;
-#ifndef WSQL
     int                 len;
-#endif
     char                *text;
     bool                rc = TRUE;
     char                dummy_var[ DUMMY_VAR_SIZE ];
@@ -992,15 +936,10 @@ static bool dialog_static( char *next, DIALOG_INFO *dlg )
         var_handle = AddVariable( dummy_var );
         if( text != NULL ) {
             text = AddInstallName( text, TRUE );
-#ifdef WSQL
-            text = ReplaceVarsInplace( text, TRUE );
-            word_wrap( text, dlg, line );
-#else
             len = strlen( text );
             set_dlg_dynamstring( dlg->curr_dialog->controls, dlg->array.num-1,
                                  text, var_handle, dlg->col_num, dlg->row_num, dlg->col_num + len );
             dlg->max_width = max( dlg->max_width, dlg->col_num + len );
-#endif
         } else {
             set_dlg_dynamstring( dlg->curr_dialog->controls, dlg->array.num-1,
                                  "", var_handle, dlg->col_num, dlg->row_num, dlg->col_num + 0 );
@@ -1854,6 +1793,7 @@ static bool ProcLine( char *line, pass_type pass )
             if( !BumpArray( &SetupInfo.all_pm_groups ) )
                 return( FALSE );
             GUIStrDup( line, &AllPMGroups[ num ].group );
+            GUIStrDup( SetupInfo.pm_group_file_name, &AllPMGroups[ num ].group_file_name );
             if( next == NULL ) {
                 SetupInfo.pm_group_icon = NULL;
             } else {
@@ -1914,7 +1854,6 @@ static bool ProcLine( char *line, pass_type pass )
                 return( NULL );
         }
         FileInfo[num].supplimental = FALSE;
-        FileInfo[num].is_odbc = FALSE;
         FileInfo[num].core_component = FALSE;
         FileInfo[ num ].num_files = tmp;
         while( --tmp >= 0 ) {
@@ -1926,7 +1865,7 @@ static bool ProcLine( char *line, pass_type pass )
             {
                 char    fext[_MAX_EXT];
                 _splitpath( file->name, NULL, NULL, NULL, fext );
-                file->is_nlm = stricmp( fext, ".NLM" ) == 0;
+                file->is_nlm = stricmp( fext, ".nlm" ) == 0;
             }
             line = p; p = NextToken( line, '!' );
             file->size = get36( line ) * 512UL;
@@ -1943,9 +1882,7 @@ static bool ProcLine( char *line, pass_type pass )
             }
             line = p; p = NextToken( line, '!' );
             if( p != NULL ) {
-                if( *p == 'o' ) {
-                    FileInfo[ num ].is_odbc = TRUE;
-                } else if( *p == 's' ) {
+                if( *p == 's' ) {
                     FileInfo[ num ].supplimental = TRUE;
                 } else if( *p == 'k' ) {
                     FileInfo[ num ].core_component = TRUE;
@@ -2078,6 +2015,8 @@ static bool ProcLine( char *line, pass_type pass )
         GUIStrDup( line, &PMInfo[num].desc );
         if( tmp ) {
             GUIStrDup( line, &AllPMGroups[ SetupInfo.all_pm_groups.num ].group );
+            GUIStrDup( PMInfo[num].parameters,
+                       &AllPMGroups[ SetupInfo.all_pm_groups.num ].group_file_name );
             if( !BumpArray( &SetupInfo.all_pm_groups ) )
                 return( FALSE );
         }
@@ -2220,23 +2159,6 @@ static bool ProcLine( char *line, pass_type pass )
 }
 
 
-static void ProcessDisketteInfo( char *disk_name )
-/***********************************************/
-{
-    char        buff[200];
-    FILE        *io;
-
-    io = fopen( disk_name, "r" );
-    if( io == NULL )
-        return;
-    while( fgets( buff, 200, io ) != NULL ) {
-        if( ProcLine( buff, DOING_DISKETTE ) == FALSE ) {
-            return;
-        }
-    }
-    fclose( io );
-}
-
 static void ZeroAutoSetValues();
 static bool GetFileInfo( int dir_index, int i, bool in_old_dir, bool *pzeroed )
 /*****************************************************************************/
@@ -2255,7 +2177,7 @@ static bool GetFileInfo( int dir_index, int i, bool in_old_dir, bool *pzeroed )
     if( access( buff, F_OK ) != 0 )
         return( FALSE );
 
-#if defined( UNIX ) || defined( __UNIX__ )
+#if defined( __UNIX__ )
     strcat( buff, "/" );
 #else
     strcat( buff, "\\" );
@@ -2324,13 +2246,6 @@ static bool GetDiskSizes()
     StatusLines( STAT_CHECKING, "" );
     SetVariableByHandle( PreviousInstall, "0" );
     zeroed = FALSE;
-#if defined( WSQL )
-    // if we're doing an install (instead of reinstall), don't want
-    // to initialize all of autoset variables to zero
-    if( GetVariableIntVal( "Install" ) != 0 ) {
-        zeroed = TRUE;
-    }
-#endif
     status_curr = 0;
     InitAutoSetValues();
     for( i = 0; i < SetupInfo.files.num; ++i ) {
@@ -2381,6 +2296,62 @@ static bool GetDiskSizes()
 }
 
 
+static char *readLine( void *handle, char *buffer, size_t length )
+/****************************************************************/
+{
+    static int      raw_buf_size;
+    char            *line_start;
+    size_t          len;
+    bool            done;
+
+    done = FALSE;
+    do {
+        // Read data into raw buffer if it's empty
+        if( RawBufPos == NULL ) {
+            raw_buf_size = FileRead( handle, RawReadBuf, BUF_SIZE );
+            if( raw_buf_size == -1 ) {
+                return( NULL );
+            }
+            RawBufPos = RawReadBuf;
+        }
+
+        line_start = RawBufPos;
+        // Look for a newline; check for end of source buffer and size
+        // of target buffer
+        while( (*RawBufPos != '\n') &&
+                (RawBufPos < RawReadBuf + raw_buf_size) &&
+                (RawBufPos - line_start < length) ) {
+            ++RawBufPos;
+        }
+
+        if( *RawBufPos == '\n' ) {
+            // Found a newline; increment past it
+            ++RawBufPos;
+            done = TRUE;
+        } else if( RawBufPos == RawReadBuf + raw_buf_size ) {
+            // We're at the end of the buffer; copy what we have to output buffer
+            len = RawBufPos - line_start;
+            memcpy( buffer, line_start, len );
+            length -= len;
+            buffer += len;
+
+            // Force read of more data into buffer
+            RawBufPos = NULL;
+        } else {
+            // No more space in output buffer
+            done = TRUE;
+        }
+    } while( !done );
+
+    len = RawBufPos - line_start;
+
+    memcpy( buffer, line_start, len );
+    buffer[len] = '\0';
+
+    return( buffer );
+}
+
+
 static int PrepareSetupInfo( FILE *io, pass_type pass )
 /*****************************************************/
 {
@@ -2402,7 +2373,7 @@ static int PrepareSetupInfo( FILE *io, pass_type pass )
     for( ;; ) {
         len = 0;
         for( ;; ) {
-            if( fgets( ReadBuf + len, ReadBufSize - len, io ) == NULL ) {
+            if( readLine( io, ReadBuf + len, ReadBufSize - len ) == NULL ) {
                 done = TRUE;
                 break;
             }
@@ -2416,6 +2387,16 @@ static int PrepareSetupInfo( FILE *io, pass_type pass )
             len = strlen( ReadBuf );
             if( len == 0 )
                 break;
+
+            // Manually convert CR/LF if needed
+            if( (len > 1) && (ReadBuf[len - 1] == '\n') ) {
+                if( ReadBuf[len - 2] == '\r' ) {
+                    ReadBuf[len - 2] = '\n';
+                    ReadBuf[len - 1] = '\0';
+                    --len;
+                }
+            }
+
             if( ReadBuf[len-1] == '\n' ) {
                 if( len == 1 )
                     break;
@@ -2456,37 +2437,51 @@ extern bool CheckForceDLLInstall( char *name )
     return( FALSE );
 }
 
-extern long SimInit( char *inf_name, char *disk_name )
-/****************************************************/
+extern long SimInit( char *inf_name )
+/***********************************/
 {
     long        result;
-    FILE        *io;
+    void        *io;
     struct stat stat_buf;
     int         i;
     gui_text_metrics    metrics;
 
     memset( &SetupInfo, 0, sizeof( struct setup_info ) );
-    stat( inf_name, &stat_buf );
+    FileStat( inf_name, &stat_buf );
     SetupInfo.stamp = stat_buf.st_mtime;
 #define setvar( x, y ) x = AddVariable( #x );
     MAGICVARS( setvar, 0 )
     NONMAGICVARS( setvar, 0 )
-    hMakeDisks = AddVariable( "MakeDisks" );
     SetDefaultGlobalVarList();
     ReadBufSize = BUF_SIZE;
     ReadBuf = GUIMemAlloc( BUF_SIZE );
     if( ReadBuf == NULL ) {
         return( SIM_INIT_NOMEM );
     }
-    io = fopen( inf_name, "r" );
+    RawReadBuf = GUIMemAlloc( BUF_SIZE );
+    if( RawReadBuf == NULL ) {
+        return( SIM_INIT_NOMEM );
+    }
+    RawBufPos = NULL;       // reset buffer position
+
+    io = FileOpen( inf_name, O_RDONLY + O_BINARY );
     if( io == NULL ) {
         GUIMemFree( ReadBuf );
         return( SIM_INIT_NOFILE );
     }
     SetVariableByName( "SetupInfFile", inf_name );
-    ProcessDisketteInfo( disk_name );
     result = PrepareSetupInfo( io, PRESCAN_FILE );
-    fseek( io, 0, SEEK_SET );
+#if 0
+    // Currently doesn't work for archives
+    FileSeek( io, 0, SEEK_SET );
+#else
+    FileClose( io );
+    io = FileOpen( inf_name, O_RDONLY + O_BINARY );
+    if( io == NULL ) {
+        GUIMemFree( ReadBuf );
+        return( SIM_INIT_NOFILE );
+    }
+#endif
     InitArray( &DiskInfo, sizeof( struct disk_info ), &SetupInfo.disks );
     InitArray( &DirInfo, sizeof( struct dir_info ), &SetupInfo.dirs );
     InitArray( &FileInfo, sizeof( struct file_info ), &SetupInfo.files );
@@ -2513,12 +2508,12 @@ extern long SimInit( char *inf_name, char *disk_name )
     GUIGetTextMetrics( MainWnd, &metrics );
     GUIGetDlgTextMetrics( &metrics );
     CharWidth = metrics.avg.x;
-    MaxWidthChars = GUIScale.x / CharWidth - WIDTH_BORDER;
+    MaxWidthChars = GUIScale.x / CharWidth - 4 * WIDTH_BORDER;
     if( MaxWidthChars > MAX_WINDOW_WIDTH )  {
         MaxWidthChars = MAX_WINDOW_WIDTH;
     }
     result = PrepareSetupInfo( io, FINAL_SCAN );
-    fclose( io );
+    FileClose( io );
     GUIMemFree( ReadBuf );
     for( i = 0; i < SetupInfo.files.num; ++i ) {
         FileInfo[i].condition.p = &FileCondInfo[ FileInfo[i].condition.i ];
@@ -2665,7 +2660,7 @@ extern void SimDirNoSlash( int i, char *buff )
     strcpy( dir, DirInfo[ i ].desc );
     if( dir[0] != '.'  &&  dir[0] != '\0' ) {
         len = strlen( buff );
-#if defined( UNIX ) || defined( __UNIX__ )
+#if defined( __UNIX__ )
     if( len > 0 && buff[ len - 1 ] != '/' ) {
         buff[ len ] = '/';
         buff[ len + 1 ] = '\0';
@@ -2680,7 +2675,7 @@ extern void SimDirNoSlash( int i, char *buff )
     }
     len = strlen( buff );
 
-#if defined( UNIX ) || defined( __UNIX__ )
+#if defined( __UNIX__ )
     if( len > 1 && buff[ len - 1 ] == '/' ) {
         buff[len-1] = '\0';
     }
@@ -2708,7 +2703,7 @@ extern void SimGetDir( int i, char *buff )
 
     SimDirNoSlash( i, buff );
     len = strlen( buff );
-#if defined( UNIX ) || defined( __UNIX__ )
+#if defined( __UNIX__ )
     if( len > 0 && buff[ len - 1 ] != '/' ) {
         buff[ len ] = '/';
         buff[ len + 1 ] = '\0';
@@ -2912,8 +2907,7 @@ extern bool SimFileAdd( int parm )
 extern bool SimFileRemove( int parm )
 /***********************************/
 {
-    return( FileInfo[ parm ].remove ||
-            ( FileInfo[ parm ].is_odbc && RemoveODBC ) );
+    return( FileInfo[ parm ].remove );
 }
 
 /*
@@ -3029,6 +3023,12 @@ extern void SimGetPMGroupName( int parm, char *buff )
 /***************************************************/
 {
     strcpy( buff, AllPMGroups[ parm ].group );
+}
+
+extern void SimGetPMGroupFName( int parm, char *buff )
+/****************************************************/
+{
+    strcpy( buff, AllPMGroups[ parm ].group_file_name );
 }
 
 /*
@@ -3281,7 +3281,6 @@ extern void SimCalcAddRemove()
     bool                remove;
     long                diskette;
     long                tmp_size;
-    bool                makedisks;
     vhandle             reinstall;
 #if defined( __NT__ )
     char                ext[ _MAX_EXT ];
@@ -3295,7 +3294,6 @@ extern void SimCalcAddRemove()
 
     previous = VarGetIntVal( PreviousInstall );
     uninstall = VarGetIntVal( UnInstall );
-    makedisks = VarGetIntVal( hMakeDisks );
     // look for existence of ReInstall variable - use this to decide
     // if we should remove unchecked components (wanted for SQL installs)
     reinstall = GetVariableByName( "ReInstall" );
@@ -3309,7 +3307,7 @@ extern void SimCalcAddRemove()
         targ_index = DirInfo[ dir_index ].target;
         add = EvalExprTree( FileInfo[ i ].condition.p->cond,
                              VarGetIntVal( MinimalInstall ) != 0 );
-        if( FileInfo[ i ].supplimental && !makedisks ) {
+        if( FileInfo[ i ].supplimental ) {
             remove = FALSE;
             if( uninstall ) {
                 add = FALSE;
@@ -3340,19 +3338,10 @@ extern void SimCalcAddRemove()
             } else if( SimFileSplit( i ) ) {
                 tmp_size += diskette;
             }
+            DirInfo[ dir_index ].num_files += FileInfo[i].num_files;
         }
         TargetInfo[ targ_index ].num_files += FileInfo[i].num_files;
-        DirInfo[ dir_index ].num_files += FileInfo[i].num_files;
-#if defined( WSQL ) && ( defined( WINNT ) || defined( WIN ) )
-        if( *TargetInfo[ targ_index ].temp_disk == '\\' &&
-            *( TargetInfo[ targ_index ].temp_disk + 1 ) == '\\' ) {
-            cs = ClusterSize( TargetInfo[ targ_index ].temp_disk );
-        } else {
-            cs = GetClusterSize( *TargetInfo[ targ_index ].temp_disk );
-        }
-#else
         cs = GetClusterSize( *TargetInfo[ targ_index ].temp_disk );
-#endif
         FileInfo[ i ].remove = remove;
         FileInfo[ i ].add = add;
         for( k = 0; k < FileInfo[i].num_files; ++k ) {
@@ -3366,9 +3355,9 @@ extern void SimCalcAddRemove()
             }
 
 #if defined( __NT__ )
-            // if ( supplimental is_odbc ! is_dll & & ) then we want to
+            // if ( supplimental is_dll & ) then we want to
             // keep a usage count of this dll.  Store its full path for later.
-            if( !( FileInfo[ i ].is_odbc ) && FileInfo[ i ].supplimental ) {
+            if( FileInfo[ i ].supplimental ) {
                 _splitpath( file->name, NULL, NULL, NULL, ext );
                 if( stricmp( ext, ".DLL" ) == 0 ) {
                     char                file_desc[ MAXBUF ], dir[ _MAX_PATH ], disk_desc[ MAXBUF ];
@@ -3402,9 +3391,13 @@ extern void SimCalcAddRemove()
 
             if( add ) {
                 TargetInfo[ targ_index ].space_needed += RoundUp( file->size, cs );
+#if 0   // I don't think this logic is right...
                 if( !file->is_nlm ) {
                     TargetInfo[ targ_index ].space_needed -= RoundUp( file->disk_size, cs );
                 }
+#else
+                TargetInfo[ targ_index ].space_needed -= RoundUp( file->disk_size, cs );
+#endif
                 TargetInfo[ targ_index ].needs_update = TRUE;
             } else if( remove ) {
                 TargetInfo[ targ_index ].space_needed -= RoundUp( FileInfo[ i ].files[k].disk_size, cs );
@@ -3412,21 +3405,14 @@ extern void SimCalcAddRemove()
             }
         }
     }
-    /* estimate space used for directories. Be generous. */
+    /* Estimate space used for directories. Be generous. */
     if( !uninstall ) {
         for( i = 0; i < SetupInfo.target.num; ++i ) {
-#if defined( WSQL ) && ( defined( WINNT ) || defined( WIN ) )
-            if( *TargetInfo[ targ_index ].temp_disk  == '\\' &&
-                *( TargetInfo[ targ_index ].temp_disk + 1 ) == '\\' ) {
-                cs = ClusterSize( TargetInfo[ targ_index ].temp_disk );
-            } else {
-                cs = GetClusterSize( *TargetInfo[ targ_index ].temp_disk );
-            }
-#else
             cs = GetClusterSize( *TargetInfo[ targ_index ].temp_disk );
-#endif
             for( j = 0; j < SetupInfo.dirs.num; ++j ) {
                 if( DirInfo[j].target != i )
+                    continue;
+                if( !DirInfo[j].used )
                     continue;
                 if( DirInfo[j].num_files <= DirInfo[j].num_existing )
                     continue;
@@ -3446,7 +3432,7 @@ extern bool SimCalcTargetSpaceNeeded()
 
     /* assume power of 2 */
 
-    if( NeedGetDiskSizes && VarGetIntVal( hMakeDisks ) == 0 ) {
+    if( NeedGetDiskSizes ) {
         if( !GetDiskSizes() )
             return( FALSE );
         NeedGetDiskSizes = FALSE;
@@ -3722,9 +3708,6 @@ extern bool PatchFiles( void )
     char                *appname;
     char                *msg;
     int                 Index;  // used in secondary search during patch
-    a_license           license;
-    a_db_parms          parm;
-    an_auth_block_tag   auth;
     unsigned_32         internal;
     unsigned_32         embeddedinfo;
     a_bool              go_ahead;
@@ -3792,125 +3775,7 @@ extern bool PatchFiles( void )
                             fprintf( logfp, msg, destfullpath );
                         }
 
-                        // get and remember current license, parm and auth info,
-                        // then unpack new file,
-                        // then reapply licence, parm & auth info (if applicable)
-                        if( embeddedinfo & LIC_EXE ) {
-                            if( !ReadBlock( destfullpath,
-                                            LICENSE_PREFIX,
-                                            &license,
-                                            sizeof( a_license ) ) ) {
-                                if( log ) {
-                                    fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_INVALID_EXE" ) );
-                                }
-                                if( !PatchErrorDialog( PATCH_CANT_READ, i ) ) {
-                                    if( log ) {
-                                        fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_PATCHABORT" ) );
-                                        CloseLogFile( logfp );
-                                    }
-                                    return( FALSE );
-                                }
-                                break;
-                            }
-                        }
-
-                        if( embeddedinfo & AUTH_EXE ) {
-                            if( !ReadBlock( destfullpath,
-                                            AUTH_BLOCK_TAG_STR,
-                                            &auth,
-                                            sizeof( an_auth_block_tag ) ) ) {
-                                if( log ) {
-                                    fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_INVALID_EXE" ) );
-                                }
-                                if( !PatchErrorDialog( PATCH_CANT_READ, i ) ) {
-                                    if( log ) {
-                                        fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_PATCHABORT" ) );
-                                        CloseLogFile( logfp );
-                                    }
-                                    return( FALSE );
-                                }
-                                break;
-                            }
-                        }
-
-                        if( embeddedinfo & PARM_EXE ) {
-                            if( !ReadBlock( destfullpath,
-                                            DBPARMS_TAG_STR,
-                                            &parm,
-                                            sizeof( a_db_parms ) ) ) {
-                                if( log ) {
-                                    fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_INVALID_EXE" ) );
-                                }
-                                if( !PatchErrorDialog( PATCH_CANT_READ, i ) ) {
-                                    if( log ) {
-                                        fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_PATCHABORT" ) );
-                                        CloseLogFile( logfp );
-                                    }
-                                    return( FALSE );
-                                }
-                                break;
-                            }
-                        }
-
                         if( PerformDecode( srcfullpath, destfullpath, internal ) == CFE_NOERROR ) {
-
-                            if( embeddedinfo & PARM_EXE ) {
-                                if( !WriteBlock( destfullpath,
-                                                 DBPARMS_TAG_STR,
-                                                 &parm,
-                                                 sizeof( a_db_parms ) ) ) {
-                                    if( log ) {
-                                        fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_FAILED_PATCHING" ) );
-                                    }
-                                    if( !PatchErrorDialog( PATCH_CANT_WRITE, i ) ) {
-                                        if( log ) {
-                                            fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_PATCHABORT" ) );
-                                            CloseLogFile( logfp );
-                                        }
-                                        return( FALSE );
-                                    }
-                                    break;
-                                }
-                            }
-
-                            if( embeddedinfo & AUTH_EXE ) {
-                                if( !WriteBlock( destfullpath,
-                                                 AUTH_BLOCK_TAG_STR,
-                                                 &auth,
-                                                 sizeof( an_auth_block_tag ) ) ) {
-                                    if( log ) {
-                                        fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_FAILED_PATCHING" ) );
-                                    }
-                                    if( !PatchErrorDialog( PATCH_CANT_WRITE, i ) ) {
-                                        if( log ) {
-                                            fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_PATCHABORT" ) );
-                                            CloseLogFile( logfp );
-                                        }
-                                        return( FALSE );
-                                    }
-                                    break;
-                                }
-                            }
-
-                            if( embeddedinfo & LIC_EXE ) {
-                                if( !WriteBlock( destfullpath,
-                                                 LICENSE_PREFIX,
-                                                 &license,
-                                                 sizeof( a_license ) ) ) {
-                                    if( log ) {
-                                        fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_FAILED_PATCHING" ) );
-                                    }
-                                    if( !PatchErrorDialog( PATCH_CANT_WRITE, i ) ) {
-                                        if( log ) {
-                                            fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_PATCHABORT" ) );
-                                            CloseLogFile( logfp );
-                                        }
-                                        return( FALSE );
-                                    }
-                                    break;
-                                }
-                            }
-
                             ++count;
                             if( log ) {
                                 fprintf( logfp, "%s\n", GetVariableStrVal( "IDS_SUCCESS" ) );
@@ -4074,7 +3939,7 @@ void MsgPut( int resourceid, va_list arglist )
         argbuf[i] = va_arg( arglist, char * );
     }
     switch( resourceid ) {
-#if !defined( UNIX ) && !defined( __UNIX__ )
+#if !defined( __UNIX__ )
     case ERR_TWO_NAMES:     messageid = "IDS_TWONAMES";
                             break;
     case ERR_WRONG_SIZE:    messageid = "IDS_BADLENGTH";
@@ -4117,7 +3982,7 @@ void PatchError( int format, ... )
 
     // don't give error message if the patch file cant be found
     // just continue
-#if !defined( UNIX ) && !defined( __UNIX__ )
+#if !defined( __UNIX__ )
     if( format == ERR_CANT_FIND )
         return;
 #endif
@@ -4133,7 +3998,7 @@ void FilePatchError( int format, ... )
 {
     va_list     args;
 
-#if !defined( UNIX ) && !defined( __UNIX__ )
+#if !defined( __UNIX__ )
     if( format == ERR_CANT_FIND )
         return;
     if( format == ERR_CANT_OPEN )
@@ -4380,6 +4245,7 @@ static void FreeAllPMGroups( void )
     if( AllPMGroups != NULL ) {
         for( i = 0; i < SetupInfo.all_pm_groups.num; i++ ) {
             GUIMemFree( AllPMGroups[i].group );
+            GUIMemFree( AllPMGroups[i].group_file_name );
         }
         GUIMemFree( AllPMGroups );
         AllPMGroups = NULL;
@@ -4523,138 +4389,6 @@ static void CompileCondition( char *str, char **to )
     GUIMemFree( str2 );
     GUIStrDup( buff, to );
 }
-
-
-#if defined( WSQL ) && ( defined( WINNT ) || defined( WIN ) )
-
-// Create an embedded version:
-//   Special copy of SQL Anywhere where each executable is renamed
-//   to start with a two-letter prefix. This is so that two versions
-//   can run at the same time without sharing DLLs and EXEs.
-
-#define PREFIX_LEN      2
-
-extern char             *ZapFile( char *, char * );
-
-static void ZapIconIni( char *name, char *prefix )
-{
-    char                *str;
-    int                 i;
-    int                 name_len;
-    int                 str_len;
-
-    // fix up icons - look for name in icon's filename field
-    name_len = strlen( name );
-    for( i = 0; i < SetupInfo.pm_files.num; ++i ) {
-        str = PMInfo[ i ].filename;
-        str_len = strlen( str );
-        while( str_len >= name_len ) {
-            if( memicmp( str, name, name_len ) == 0 ) {
-                memcpy( str, prefix, PREFIX_LEN );
-                break;
-            }
-            ++str;
-            --str_len;
-        }
-    }
-
-    // fix up registry and ini file items - look for name in reg's value field
-    for( i = 0; i < SetupInfo.profile.num; ++i ) {
-        str = ProfileInfo[ i ].value;
-        str_len = strlen( str );
-        while( str_len >= name_len ) {
-            if( memicmp( str, name, name_len ) == 0 ) {
-                memcpy( str, prefix, PREFIX_LEN );
-                break;
-            }
-            ++str;
-            --str_len;
-        }
-    }
-
-    // if we zap the name of the server executable, we
-    // won't be able to license the server, so fix up LicenseExe
-    str = GetVariableStrVal( "LicenseExe" );
-    if( str != NULL ) {
-        str_len = strlen( str );
-        while( str_len >= name_len ) {
-            if( memicmp( str, name, name_len ) == 0 ) {
-                memcpy( str, prefix, PREFIX_LEN );
-                break;
-            }
-            ++str;
-            --str_len;
-        }
-    }
-}
-
-static void DoZapFiles( int dir_index, char *prefix )
-{
-    int                 i;
-    int                 j;
-    char                *name;
-    char                *err;
-    char                ext[ _MAX_EXT ];
-    char                fullpath[ _MAX_PATH ];
-
-    for( i = 0; i < SetupInfo.files.num; ++i ) {
-        if( FileInfo[ i ].dir_index == dir_index && FileInfo[ i ].add ) {
-            for( j = 0; j < FileInfo[ i ].num_files; ++j ) {
-                name = FileInfo[ i ].files[ j ].name;
-                _splitpath( name, NULL, NULL, NULL, ext );
-                if( stricmp( ext, ".dll" ) == 0
-                    || stricmp( ext, ".exe" ) == 0 ) {
-                    //char      buf[ 80 ];
-                    //sprintf( buf, "going to zap %s", name );
-                    //MsgBox( NULL, "IDS_ERROR", GUI_OK, buf );
-                    StatusLines( STAT_EMBEDDED, name );
-                    SimGetDir( dir_index, fullpath );
-                    strcat( fullpath, name );
-                    err = ZapFile( fullpath, prefix );
-                    if( err != NULL ) {
-                        MsgBox( NULL, "IDS_ERROR", GUI_OK, err );
-                        // return; - user requested we continue
-                    }
-                    ZapIconIni( name, prefix );
-                }
-            }
-        }
-    }
-}
-
-void MakeEmbedded()
-{
-    char                *prefix;
-    int                 i;
-    int                 win_index;
-    int                 win32_index;
-
-    prefix = GetVariableStrVal( "EmbeddedPrefix" );
-    if( prefix == NULL || strlen( prefix ) != PREFIX_LEN ) {
-        return;
-    }
-
-    // find win and win32 subdirectories
-    win_index = -1;
-    win32_index = -1;
-    for( i = 0; i < SetupInfo.dirs.num; ++i ) {
-        if( win_index == -1 && stricmp( DirInfo[ i ].desc, "win" ) == 0 ) {
-            win_index = i;
-        } else if( win32_index == -1 && stricmp( DirInfo[ i ].desc, "win32" ) == 0 ) {
-            win32_index = i;
-        }
-    }
-    StatusAmount( 0, 1 );
-    StatusLines( STAT_EMBEDDED, "" );
-    if( GetVariableIntVal( "EmbedWin" ) == 1 && win_index != -1 ) {
-        DoZapFiles( win_index, prefix );
-    }
-    if( GetVariableIntVal( "EmbedWin32" ) == 1 && win32_index != -1 ) {
-        DoZapFiles( win32_index, prefix );
-    }
-    StatusAmount( 1, 1 );
-}
-#endif
 
 char *MakeDummyVar( char *buff )
 /******************************/

@@ -30,7 +30,6 @@
 ****************************************************************************/
 
 
-#define STRICT
 #include <windows.h>
 #include <stdio.h>
 #include <win1632.h>
@@ -95,7 +94,7 @@ static WHintItem WHints[] =
 ,   { IDM_ACC_KEYVALUE  , W_ACC_KEYVALUE        }
 ,   { IDM_ACC_ABOUT     , W_ACC_ABOUT           }
 ,   { IDM_HELP          , W_ACC_HELP            }
-,   { -1                , NULL                  }
+,   { -1                , 0                     }
 };
 
 static WPopupHintItem WPopupHints[] =
@@ -170,7 +169,7 @@ DWORD WGetPopupHint( WPopupHintItem *items, int num, HMENU popup )
         }
     }
 
-    return( NULL );
+    return( 0L );
 }
 
 void WHandlePopupHint( wstatbar *wsb, HMENU menu, HMENU popup )

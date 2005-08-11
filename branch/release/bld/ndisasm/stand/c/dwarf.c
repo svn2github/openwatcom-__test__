@@ -75,7 +75,12 @@ static void fixupLines( char *relocContents, orl_sec_handle sec )
                     for( i=0; i<3; i++ ) {
                         relocContents[i+r_entry->offset] = 0;
                     }
+// Whatever this was supposed to do, it's killing the -s option for object files
+#if 0
                     relocContents[3+r_entry->offset] = 0x80;
+#else
+                    relocContents[3+r_entry->offset] = 0;
+#endif
                 }
                 break;
         }
@@ -201,7 +206,7 @@ static void dump_state( state_info *state, int *numlines, uint limit )
     }
 }
 
-static int ConvertLines( const char * input, uint length, uint limit )
+static int ConvertLines( const uint_8 * input, uint length, uint limit )
 /********************************************************/
 {
     const uint_8 *              p;

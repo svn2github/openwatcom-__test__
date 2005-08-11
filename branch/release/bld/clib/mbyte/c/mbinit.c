@@ -72,7 +72,17 @@
     unsigned int __MBCodePage = 0;              /* default code page */
 #endif
 
+static void set_dbcs_table( int low, int high )
+{
+    memset( __MBCSIsTable + low + 1, _MB_LEAD, high - low + 1 );
+}
 
+static void clear_dbcs_table( void )
+{
+    __IsDBCS = 0;                           /* SBCS for now */
+    __MBCodePage = 0;
+    memset( __MBCSIsTable, 0, 257 );
+}
 
 /****
 ***** Initialize a multi-byte character set.  Returns 0 on success.
@@ -80,7 +90,6 @@
 
 int __mbinit( int codepage )
 {
-    int                     countVal;
 #ifdef __NT__
     int                     countRange;
     CPINFO                  cpInfo;
@@ -99,6 +108,7 @@ int __mbinit( int codepage )
     unsigned char           lowerBound, upperBound;
 #elif defined __WINDOWS__
     DWORD                   version;
+    int                     countVal;
 #elif defined __LINUX__
 #endif
 
@@ -116,18 +126,12 @@ int __mbinit( int codepage )
             codepage = 0;
         #endif
     } else if( codepage == _MBINIT_CP_SBCS ) {
-        memset( __MBCSIsTable, 0x00, 257 );
-        __IsDBCS = 0;
-        __MBCodePage = 0;
+        clear_dbcs_table();
         return( 0 );
     } else if( codepage == _MBINIT_CP_932 ) {
-        memset( __MBCSIsTable, 0x00, 257 );
-        for( countVal=0x81; countVal<=0x9F; countVal++ ) {
-            __MBCSIsTable[countVal+1] = _MB_LEAD;
-        }
-        for( countVal=0xE0; countVal<=0xFC; countVal++ ) {
-            __MBCSIsTable[countVal+1] = _MB_LEAD;
-        }
+        clear_dbcs_table();
+        set_dbcs_table( 0x81, 0x9F );
+        set_dbcs_table( 0xE0, 0xFC );
         __IsDBCS = 1;
         __MBCodePage = 932;
         return( 0 );
@@ -138,15 +142,12 @@ int __mbinit( int codepage )
         if( codepage == 0 )  codepage = CP_OEMCP;
         rc = GetCPInfo( codepage, &cpInfo );    /* get code page info */
         if( rc == FALSE )  return( 1 );
-        memset( __MBCSIsTable, 0x00, 257 );     /* zero table to start */
-        __IsDBCS = 0;                           /* SBCS for now */
+        clear_dbcs_table();
         if( cpInfo.LeadByte[0] )  __IsDBCS = 1; /* set __IsDBCS if needed */
         for( countRange=0; !(cpInfo.LeadByte[countRange]==0x00 &&
              cpInfo.LeadByte[countRange+1]==0x00); countRange+=2 ) {
-            for( countVal=cpInfo.LeadByte[countRange];
-                 countVal<=cpInfo.LeadByte[countRange+1]; countVal++ ) {
-                __MBCSIsTable[countVal+1] = _MB_LEAD;
-            }
+            set_dbcs_table( cpInfo.LeadByte[countRange], 
+                            cpInfo.LeadByte[countRange+1] );
         }
         /*** Update __MBCodePage ***/
         if( codepage == CP_OEMCP ) {
@@ -164,15 +165,12 @@ int __mbinit( int codepage )
             rc = DosGetDBCSEv( 12, &countryInfo, leadBytes );
         #endif
         if( rc != 0 )  return( 1 );
-        memset( __MBCSIsTable, 0x00, 257 );     /* zero table to start */
-        __IsDBCS = 0;                           /* SBCS for now */
+        clear_dbcs_table();
         if( leadBytes[0] )  __IsDBCS = 1;       /* set __IsDBCS if needed */
         for( countRange=0; !(leadBytes[countRange]==0x00 &&
              leadBytes[countRange+1]==0x00); countRange+=2 ) {
-            for( countVal=leadBytes[countRange];
-                 countVal<=leadBytes[countRange+1]; countVal++ ) {
-                __MBCSIsTable[countVal+1] = _MB_LEAD;
-            }
+            set_dbcs_table( leadBytes[countRange], 
+                            leadBytes[countRange+1] );
         }
         /*** Update __MBCodePage ***/
         if( codepage == 0 ) {
@@ -192,18 +190,18 @@ int __mbinit( int codepage )
     #elif defined __OSI__
     #elif defined __DOS__
         /*** Initialize the __MBCSIsTable values ***/
-        if( codepage != 0 )  return( 1 );       /* can only handle default */
+        if( codepage != 0 )
+            return( 1 );       /* can only handle default */
         leadBytes = dos_get_dbcs_lead_table();
-        if( leadBytes == NULL )  return( 0 );
-        memset( __MBCSIsTable, 0x00, 257 );     /* zero table to start */
-        __IsDBCS = 0;                           /* SBCS for now */
-        if( leadBytes[0] )  __IsDBCS = 1;       /* set __IsDBCS if needed */
+        if( leadBytes == NULL )
+            return( 0 );
+        clear_dbcs_table();
+        if( leadBytes[0] )
+            __IsDBCS = 1;       /* set __IsDBCS if needed */
         for( countRange=0; leadBytes[countRange]!=0x0000; countRange++ ) {
             lowerBound = (unsigned char) leadBytes[countRange];
             upperBound = (unsigned char) (leadBytes[countRange] >> 8);
-            for( countVal=lowerBound; countVal<=upperBound; countVal++ ) {
-                __MBCSIsTable[countVal+1] = _MB_LEAD;
-            }
+            set_dbcs_table( lowerBound, upperBound );
         }
         __MBCodePage = dos_get_code_page();
     #elif defined __WINDOWS__
@@ -211,8 +209,7 @@ int __mbinit( int codepage )
         if( codepage != 0 )  return( 1 );       /* can only handle default */
         version = GetVersion();
         if( LOWORD(version) < 0x0A03 )  return( 1 );    /* 3.1+ needed */
-        memset( __MBCSIsTable, 0x00, 257 );     /* zero table to start */
-        __IsDBCS = 0;                           /* SBCS for now */
+        clear_dbcs_table();
         for( countVal=0; countVal<256; countVal++ ) {
             if( IsDBCSLeadByte( (BYTE)countVal ) ) {
                 __MBCSIsTable[countVal+1] = _MB_LEAD;
@@ -235,31 +232,43 @@ int __mbinit( int codepage )
 #if defined(__DOS__) && !defined(__OSI__)
 #ifndef __386__
 
+// for some unknown reason NT DPMI returns for DOS service 6300h
+// Carry=0, odd SI value and DS stay unchanged
+// this case is also tested as wrong int 21h result
+#if 1
 #pragma aux             dos_get_dbcs_lead_table = \
         "push ds"       \
-        "mov ax,6300h"  /* get DBCS vector table */ \
-        "int 21h"       \
-        "jnc NoError"   \
-        "xor si,si"     /* error: set SI==DS==0 so DI:SI==NULL for return */ \
         "xor ax,ax"     \
         "mov ds,ax"     \
-        "NoError:"      \
-        "mov di,ds"     /* no error: leave table address in DI:SI */ \
+        "mov ah,63h"    /* get DBCS vector table */ \
+        "int 21h"       \
+        "mov di,ds"     \
+        "jnc label1"    \
+        "xor di,di"     \
+        "label1:"       \
+        "test di,di"    \
+        "jnz exit1"     \
+        "mov si,di"     \
+        "exit1:"        \
         "pop ds"        \
         value           [di si] \
         modify          [ax bx cx dx si di es];
+#else
+unsigned short _WCFAR *dos_get_dbcs_lead_table( void )
+/****************************************************/
+{
+    union REGS        regs;
+    struct SREGS      sregs;
 
-//unsigned short _WCFAR *dos_get_dbcs_lead_table( void )
-///****************************************************/
-//{
-//    union REGS                regs;
-//    struct SREGS      sregs;
-//
-//    regs.w.ax = 0x6300;                           /* get lead byte table code */
-//    intdosx( &regs, &regs, &sregs );      /* call DOS */
-//    if( regs.w.cflag )  return( NULL );           /* ensure function succeeded */
-//    return( MK_FP( sregs.ds, regs.w.si ) ); /* return pointer to table */
-//}
+    regs.w.ax = 0x6300;                     /* get lead byte table code */
+    sregs.ds = 0;
+    sregs.es = 0;
+    intdosx( &regs, &regs, &sregs );        /* call DOS */
+    if( regs.w.cflag || ( sregs.ds == 0 ))  /* ensure function succeeded */
+        return( NULL );
+    return( MK_FP( sregs.ds, regs.w.si ) ); /* return pointer to table */
+}
+#endif
 
 #if 0
 unsigned short dos_get_code_page( void )
@@ -280,7 +289,7 @@ unsigned short dos_get_code_page( void )
     if( regs.w.cflag )  return( 0 );        /* ensure function succeeded */
     return( * (unsigned short*)(buf+5) );   /* return code page */
 }
-#endif
+#else
 #pragma aux dos_get_code_page = \
         "push ds"       \
         "push bp"       \
@@ -305,6 +314,7 @@ unsigned short dos_get_code_page( void )
         "pop ds"        \
         value           [ax] \
         modify          [ax bx cx dx di es];
+#endif
 
 #else
 

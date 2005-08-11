@@ -1,14 +1,34 @@
 set PROJDIR=<CWD>
 
-[ INCLUDE <LANG_BLD>/master.ctl ]
-[ INCLUDE <LANG_BLD>/wproj.ctl ]
+[ INCLUDE <OWROOT>/bat/master.ctl ]
 [ LOG <LOGFNAME>.<LOGEXT> ]
 
-[ BLOCK <BUILD_PLATFORM> linux386 ]
-#==================================
+cdsay .
+
+set TMP_BUILD_PLATFORM=<BUILD_PLATFORM>
+
+[ BLOCK <OWLINUXBUILD> bootstrap ]
+#=================================
+    set BUILD_PLATFORM=<BUILD_PLATFORM>boot
+
+[ BLOCK <1> clean ]
+#==================
+    echo rm -f -r <PROJDIR>/<OBJDIR>
+    rm -f -r <PROJDIR>/<OBJDIR>
+    rm -f <OWBINDIR>/wlink
+    set BUILD_PLATFORM=
+
+[ BLOCK <BUILD_PLATFORM> linux386boot ]
+#======================================
     echo Building the wlink bootstrap
     mkdir <PROJDIR>/<OBJDIR>
     cdsay <PROJDIR>/<OBJDIR>
     wmake -h -f ../linux386/makefile bootstrap=1
-    <CPCMD> wlink <DEVDIR>/build/binl/wlink
-    cdsay <PROJDIR>
+    <CPCMD> wlink <OWBINDIR>/wlink
+
+[ BLOCK . . ]
+#============
+set BUILD_PLATFORM=<TMP_BUILD_PLATFORM>
+set TMP_BUILD_PLATFORM=
+
+cdsay <PROJDIR>

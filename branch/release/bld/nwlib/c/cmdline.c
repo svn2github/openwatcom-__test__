@@ -92,6 +92,7 @@ char *GetEqual( char **pc, char *buff, char *ext )
     *pc = c;
     return( ret );
 }
+
 static void SetPageSize(unsigned short new_size)
 {
     unsigned int i;
@@ -239,9 +240,19 @@ static bool ParseOption( char **pc, char *buff )
             break;
         case 'x': //                       (explode all objects in library)
             Options.explode = 1;
+            Options.explode_ext = GetEqual( &c, buff, NULL );
+            if( Options.explode_ext == NULL )
+                Options.explode_ext = EXT_OBJ;
             break;
         case 'z':
-            if( Options.strip_expdef ) {
+            if( (*c == 'l') && (*(c + 1) == 'd') ) {
+                c += 2;
+                if( Options.strip_dependency ) {
+                    DuplicateOption( start );
+                }
+                Options.strip_dependency = 1; //(strip dependency info)
+                break;
+            } else if( Options.strip_expdef ) {
                 DuplicateOption( start );
             }
             Options.strip_expdef = 1;       // JBS 99/07/09
@@ -318,14 +329,23 @@ static bool ParseOption( char **pc, char *buff )
 
 void AddCommand( operation ops, char *name )
 {
-    lib_cmd     *new;
+    lib_cmd         *new;
 
-    new = MemAllocGlobal( sizeof( *new ) + strlen( name ) );
+    new = MemAllocGlobal( sizeof( lib_cmd ) + strlen( name ) );
     strcpy( new->name, name );
+    new->fname = NULL;
+    if( ops == OP_EXTRACT ) {
+        char    *p;
+
+        p = strchr( new->name, '=' );
+        if( p != NULL ) {
+            *p = '\0';
+            new->fname = p + 1;
+        }
+    }
     new->next = CmdList;
     new->ops = ops;
     CmdList = new;
-
 }
 
 static void FreeCommands()

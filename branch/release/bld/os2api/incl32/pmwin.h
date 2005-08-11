@@ -371,11 +371,20 @@ typedef struct _FONTMETRICS {
 
 #if defined(INCL_WINATOM)
 
+#define MAKEINTATOM(a)  ((PCH)MAKEULONG(a,0xffff))
+
 typedef ULONG ATOM;
 typedef LHANDLE HATOMTBL;
 
-ATOM   APIENTRY WinAddAtom(HATOMTBL,PCSZ);
-ATOM   APIENTRY WinFindAtom(HATOMTBL,PCSZ);
+ATOM     APIENTRY WinAddAtom(HATOMTBL,PCSZ);
+HATOMTBL APIENTRY WinCreateAtomTable(ULONG,ULONG);
+ATOM     APIENTRY WinDeleteAtom(HATOMTBL,ATOM);
+HATOMTBL APIENTRY WinDestroyAtomTable(HATOMTBL);
+ATOM     APIENTRY WinFindAtom(HATOMTBL,PCSZ);
+ULONG    APIENTRY WinQueryAtomLength(HATOMTBL,ATOM);
+ULONG    APIENTRY WinQueryAtomName(HATOMTBL,ATOM,PCSZ,ULONG);
+ULONG    APIENTRY WinQueryAtomUsage(HATOMTBL,ATOM);
+HATOMTBL APIENTRY WinQuerySystemAtomTable(VOID);
 
 #endif
 
@@ -480,9 +489,35 @@ BOOL   APIENTRY WinSetClipbrdViewer(HAB,HWND);
 
 #endif
 
+#if defined(INCL_WINCURSORS) || !defined(INCL_NOCOMMON)
+
+#define CURSOR_SOLID      0x0000
+#define CURSOR_HALFTONE   0x0001
+#define CURSOR_FRAME      0x0002
+#define CURSOR_FLASH      0x0004
+#define CURSOR_SETPOS     0x8000
+#define CURSOR_BIDI_FIRST 0x0100
+#define CURSOR_BIDI_LAST  0x0200
+
+BOOL   APIENTRY WinCreateCursor(HWND,LONG,LONG,LONG,LONG,ULONG,PRECTL);
+BOOL   APIENTRY WinDestroyCursor(HWND);
+BOOL   APIENTRY WinShowCursor(HWND,BOOL);
+
+#endif
+
 #if defined(INCL_WINCURSORS)
 
-BOOL  APIENTRY  WinShowCursor(HWND,BOOL);
+typedef struct _CURSORINFO {
+    HWND  hwnd;
+    LONG  x;
+    LONG  y;
+    LONG  cx;
+    LONG  cy;
+    ULONG fs;
+    RECTL rclClip;
+} CURSORINFO, *PCURSORINFO;
+
+BOOL   APIENTRY WinQueryCursorInfo(HWND,PCURSORINFO);
 
 #endif
 
@@ -603,9 +638,9 @@ LONG    APIENTRY WinLoadMessage(HAB,HMODULE,ULONG,LONG,PSZ);
 LONG    APIENTRY WinLoadString(HAB,HMODULE,ULONG,LONG,PSZ);
 LONG    APIENTRY WinMultWindowFromIDs(HWND,PHWND,ULONG,ULONG);
 HDC     APIENTRY WinOpenWindowDC(HWND);
-BOOL    APIENTRY WinPopupMenu(HWND,HWND,HWND,LONG,LONG,LONG,ULONG);
 HAB     APIENTRY WinQueryAnchorBlock(HWND);
 HWND    APIENTRY WinQueryDesktopWindow(HAB,HDC);
+HWND    APIENTRY WinQueryObjectWindow(HWND);
 ULONG   APIENTRY WinQueryVersion(HAB);
 HWND    APIENTRY WinQueryWindow(HWND,LONG);
 BOOL    APIENTRY WinQueryWindowPos(HWND,PSWP);
@@ -904,31 +939,6 @@ BOOL   APIENTRY WinDestroyAccelTable(HACCEL);
 BOOL   APIENTRY WinTranslateAccel(HAB,HWND,HACCEL,PQMSG);
 BOOL   APIENTRY WinSetAccelTable(HAB,HACCEL,HWND);
 ULONG  APIENTRY WinCopyAccelTable(HACCEL,PACCELTABLE,ULONG);
-
-#endif
-
-#if defined(INCL_WINCURSORS)
-
-#define CURSOR_SOLID       0x0000
-#define CURSOR_HALFTONE    0x0001
-#define CURSOR_FRAME       0x0002
-#define CURSOR_FLASH       0x0004
-#define CURSOR_SETPOS      0x8000
-#define CURSOR_BIDI_FIRST  0x0100
-#define CURSOR_BIDI_LAST   0x0200
-
-typedef struct _CURSORINFO {
-    HWND  hwnd;
-    LONG  x;
-    LONG  y;
-    LONG  cx;
-    LONG  cy;
-    ULONG fs;
-    RECTL rclClip;
-} CURSORINFO, *PCURSORINFO;
-
-BOOL   APIENTRY WinCreateCursor(HWND,LONG,LONG,LONG,LONG,ULONG,PRECTL);
-BOOL   APIENTRY WinDestroyCursor(HWND);
 
 #endif
 
@@ -1330,7 +1340,6 @@ ERRORID  APIENTRY WinGetLastError(HAB);
 #define SC_WINDOW         0x8029
 #define SC_HIDE           0x802a
 
-
 #define WM_FLASHWINDOW        0x0040
 #define WM_FORMATFRAME        0x0041
 #define WM_UPDATEFRAME        0x0042
@@ -1364,17 +1373,24 @@ ERRORID  APIENTRY WinGetLastError(HAB);
 
 #pragma pack(2)
 
+typedef LHANDLE HSAVEWP;
+
 typedef struct _FRAMECDATA {
     USHORT cb;
     ULONG  flCreateFlags;
     USHORT hmodResources;
     USHORT idResources;
-} FRAMECDATA;
+} FRAMECDATA, *PFRAMECDATA;
 
 #pragma pack()
 
 BOOL   APIENTRY WinCalcFrameRect(HWND,PRECTL,BOOL);
+BOOL   APIENTRY WinCreateFrameControls(HWND,PFRAMECDATA,PCSZ);
 HWND   APIENTRY WinCreateStdWindow(HWND,ULONG,PULONG,PCSZ,PCSZ,ULONG,HMODULE,ULONG,PHWND);
+BOOL   APIENTRY WinFlashWindow(HWND,BOOL);
+BOOL   APIENTRY WinGetMaxPosition(HWND,PSWP);
+BOOL   APIENTRY WinGetMinPosition(HWND,PSWP,PPOINTL);
+BOOL   APIENTRY WinSaveWindowPos(HSAVEWP,PSWP,ULONG);
 
 #endif
 
@@ -1970,9 +1986,8 @@ typedef struct _MENUITEM {
 #pragma pack()
 
 HWND   APIENTRY WinCreateMenu(HWND,PVOID);
-
 HWND   APIENTRY WinLoadMenu(HWND,HMODULE,ULONG);
-
+BOOL   APIENTRY WinPopupMenu(HWND,HWND,HWND,LONG,LONG,LONG,ULONG);
 
 #endif
 
@@ -2051,6 +2066,11 @@ HWND   APIENTRY WinLoadMenu(HWND,HMODULE,ULONG);
 #define SBMP_CLOSE             52
 #define SBMP_CLOSEDEP          53
 
+#define DP_NORMAL    0
+#define DP_HALFTONED 1
+#define DP_INVERTED  2
+#define DP_MINI      4
+
 typedef struct _POINTERINFO {
     ULONG   fPointer;
     LONG    xHotSpot;
@@ -2062,16 +2082,21 @@ typedef struct _POINTERINFO {
 } POINTERINFO, *PPOINTERINFO;
 
 HPOINTER APIENTRY WinCreatePointer(HWND,HBITMAP,BOOL,LONG,LONG);
+HPOINTER APIENTRY WinCreatePointerIndirect(HWND,PPOINTERINFO);
 BOOL     APIENTRY WinDestroyPointer(HPOINTER);
+BOOL     APIENTRY WinDrawPointer(HPS,LONG,LONG,HPOINTER,ULONG);
 HBITMAP  APIENTRY WinGetSysBitmap(HWND,ULONG);
 HPOINTER APIENTRY WinLoadPointer(HWND,HMODULE,ULONG);
+BOOL     APIENTRY WinLockPointerUpdate(HWND,HPOINTER,ULONG);
 HPOINTER APIENTRY WinQueryPointer(HWND);
 BOOL     APIENTRY WinQueryPointerInfo(HPOINTER,PPOINTERINFO);
 BOOL     APIENTRY WinQueryPointerPos(HWND,PPOINTL);
 HPOINTER APIENTRY WinQuerySysPointer(HWND,LONG,BOOL);
+BOOL     APIENTRY WinQuerySysPointerData(HWND,ULONG,PICONINFO);
 BOOL     APIENTRY WinSetPointer(HWND,HPOINTER);
 BOOL     APIENTRY WinSetPointerOwner(HPOINTER,PID,BOOL);
 BOOL     APIENTRY WinSetPointerPos(HWND,LONG,LONG);
+BOOL     APIENTRY WinSetSysPointerData(HWND,ULONG,PICONINFO);
 BOOL     APIENTRY WinShowPointer(HWND,BOOL);
 
 #endif

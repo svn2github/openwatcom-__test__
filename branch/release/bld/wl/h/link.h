@@ -56,7 +56,7 @@ typedef unsigned long linkflag;
 #define INC_LINK_FLAG   0x00100000UL
 #define NOCACHE_FLAG    0x00200000UL
 #define CACHE_FLAG      0x00400000UL
-#define __UNUSED_FLAG_9 0x00800000UL
+#define FAR_CALLS_FLAG  0x00800000UL    // optimize far calls
 #define __UNUSED_FLAG_8 0x01000000UL
 #define __UNUSED_FLAG_7 0x02000000UL
 #define __UNUSED_FLAG_6 0x04000000UL
@@ -107,8 +107,9 @@ typedef unsigned long stateflag;
 #define INTERNAL_DEBUG          0x00200000
 #define GOT_PREV_STRUCTS        0x00400000
 #define DOSSEG_FLAG             0x00800000
+#define HAVE_MIPS_CODE          0x01000000
 
-#define HAVE_MACHTYPE_MASK      (HAVE_I86_CODE | HAVE_ALPHA_CODE | HAVE_PPC_CODE)
+#define HAVE_MACHTYPE_MASK      (HAVE_I86_CODE | HAVE_ALPHA_CODE | HAVE_PPC_CODE | HAVE_MIPS_CODE)
 #define CLEAR_ON_INC    (STOP_WORKING | INTERNAL_DEBUG | GOT_PREV_STRUCTS | MAKE_RELOCS | RUNNING_OS2_FLAG | FMT_SPECIFIED | FMT_DECIDED | FMT_INITIALIZED)
 
 // this used for ID splits.
@@ -167,16 +168,18 @@ enum {
     E_LAN,
     E_DSK,
     E_NAM,
-	E_NOV_MSL,
-	E_NOV_HAM,
-	E_NOV_CDM,
+    E_NOV_MSL,
+    E_NOV_HAM,
+    E_NOV_CDM,
     E_COM,
     E_REX,
     E_QNX,
     E_SYM,
     E_LBC,
     E_ELF,
-    E_ILK
+    E_ILK,
+    E_HEX,
+    E_BIN
 };
 
 

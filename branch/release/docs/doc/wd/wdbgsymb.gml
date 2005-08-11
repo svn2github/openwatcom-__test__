@@ -3,7 +3,9 @@
 .np
 .ix 'symbols' 'predefined'
 The &dbgname defines a number of symbols which have special meaning.
-Each of the registers is designated by a special name.
+Each of the registers is designated by a special name. Note that the
+registers listed here are applicable when the target is an x86 platorm.
+For other platforms, the register set is different.
 .begnote $compact
 .mnote eax
 32-bit EAX register (32-bit mode only)
@@ -465,8 +467,10 @@ QNX from QNX Software Systems Ltd.
 .ix 'DOS extenders' 'DOS/4GW'
 .ix 'DOS/4GW'
 .ix 'Tenberry Software, Inc.'
-DOS/4GW from Tenberry Software, Inc. (included in the &watc32 and
-&watf32 packages)
+.ix 'DOS extenders' 'CauseWay'
+.ix 'CauseWay'
+DOS/4GW from Tenberry Software, Inc., or CauseWay (both included in the
+&watc32 and &watf32 packages)
 .note 8
 .ix 'Windows 3.x'
 .ix 'Microsoft Corp.'
@@ -476,10 +480,14 @@ Windows 3.x from Microsoft Corporation
 .ix 'Windows 95'
 .ix 'Microsoft Corp.'
 Windows NT/2000/XP or Windows 9x from Microsoft Corporation
+.note 13
+.ix 'Linux'
+.ix 'GNU/Linux'
+GNU/Linux
 .endnote
 .ix 'predefined symbol' 'dbg$pid'
 .mnote dbg$pid
-(OS/2, NetWare 386, QNX, Windows NT, Windows 95 only)
+(OS/2, NetWare 386, Linux, QNX, Windows NT, Windows 95 only)
 This debugger symbol contains the process identification value for the
 program being debugged.
 .ix 'predefined symbol' 'dbg$psp'

@@ -73,7 +73,7 @@ Options may be specified in any order.
 .np
 The options supported by the &asmname. are:
 .begnote $compact
-.note {0,1,2,3,4,5}{p}{r,s}
+.note {0,1,2,3,4,5,6}{p}{r,s}
 .begnote $compact
 .note 0
 same as ".8086"
@@ -105,7 +105,7 @@ defines "__REGISTER__"
 defines "__STACK__"
 .endnote
 .exam begin
-&sw.2      &sw.3p     &sw.4pr    &sw.5p
+-2      -3p     -4pr    -5p
 .exam end
 .note bt=<os>
 defines "__<os>__" and checks the "<os>_INCLUDE" environment variable
@@ -185,6 +185,10 @@ set C name mangler to MASM compatible mode
 remove file dependency information
 .note zq or q
 operate quietly
+.note zz
+remove "@size" from STDCALL function names
+.note zzo
+don't mangle STDCALL symbols (WASM backward compatible)
 .note ?  or h
 print this message
 .note w<number>
@@ -1022,6 +1026,68 @@ pushcontext    .radix         record         .repeat
 ~.until         .while         width
 .millust end
 .*
+.section &asmname Specific
+.*
+.np
+There are a few specific features in &asmname.
+.np
+.beglevel
+.section Naming convention
+.millust begin
+                 Procedure   Variable
+Convention         Name        Name
+---------------  ----------  ---------
+C                   '*'         '*'
+C (MASM)           '_*'        '_*'    see note 1
+WATCOM_C           '*_'        '_*'
+SYSCALL             '*'         '*'
+STDCALL           '_*@nn'      '_*'
+STDCALL            '_*'        '_*'    see note 2
+STDCALL             '*'         '*'    see note 3
+BASIC               '^'         '^'
+FORTRAN             '^'         '^'
+PASCAL              '^'         '^'
+.millust end
+.autonote Notes:
+.note
+WASM uses MASM compatible names when -zcm command line option is used.
+.note
+In STDCALL procedures name 'nn' is overall parametrs size in bytes.
+'@nn' is suppressed when -zz command line option is used (WATCOM 10.0 compatibility).
+.note
+STDCALL symbols mangling is suppressed by -zzo command line option (WASM backward compatible).
+.endnote
+.np
+.section &company "C" name mangler
+.millust begin
+Command line     Procedure     Others
+  option           Name        Names
+---------------  ----------  ---------
+0,1,2              '*_'        '_*'
+3,4,5,6 with r     '*_'        '_*'
+3,4,5,6 with s      '*'        '*'
+.millust end
+.np
+.section Calling convention
+.millust begin
+                      Parameters    Parameters   Cleanup caller
+Convention   Vararg    passed by       order         stack
+-----------  ------  ------------  ------------- --------------
+C             yes      stack       right to left    no
+WATCOM_C      yes      registers   right to left    no
+SYSCALL       yes      stack       right to left    no
+STDCALL       yes      stack       right to left    yes see note 1
+BASIC         no       stack       left to right    yes
+FORTRAN       no       stack       left to right    yes
+PASCAL        no       stack       left to right    yes
+.millust end
+.autonote Notes:
+.note
+For STDCALL procedures WASM automaticaly cleanup caller stack,
+except case when vararg parameter is used.
+.endnote
+.endlevel
+.*
 .section &asmname. Diagnostic Messages
 .*
 .dm errnote begin
@@ -1207,7 +1273,7 @@ pushcontext    .radix         record         .repeat
 .errnote 573 Floating point instruction not allowed with /fpc
 .errnote 574 Too many errors
 .errnote 575 Build target not recognised
-.errnote 576 Public constants should be numeric; 0 written
+.errnote 576 Public constants should be numeric
 .errnote 577 Expecting symbol
 .errnote 578 Do not mix simplified and full segment definitions
 .errnote 579 Parms passed in multiple registers must be accessed separately, use %s

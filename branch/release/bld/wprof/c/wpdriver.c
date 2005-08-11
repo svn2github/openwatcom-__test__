@@ -24,15 +24,16 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Main profiler window procedure.
 *
 ****************************************************************************/
 
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <process.h>
+#ifdef __WATCOMC__
+    #include <process.h>
+#endif
 
 #include "common.h"
 #include "aui.h"
@@ -45,18 +46,6 @@
 #include "trmemcvr.h"
 #endif
 
-//#include "utils.def"
-//#include "aboutmsg.def"
-//#include "getsamps.def"
-//#include "clrsamps.def"
-//#include "wpstart.def"
-//#include "msg.def"
-//#include "wpwind.def"
-//#include "wpsamp.def"
-//#include "dlgsamp.def"
-//#include "dlgoptn.def"
-//#include "wpcnvt.def"
-//#include "wphelp.def"
 extern void WPProcHelp(gui_help_actions action);
 extern void WPFini(void);
 extern void AboutClose(void);
@@ -83,7 +72,7 @@ static gui_menu_struct fileMenu[] = {
                             "Close the current sample information" },
     { "", 0, GUI_SEPARATOR },
     { "Op&tions...", MENU_OPTIONS, GUI_ENABLED, "Set Profiler Options" },
-#if _OS != _OS_WIN && _OS != _OS_NT && !defined(_OS2_PM)
+#if !defined( __WINDOWS__ ) && !defined( __NT__ ) && !defined( __OS2__ ) && !defined( __UNIX__ )
     { "S&ystem", MENU_SYSTEM, GUI_ENABLED, "Start an operating system shell" },
 #endif
 #ifdef TRMEM
@@ -107,7 +96,7 @@ static gui_menu_struct convertMenu[] = {
 static gui_menu_struct helpMenu[] = {
     { "&Contents", MENU_HELP_CONTENTS, GUI_ENABLED,
                             "Show help contents" },
-#if _OS == _OS_WIN || _OS == _OS_NT || defined(_OS2_PM)
+#if defined( __WINDOWS__ ) || defined( __NT__ ) || defined( __OS2_PM__ )
     { "&On Help", MENU_HELP_ONHELP, GUI_ENABLED,
                             "Show Help about Help" },
     { "&Search", MENU_HELP_SEARCH, GUI_ENABLED,
@@ -140,7 +129,7 @@ extern bool WndMainMenuProc( a_window * wnd, unsigned id )
 {
     a_window *      active;
     sio_data *      curr_sio;
-#if _OS != _OS_WIN && _OS != _OS_NT
+#if !defined( __WINDOWS__ ) && !defined( __NT__ ) && !defined( __OS2__ ) && !defined( __UNIX__ )
     char *          sys_spec;
 #endif
 
@@ -157,7 +146,7 @@ extern bool WndMainMenuProc( a_window * wnd, unsigned id )
             WndClose( active );
         }
         break;
-#if _OS != _OS_WIN && _OS != _OS_NT
+#if !defined( __WINDOWS__ ) && !defined( __NT__ ) && !defined( __OS2__ ) && !defined( __UNIX__ )
     case MENU_SYSTEM:
         GUISpawnStart();
         sys_spec = getenv( "COMSPEC" );
@@ -182,7 +171,7 @@ extern bool WndMainMenuProc( a_window * wnd, unsigned id )
     case MENU_HELP_CONTENTS:
         WPProcHelp( GUI_HELP_CONTENTS );
         break;
-#if _OS == _OS_WIN || _OS == _OS_NT || defined(_OS2_PM)
+#if defined( __WINDOWS__ ) || defined( __NT__ ) || defined( __OS2_PM__ )
     case MENU_HELP_ONHELP:
         WPProcHelp( GUI_HELP_ON_HELP );
         break;
@@ -214,7 +203,7 @@ extern void OpenSample()
 {
     void *      cursor_type;
 
-#if _OS == _OS_WIN || _OS == _OS_NT || defined(_OS2_PM)
+#if defined( __WINDOWS__ ) || defined( __NT__ ) || defined( __OS2_PM__ )
     AboutClose();
 #else
     AboutSetOff();

@@ -26,19 +26,25 @@ ex9_7.$(exe) &
 ex9_11.$(exe)
 
 !ifdef test1
-cflags = -op-d2
+test_cflags = -op-d2
 !else ifdef test2
-cflags = -ot-op-d1-xds
+test_cflags = -ot-op-d1-xds
 !else ifdef test3
-cflags = -op-d2-xds
+test_cflags = -op-d2-xds
 !else
-cflags = -ot-op-d1
+test_cflags = -ot-op-d1
 !endif
 
-cflags += -zq -i..\.. -w0
+test_cflags += -zq -i..\.. -w0
+
+test_cflags_i86 = -mm -zm
+
+stack_386=opt stack=64k
+stack_i86=opt stack=48k
+stack_axp=opt stack=64k
 
 .c.obj:
-    $(wpp_$(arch)) $[@ $(cflags)
+    $(wpp_$(arch)) $[@ $(test_cflags) $(test_cflags_$(arch))
     
 .obj.$(exe):
     $(linker) @ex.lnk NAME $^* FILE $[@
@@ -54,7 +60,7 @@ ex.lnk : $(__MAKEFILES__)
     %create $^@
     @%append $^@ $(lnk_$(arch))
     @%append $^@ $(ldebug_$(arch))
-    @%append $^@ OPTION stack=64k, quiet, map
+    @%append $^@ $(stack_$(arch))
     @%append $^@ LIBRARY ..\cool.lib
     
 global : .symbolic

@@ -37,6 +37,7 @@ typedef struct {
         char    *list_file;
         char    *output_name;
         char    *export_list_file;
+        char    *explode_ext;
         unsigned short page_size;
         unsigned no_backup : 1;
         unsigned respect_case : 1;
@@ -53,6 +54,7 @@ typedef struct {
         unsigned r_ordinal : 1;    //do residant table using ordinals
         unsigned strip_line : 1;
         unsigned strip_expdef : 1;
+        unsigned strip_dependency : 1;
         unsigned verbose : 1;
         unsigned update : 1; //update older files only
         unsigned no_c_warn  : 1; //no create lib warning

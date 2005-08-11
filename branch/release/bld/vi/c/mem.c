@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Internal editor memory management routines.
 *
 ****************************************************************************/
 
@@ -33,18 +32,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
-#ifndef __AXP__
-#ifdef __WATCOMC__
-#include <i86.h>
-#endif
-#endif
 #include "vi.h"
 #include "colors.h"
 #include "fcbmem.h"
 #include "win.h"
 #ifdef TRMEM
     #include <fcntl.h>
-    #include <io.h>
+    #include <unistd.h>
     #include <stdlib.h>
     #include "trmem.h"
 

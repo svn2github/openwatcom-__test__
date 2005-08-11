@@ -43,14 +43,12 @@
 #include "builder.h"
 
 #define DEFCTLNAME      "BUILDER.CTL"
-#ifdef __UNIX__
 #define DEFCTLENV       "BUILDER_CTL"
-#else
-#define DEFCTLENV       DEFCTLNAME
-#endif
 
 #define DEF_BACKUP      1
 #define MAX_BACKUP      9
+
+#define DOS_EOF_CHAR    0x1a
 
 ctl_file        *CtlList;
 include         *IncludeStk;
@@ -124,7 +122,7 @@ static void AddCtlFile( const char *name )
     for( ;; ) {
         curr = *owner;
         if( curr == NULL )
-	    break;
+            break;
         owner = &curr->next;
     }
     curr = Alloc( sizeof( *curr ) );
@@ -227,7 +225,7 @@ static void PushInclude( const char *name )
     new->ifdefskipping = 0;
     new->reset_abit = NULL;
     IncludeStk = new;
-    new->fp = fopen( name, "r" );
+    new->fp = fopen( name, "rb" );      // We will cook (handle \r) internally
     if( new->fp == NULL ) {
         Fatal( "Could not open '%s': %s\n", name, strerror( errno ) );
     }
@@ -263,9 +261,9 @@ static bool GetALine( char *line )
             Fatal( "Error reading '%s': %s\n", IncludeStk->name, strerror( errno ) );
         }
         if( !feof( IncludeStk->fp ) )
-	    break;
+            break;
         if( !PopInclude() )
-	    return( FALSE );
+            return( FALSE );
     }
     return( TRUE );
 }
@@ -288,7 +286,7 @@ static char *SubstOne( const char **inp, char *out )
             // copy from parameter n to the end to out. E.g. <2*>
             parm = 1;
             for( starpos = out; isdigit( *starpos ); starpos++ )
-	        ;
+                ;
             if( stricmp( starpos, "*" ) == 0 ) {
                 rep = NULL;
                 p = out;
@@ -298,7 +296,7 @@ static char *SubstOne( const char **inp, char *out )
                     rep = getenv( out );
                     if( rep != NULL ) {
                         if( out != p )
-			    *out++ = ' ';
+                            *out++ = ' ';
                         strcpy( out, rep );
                         out += strlen( out );
                     }
@@ -339,23 +337,25 @@ static void SubstLine( const char *in, char *out )
     in = SkipBlanks( in );
     for( ;; ) {
         switch( *in ) {
-        case '^':
+        case '^':                       // Escape next byte special meaning
             ++in;
             switch( *in ) {
             case '\n':
             case '\0':
+            case '\r':                  // Allow DOS line in UNIX port
+            case DOS_EOF_CHAR:          // Allow DOS EOF in UNIX port
                 break;
             default:
                 *out++ = *in++;
                 break;
             }
             break;
-        case '[':                           // Surround special chars with a space
+        case '[':                       // Surround special chars with a space
         case ']':
         case '(':
         case ')':
             if( !first )
-	        *out++ = ' ';
+                *out++ = ' ';
             *out++ = *in++;
             *out++ = ' ';
             break;
@@ -365,6 +365,8 @@ static void SubstLine( const char *in, char *out )
             break;
         case '\n':
         case '\0':
+        case '\r':                      // Allow DOS line in UNIX port
+        case DOS_EOF_CHAR:              // Allow DOS EOF in UNIX port
             *out = '\0';
             return;
         default:
@@ -425,7 +427,7 @@ static void ProcessCtlFile( const char *name )
                 if( IncludeStk->skipping == 0 ) {
                     PushInclude( NextWord( p ) );
                 }
-            } 
+            }
             else if( stricmp( p, "LOG" ) == 0 ) {
                 if( IncludeStk->skipping == 0 ) {
                     log_name = NextWord( p );
@@ -447,13 +449,13 @@ static void ProcessCtlFile( const char *name )
                 break;
             } else if( stricmp( p, "IFDEF" ) == 0 ) {
                 if( IncludeStk->ifdefskipping != 0 )
-		    IncludeStk->ifdefskipping--;
+                    IncludeStk->ifdefskipping--;
                 if( !MatchFound( p ) )
                     IncludeStk->ifdefskipping++;
                 break;
             } else if( stricmp( p, "ENDIF" ) == 0 ) {
                 if( IncludeStk->ifdefskipping != 0 )
-		    IncludeStk->ifdefskipping--;
+                    IncludeStk->ifdefskipping--;
                 break;
             } else {
                 Fatal( "Unknown directive '%s'\n", p );
@@ -476,7 +478,7 @@ static void ProcessCtlFile( const char *name )
                     if( !logit ) {
                         Log( FALSE, "<%s> => ", Line );
                     }
-                    Log( FALSE, "non-zero return: %u\n", res );
+                    Log( FALSE, "non-zero return: %d\n", res );
                 }
                 LogFlush();
             } else if( logit && ( VerbLevel > 1 ) ) {
@@ -506,7 +508,7 @@ static bool SearchUpDirs( const char *name, char *result )
         _splitpath2( result, buff, &drive, &dir, &fn, &ext );
         end = &dir[strlen( dir ) - 1];
         if( end == dir )
-	    return( FALSE );
+            return( FALSE );
         switch( *end ) {
         case '\\':
         case '/':
@@ -518,7 +520,7 @@ static bool SearchUpDirs( const char *name, char *result )
                 break;
             }
             if( *end == '\\' || *end == '/' )
-	        break;
+                break;
             --end;
         }
         *end = '\0';
@@ -537,7 +539,7 @@ int main( int argc, char *argv[] )
     if( CtlList == NULL ) {
         p = getenv( DEFCTLENV );
         if( p == NULL )
-	    p = DEFCTLNAME;
+            p = DEFCTLNAME;
         if( !SearchUpDirs( p, Line ) ) {
 #ifdef __WATCOMC__
             _searchenv( p, "PATH", Line );
@@ -556,8 +558,7 @@ int main( int argc, char *argv[] )
         free( CtlList );
         CtlList = next;
     }
-    if( LogFile != NULL )
-        fclose( LogFile );
+    CloseLog();
     return( 0 );
 }
 

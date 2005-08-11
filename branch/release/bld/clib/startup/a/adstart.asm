@@ -130,13 +130,12 @@ endif   ; ACAD
         extrn   _STACKLOW       : dword
         extrn   _STACKTOP       : dword
         extrn   _child          : dword
-        extrn  __no87           : word
-        extrn   _Extender       : byte
+        extrn   __no87          : word
+        extrn   "C",_Extender   : byte
         extrn   _ExtenderSubtype: byte
         extrn   _Envptr         : dword
         extrn   _Envseg         : word
-        extrn   __FPE_handler   : dword
-        extrn  ___FPE_handler   : dword
+        extrn   "C",__FPE_handler : dword
         extrn   _LpCmdLine      : dword
         extrn   _LpPgmName      : dword
 

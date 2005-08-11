@@ -86,6 +86,11 @@ using std::wcstoul;
 using std::wcstoull;
 using std::wcsxfrm;
 using std::wctob;
+using std::wmemchr;
+using std::wmemcmp;
+using std::wmemcpy;
+using std::wmemmove;
+using std::wmemset;
 using std::wprintf;
 using std::wscanf;
 
@@ -220,6 +225,11 @@ _WCRTLINK extern unsigned long int wcstoul( const wchar_t *, wchar_t **, int );
 _WCRTLINK extern unsigned long long int wcstoull( const wchar_t *, wchar_t **, int );
 _WCRTLINK extern size_t   wcsxfrm( wchar_t *__s1, const wchar_t *__s2, size_t __n );
 _WCRTLINK extern int      wctob( wint_t __wc );
+_WCRTLINK extern wchar_t *wmemchr( const wchar_t *__s, wchar_t __wc, size_t __n );
+_WCRTLINK extern int      wmemcmp( const wchar_t *__s1, const wchar_t *__s2, size_t __n );
+_WCRTLINK extern wchar_t *wmemcpy( wchar_t *__s1, const wchar_t *__s2, size_t __n );
+_WCRTLINK extern wchar_t *wmemmove( wchar_t *__s1, const wchar_t *__s2, size_t __n );
+_WCRTLINK extern wchar_t *wmemset( wchar_t *__s, wchar_t __wc, size_t __n );
 _WCRTLINK extern int      wprintf( const wchar_t *__format, ... );
 _WCRTLINK extern int      wscanf( const wchar_t *__format, ... );
 :segment CNAME
@@ -241,6 +251,12 @@ _WCRTLINK extern wchar_t *_wcsrev( wchar_t * );
 _WCRTLINK extern wchar_t *_wcsset( wchar_t *, wchar_t );
 _WCRTLINK extern wchar_t *_wmktemp( wchar_t *__template );
 _WCRTLINK extern wchar_t *_wtempnam( wchar_t *__dir, wchar_t *__prefix );
+
+:segment CNAME
+#define WEOF ((std::wint_t)(-1))
+:elsesegment
+#define WEOF ((wint_t)(-1))
+:endsegment
 
 :include ext.sp
 
@@ -279,7 +295,6 @@ _WCRTLINK extern size_t _fwcsrtombs( char _WCFAR *__dst, const wchar_t _WCFAR * 
 _WCRTLINK extern int    _swprintf( wchar_t *__s, const wchar_t *__format, ... );
 _WCRTLINK extern int    _vswprintf( wchar_t *__s, const wchar_t *__format, std::va_list __arg );
 
-#define WEOF ((std::wint_t)(-1))
 :elsesegment
 :: C99 says this function is named mbsinit.
 _WCRTLINK extern int     sisinit( const mbstate_t *__ps );
@@ -292,7 +307,6 @@ _WCRTLINK extern size_t _fwcsrtombs( char _WCFAR *__dst, const wchar_t _WCFAR * 
 _WCRTLINK extern int    _swprintf( wchar_t *__s, const wchar_t *__format, ... );
 _WCRTLINK extern int    _vswprintf( wchar_t *__s, const wchar_t *__format, va_list __arg );
 
-#define WEOF ((wint_t)(-1))
 :endsegment
 
 #endif

@@ -30,8 +30,6 @@
 ****************************************************************************/
 
 
-#include <string.h>
-
 #include "plusplus.h"
 #include "memmgr.h"
 #include "pragdefn.h"
@@ -62,6 +60,7 @@ static void pragmaFini(         // FINISH PRAGMAS
     AsmFini();
     CgInfoFreeLibs();
     CgInfoFreeImports();
+    CgInfoFreeImportsS();
 }
 
 
@@ -202,6 +201,12 @@ void AsmSysInit( void )
 /*********************/
 {
     AsmCodeAddress = 0;
+}
+
+void AsmSysFini( void )
+/*********************/
+{
+
 }
 
 char const *AsmSysDefineByte( void )

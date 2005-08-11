@@ -3,9 +3,10 @@
 
 set PROJDIR=<CWD>
 
-[ INCLUDE <LANG_BLD>/master.ctl ]
-[ INCLUDE <LANG_BLD>/wproj.ctl ]
+[ INCLUDE <OWROOT>/bat/master.ctl ]
 [ LOG <LOGFNAME>.<LOGEXT> ]
+
+cdsay .
 
 [ BLOCK <1> build rel2 ]
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
@@ -72,21 +73,26 @@ set PROJDIR=<CWD>
     <CPCMD> threed/win/win_3d.dll   <RELROOT>/rel2/samples/ide/fortran/win/
     <CPCMD> threed/win/win_3d.dll   <RELROOT>/rel2/samples/ide/fortran/win386/
   [ ENDIF ]
-#    <CPCMD> src/os2/box.obj         <RELROOT>/rel2/samples/ide/fortran/os2/
-#    <CPCMD> src/os2/drawroom.obj    <RELROOT>/rel2/samples/ide/fortran/os2/
-#    <CPCMD> src/os2/furnitu.obj     <RELROOT>/rel2/samples/ide/fortran/os2/
-#    <CPCMD> src/win/box.obj         <RELROOT>/rel2/samples/ide/fortran/win/
-#    <CPCMD> src/win/drawroom.obj    <RELROOT>/rel2/samples/ide/fortran/win/
-#    <CPCMD> src/win/furnitu.obj     <RELROOT>/rel2/samples/ide/fortran/win/
-#    <CPCMD> src/win386/box.obj      <RELROOT>/rel2/samples/ide/fortran/win386/
-#    <CPCMD> src/win386/drawroom.obj <RELROOT>/rel2/samples/ide/fortran/win386/
-#    <CPCMD> src/win386/furnitu.obj  <RELROOT>/rel2/samples/ide/fortran/win386/
-#    <CPCMD> src/win32/box.obj       <RELROOT>/rel2/samples/ide/fortran/win32/
-#    <CPCMD> src/win32/drawroom.obj  <RELROOT>/rel2/samples/ide/fortran/win32/
-#    <CPCMD> src/win32/furnitu.obj   <RELROOT>/rel2/samples/ide/fortran/win32/
+    <CPCMD> src/os2/box.obj         <RELROOT>/rel2/samples/ide/fortran/os2/
+    <CPCMD> src/os2/drawroom.obj    <RELROOT>/rel2/samples/ide/fortran/os2/
+    <CPCMD> src/os2/furnitu.obj     <RELROOT>/rel2/samples/ide/fortran/os2/
+    <CPCMD> src/win/box.obj         <RELROOT>/rel2/samples/ide/fortran/win/
+    <CPCMD> src/win/drawroom.obj    <RELROOT>/rel2/samples/ide/fortran/win/
+    <CPCMD> src/win/furnitu.obj     <RELROOT>/rel2/samples/ide/fortran/win/
+    <CPCMD> src/win386/box.obj      <RELROOT>/rel2/samples/ide/fortran/win386/
+    <CPCMD> src/win386/drawroom.obj <RELROOT>/rel2/samples/ide/fortran/win386/
+    <CPCMD> src/win386/furnitu.obj  <RELROOT>/rel2/samples/ide/fortran/win386/
+    <CPCMD> src/win32/box.obj       <RELROOT>/rel2/samples/ide/fortran/win32/
+    <CPCMD> src/win32/drawroom.obj  <RELROOT>/rel2/samples/ide/fortran/win32/
+    <CPCMD> src/win32/furnitu.obj   <RELROOT>/rel2/samples/ide/fortran/win32/
     cd ..
 
 [ BLOCK <1> clean ]
 #==================
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
     wmake -i -h -f clean.mif
+
+[ BLOCK . . ]
+#============
+
+cdsay <PROJDIR>

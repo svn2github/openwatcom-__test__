@@ -30,14 +30,14 @@ objs_win = spy.obj spyglob.obj spybox.obj spyproc.obj spymsgs.obj &
            spymisc.obj spycfg.obj spylog.obj spytool.obj spysel.obj &
            savelbox.obj toolbr.obj font.obj fontstr.obj mem.obj log.obj &
            mark.obj about.obj ldstr.obj mstatwnd.obj hint.obj wwinhelp.obj &
-           jdlg.obj
+           jdlg.obj inipath.obj
 
 objs_nt =  spy.obj spyglob.obj spybox.obj spyproc.obj spymsgs.obj &
            spyfilt.obj spypick.obj spymdlgs.obj spyarray.obj spyzord.obj &
            spymisc.obj spycfg.obj spylog.obj spytool.obj spysel.obj &
            savelbox.obj toolbr.obj font.obj fontstr.obj mem.obj log.obj &
            mark.obj about.obj desknt.obj ldstr.obj mstatwnd.obj hint.obj &
-           wwinhelp.obj jdlg.obj
+           wwinhelp.obj jdlg.obj inipath.obj
 
 objs = $(objs_$(host_os))
 
@@ -46,8 +46,8 @@ dllobjs = spydll.obj
 extra_c_flags_mem = -dNO_WPI
 
 extra_c_flags     += -s
-extra_c_flags_i86 += -fpc -zu -2 -zW
-extra_c_flags_386 += -fpc -4
+extra_c_flags_i86 += -zu -2 -zW
+extra_c_flags_386 += -4
 !ifeq host_os win
 extra_c_flags_spydll = -bd -mc
 !else ifeq host_os nt
@@ -68,11 +68,7 @@ extra_l_flags_nt  = option stack=64k option heapsize=2k &
 extra_l_flags     = option map
 !ifeq host_cpu  386
 # To maintain cross-version linkability
-!ifdef __LINUX__
-extra_l_flags    += alias "'_WinMain'='_WinMain@16'"
-!else
-extra_l_flags    += alias '_WinMain'='_WinMain@16'
-!endif
+extra_l_flags_nt  += alias '_WinMain'='_WinMain@16'
 !endif
 
 wspy_dll_lflags_wini86 = $(dll_debug_$(host_cpu)) &
@@ -94,14 +90,11 @@ wspy_dll_lflags_ntaxp  = $(dll_debug_$(host_cpu)) &
                          option map &
                          file { $(dllobjs) }
 
-.BEFORE
-        @set include=$(inc_path)
-
 .c: $(wspy_dir);$(sdk_dir)/misc
 .h: $(wspy_dir);$(sdk_dir)/misc
 .rc: ..
 
-inc_dirs = $(wspy_dir);$(sdk_dir)/misc;$(watcom_dir)/h
+inc_dirs = -I$(wspy_dir) -I"$(sdk_dir)/misc"
 
 wspy_to_build_win = rcstr.gh spymsgs.dlg spymsg.gh $(dllname).dll $(name).exe
 
@@ -111,14 +104,17 @@ all : $(wspy_to_build_$(host_os)) .SYMBOLIC
         @%null
 
 $(name).exe : $(objs) $(name).res $(dllname).lib
-        $(linker) $(lflags) name $^@ file { $(objs) }
+        %create $^&.lnk
+        @%append $^&.lnk $(lflags)
+        @%append $^&.lnk file { $(objs) }
+        $(linker) name $^@ @$^&.lnk
 !ifeq host_cpu axp
 !ifeq release 0
         cvpack $(name).exe
         wstrip -q $(name).exe $(name).exe $(name).sym
 !endif
 !endif
-        $(RC) $(rc_flags) -k $(name).res $^@
+        $(rc) -k $(name).res $^@
 !ifeq host_cpu axp
 !ifeq release 0
         wstrip -q -a wspy.exe . wspy.sym
@@ -129,8 +125,7 @@ rcstr.gh : rcstrmsg.gh
         $(vi) -s ../../misc/msgtoh.vi -p"$^@" $[@
 
 rcstrmsg.gh : $(wspy_dir)/spy.msg $(msgfiles)
-        @set include=$(inc_path)
-        $(cc) -zk0 -p -i="$(sdk_dir)/misc" $[@ -fo=$^@
+        $(cc) -zk0 -p $(inc_path) $[@ -fo=$^@
 
 spymsgs.dlg spymsg.gh: spyarray.h ./mkdlg.exe
         $]@ spymsgs.dlg spymsg.gh
@@ -139,10 +134,10 @@ spymsgnt.dlg spymsgnt.gh: spyarray.h ./mkdlgnt.exe
         $]@ spymsgnt.dlg spymsgnt.gh
 
 ./mkdlg.exe : ../utils/mkdlg.c
-        $(bld_cl) -I".." -d__NOSPYMSGS__ $(wcl_util_opts) $[@
+        $(bld_cl) -I".." -D__NOSPYMSGS__ $(wcl_util_opts) $[@
 
 ./mkdlgnt.exe : ../utils/mkdlg.c
-        $(bld_cl) -I".." -d__NOSPYMSGS__ -dNT_MSGS $(wcl_util_opts) $[@
+        $(bld_cl) -I".." -D__NOSPYMSGS__ -DNT_MSGS $(wcl_util_opts) $[@
 
 $(dllname).lib : $(dllname).dll
         @rm -f $(dllname).lib
@@ -152,5 +147,5 @@ $(dllname).dll : $(dllobjs)
         $(linker) $(wspy_dll_lflags_$(host_os)$(host_cpu))
 
 .rc.res: .AUTODEPEND
-        $(RC) $(rc_flags) -r -ad -zk0 -i="$(sdk_dir)/misc" $[@ -fo=$^@
+        $(rc) $(rc_flags) -r -ad -zk0 $(inc_path) $[@ -fo=$^@
 

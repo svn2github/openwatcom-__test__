@@ -139,6 +139,11 @@ specify source dependancy name generated in make-style autodep file
 :optref refid='SWadd'.
 .do end
 .if &version ge 112 .do begin
+.note adhp[=<file_name>]
+specify path to use for headers which result with no path, and are filename only.
+:optref refid='SWadhp'.
+.do end
+.if &version ge 112 .do begin
 .note adfs
 force slashes generated in makefile style auto depend to forward
 :optref refid='SWadfs'.
@@ -488,6 +493,12 @@ set error file specification
 try truncated (8.3) header file specification
 :optref refid='SWft'.
 .*
+.note fti
+:CMT. .ix 'options' 'fti'
+(C only)
+track include file opens
+:optref refid='SWfti'.
+.*
 .note fx
 :CMT. .ix 'options' 'fx'
 (C++ only)
@@ -686,6 +697,10 @@ control optimization
 control optimization
 :optref refid='SWoa'.
 .do end
+.*
+.note pil
+preprocessor ignores #line directives
+:optref refid='SWpil'.
 .*
 .note p{e,l,c,w=<num>}
 :CMT. .ix 'options' 'pe'

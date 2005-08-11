@@ -34,7 +34,7 @@ Options are preceded by a "~-" character.
 .el .do begin
 If you are using a DOS, OS/2 or Windows-hosted version of the
 &libname, options are preceded by a "/" or "~-" character.
-If you are using a QNX-hosted version of the &libname,
+If you are using a UNIX-hosted version of the &libname,
 options are preceded by a "~-" character.
 .do end
 .do end
@@ -121,6 +121,9 @@ remove path information from module name specified in THEADR records
 do not suppress identification banner
 .note x
 extract all object modules from library
+.note zld
+strip file dependency info from object files
+(supported for "OMF" library format only)
 .endnote
 .np
 The following sections describe the operations that can be performed on
@@ -136,6 +139,25 @@ Hence,
 .bd lib_file
 should not have a file extension of "bak".
 .ix '&libcmdup ' 'operations'
+.*
+.section &libname Module Commands
+.*
+.np
+The following is a summary of basic &libname module manipulation commands:
+.begnote $break $compact
+.note +
+add module to a library
+.note -
+remove module from a library
+.note * or :
+extract module from a library (
+.bd :
+is used with a UNIX-hosted version of the &libname, otherwise
+.bd *
+is used)
+.note ++
+add import library entry
+.endnote
 .*
 .section Adding Modules to a Library File
 .*
@@ -156,7 +178,7 @@ A file extension of "o" is assumed if none is specified.
 .el .do begin
 If you are using a DOS, OS/2 or Windows-hosted version of the
 &libname, a file extension of "obj" is assumed if none is specified.
-If you are using a QNX-hosted version of the &libname,
+If you are using a UNIX-hosted version of the &libname,
 a file extension of "o" is assumed if none is specified.
 .do end
 .do end
@@ -252,14 +274,14 @@ Otherwise, the &libname will assume you are replacing an object module.
 A module can be extracted from a library file by specifying a
 .if '&target' eq 'QNX' .do begin
 .bd :mod_name
-command.
+[=file_name] command.
 .do end
 .el .do begin
 .bd *mod_name
-command for a DOS, OS/2 or Windows-hosted version of the &libname
+[=file_name] command for a DOS, OS/2 or Windows-hosted version of the &libname
 or a
 .bd :mod_name
-command for a QNX-hosted version of the &libname..
+[=file_name] command for a UNIX-hosted version of the &libname..
 .do end
 The module
 .bd mod_name
@@ -280,7 +302,7 @@ specified file extension.
 .el .do begin
 &libcmd mylib *myobj        DOS, OS/2 or Windows-hosted
     or
-&libcmd mylib :myobj        QNX-hosted
+&libcmd mylib :myobj        UNIX-hosted
 .do end
 .exam end
 .pc
@@ -292,7 +314,7 @@ A file extension of "o" will be used.
 .el .do begin
 If you are running a DOS, OS/2 or Windows-hosted version of the
 &libname, a file extension of "obj" will be used.
-If you are running a QNX-hosted version of the &libname, a file
+If you are running a UNIX-hosted version of the &libname, a file
 extension of "o" will be used.
 .do end
 .*
@@ -303,12 +325,26 @@ extension of "o" will be used.
 .el .do begin
 &libcmd mylib *myobj.out    DOS, OS/2 or Windows-hosted
     or
-&libcmd mylib :myobj.out    QNX-hosted
+&libcmd mylib :myobj.out    UNIX-hosted
 .do end
 .exam end
 .pc
 In the above example, the module "myobj" will be extracted from the
 library file "mylib.lib" and placed in the file "myobj.out"
+.np
+The following form of the extract command can be used if the module name
+is not the same as the output file name.
+.np
+.exam begin
+.if '&target' eq 'QNX' .do begin
+&libcmd mylib :myobj=newmyobj.out
+.do end
+.el .do begin
+&libcmd mylib *myobj=newmyobj.out    DOS, OS/2 or Windows-hosted
+    or
+&libcmd mylib :myobj=newmyobj.out    UNIX-hosted
+.do end
+.exam end
 .np
 You can extract a module from a file and have that module deleted from
 the library file by specifying a
@@ -321,7 +357,7 @@ command.
 command for a DOS, OS/2 or Windows-hosted version of the &libname
 or a
 .bd :-mod_name
-command for a QNX-hosted version of the &libname..
+command for a UNIX-hosted version of the &libname..
 .do end
 The following example performs the same operations as in the previous
 example but, in addition, the module is deleted from the library file.
@@ -333,7 +369,7 @@ example but, in addition, the module is deleted from the library file.
 .el .do begin
 &libcmd mylib *-myobj.out   DOS, OS/2 or Windows-hosted
     or
-&libcmd mylib :-myobj.out   QNX-hosted
+&libcmd mylib :-myobj.out   UNIX-hosted
 .do end
 .exam end
 .pc
@@ -469,7 +505,7 @@ The module will be placed in the file "/o/mymod.o".
 .el .do begin
 If you are running a DOS, OS/2 or Windows-hosted version of the
 &libname, the module will be placed in the file "\obj\mymod.obj".
-If you are running a QNX-hosted version of the &libname, the module
+If you are running a UNIX-hosted version of the &libname, the module
 will be placed in the file "/o/mymod.o".
 .do end
 .exam begin
@@ -479,7 +515,7 @@ will be placed in the file "/o/mymod.o".
 .el .do begin
 &libcmd -d=\obj mymod       DOS, OS/2 or Windows-hosted
     or
-&libcmd -d=/o mymod         QNX-hosted
+&libcmd -d=/o mymod         UNIX-hosted
 .do end
 .exam end
 .*
@@ -743,7 +779,7 @@ The module will be placed in the file "/o" directory.
 .el .do begin
 If you are running a DOS, OS/2 or Windows-hosted version of the
 &libname, the module will be placed in the "\obj" directory.
-If you are running a QNX-hosted version of the &libname, the module
+If you are running a UNIX-hosted version of the &libname, the module
 will be placed in the file "/o" directory.
 .do end
 .exam begin
@@ -753,7 +789,7 @@ will be placed in the file "/o" directory.
 .el .do begin
 &libcmd -x -d=\obj mylib    DOS, OS/2 or Windows-hosted
     or
-&libcmd -x -d=/o mylib      QNX-hosted
+&libcmd -x -d=/o mylib      UNIX-hosted
 .do end
 .exam end
 .endlevel

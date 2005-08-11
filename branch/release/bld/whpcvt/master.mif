@@ -1,17 +1,18 @@
 #
-# Watcom Help converter (WHPVCT) Makefile
+# Watcom Help Converter (whpcvt) Makefile
 # =======================================
 #
 
 proj_name = whpcvt
+whpcvt_autodepends = .autodepend
 
 !include cproj.mif
 !include deftarg.mif
 !include defrule.mif
 
-inc_dirs = $(whpcvt_dir)\h
+inc_dirs = -I"$(whpcvt_dir)/h"
 
-.c: ..\c
+.c: ../c
 
 objs =              &
         whpcvt.obj  &
@@ -20,5 +21,4 @@ objs =              &
         ib.obj      &
         html.obj
 
-$(proj_name).exe : $(objs)
-        $(linker) option quiet $(lflags) name $^. file { $< }
+!include exetarg.mif

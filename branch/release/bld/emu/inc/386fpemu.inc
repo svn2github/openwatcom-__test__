@@ -41,14 +41,14 @@ endif
 ifndef __WIN387__
         extrn   __GETDS : near
 if _OS eq _QNX
-        extrn   ___FPE_handler_ : near
+        extrn   "C",__FPEhandler : near
 else
-        extrn   ___FPE_handler : dword
+        extrn   __FPE_exception_  : near
 endif
 endif
 
 ifdef _DEBUG
-  public  badop,prtnyi,my87,mrm,sib,memop,stkop
+  public  badop,prtnyi,my87,mrm,sib,memop,stkop,stkop1
 endif
 
 sarea   struc
@@ -78,7 +78,7 @@ ifdef __WIN387__
 precrtn dd              p_extended ; address of precision rtn
 endif
 ifdef _DEBUG
-    nyimsg      db ": not yet impemented",0dH,0aH,NC
+    nyimsg      db ": not yet implemented",0dH,0aH,NC
     illopmsg    db "Illegal instruction encountered by 8087 emulator",0dH,0aH,NC
 endif
 ifdef __WIN387__
@@ -185,8 +185,6 @@ stkop   dd      s00,s01,s02,s03,s04,s05,s06,s07         ; stack operand
 
 _0_     equ     100o
 _i_     equ     101o
-
-        public  stkop1
 
 stkop1  db      _0_,_0_,02o,03o,_i_,_0_,_i_,_0_         ; stack operand
         db      _0_,_0_,12o,13o,_i_,_0_,_i_,_0_         ; select table
@@ -946,9 +944,9 @@ ifndef __WIN387__
           rep   movsd                   ; - copy it
           movzx EAX,AH                  ; - get exception code  21-jul-90
 if _OS eq _QNX
-          call  ___FPE_handler_         ; - jump to SIGFPE handler rtn
+          call  __FPEhandler            ; - jump to SIGFPE handler rtn
 else
-          call  ds:___FPE_handler       ; - jump to SIGFPE handler rtn
+          call  __FPE_exception_        ; - jump to SIGFPE handler rtn
 endif
           mov   CX,DS                   ; - set ES=DS
           mov   ES,CX                   ; - ...
@@ -1092,9 +1090,9 @@ badop   endp
 endif
 
 illop   macro
-      ifdef _DEBUG
+ifdef _DEBUG
         call    badop
-      endif
+endif
         endm
 
 ifdef _DEBUG
@@ -1122,10 +1120,10 @@ msg     db      '&string',NC
         lea     edx,msg
         call    prtnyi
         endm
-      else
+else
 nyi     macro   string
         endm
-      endif
+endif
 
 _lea    macro   reg,what
         IFIDN   <what>,<st>

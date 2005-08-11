@@ -249,23 +249,23 @@ static void Define_Extensions()
     PreDefine_Macro( "_loadds=__loadds" );
     PreDefine_Macro( "_saveregs=__saveregs" );
     PreDefine_Macro( "_stdcall=__stdcall" );
-    PreDefine_Macro( "_syscall=_Syscall" );        /* 04-jul-91 */
-    PreDefine_Macro( "_based=__based" );                /* 31-jan-92 */
+    PreDefine_Macro( "_syscall=__syscall" );
+    PreDefine_Macro( "_based=__based" );
     PreDefine_Macro( "_self=__self" );
     PreDefine_Macro( "_segname=__segname" );
     PreDefine_Macro( "_segment=__segment" );
-    PreDefine_Macro( "_try=_Try");
-    PreDefine_Macro( "_except=_Except");
-    PreDefine_Macro( "_finally=_Finally");
-    PreDefine_Macro( "_leave=_Leave");
+    PreDefine_Macro( "_try=__try");
+    PreDefine_Macro( "_except=__except");
+    PreDefine_Macro( "_finally=__finally");
+    PreDefine_Macro( "_leave=__leave");
     PreDefine_Macro( "_asm=__asm");
 #if _CPU == 8086
     /* SOM for Windows macros */
-    PreDefine_Macro( "SOMLINK=__cdecl" );               /* 29-mar-94 */
+    PreDefine_Macro( "SOMLINK=__cdecl" );
     PreDefine_Macro( "SOMDLINK=__far" );
 #else
-    PreDefine_Macro( "SOMLINK=_Syscall" );              /* 09-apr-93 */
-    PreDefine_Macro( "SOMDLINK=_Syscall" );             /* 10-apr-95 */
+    PreDefine_Macro( "SOMLINK=_Syscall" );
+    PreDefine_Macro( "SOMDLINK=_Syscall" );
 #endif
 }
 
@@ -275,27 +275,18 @@ void MiscMacroDefs()
     if( CompFlags.inline_functions ) {
         Define_Macro( "__INLINE_FUNCTIONS__" );
     }
-    if( ! CompFlags.extensions_enabled ) {  /* 21-jul-88 */
+    if( ! CompFlags.extensions_enabled ) {
         Define_Macro( "NO_EXT_KEYS" );
     } else {
         Define_Extensions();
     }
     if( CompFlags.signed_char ) {
-        Define_Macro( "__CHAR_SIGNED__" );              /* 20-apr-90 */
+        Define_Macro( "__CHAR_SIGNED__" );
     }
     if( CompFlags.rent ) {
-        Define_Macro( "__RENT__" );                     /* 20-apr-90 */
+        Define_Macro( "__RENT__" );
     }
-    PreDefine_Macro( "_Far16=__far16" );
-    PreDefine_Macro( "__syscall=_Syscall" );            /* 04-jul-91 */
-    PreDefine_Macro( "_System=_Syscall" );
-    PreDefine_Macro( "_Cdecl=__cdecl" );
-    PreDefine_Macro( "_Pascal=__pascal");
-    PreDefine_Macro( "__try=_Try");
-    PreDefine_Macro( "__except=_Except");
-    PreDefine_Macro( "__finally=_Finally");
-    PreDefine_Macro( "__leave=_Leave");
-    PreDefine_Macro( "_PUSHPOP_SUPPORTED" );             /* 10-apr-95 */
+    PreDefine_Macro( "_PUSHPOP_SUPPORTED" );
     PreDefine_Macro( CompilerID );
     FreeUndefNames();
 }
@@ -319,7 +310,7 @@ void InitModInfo( void )
     ErrLimit = 20;
     WngLevel = 1;
     PackAmount = 8;
-#if _MACHINE == _ALPHA || _MACHINE == _PPC
+#if _CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
     CompFlags.make_enums_an_int = 1;     // make enums ints
     CompFlags.original_enum_setting = 1;
     PackAmount = 8;
@@ -358,15 +349,17 @@ void InitModInfo( void )
     CompFlags.use_stdcall_at_number = 1;
     CompFlags.rent = 0;
 
-    DefaultInfo.class   = 0;
-    DefaultInfo.code    = NULL;
-    DefaultInfo.parms   = DefaultParms;
+    DftCallConv         = &WatcallInfo;
+
+    WatcallInfo.class   = 0;
+    WatcallInfo.code    = NULL;
+    WatcallInfo.parms   = DefaultParms;
 #if _CPU == 370
-    DefaultInfo.linkage = &DefaultLinkage;
+    WatcallInfo.linkage = &DefaultLinkage;
 #endif
-    HW_CAsgn( DefaultInfo.returns, HW_EMPTY );
-    HW_CAsgn( DefaultInfo.streturn, HW_EMPTY );
-    HW_CAsgn( DefaultInfo.save, HW_FULL );
-    DefaultInfo.use     = 0;
-    DefaultInfo.objname = NULL;      /* DefaultObjName; */
+    HW_CAsgn( WatcallInfo.returns, HW_EMPTY );
+    HW_CAsgn( WatcallInfo.streturn, HW_EMPTY );
+    HW_CAsgn( WatcallInfo.save, HW_FULL );
+    WatcallInfo.use     = 0;
+    WatcallInfo.objname = NULL;      /* DefaultObjName; */
 }

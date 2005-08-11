@@ -24,14 +24,13 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Initialization routines.
 *
 ****************************************************************************/
 
 
-dr_dbg_handle DRDbgInit( void *, unsigned long * );
-dr_dbg_handle DRDbgInitNFT( void *, unsigned long * ); /* no file table */
+dr_dbg_handle DRDbgInit( void *, unsigned long *, int );
+dr_dbg_handle DRDbgInitNFT( void *, unsigned long *, int ); /* no file table */
 void DRDbgFini( dr_dbg_handle );
 extern dr_dbg_handle  DRSetDebug( dr_dbg_handle );
 extern dr_dbg_handle  DRGetDebug();
@@ -39,4 +38,4 @@ extern int  DRDbgClear( dr_dbg_handle dbg );
 extern void DRDbgDone( dr_dbg_handle dbg );
 void DRInit( void );
 void DRFini( void );
-extern void DRDbgOldVersion( dr_dbg_handle dbg );
+extern void DRDbgOldVersion( dr_dbg_handle dbg, int version );

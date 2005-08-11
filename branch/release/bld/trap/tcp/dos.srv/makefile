@@ -1,16 +1,17 @@
-#pmake: all build serv remote os_dos cpu_i86 cpu_386 tcp x86
-host_CPU = i86
-host_OS = dos
+#pmake: build serv remote os_dos cpu_i86 cpu_386 tcp x86
 
-memory_model_i86 = l
+host_os  = dos
+host_cpu = i86
 
-os = dos
+os  = dos
 srv = tcp
 cpu = x86
 which = SERVER
 
+memory_model_i86 = l
+
 extra_objs = $(remote_objs)
-inc_dirs = $(%OWROOT)/contrib/wattcp/inc
+inc_dirs   = -I"$(%OWROOT)/contrib/wattcp/inc"
 extra_libs = $(%OWROOT)/contrib/wattcp/lib/wattcpwl.lib
 
 !include $(trap_dir)/master.mif

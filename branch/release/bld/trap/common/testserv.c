@@ -30,7 +30,9 @@
 
 
 #include <stdlib.h>
-#include <conio.h>
+#if defined(__WATCOMC__)
+    #include <conio.h>
+#endif
 #include <stdio.h>
 #include "testlink.h"
 #include "packet.h"
@@ -48,7 +50,6 @@ void TaskFini()
 #endif
 
 #ifdef __WINDOWS__
-#define STRICT
 #include "windows.h"
 HANDLE  Instance;
 
@@ -94,7 +95,7 @@ void RunTime()
     }
 }
 
-main( unsigned argc, char *argv[] )
+int main( int argc, char *argv[] )
 {
     char        *err;
     unsigned    len;
@@ -108,16 +109,23 @@ main( unsigned argc, char *argv[] )
     err = RemoteLink( argc > 1 ? argv[1] : "", 1 );
     if( err != 0 ) {
         printf( "%s\n", err );
-        return;
+        return( 1 );
     }
     printf( "server running\n" );
     for( ;; ) {
         NothingToDo();
+#if defined(__WATCOMC__)
+        // How to do the equivalent of kbhit()?
         if( kbhit() && getch() == 'q' ) break;
+#endif
         if( RemoteConnect() ) {
             printf( "\nCONNECT\n" );
             for( ;; ) {
                 len = RemoteGet( &Data, sizeof( Data ) );
+		if( len == -1 ) {
+		    printf( "\nlink broken\n" );
+		    break;
+		}
                 if( Data[0] == TEST_OVER ) break;
                 if( Data[0] == TEST_STRING ) {
                     printf( "'%s' - %d bytes\n", &Data[1], len );
@@ -131,4 +139,5 @@ main( unsigned argc, char *argv[] )
         }
     }
     RemoteUnLink();
+    return( 0 );
 }

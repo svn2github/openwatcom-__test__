@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Editor initialization.
 *
 ****************************************************************************/
 
@@ -33,10 +32,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef __AXP__
-#ifdef __WATCOMC__
-#include <i86.h>
-#endif
+#ifndef __UNIX__
+    // To be removed when OW 1.4 is in universal use
+    #include <env.h>
 #endif
 #include "vi.h"
 #include "rxsupp.h"
@@ -56,8 +54,10 @@
 #include "windows.h"
 #endif
 #include "rcs.h"
+#include "autoenv.h"
 
 static char     nullFN[] = "no_name";
+static char     defaultEDPath[] = DIR_SEP_STR "eddat";
 static char     *cFN;
 static char     *cfgFN=NULL;
 static char     *cTag;
@@ -224,6 +224,32 @@ static void doInitializeEditor( int argc, char *argv[] )
     char        *parm;
     char        *startup[MAX_STARTUP];
     char        *startup_parms[MAX_STARTUP];
+
+    /*
+     * Make sure WATCOM is setup and if it is not, make a best guess.
+     */
+    watcom_setup_env();
+
+    /*
+     * If EDPATH is not set, use system default %WATCOM%\EDDAT.
+     */
+    if( getenv( "EDPATH" ) == NULL ) {
+        char *watcom;
+
+        watcom = getenv( "WATCOM" );
+        if( watcom != NULL ) {
+            char edpath[PATH_MAX];
+
+            strcpy( edpath, watcom );
+            strcat( edpath, defaultEDPath );
+
+            if( setenv( "EDPATH", edpath, 0 ) != 0 ) {
+                /*
+                 * Bail out silently on error, as we will get error message later on.
+                 */
+            }
+        }
+    }
 
     /*
      * misc. set up

@@ -35,7 +35,9 @@
 #include <string.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <process.h>
+#include "autoenv.h"
 
 #define INCL_DOSMISC
 #define INCL_DOSSIGNALS
@@ -47,7 +49,8 @@ extern void     DebugMain( void );
 extern void     DebugFini( void );
 extern char     *StrCopy( char *, char * );
 
-static char             *CmdStart;
+char            *CmdData;
+
 static volatile bool    BrkPending;
 
 #if 0
@@ -62,15 +65,19 @@ static void pascal far BrkHandler( USHORT sig_arg, USHORT sig_num )
 }
 #endif
 
+#include <stdio.h>
 void GUImain( void )
 {
     char    *buff;
     int     len;
 
+    // fix up env vars if necessary
+    watcom_setup_env();
+
     len = _bgetcmd( NULL, INT_MAX ) + 1;
     buff = malloc( len );
-    CmdStart = buff;
-    getcmd( CmdStart );
+    CmdData = buff;
+    getcmd( CmdData );
     //TODO: replace with exception handler
 //    DosSetSigHandler( BrkHandler, &prev_hdl, &prev_act, 2, SIG_CTRLBREAK );
     DebugMain();
@@ -95,16 +102,16 @@ void WndCleanUp()
 
 char *GetCmdArg( int num )
 {
-    if( num != 0 || CmdStart == NULL )
+    if( num != 0 || CmdData == NULL )
         return( NULL );
 
-    return( CmdStart );
+    return( CmdData );
 }
 
 void SetCmdArgStart( int num, char *ptr )
 {
     num = num; /* must be zero */
-    CmdStart = ptr;
+    CmdData = ptr;
 }
 
 void KillDebugger( int ret_code )
@@ -123,22 +130,14 @@ void RestoreHandlers()
 unsigned EnvLkup( char *name, char *buff, int max_len )
 {
     char        *env;
-    unsigned    len;
 
     max_len = max_len; // nyi obey
-    if( DosScanEnv( name, &env ) == 0 ) {
-        len = 0;
-        for( ;; ) {
-            *buff = *env;
-            if( *buff == NULLCHAR )
-                break;
-            ++len;
-            ++buff;
-            ++env;
-        }
-        return( len );
-    }
-    return( 0 );
+    // use getenv() so that autoenv has an effect (we can't
+    // reliably modify the "master" process environment on OS/2)
+    env = getenv( name );
+    if( env == NULL )
+        return( 0 );
+    return( StrCopy( env, buff ) - buff );
 }
 
 long _fork( char *cmd, unsigned len )

@@ -1,16 +1,13 @@
 proj_name = re2c
+re2c_autodepends = .autodepend
 
 !include cproj.mif
 !include deftarg.mif
 !include defrule.mif
 
-inc_dirs = $(re2c_dir)/h
+inc_dirs = -I"$(re2c_dir)/h"
 
 .cpp: ../cpp
-
-.cpp.obj: $($(proj_name)_autodepends)
-        set include=$(inc_path)
-        $(cpp) -ox-zq-mf-zc -fo=.obj $(extra_c_flags_$[&) $[@
 
 objs =                  &
        actions.obj      &
@@ -22,5 +19,9 @@ objs =                  &
        substr.obj       &
        translat.obj
 
-$(proj_name).exe : $(objs)
-        $(linker) option quiet op stack=8k $(lflags) name $^@ file { $< }
+!ifdef bootstrap
+# awful hack to link this executable; if you know how to do this right, please do!
+cl = g++
+!endif
+
+!include exetarg.mif

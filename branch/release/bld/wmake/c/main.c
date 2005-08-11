@@ -32,11 +32,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#ifdef __OS2__
+#if defined(__OS2__) || defined(__DOS__)
    #include <stdio.h>
 #endif
 #ifdef __WATCOMC__
-#include <process.h>
+    #include <process.h>
 #endif
 
 #include "massert.h"
@@ -57,19 +57,22 @@
 #include "mvecstr.h"
 #include "mautodep.h"
 
-STATIC TLIST    *mustTargs;     /* targets we must update                   */
-STATIC TLIST   *firstTargFound; /* first targets we ever found              */
-STATIC NODE     *filesToDo;     /* pointers into argv to -f files           */
 
+STATIC TLIST    *mustTargs;         /* targets we must update           */
+STATIC TLIST    *firstTargFound;    /* first targets we ever found      */
+STATIC NODE     *filesToDo;         /* pointers into argv to -f files   */
+
+#ifdef __WATCOMC__
 #pragma on (check_stack);
+#endif
 STATIC void doBuiltIns( const char *makeopts )
 /*********************************************
  * perform the builtin commands
  */
 {
-    TLIST *list;
-    char buf[ 2048 ];
-    char *cpy;
+    TLIST   *list;
+    char    buf[2048];
+    char    *cpy;
 
     if( !Glob.overide ) {
         DoingBuiltIn = TRUE;
@@ -80,15 +83,17 @@ STATIC void doBuiltIns( const char *makeopts )
         list = Parse();
         FreeTList( list );
         strcpy(cpy, "MAKE=" );
-        if( _cmdname( cpy + sizeof "MAKE=" - 1 ) == NULL )
+        if( _cmdname( cpy + sizeof "MAKE=" - 1 ) == NULL ) {
             strcat( cpy, "wmake" );
+        }
         InsString( cpy, FALSE );
         list = Parse();
         FreeTList( list );
         if( Glob.microsoft | Glob.unix ) {
             // suffixes must be parsed before builtins
-            const char *suffices = MSSuffixList;
-            const char *builtins = MSBuiltIn;
+            const char  *suffices = MSSuffixList;
+            const char  *builtins = MSBuiltIn;
+
             FmtStr( cpy, "%%MAKEFLAGS=$(%%MAKEFLAGS) %F", makeopts );
             InsString( cpy, FALSE );
             list = Parse();
@@ -113,17 +118,20 @@ STATIC void doBuiltIns( const char *makeopts )
         DoingBuiltIn = FALSE;
     }
 }
+#ifdef __WATCOMC__
 #pragma off(check_stack);
+#endif
 
 static void setFirstTarget( TLIST *potential_first )
+/**************************************************/
 {
     if( firstTargFound != NULL || potential_first == NULL ) {
-        if( potential_first )
+        if( potential_first ) {
             FreeTList( potential_first );
+        }
         return;
     }
     /*  Note all first targets must not have attribute explicit */
-
     firstTargFound = potential_first;
 }
 
@@ -135,12 +143,12 @@ void Header( void )
     }
     if( !Glob.headerout ) {
         Glob.headerout = TRUE;  /* so we don't print more than once */
-        PrtMsg( INF| BANNER );
+        PrtMsg( INF | BANNER );
     }
 }
 
 
-STATIC void handleMacroDefn( char *buf )
+STATIC void handleMacroDefn( const char *buf )
 /*********************************************
  * Can't use Parse() at this point because we need readonly macros, so we
  * simply use LexToken().
@@ -148,41 +156,37 @@ STATIC void handleMacroDefn( char *buf )
  * macros even the one on the command line can be overwritten
  */
 {
-    char    *p;
-    int     pos;
+    char        *p;
+    char        *q;
 
     assert( buf != NULL );
 
-    buf = StrDupSafe( buf );    /* we need our own copy */
+    q = StrDupSafe( buf );    /* we need our own copy */
 
-    p = strpbrk( buf, "#=" );
+    p = strpbrk( q, "#=" );
     assert( p != NULL );
     *p = '=';                   /* lex doesn't recognize '#' */
 
-    InsString( buf, FALSE );     /* put arg into stream */
+    InsString( q, FALSE );     /* put arg into stream */
     while( LexToken( LEX_PARSER ) != STRM_END ) {
         /* NOP - eat all the characters */
     }
 
     if( Glob.microsoft ) {
-        Glob.macreadonly = FALSE;
         /* Insert twice because in nmake declaring a macro in the command line */
         /* is equivalent to declaring one as is and one that is all upper case */
         /* Approximately so. we cater for foo meaning FOO but not FoO W.Briscoe 20031114 */
-        pos = 0;
-        while( buf[ pos ] != NULLCHAR &&
-               buf[ pos ] != '=' ) {
-            buf[ pos ] = (char) toupper( buf[ pos ] );
-            ++pos;
+        /* This is no problem! In make, foo=bar only sets foo and FOO W.Briscoe 20041014 */
+        while( --p >= q ) {
+            *p = toupper( *p );
         }
 
-        InsString( buf, TRUE );     /* put arg into stream */
+        InsString( q, FALSE );     /* put arg into stream */
         while( LexToken( LEX_PARSER ) != STRM_END ) {
-            /* NOP - eat all the characters */
+            /* NOP - eat the characters. Needs own eater. W.Briscoe 20041014 */
         }
-        Glob.macreadonly = TRUE;
     }
-    FreeSafe( buf );
+    FreeSafe( q );
 }
 
 
@@ -191,8 +195,7 @@ STATIC void handleTarg( const char *buf )
 {
     assert( buf != NULL );
 
-    /* if it is not a valid target name, it won't be able to be
-       made by Update() */
+    /* if it is not a valid target name, Update() won't be able to make it */
     WildTList( &mustTargs, buf, FALSE, TRUE );
 }
 
@@ -200,15 +203,13 @@ STATIC void handleTarg( const char *buf )
 STATIC void checkCtrl( const char *p )
 /************************************/
 {
-    assert( p != NULL );
-
-    if( p )
-        while( *p ) {          /* scan for control characters */
-            if( !isprint( *p ) ) {
-                PrtMsg( FTL| CTRL_CHAR_IN_CMD, *p );
-            }
-            ++p;
+    // p != NULL is checked by caller
+    while( *p ) {          // scan for control characters
+        if( !isprint( *p ) ) {
+            PrtMsg( FTL | CTRL_CHAR_IN_CMD, *p );
         }
+        ++p;
+    }
 }
 
 
@@ -220,15 +221,15 @@ STATIC char *procFlags( char const * const *argv, const char **log_name )
  * of some features in microsoft compatability
  */
 {
-    char    select = '\0';     /* - or swchar (*argv)[0]                   */
-    char    option = '\0';     /* the option (*argv)[1]                    */
-    const char *p;      /* working pointer to *argv                 */
-    NODE    *new;       /* for adding a new file                    */
-    int      options[256 + 1] = { 0 };
+    char        select = '\0';  /* - or swchar (*argv)[0]       */
+    char        option = '\0';  /* the option (*argv)[1]        */
+    const char  *p;             /* working pointer to *argv     */
+    NODE        *new;           /* for adding a new file        */
+    int         options[256 + 1] = { 0 };
 
-    if( ( p = argv[1] ) != NULL ) {
+    if( (p = argv[1]) != NULL ) {
         if( strcmp( p, "?" ) == 0
-        || (( p[0] == '-' || p[0] == Glob.swchar ) && strcmp( p+1, "?" ) == 0) ) {
+        || ((p[0] == '-' || p[0] == Glob.swchar) && strcmp( p + 1, "?" ) == 0) ) {
             Usage();
         }
     }
@@ -271,55 +272,55 @@ STATIC char *procFlags( char const * const *argv, const char **log_name )
                 case 'f':
                 case 'l':
                     if( ( p = *++argv ) == NULL ) {
-                        PrtMsg( ERR| INVALID_FILE_OPTION, select, option );
+                        PrtMsg( ERR | INVALID_FILE_OPTION, select, option );
                         Usage();
                     }
                     checkCtrl( p );
                     if( option == 'f' ) {
-                        if ( ( p[0] == '-' ) && ( p[1] == NULLCHAR ) ) {
+                        if( (p[0] == '-') && (p[1] == NULLCHAR) ) {
                             // stdin
-                        } else if ( ( p[0] == '-' ) || ( p[0] == Glob.swchar ) ) {
-                            PrtMsg( ERR| INVALID_FILE_OPTION, select, option );
+                        } else if( (p[0] == '-') || (p[0] == Glob.swchar) ) {
+                            PrtMsg( ERR | INVALID_FILE_OPTION, select, option );
                             Usage();
                         }
                         new = MallocSafe( sizeof( *new ) );
-                        new->name = (char *) p;
+                        new->name = (char *)p;
                         new->next = filesToDo;
                         filesToDo = new;
                     } else
                         *log_name = p;
                     break;
                 default:
-                    PrtMsg( ERR| INVALID_OPTION, select, option );
+                    PrtMsg( ERR | INVALID_OPTION, select, option );
                     Usage();
                     break;
                 }
-                options[ ( option | 0x20 ) + 1 ] = TRUE;
+                options[(option | 0x20) + 1] = TRUE;
                 continue;
             }
             if( p[3] == NULLCHAR ) {
                 if( option == 'm'  && tolower( p[2] ) == 's' ) {
                     Glob.microsoft = TRUE;
                     Glob.nocheck   = TRUE;
-                    options[ ( option | 0x20 ) + 1 ] = TRUE;
+                    options[(option | 0x20) + 1] = TRUE;
                     continue;
                 }
                 if( option == 's'  && tolower( p[2] ) == 'n' ) {
                     Glob.silentno  = TRUE;
-                    options[ ( option | 0x20 ) + 1 ] = TRUE;
+                    options[(option | 0x20) + 1] = TRUE;
                     continue;
                 }
             }
         }
         if( strpbrk( p, "=#" ) != NULL ) {     /* is macro=defn */
-            handleMacroDefn( (char*) p );
+            handleMacroDefn( p );
         } else {                /* is a target */
             handleTarg( p );
         }
     } // while( *++argv != NULL )
 
     if( Glob.microsoft && Glob.unix ) {
-        PrtMsg( ERR| INCOMPATIBLE__OPTIONS, select, option );
+        PrtMsg( ERR | INCOMPATIBLE__OPTIONS, select, option );
         Usage();
     }
 
@@ -327,41 +328,41 @@ STATIC char *procFlags( char const * const *argv, const char **log_name )
 
     {
         // 120 allows for 30 options.
-        size_t const optsize = 120 + ( ( *log_name ) ? strlen( *log_name ) + 1: 0 ) + 1;
-        char * const makeopts = MallocSafe( optsize );
-        unsigned opt_index;
-        char default_option[] = " -?";
+        size_t const    optsize = 120 + (*log_name ? strlen( *log_name ) + 1: 0) + 1;
+        char * const    makeopts = MallocSafe( optsize );
+        unsigned        opt_index;
+        char            default_option[] = " -?";
 
         makeopts[0] = 0;
         opt_index = 'a' - 1;
         while( ++opt_index <= 'z' ) {
-            if( options[ opt_index + 1 ] ) {
+            if( options[opt_index + 1] ) {
                 switch( opt_index ) {
                 case 'f':
                 case 'n':
                     break;
                 case 'l':
-                    strcat( makeopts, ( *makeopts ) ? " -l " : "-l " );
+                    strcat( makeopts, *makeopts ? " -l " : "-l " );
                     strcat( makeopts, *log_name );
                     break;
                 case 'm':
                     if( Glob.nomakeinit ) {
-                        strcat( makeopts, ( *makeopts ) ? " -m" : "-m" );
+                        strcat( makeopts, *makeopts ? " -m" : "-m" );
                     }
                     if( Glob.microsoft ) {
-                        strcat( makeopts, ( *makeopts ) ? " -ms" : "-ms" );
+                        strcat( makeopts, *makeopts ? " -ms" : "-ms" );
                     }
                     break;
                 case 's':
                     if( Glob.silentno ) {
-                        strcat( makeopts, ( *makeopts ) ? " -sn" : "-sn" );
+                        strcat( makeopts, *makeopts ? " -sn" : "-sn" );
                     } else {
-                        strcat( makeopts, ( *makeopts ) ? " -s" : "-s" );
+                        strcat( makeopts, *makeopts ? " -s" : "-s" );
                     }
                     break;
                 default:
-                    default_option[2] = (char) opt_index;
-                    strcat( makeopts, default_option + (int) ( *makeopts == '\0' ) );
+                    default_option[2] = (char)opt_index;
+                    strcat( makeopts, default_option + (int)(*makeopts == '\0') );
                 }
             }
 
@@ -372,7 +373,7 @@ STATIC char *procFlags( char const * const *argv, const char **log_name )
 
 
 STATIC const char *procLogName( const char * const *argv )
-/*****************************************************************
+/*********************************************************
  Find log file name
  */
 {
@@ -380,8 +381,10 @@ STATIC const char *procLogName( const char * const *argv )
 
     while( *++argv != NULL ) {
         p = *argv;
-        if( ( ( p[0] == '-' ) || ( p[0] == Glob.swchar ) ) && ( tolower( p[1] ) == 'l' ) && ( p[2] == NULLCHAR ) ) {
-            return ( ( p = *++argv ) == NULL || ( p[0] == '-' ) || ( p[0] == Glob.swchar ) ) ? NULL : p;
+        if( ((p[0] == '-') || (p[0] == Glob.swchar)) &&
+                (tolower( p[1] ) == 'l') && (p[2] == NULLCHAR) ) {
+            return( ((p = *++argv) == NULL || (p[0] == '-')
+                || (p[0] == Glob.swchar)) ? NULL : p );
         }
     }
     return( NULL );
@@ -402,7 +405,7 @@ STATIC void parseFiles( void )
 
                                     /* process makeinit */
     if( !Glob.nomakeinit ) {
-        if ( Glob.microsoft ) {
+        if( Glob.microsoft ) {
             ret = InsFile( TOOLSINI_NAME, TRUE );
         } else {
             ret = InsFile( MAKEINIT_NAME, TRUE );
@@ -410,7 +413,7 @@ STATIC void parseFiles( void )
         if( ret == RET_SUCCESS ) {
             setFirstTarget( Parse() );
             if( firstTargFound != NULL ) {
-                PrtMsg( WRN| MAKEINIT_HAS_TARGET );
+                PrtMsg( WRN | MAKEINIT_HAS_TARGET );
             }
         }
     }
@@ -444,13 +447,13 @@ STATIC void parseFiles( void )
             if( ret == RET_SUCCESS ) {
                 setFirstTarget( Parse() );
             } else {
-                PrtMsg( ERR| UNABLE_TO_INCLUDE, p );
+                PrtMsg( ERR | UNABLE_TO_INCLUDE, p );
             }
         }
     }
 
     if( !Glob.nomakeinit ) {
-        if( ! Glob.microsoft ) {
+        if( !Glob.microsoft ) {
             ret = InsFile( MAKEFINI_NAME, TRUE );
             if( ret == RET_SUCCESS ) {
                 setFirstTarget( Parse() );
@@ -472,7 +475,7 @@ STATIC void print( void )
 
 STATIC void ignoreNoCommands( const TLIST *targ )
 {
-    TLIST const *current;
+    TLIST const     *current;
 
     current = targ;
     // set targets to be OK if there are no commands to update it
@@ -488,7 +491,7 @@ STATIC RET_T doMusts( void )
     RET_T   ret;
 
     if( firstTargFound == NULL && mustTargs == NULL ) {
-        PrtMsg( FTL| NO_TARGETS_SPECIFIED );
+        PrtMsg( FTL | NO_TARGETS_SPECIFIED );
     }
 
     UpdateInit();
@@ -509,20 +512,22 @@ STATIC RET_T doMusts( void )
 STATIC void globInit( void )
 /**************************/
 {
-    Glob.swchar = (char) SwitchChar();
+    Glob.swchar = (char)SwitchChar();
 }
 
 
 STATIC void init( char const * const *argv )
 /******************************************/
 {
-    char    *makeopts;
-    char const *log_name;
+    char        *makeopts;
+    char const  *log_name;
 
     LogInit( NULL );
     globInit();
     MemInit();          /* memory handlers          */
-    if( !MsgInit() ) exit( EXIT_FAILURE );
+    if( !MsgInit() ) {
+        exit( EXIT_FAILURE );
+    }
     VecInit();          /* vector strings           */
     CacheInit();        /* directory cacheing       */
     MacroInit();        /* initialize macros        */
@@ -555,12 +560,12 @@ STATIC void init( char const * const *argv )
 int ExitSafe( int rc )
 /********************/
 {
-    static BOOLEAN busy = FALSE;    /* recursion protection */
+    static BOOLEAN  busy = FALSE;   /* recursion protection */
 
     if( !busy ) {
         busy = TRUE;
         if( rc == EXIT_ERROR || rc == EXIT_FATAL ) {
-            PrtMsg( ERR| MAKE_ABORT );
+            PrtMsg( ERR | MAKE_ABORT );
         }
 #ifndef NDEBUG
         while( filesToDo != NULL ) {
@@ -571,7 +576,7 @@ int ExitSafe( int rc )
         if( mustTargs != NULL ) {
             FreeTList( mustTargs );
         }
-        if ( firstTargFound != NULL ) {
+        if( firstTargFound != NULL ) {
             FreeTList( firstTargFound );
         }
 #endif
@@ -598,22 +603,17 @@ int ExitSafe( int rc )
 
 #ifndef __WATCOMC__
 char **_argv;
-#else
-#pragma off(unreferenced);
 #endif
 int main( int argc, char * const *argv )
-#ifdef __WATCOMC__
-#pragma on (unreferenced);
-#endif
 /*********************************************/
 {
     assert( argv[argc] == NULL );       /* part of ANSI standard */
 #ifndef __WATCOMC__
-    _argv = (char**) argv;
+    _argv = (char**)argv;
 #endif
     InitSignals();
     InitHardErr();
-    init( (const char **) argv );        /* initialize, process cmdline */
+    init( (const char **)argv );        /* initialize, process cmdline */
     Header();
     parseFiles();
     if( Glob.print ) {

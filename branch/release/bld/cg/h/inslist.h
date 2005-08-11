@@ -99,10 +99,12 @@ typedef struct instruction {
         struct ins_header       head;
         struct opcode_entry     *table;
         union {
-            struct opcode_entry *gen_table;
+            struct opcode_entry *gen_table;     /*  do not merge this one! */
+        } u;
+        union {
             struct instruction  *parm_list;
             struct instruction  *cse_link;
-        } u;
+        } u2;
         struct register_name    *zap;
         union name              *result;        /*  result location */
         instruction_id          id;
@@ -152,3 +154,5 @@ typedef struct instruction {
 #define _OpClass( ins )              ( _IsConvert( ins ) \
                                        ? (ins)->base_type_class \
                                        : (ins)->type_class )
+
+#define _INS_NOT_BLOCK( ins )        if ( (ins)->head.opcode == OP_BLOCK ) Zoiks( ZOIKS_142 )

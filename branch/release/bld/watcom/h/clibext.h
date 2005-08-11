@@ -12,11 +12,14 @@
 #define stricmp strcasecmp
 #define strcmpi strcasecmp
 #define strnicmp strncasecmp
+#ifndef getch
 #define getch getchar
+#endif
 #define _vbprintf vsnprintf
 #define __near
 #define near
 #define __based(x)
+#define __alloca(x) alloca(x)
 #define _snprintf snprintf
 #define _vsnprintf vsnprintf
 #define  __va_list  va_list
@@ -83,5 +86,6 @@ int eof( int fildes );
 char *getcmd( char *buffer );
 char *_cmdname( char *name );
 void _searchenv( const char *name, const char *env_var, char *buf );
+char *strnset( char *string, int c, size_t len );
 
 extern char **_argv;

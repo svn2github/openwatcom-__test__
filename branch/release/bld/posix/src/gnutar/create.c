@@ -81,8 +81,12 @@
 #ifdef USG
 #ifdef MSDOS
 /* DOS doesn't have minor device numbers */
-#define major(n)        n
-#define minor(n)        0
+#ifndef major
+    #define major(n)        n
+#endif
+#ifndef minor
+    #define minor(n)        0
+#endif
 #else
 #include <sys/sysmacros.h>              /* major() and minor() defined here */
 #endif
@@ -373,7 +377,7 @@ badfile:
                         abort();
                 }
 
-#ifdef S_IFLNK
+#if defined S_IFLNK && defined __UNIX__
         case S_IFLNK:                           /* Symbolic link */
                 {
                         int             size;

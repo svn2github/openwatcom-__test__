@@ -52,6 +52,9 @@
 #elif defined( __LINUX__ )
     #include <dirent.h>
     #include <unistd.h>
+    #if !defined( __WATCOMC__ ) // Remove when OW clib implements fnmatch
+        #include <fnmatch.h>
+    #endif
 #elif defined( UNIX )
     #include <dirent.h>
     #include <unistd.h>
@@ -81,8 +84,15 @@
     #define FILES_ALL   "*.*"
 #endif
 
+#ifdef __LINUX__
+#define INDENT_STR      "\xa0"
+#define INDENT_CHAR     '\xa0'
+/* what's written below looks like a y with two dots to me... * 
+ * what is probably meant is the "NO BREAK SPACE"             */
+#else
 #define INDENT_STR      "ÿ"
 #define INDENT_CHAR     'ÿ'
+#endif
 #define OPENED_DIR_CHAR '-'
 #define UNOPENED_DIR_CHAR '+'
 

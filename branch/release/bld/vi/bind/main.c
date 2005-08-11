@@ -232,10 +232,9 @@ static void GetFromEnv( char *what, char *path )
  */
 FILE *GetFromEnvAndOpen( char *inpath )
 {
-char tmppath[256];
+    char tmppath[256];
 
     GetFromEnv( inpath, tmppath );
-    strlwr( tmppath );
     if( tmppath[0] != 0 ) {
         MyPrintf(" %s...",tmppath );
         return( fopen( tmppath, "r" ) );
@@ -396,11 +395,13 @@ int main( int argc, char *argv[] )
                 continue;
             }
             i = strlen( buff3 );
+            // Strip off trailing '\n' - and possible '\r' from DOS file.
+            while( i > 0 && isspace( buff3[--i] ) ) {
+                buff3[i] = 0;
+            }
             if( i == 0 ) {
                 continue;
             }
-            i--;
-            buff3[i] = 0;
             dats[ FileCount ] = MyAlloc( i+1 );
             strcpy( dats[ FileCount], buff3 );
             FileCount++;

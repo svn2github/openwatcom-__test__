@@ -299,6 +299,11 @@ allow extended "d" macro definitions on command line
 set preprocessor output file name
 :optref refid='SWfo'.
 .do end
+.if &e'&$SWpil eq 1 .do begin
+.note pil
+preprocessor ignores #line directives
+:optref refid='SWpil'.
+.do end
 .if &e'&$SWp eq 1 .do begin
 .note p{e,l,c,w=<num>}
 preprocess file
@@ -424,6 +429,11 @@ force slashes generated in makefile style auto depend to backward
 set source depend name for makefile style auto depend file
 :optref refid='SWadd'.
 .do end
+.if &e'&$SWadhp eq 1 .do begin
+.note adhp[=<path prefix>]
+set default path for header dependancies which result in name only.
+:optref refid='SWadhp'.
+.do end
 .if &e'&$SWadfs eq 1 .do begin
 .note adfs
 force slashes generated in makefile style auto depend to forward
@@ -498,6 +508,12 @@ set error file name
 (C++ only)
 try truncated (8.3) header file specification
 :optref refid='SWft'.
+.do end
+.if &e'&$SWfti eq 1 .do begin
+.note fti
+(C only)
+track include file opens
+:optref refid='SWfti'.
 .do end
 .if &e'&$SWfx eq 1 .do begin
 .note fx
@@ -2235,7 +2251,15 @@ A default filename extension must be preceded by a period (".").
 &prompt.:SF font=1.compiler_name:eSF. report &sw.p &sw.fo=&dr4.&pc.proj&pc.prep&pc..cpr
 .exam end
 .do end
-
+.if &e'&$SWpil eq 1 .do begin
+:OPT refid='SWpil' name='pil'.
+.ix 'options' 'pil'
+If you are using preprocessed source file than it can contain #line 
+directives which specify position in original source code file.
+If you want to use reference to compiled source file rather then to original
+file then you can use this option and compiler "forget" all references
+to original source code. It can be useful for debugging.
+.do end
 .*
 .if &e'&$SWp eq 1 .do begin
 :OPT refid='SWp' name='p'.{e,l,c,w=<num>}
@@ -2597,22 +2621,21 @@ The following macros are defined.
 .ix '_self macro'
 .ix '_cdecl macro'
 .ix 'cdecl macro'
-.ix '_Cdecl macro'
 .ix 'SOMLINK macro'
 .ix '_pascal macro'
 .ix 'pascal macro'
-.ix '_Pascal macro'
+.ix '_fastcall macro'
 .ix '_fortran macro'
 .ix 'fortran macro'
+.ix '_inline macro'
 .ix '_interrupt macro'
 .ix 'interrupt macro'
 .ix '_export macro'
 .ix '_loadds macro'
 .ix '_saveregs macro'
+.ix '_stdcall macro'
 .ix '_syscall macro'
-.ix '_System macro'
 .ix '_far16 macro'
-.ix '_Far16 macro'
 .ix 'macros' '_near'
 .ix 'macros' 'near'
 .ix 'macros' '_far'
@@ -2625,22 +2648,21 @@ The following macros are defined.
 .ix 'macros' '_self'
 .ix 'macros' '_cdecl'
 .ix 'macros' 'cdecl'
-.ix 'macros' '_Cdecl'
 .ix 'macros' 'SOMLINK'
 .ix 'macros' '_pascal'
 .ix 'macros' 'pascal'
-.ix 'macros' '_Pascal'
+.ix 'macros' '_fastcall'
 .ix 'macros' '_fortran'
 .ix 'macros' 'fortran'
+.ix 'macros' '_inline'
 .ix 'macros' '_interrupt'
 .ix 'macros' 'interrupt'
 .ix 'macros' '_export'
 .ix 'macros' '_loadds'
 .ix 'macros' '_saveregs'
+.ix 'macros' '_stdcall'
 .ix 'macros' '_syscall'
-.ix 'macros' '_System'
 .ix 'macros' '_far16'
-.ix 'macros' '_Far16'
 .millust begin
 _near, near
 _far, far, SOMDLINK (16-bit)
@@ -2649,15 +2671,18 @@ _based
 _segment
 _segname
 _self
-_cdecl, cdecl, _Cdecl, SOMLINK (16-bit)
-_pascal, pascal, _Pascal
+_cdecl, cdecl, SOMLINK (16-bit)
+_pascal, pascal
+_fastcall
 _fortran, fortran
+_inline
 _interrupt, interrupt
 _export
 _loadds
 _saveregs
-_syscall, _System, SOMLINK (32-bit), SOMDLINK (32-bit)
-_far16, _Far16
+_stdcall
+_syscall, SOMLINK (32-bit), SOMDLINK (32-bit)
+_far16
 .millust end
 .endnote
 .np
@@ -2737,6 +2762,48 @@ Set the first dependancy name in a makefile style auto depend file.  The
 default for this is the source name specified to compile.  This file spec
 follows the rules specified for other files.
 :optref refid='SWad'.
+.do end
+.*
+.if &e'&$SWadhp eq 1 .do begin
+:OPT refid='SWadhp' name='adhp[=<path_name>]'.
+.ix 'options' 'adhp'
+When including file with "" delimiters, the filename resulting in makefile
+type auto dependancy files will have no path.  This allows these files to 
+be given a path, and said path will may be relative.  This path_name is
+prepended to the filename exactly, so a trailing slash must be specified.
+.np
+This issue only affects headers found in the current directory.  If the header was found in the source's directory, it receives a path, which means there will be at least one [IS_]PATH_CHAR in the path, otherwise it is found in the current directory.
+.np
+let me illustrate....
+.np
+.exam begin 1
+source.obj: source.c header.h
+.exam end
+This target rule will work when compiling within the source's directory ONLY, otherwise dependancy files source.c and header.h will not be found; no rule to make them; and make fails.
+.np
+.exam begin 1
+output/source.obj: sourcepath/source.c header.h
+.exam end
+(what is generated now, when compiling source.c within sourcepath)
+.np
+This will also fail if the make evaluates this rule from some place other than sourcepath.
+.np
+This will work, however, if the header was really found in the current directory. (no option required)
+.np
+(one possible intent... which will be generated now, if header.h is not in the current path, but is with the source, and the compile is done outside sourcepath)
+.exam begin 1
+output/output.obj: sourcepath/source.c sourcepath/header.h
+.exam end
+This rule can be consistantly generated by specifying -adhp=sourcepath/ . Then when the header file is found in the current directory, especially when it is sourcepath, will not have had a path, and will receive the default header path.  The rule may then be processed from outside that current directory. [ -ahdp=$(SOMEVAR)/ ] may be specified... this will result in output as $(SOMEVAR) which make may expand ]
+.np
+(another possible intent... which will result in referencing the same header file always, when running a make from outside the current path specified when the compile was originally invoked...)
+.exam begin 1
+output/output.obj: sourcepath/source.c current_path_at_compile/header.h
+.exam end
+-adhp=currentpath/
+.np
+This says currentpath, because the rule is generated based on the state of when the compile is done, and should be viewed as past tense so that the rule specifies accurately what was compiled...
+
 .do end
 .*
 .if &e'&$SWadfs eq 1 .do begin
@@ -2958,6 +3025,18 @@ For example, if the compiler cannot open the header file called
 .fi strstream.h,
 it will attempt to open a header file called
 .fi strstrea.h.
+.do end
+.*
+.if &e'&$SWfti eq 1 .do begin
+:OPT refid='SWfti' name='fti'.
+.ix 'options' 'fti'
+(C only)
+Whenever a file is open as a result of 
+.id #include
+directive processing, an informational message is printed. The message
+contains the file name and line number identifying where the
+.id #include
+directive was located.
 .do end
 .*
 .if &e'&$SWfx eq 1 .do begin

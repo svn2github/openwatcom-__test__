@@ -28,17 +28,20 @@
 *
 ****************************************************************************/
 
-#if defined(__OS2__) || defined(__NT__) || defined(__LINUX__)
+/* Several char foo[MAX_CMD] arrays are defined. Overflow goes undetected */
+#if defined(__OS2__) || defined(__NT__) || defined(__UNIX__)
 #define MAX_CMD 10240
 #else
-#define MAX_CMD 130
+#define MAX_CMD 250
 #endif
 
 #ifdef __UNIX__
-#define OBJ_EXT     ".o"
+#define OBJ_EXT                 ".o"
+#define OBJ_EXT_SECONDARY       ".obj"
 #define PATH_SEP    '/'
 #else
-#define OBJ_EXT     ".obj"
+#define OBJ_EXT                 ".obj"
+#define OBJ_EXT_SECONDARY       ".o"
 #define PATH_SEP    '\\'
 #endif
 
@@ -61,7 +64,7 @@ extern  char    Exe_Name[_MAX_PATH];/* name of executable                 */
 extern  char    *Map_Name;          /* name of map file                   */
 extern  char    *Obj_Name;          /* object file name pattern           */
 extern  char    Libs[MAX_CMD];      /* list of libraires from Cmd         */
-extern  char    **WclMsgs;
+extern  const char    *WclMsgs[];
 extern  struct  list *Obj_List;     /* linked list of object filenames    */
 
 struct  flags {
@@ -88,20 +91,20 @@ extern  struct flags Flags;
 
 extern  char *DebugOptions[];
 
-void    PrintMsg( char *fmt, ... );
+void    PrintMsg( const char *fmt, ... );
 void    FindPath( char *name, char *buf );
 void    BuildLinkFile( void );
 void    AddName( char *, FILE * );
 char    *MakePath( char * );
 char    *GetName( char * );
+int     BuildQuotedFName( char *buffer, const char *path, const char *filename, const char *quote_char );
+int     UnquoteFName( char *dst, int maxlen, const char *src );
+char    *FindNextWS( char *str );
+char    *FindNextWSOrOpt( char *str, char opt, char *Switch_Chars );
 
 enum {
-#undef pick
 #undef E
-#undef J
 #define E(msg)  msg
-#define J(msg)
 #define pick(code,msg)  code
 #include "wclmsg.h"
 };
-

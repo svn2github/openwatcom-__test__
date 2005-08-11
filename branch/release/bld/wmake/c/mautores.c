@@ -24,25 +24,24 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Resource file autodependency information processing.
 *
 ****************************************************************************/
+
 
 #include "watcom.h"
 #include "mtypes.h"
 #include "mcache.h"
 #include "msysdep.h"
-#include "mrcmsg.h"
 #include "mautodep.h"
 #include "autodep.h"
-#include "wressetr.h"
-#include "wreslang.h"
 
 typedef struct res_info {
-    DepInfo     *first;
-    DepInfo     *curr;
-} res_info;
+    DepInfo *first;
+    DepInfo *curr;
+}           res_info;
+
+extern long FileShift;
 
 static res_info ResInfo;
 
@@ -51,13 +50,12 @@ STATIC handle RESInitFile( const char *name )
 {
     DepInfo     *depends;
     res_info    *ret_val;
-    extern int  FileShift;
-    int         old_shift;
+    long        old_shift;
 
     ret_val = NULL;
     old_shift = FileShift;
     FileShift = 0;
-    depends = WResGetAutoDep( (char*) name );
+    depends = WResGetAutoDep( (char *)name );
     FileShift = old_shift;
     if( depends != NULL ) {
         ResInfo.first = depends;
@@ -67,21 +65,23 @@ STATIC handle RESInitFile( const char *name )
     return( ret_val );
 }
 
+
 STATIC dep_handle RESFirstDep( dep_handle file )
 /**********************************************/
 {
-
     return( file );
 }
+
 
 STATIC void RESTransDep( dep_handle f, char **name, time_t *stamp )
 /*****************************************************************/
 {
-    res_info    *file = f;
+    DepInfo *curr = ((res_info *)f)->curr;
 
-    *name = &file->curr->name[ 0 ];
-    *stamp = file->curr->time;
+    *name = curr->name;
+    *stamp = curr->time;
 }
+
 
 STATIC handle RESNextDep( dep_handle f )
 /**************************************/
@@ -89,8 +89,8 @@ STATIC handle RESNextDep( dep_handle f )
     DepInfo     *p;
     res_info    *file = f;
 
-    p = (DepInfo *)file->curr;
-    p = (DepInfo *)( (char *)p + sizeof( DepInfo ) + p->len - 1 );
+    p = (void *)file->curr;
+    p = (void *)( (char *)p + sizeof( *p ) + p->len - 1 );
     if( p->len == 0 ) {
         file->curr = NULL;
         return( NULL );
@@ -99,12 +99,13 @@ STATIC handle RESNextDep( dep_handle f )
     return( file );
 }
 
-STATIC void RESFiniFile( handle file )
-/***************************************/
-{
 
+STATIC void RESFiniFile( handle file )
+/************************************/
+{
     WResFreeAutoDep( ((res_info *)file)->first );
 }
+
 
 const auto_dep_info RESAutoDepInfo = {
     NULL,

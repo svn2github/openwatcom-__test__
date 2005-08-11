@@ -96,9 +96,9 @@ DGROUP group BEGTEXT,_TEXT,_NULL,_AFTERNULL,CONST,_DATA,DATA,XIB,XI,XIE,YIB,YI,Y
 ; signal function.
 
 BEGTEXT  segment use32 para public 'CODE'
-if @Version     LT      600     ;If MASM is < 6.0
-        assume  cs:_TEXT
-endif
+;if @Version     LT      600     ;If MASM is < 6.0
+;        assume  cs:_TEXT
+;endif
         jmp     null_error
         nop     ;2
         nop     ;3
@@ -158,8 +158,10 @@ __x32_zero_base_ptr             label dword
 __x386_zero_base_ptr            dd      0f0000000h
 
 ;the variables in the following list are from the module crwdata
-        public  __LpPgmName,__LpCmdLine,___FPE_handler,__FPE_handler
-        public  __Envseg,__Envptr,__Extender,__no87,__cbyte2
+        public  "C",__FPE_handler
+        public  "C",_Extender
+        public  __LpPgmName,__LpCmdLine
+        public  __Envseg,__Envptr,__no87,__cbyte2
         public  __child,__cbyte,__STACKTOP,__STACKLOW
         public  __osminor,__osmajor,__psp,__curbrk
         public  __dynend,__x386_stacklow,__X32VM,__ASTACKSIZ,__ASTACKPTR
@@ -178,14 +180,13 @@ __cbyte         dd      0
 __cbyte2        dd      0
 __child         dd      0
 __no87          dw      0
-__Extender      db      3               ;pretend we are Pharlap version 3
+_Extender       db      3               ;pretend we are Pharlap version 3
                 db      0
 __Envptr        dd      0
 __Envseg        dw      0
 __osmajor       db      0
 __osminor       db      0
 __X32VM         db      1
-___FPE_handler label dword
 __FPE_handler   dd      offset DGROUP:fpe_handler
 ;end of crwdata variables
 
@@ -209,9 +210,9 @@ _BSS          segment word public 'BSS'
 _BSS          ends
 
 
-if @Version     LT      600     ;If the MASM is < 6.0
-        assume  cs:_TEXT
-endif
+;if @Version     LT      600     ;If the MASM is < 6.0
+;        assume  cs:_TEXT
+;endif
         assume  ds:DGROUP
 
 ;

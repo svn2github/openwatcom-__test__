@@ -38,6 +38,8 @@
 #include "peloader.h"
 #include "pe.h"
 #include <stdlib.h>
+#include <sys/mman.h>
+#include "dbgmod.h"
 
 /*--------------------------- Global variables ----------------------------*/
 
@@ -146,7 +148,8 @@ u_long PE_getFileSize(
     for (i = 0; i < filehdr.NumberOfSections; i++) {
         if (fread(&secthdr, 1, sizeof(secthdr), f) != sizeof(secthdr))
             return 0xFFFFFFFF;
-        size += secthdr.SizeOfRawData;
+        if (!(secthdr.Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA))
+            size += secthdr.SizeOfRawData;
         }
     return size;
 }
@@ -185,11 +188,12 @@ PE_MODULE * PE_loadLibraryExt(
     SECTION_HDR     secthdr;
     u_long          offset,pageOffset;
     u_long          text_raw_off,text_base,text_size,text_end;
-    u_long          data_raw_off,data_base,data_size,data_end;
+    u_long          data_raw_off,data_base,data_size,data_virt_size,data_end;
+    u_long          bss_raw_off,bss_base,bss_size,bss_end;
     u_long          import_raw_off,import_base,import_size,import_end;
     u_long          export_raw_off,export_base,export_size,export_end;
-    u_long          reloc_raw_off,reloc_base,reloc_size;
-    u_long          image_base,image_size,image_end;
+    u_long          reloc_raw_off,reloc_base= 0,reloc_size;
+    u_long          image_base = 0,image_size,image_end;
     u_char          *image_ptr;
     int             i,delta,numFixups;
     u_short         relocType,*fixup;
@@ -203,7 +207,8 @@ PE_MODULE * PE_loadLibraryExt(
 
     /* Scan all the section headers and find the necessary sections */
     text_raw_off = text_base = text_size = text_end = 0;
-    data_raw_off = data_base = data_size = data_end = 0;
+    data_raw_off = data_base = data_size = data_virt_size = data_end = 0;
+    bss_raw_off = bss_base = bss_size = bss_end = 0;
     import_raw_off = import_base = import_size = import_end = 0;
     export_raw_off = export_base = export_size = export_end = 0;
     reloc_raw_off = reloc_size = 0;
@@ -244,18 +249,26 @@ PE_MODULE * PE_loadLibraryExt(
             data_raw_off = secthdr.PointerToRawData;
             data_base = secthdr.VirtualAddress;
             data_size = secthdr.SizeOfRawData;
+            data_virt_size = secthdr.VirtualSize;
             data_end = data_base + data_size;
+            }
+        else if (!bss_raw_off && secthdr.Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA) {
+            /* BSS data section */
+            bss_raw_off = secthdr.PointerToRawData;
+            bss_base = secthdr.VirtualAddress;
+            bss_size = secthdr.SizeOfRawData;
+            bss_end = bss_base + bss_size;
             }
         }
 
     /* Check to make sure that we have all the sections we need */
-    if (!text_raw_off || !data_raw_off || !import_raw_off || !export_raw_off || !reloc_raw_off) {
+    if (!text_raw_off || !data_raw_off || !export_raw_off || !reloc_raw_off) {
         result = PE_invalidDLLImage;
         goto Error;
         }
 
     /* Make sure the .reloc section is after everything else we load! */
-    image_end = max(max(max(data_end,text_end),import_end),export_end);
+    image_end = max(max(max(max(bss_end,data_end),text_end),import_end),export_end);
     if (reloc_base <= image_end) {
         result = PE_unknownImageFormat;
         goto Error;
@@ -277,15 +290,25 @@ PE_MODULE * PE_loadLibraryExt(
 
     /* Setup all the pointers into our loaded executeable image */
     image_ptr = (u_char*)ROUND_4K((u_long)hMod + sizeof(PE_MODULE));
+    hMod->pbase = image_ptr;
     hMod->ptext = image_ptr + (text_base - image_base);
     hMod->pdata = image_ptr + (data_base - image_base);
-    hMod->pimport = image_ptr + (import_base - image_base);
+    if (bss_base)
+        hMod->pbss = image_ptr + (bss_base - image_base);
+    else
+        hMod->pbss = NULL;
+    if (import_base)
+        hMod->pimport = image_ptr + (import_base - image_base);
+    else
+        hMod->pimport = NULL;
     hMod->pexport = image_ptr + (export_base - image_base);
     hMod->textBase = text_base;
     hMod->dataBase = data_base;
+    hMod->bssBase = bss_base;
     hMod->importBase = import_base;
     hMod->exportBase = export_base;
     hMod->exportDir = opthdr.DataDirectory[0].RelVirtualAddress - export_base;
+    hMod->modname = NULL;
 
     /* Now read the section images from disk */
     result = PE_invalidDLLImage;
@@ -293,17 +316,34 @@ PE_MODULE * PE_loadLibraryExt(
     if (fread(hMod->ptext, 1, text_size, f) != text_size)
         goto Error;
     fseek(f, startOffset+data_raw_off, SEEK_SET);
+    if (data_virt_size) {
+        /* Some linkers will put uninitalised data at the end
+         * of the primary data section, so we first must clear
+         * the data section to zeros for the entire length of
+         * VirtualSize, which can be longer than the size on disk.
+         * Note also that some linkers set this value to zero, so
+         * we ignore this value in that case (those linkers also
+         * have a seperate BSS section).
+         */
+        memset(hMod->pdata, 0, data_virt_size);
+        }
     if (fread(hMod->pdata, 1, data_size, f) != data_size)
         goto Error;
-    fseek(f, startOffset+import_raw_off, SEEK_SET);
-    if (fread(hMod->pimport, 1, import_size, f) != import_size)
-        goto Error;
+    if (import_base) {
+        fseek(f, startOffset+import_raw_off, SEEK_SET);
+        if (fread(hMod->pimport, 1, import_size, f) != import_size)
+            goto Error;
+        }
     fseek(f, startOffset+export_raw_off, SEEK_SET);
     if (fread(hMod->pexport, 1, export_size, f) != export_size)
         goto Error;
     fseek(f, startOffset+reloc_raw_off, SEEK_SET);
     if (fread(reloc, 1, reloc_size, f) != reloc_size)
         goto Error;
+
+    /* Make sure the BSS section is cleared to zero if it exists */
+    if (hMod->pbss)
+        memset(hMod->pbss, 0, bss_size);
 
     /* Now perform relocations on all sections in the image */
     delta = (u_long)image_ptr - opthdr.ImageBase - image_base;
@@ -329,6 +369,13 @@ PE_MODULE * PE_loadLibraryExt(
         /* Move to next relocation block */
         baseReloc = (BASE_RELOCATION*)((u_long)baseReloc + baseReloc->BlockSize);
         }
+
+    /* On some platforms (such as AMD64 or x86 with NX bit), it is required
+     * to map the code pages loaded from the BPD as executable, otherwise
+     * a segfault will occur when attempting to run any BPD code.
+     */
+    if (mprotect((void*)image_ptr, image_size, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
+        goto Error;
 
     /* Clean up, close the file and return the loaded module handle */
     free(reloc);
@@ -377,12 +424,52 @@ PE_MODULE * PE_loadLibrary(
         }
     hMod = PE_loadLibraryExt(f,0,&size);
     fclose(f);
+
+    /* Notify the Watcom Debugger of module load and let it load symbolic info */
+#ifdef WATCOM_DEBUG_SYMBOLS
+    if (hMod) {
+        u_long   size;
+        char    *modname;
+
+        /* Store the file name in the hMod structure; this must be the real
+         * file name where the debugger will try to load symbolic info from
+         */
+        size = strlen(szDLLName) + 1;
+        modname = malloc(size);
+        if (modname) {
+            if (szDLLName[1] == ':')
+                strcpy(modname, szDLLName+2);
+            else
+                strcpy(modname, szDLLName);
+            hMod->modname = modname;
+            NotifyWDLoad(hMod->modname, (u_long)hMod->pbase);
+            }
+        }
+#endif
     return hMod;
 }
 
-/* same as above for a handle */
-PE_MODULE * PE_loadLibrary_handle(
-    int fd)
+/****************************************************************************
+DESCRIPTION:
+Loads a Portable Binary DLL into memory
+
+HEADER:
+peloader.h
+
+PARAMETERS:
+fd          - File descriptor to load PE module from
+szDLLName   - Name of the PE DLL library to load (for debug symbols)
+
+RETURNS:
+Handle to loaded PE DLL, or NULL on failure.
+
+REMARKS:
+Same as above but for an open file handle. szDLLName must be correct in
+order to load debug symbols under the debugger.
+****************************************************************************/
+PE_MODULE * PE_loadLibraryHandle(
+    int fd,
+    const char *szDLLName)
 {
     PE_MODULE   *hMod;
     FILE        *f;
@@ -395,6 +482,28 @@ PE_MODULE * PE_loadLibrary_handle(
         }
     hMod = PE_loadLibraryExt(f,0,&size);
     fclose(f);
+
+    /* Notify the Watcom Debugger of module load and let it load symbolic info */
+#ifdef WATCOM_DEBUG_SYMBOLS
+    if (hMod) {
+        u_long   size;
+        char    *modname;
+
+        /* Store the file name in the hMod structure; this must be the real
+         * file name where the debugger will try to load symbolic info from
+         */
+        size = strlen(szDLLName) + 1;
+        modname = malloc(size);
+        if (modname) {
+            if (szDLLName[1] == ':')
+                strcpy(modname, szDLLName+2);
+            else
+                strcpy(modname, szDLLName);
+            hMod->modname = modname;
+            NotifyWDLoad(hMod->modname, (u_long)hMod->pbase);
+            }
+        }
+#endif
     return hMod;
 }
 
@@ -473,8 +582,16 @@ PE_getProcAddress, PE_loadLibrary
 void PE_freeLibrary(
     PE_MODULE *hModule)
 {
-    if (hModule)
+    if (hModule) {
+        /* Notify the Watcom Debugger of module load and let it remove symbolic info */
+#ifdef WATCOM_DEBUG_SYMBOLS
+        if (hModule->modname) {
+            NotifyWDUnload(hModule->modname);
+            free(hModule->modname);
+            }
+#endif
         free(hModule);
+        }
 }
 
 /****************************************************************************

@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #ifndef __UNIX__
 #include <direct.h>
 #else
@@ -52,7 +53,8 @@ extern char *DebugOptions[] = {
         "debug dwarf\n",
 };
 
-void PrintMsg( char *fmt, ... )
+void PrintMsg( const char *fmt, ... )
+/***********************************/
 {
     char        c;
     int         i;
@@ -96,15 +98,20 @@ void  Fputnl( char *text, FILE *fptr )
 }
 
 void BuildLinkFile()
+/******************/
 {
+    char quoted[_MAX_PATH ];
+
     fputs( "name ", Fp );
-    Fputnl( Exe_Name, Fp );
+    BuildQuotedFName( quoted, "", Exe_Name, "'" );
+    Fputnl( quoted, Fp );
     if( Flags.map_wanted ) {
         if( Map_Name == NULL ) {
             Fputnl( "option map", Fp );
         } else {
             fputs( "option map=", Fp );
-            Fputnl( Map_Name, Fp );
+            BuildQuotedFName( quoted, "", Map_Name, "'" );
+            Fputnl( quoted, Fp );
         }
     }
     if( Libs[0] != '\0' ) {
@@ -134,6 +141,7 @@ void  AddName( char *name, FILE *link_fp )
 {
     struct list *curr_name, *last_name, *new_name;
     char path  [_MAX_PATH ];
+    char quoted[_MAX_PATH ];
     char buff1[_MAX_PATH2];
     char buff2[_MAX_PATH2];
     char *drive;
@@ -170,7 +178,8 @@ void  AddName( char *name, FILE *link_fp )
         _makepath( path, drive, dir, fname, extension );
         name = path;
     }
-    Fputnl( name, link_fp );
+    BuildQuotedFName( quoted, "", name, "'" );
+    Fputnl( quoted, link_fp );
 }
 
 
@@ -244,4 +253,181 @@ void FindPath( char *name, char *buf )
         PrintMsg( WclMsgs[ UNABLE_TO_FIND ], name );
         exit( 1 );
     }
+}
+
+int BuildQuotedFName( char *buffer, const char *path, const char *filename, const char *quote_char )
+/**************************************************************************************************/
+{
+    int has_space = 0;
+
+    if( strchr( path, ' ' ) != NULL ) has_space = 1;
+    if( strchr( filename, ' ' ) != NULL ) has_space = 1;
+
+    strcpy( buffer, has_space ? quote_char : "" );
+    strcat( buffer, path);
+    strcat( buffer, filename);
+    strcat( buffer, has_space ? quote_char : "" );
+
+    return has_space;
+}
+
+int UnquoteFName( char *dst, int maxlen, const char *src )
+/***********************************************************************
+ * Removes doublequote characters from filename and copies other content
+ * from src to dst. Only maxlen number of characters are copied to dst
+ * including terminating NUL character. Returns value 1 when quotes was
+ * removed from orginal filename, 0 otherwise.
+ */
+{
+    char string_open = 0;
+    int pos = 0;
+    int t;
+    int un_quoted = 0;
+
+    assert( maxlen );
+
+    // leave space for NUL terminator
+    maxlen--;
+
+    while( pos < ( maxlen - 1 ) ) {
+        t = *src++;
+
+        if ( t == '\0' ) break;
+
+        if ( t == '\\' ) {
+            t = *src++;
+
+            if ( t == '\"' ) {
+                *dst++ = '\"';
+                pos++;
+                un_quoted = 1;
+            } else {
+                *dst++ = '\\';
+                pos++;
+
+                if ( pos < ( maxlen - 1 ) ) {
+                    *dst++ = t;
+                    pos++;
+                }
+            }
+        } else {
+            if ( t == '\"' ) {
+                string_open = !string_open;
+                un_quoted = 1;
+            } else {
+                if ( string_open ) {
+                    *dst++ = t;
+                    pos++;
+                } else
+                if ( isws( t ) ) {
+                    break;
+                } else {
+                    *dst++ = t;
+                    pos++;
+                }
+            }
+        }
+    }
+
+    *dst = '\0';
+
+    return un_quoted;
+}
+
+int isws( char ch )
+{
+    if(ch == ' ') return 1;
+    if(ch == '\t') return 1;
+
+    return 0;
+}
+
+int iswsOrOpt( char ch, char opt, char *Switch_Chars )
+{
+    if(ch == ' ') return 1;
+    if(ch == '\t') return 1;
+
+    if( opt == '-'  ||  opt == Switch_Chars[1] ) {
+        /* if we are processing a switch, stop at a '-' */
+        if( ch == '-' ) return 1;
+#ifndef __UNIX__
+        if( ch == Switch_Chars[1] ) return 1;
+#endif
+    }
+
+    return 0;
+}
+
+char *FindNextWS( char *str )
+/***********************************
+ * Finds next free white space character, allowing doublequotes to
+ * be used to specify strings with white spaces.
+ */
+{
+    char string_open = 0;
+
+    while( *str != '\0' ) {
+        if ( *str == '\\' ) {
+            str++;
+            if (*str != '\0' )
+            {
+                if ( !string_open && isws ( *str ) ) {
+                    break;
+                }
+                str++;
+            }
+        } else
+        {
+            if ( *str == '\"' ) {
+                string_open = !string_open;
+                str++;
+            } else {
+                if ( string_open ) {
+                    str++;
+                } else {
+                    if ( isws( *str ) ) break;
+                    str++;
+                }
+            }
+        }
+    }
+
+    return str;
+}
+
+char *FindNextWSOrOpt( char *str, char opt, char *Switch_Chars )
+/***********************************
+ * Finds next free white space character, allowing doublequotes to
+ * be used to specify strings with white spaces.
+ */
+{
+    char string_open = 0;
+
+    while( *str != '\0' ) {
+        if ( *str == '\\' ) {
+            str++;
+            if (*str != '\0' )
+            {
+                if ( !string_open && iswsOrOpt ( *str, opt, Switch_Chars ) ) {
+                    break;
+                }
+                str++;
+            }
+        } else
+        {
+            if ( *str == '\"' ) {
+                string_open = !string_open;
+                str++;
+            } else {
+                if ( string_open ) {
+                    str++;
+                } else {
+                    if ( iswsOrOpt( *str, opt, Switch_Chars ) ) break;
+                    str++;
+                }
+            }
+        }
+    }
+
+    return str;
 }

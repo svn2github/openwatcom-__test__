@@ -25,8 +25,16 @@ extra_l_flags_nt = runtime console op stack=20k
 !endif
 
 extra_l_flags_qnx = op stack=2k,priv=3
+
+!ifdef bootstrap
+libs = $(ui_dir)/unix/$(%OBJDIR)/ui.lib $(ncurses_dir)/$(%OBJDIR)/ncurses.lib
+!else
+!ifeq host_os linux
 !ifndef prebuild
-extra_l_flags_linux = lib $(ncurses_dir)/linux386/ncurses.lib lib $(ui_dir)/unix/linux386/ui.lib
+libs = $(ncurses_dir)/linux$(host_cpu)/ncurses.lib $(ui_dir)/unix/linux$(host_cpu)/ui.lib
+extra_l_flags_linux = lib $(ncurses_dir)/linux$(host_cpu)/ncurses.lib lib $(ui_dir)/unix/linux$(host_cpu)/ui.lib
+!endif
+!endif
 !endif
 
 extra_l_flags_dos_i86 = op stack=1k

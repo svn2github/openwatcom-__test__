@@ -154,7 +154,7 @@ typedef struct global_options {
     bool        debug_flag;
     char        naming_convention;
     enum fpe    floating_point;
-    bool        output_data_in_code_records;
+    bool        output_comment_data_in_code_records;
 
     /* error handling stuff */
     int         error_count;
@@ -177,6 +177,8 @@ typedef struct global_options {
     bool        allow_c_octals;
     bool        emit_dependencies;
     bool        watcom_c_mangler;
+    bool        use_stdcall_at_number;
+    bool        mangle_stdcall;
 } global_options;
 
 extern global_options Options;

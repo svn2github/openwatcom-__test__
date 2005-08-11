@@ -86,7 +86,7 @@ void CPragmaInit( void ){
 // Init any general pragma things //
 //********************************//
     TextSegList = NULL;
-    PragmaInit(); // call traget specific init
+    PragmaInit(); // call target specific init
 }
 
 void CPragma( void )
@@ -165,18 +165,18 @@ local void EndOfPragma( void )
 
 void PragInit( void )
 {
-    CdeclInfo   = DefaultInfo;
-    PascalInfo  = DefaultInfo;
-    FortranInfo = DefaultInfo;
-    SyscallInfo = DefaultInfo;
-    StdcallInfo = DefaultInfo;
-    OptlinkInfo = DefaultInfo;
-    DefaultInfo.use = 2;        /* so they don't get freed */
-    CdeclInfo.use   = 2;
-    PascalInfo.use  = 2;
-    SyscallInfo.use = 2;
-    OptlinkInfo.use = 2;
-    FortranInfo.use = 2;
+    WatcallInfo.use = 2;        /* so they don't get freed */
+
+    CdeclInfo   = WatcallInfo;
+    PascalInfo  = WatcallInfo;
+    SyscallInfo = WatcallInfo;
+    StdcallInfo = WatcallInfo;
+    OptlinkInfo = WatcallInfo;
+    FortranInfo = WatcallInfo;
+    FastcallInfo= WatcallInfo;
+
+    DefaultInfo = *DftCallConv;
+
     PackInfo = NULL;
     EnumInfo = NULL;
 }
@@ -323,27 +323,36 @@ struct magic_words {
 enum {
         M_UNKNOWN,
         M_DEFAULT,
+        M_WATCALL,
         M_CDECL,
         M_PASCAL,
         M_FORTRAN,
         M_SYSTEM,
         M_STDCALL,
+        M_FASTCALL,
+        M_OPTLINK
 };
 
 struct magic_words MagicWords[] = {                     /* 18-aug-90 */
         { "default",    M_DEFAULT },
+        { "watcall",    M_WATCALL },
         { "cdecl",      M_CDECL },
         { "pascal",     M_PASCAL },
         { "fortran",    M_FORTRAN },
         { "system",     M_SYSTEM },
         { "syscall",    M_SYSTEM },
         { "stdcall",    M_STDCALL },
+        { "fastcall",   M_FASTCALL },
+        { "Optlink",    M_OPTLINK },
+        { "__watcall",  M_WATCALL },
         { "__cdecl",    M_CDECL },
         { "__pascal",   M_PASCAL },
         { "__fortran",  M_FORTRAN },
         { "__system",   M_SYSTEM },
         { "__syscall",  M_SYSTEM },
         { "__stdcall",  M_STDCALL },
+        { "__fastcall", M_FASTCALL },
+        { "_Optlink",   M_OPTLINK },
         { NULL,         M_UNKNOWN }
 };
 
@@ -376,16 +385,16 @@ void SetCurrInfo( void )
     case M_DEFAULT:
         CurrInfo = &DefaultInfo;
         break;
+    case M_WATCALL:
+        CurrInfo = &WatcallInfo;
+        break;
     case M_CDECL:
-//      CompFlags.cdecl_defined = 1;
         CurrInfo = &CdeclInfo;
         break;
     case M_PASCAL:
-//      CompFlags.pascal_defined = 1;
         CurrInfo = &PascalInfo;
         break;
     case M_FORTRAN:
-//      CompFlags.fortran_defined = 1;
         CurrInfo = &FortranInfo;
         break;
     case M_SYSTEM:
@@ -393,6 +402,12 @@ void SetCurrInfo( void )
         break;
     case M_STDCALL:
         CurrInfo = &StdcallInfo;
+        break;
+    case M_FASTCALL:
+        CurrInfo = &FastcallInfo;
+        break;
+    case M_OPTLINK:
+        CurrInfo = &OptlinkInfo;
         break;
     default:
         CreateAux( Buffer );
@@ -407,6 +422,9 @@ void PragCurrAlias()
     search = NULL;
     CurrAlias = &DefaultInfo;
     switch( MagicKeyword() ) {
+    case M_WATCALL:
+        CurrAlias = &WatcallInfo;
+        break;
     case M_CDECL:
         CurrAlias = &CdeclInfo;
         break;
@@ -422,9 +440,17 @@ void PragCurrAlias()
     case M_STDCALL:
         CurrAlias = &StdcallInfo;
         break;
+    case M_FASTCALL:
+        CurrAlias = &FastcallInfo;
+        break;
+    case M_OPTLINK:
+        CurrAlias = &OptlinkInfo;
+        break;
     default:
         search = AuxLookup( Buffer );
-        if( search != NULL ) CurrAlias = search->info;
+        if( search != NULL ) {
+            CurrAlias = search->info;
+        }
     }
 }
 
@@ -433,9 +459,11 @@ void XferPragInfo( char *from, char *to )
 {
     struct aux_entry *ent;
 
-    if( AuxLookup( to ) != NULL ) return;
+    if( AuxLookup( to ) != NULL )
+        return;
     ent = AuxLookup( from );
-    if( ent == NULL ) return;
+    if( ent == NULL )
+        return;
     CreateAux( to );
     CurrEntry->info = ent->info;
     ent->info->use++;
@@ -446,7 +474,8 @@ void XferPragInfo( char *from, char *to )
 
 void PragEnding( void )
 {
-    if( CurrEntry == NULL ) return;
+    if( CurrEntry == NULL )
+        return;
     CurrInfo->use = CurrAlias->use; /* for compare */
     if( memcmp( CurrAlias, CurrInfo,
                 sizeof( struct aux_info ) ) == 0 ) {
@@ -496,7 +525,7 @@ local void CopyParms( void )
     CurrInfo->parms = regs;
 }
 
-#if _MACHINE == _ALPHA || _MACHINE == _PPC
+#if _CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
 local void CopyCode( void )
 {
     risc_byte_seq    *code;
@@ -832,13 +861,13 @@ static void PragCodeSeg( void )                       /* 22-oct-92 */
         CompFlags.pre_processing = 1;           /* enable macros */
         seg = NULL;
         NextToken();
-        if( CurToken == T_STRING ) {
+        if( (CurToken == T_STRING) || (CurToken == T_ID) ) {
             segname = CStrSave( Buffer );
             classname = CStrSave( "" );
             NextToken();
             if( CurToken == T_COMMA ) {
                 NextToken();
-                if( CurToken == T_STRING ) {
+                if( (CurToken == T_STRING) || (CurToken == T_ID) ) {
                     CMemFree( classname );
                     classname = CStrSave( Buffer );
 //                  CodeClassName = CStrSave( Buffer );  /* 13-apr-93 */
@@ -867,12 +896,12 @@ static void PragDataSeg( void )                       /* 22-oct-92 */
         CompFlags.pre_processing = 1;           /* enable macros */
         segment = 0;
         NextToken();
-        if( CurToken == T_STRING ) {
+        if( (CurToken == T_STRING) || (CurToken == T_ID) ) {
             segname = CStrSave( Buffer );
             NextToken();
             if( CurToken == T_COMMA ) {
                 NextToken();
-                if( CurToken == T_STRING ) {
+                if( (CurToken == T_STRING) || (CurToken == T_ID) ) {
                     segment = AddSegName( segname, Buffer, SEGTYPE_DATA );
                     NextToken();
                 } else {

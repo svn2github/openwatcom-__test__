@@ -30,6 +30,7 @@
 
 
 #include <string.h>
+#include <stdio.h>
 #include "spawn.h"
 #include "dbgdefn.h"
 #include "dbglit.h"
@@ -127,7 +128,7 @@ extern void             FreeRing( char_ring *p );
 extern char_ring        **RingEnd( char_ring **owner );
 
 extern void             WndSetCmdPmt(char *,char *,unsigned int ,void (*)());
-bool                    CopyToRemote( char *local, char *remote, bool strip, void *cookie );
+static bool             CopyToRemote( char *local, char *remote, bool strip, void *cookie );
 char                    *RealFName( char *name, open_access *loc );
 
 extern void             DUIImageLoaded( image_entry*, bool, bool, bool* );
@@ -234,12 +235,28 @@ bool InitCmd()
 
 void FindLocalDebugInfo( char *name )
 {
-    char *buff;
-    int len = strlen( name );
-    _AllocA( buff, len + 1 + 2 );
+    char    *buff, *symname, *fname;
+    char    *ext;
+    int     len = strlen( name );
+    handle  local;
+
+    _AllocA( buff, len + 1 + 4 + 2 );
+    _AllocA( fname, len + 1 );
+    _AllocA( symname, len + 1 + 4 );
     strcpy( buff, "@l" );
-    strcat( buff, name );
-    InsertRing( RingEnd( &LocalDebugInfo ), buff, len + 2 );
+    // If a .sym file is present, use it in preference to the .exe
+    StrCopy( name, fname );
+    ext = ExtPointer( fname, OP_LOCAL );
+    if( *ext != NULLCHAR )
+        *ext = NULLCHAR;
+    local = FullPathOpen( fname, "sym", symname, len + 4 );
+    if( local != NIL_HANDLE ) {
+        strcat( buff, symname );
+        FileClose( local );
+    } else {
+        strcat( buff, name );
+    }
+    InsertRing( RingEnd( &LocalDebugInfo ), buff, len + 4 + 2 );
 }
 
 static void DoDownLoadCode()
@@ -567,7 +584,7 @@ static bool CheckLoadDebugInfo( image_entry *image, handle h,
  * Note: This function should try to open files locally first, for two
  * reasons:
  * 1) If a local file is open as remote, then local caching may interfere with
- *    file operations (notably seeks with SEEK_CUR)
+ *    file operations (notably seeks with DIO_SEEK_CUR)
  * 2) Remote access goes through extra layer of indirection; this overhead
  *    is completely unnecessary for local debugging.
  */
@@ -1116,7 +1133,7 @@ static void DoResNew( bool have_parms, char *cmd,
 extern void LoadNewProg( char *cmd, char *parms )
 {
     unsigned clen,plen;
-    char        prog[256];
+    char        prog[FILENAME_MAX];
 
     clen = strlen( cmd );
     plen = strlen( parms );
@@ -1132,22 +1149,22 @@ extern void LoadNewProg( char *cmd, char *parms )
 
 
 static long SizeMinusDebugInfo( handle floc, bool strip )
-/************************************************/
+/*******************************************************/
 {
     TISTrailer          trailer;
     long                copylen;
 
-    copylen = SeekStream( floc, 0, SEEK_END );
+    copylen = SeekStream( floc, 0, DIO_SEEK_END );
     if( !strip ) return( copylen );
-    SeekStream( floc, -sizeof( trailer ), SEEK_END );
+    SeekStream( floc, -sizeof( trailer ), DIO_SEEK_END );
     if( ReadStream( floc, &trailer, sizeof(trailer) ) != sizeof(trailer) ) return( copylen );
     if( trailer.signature != TIS_TRAILER_SIGNATURE ) return( copylen );
     return( copylen - trailer.size );
 }
 
 
-bool CopyToRemote( char *local, char *remote, bool strip, void *cookie )
-/**********************************************************************/
+static bool CopyToRemote( char *local, char *remote, bool strip, void *cookie )
+/*****************************************************************************/
 {
     handle              floc;
     handle              frem;
@@ -1178,7 +1195,7 @@ bool CopyToRemote( char *local, char *remote, bool strip, void *cookie )
         Error( ERR_NONE, LIT( ERR_FILE_NOT_OPEN ), local );
         return( FALSE );
     }
-    frem = FileOpen( remote, OP_REMOTE | OP_WRITE | OP_CREATE | OP_TRUNC );
+    frem = FileOpen( remote, OP_REMOTE | OP_WRITE | OP_CREATE | OP_TRUNC | OP_EXEC );
     if( frem == NIL_HANDLE ) {
         Error( ERR_NONE, LIT( ERR_FILE_NOT_OPEN ), remote );
         FileClose( floc );
@@ -1186,7 +1203,7 @@ bool CopyToRemote( char *local, char *remote, bool strip, void *cookie )
     }
     copylen = SizeMinusDebugInfo( floc, strip );
     DUICopySize( cookie, copylen );
-    SeekStream( floc, 0, SEEK_ORG );
+    SeekStream( floc, 0, DIO_SEEK_ORG );
     copied = 0;
     while( ( len = ReadStream( floc, buff, bsize ) ) != 0 ) {
         WriteStream( frem, buff, len );
@@ -1250,7 +1267,7 @@ static void ResNew( void )
 
 void ReStart()
 {
-    char                prog[256];
+    char                prog[FILENAME_MAX];
     char                args[UTIL_LEN];
 
     if( _IsOff( SW_PROC_ALREADY_STARTED ) && _IsOff( SW_POWERBUILDER ) ) {

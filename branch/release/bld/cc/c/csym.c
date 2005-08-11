@@ -31,7 +31,6 @@
 
 #include "cvars.h"
 #include "cgswitch.h"
-#include "pragmas.h"
 
 #pragma intrinsic(memcpy)
 
@@ -475,7 +474,6 @@ SYM_HANDLE Sym0Look( int h, char *id )  /* look for symbol on level 0 */
 }
 
 
-#ifndef WCPP
 local void ChkReference( SYM_ENTRY *sym, SYM_NAMEPTR name )
 {
     if( (sym->flags & SYM_DEFINED) ) {
@@ -643,7 +641,6 @@ static  void    Copy8( char const *nstr, char *name )
     *curr = '\0';
 }
 #endif /* IBM370 names */
-#endif
 
 /* divide all the global symbols into buckets based on size of the item
    0 - functions
@@ -791,9 +788,7 @@ local SYM_HASHPTR FreeSym()
                     }
                     AssignSeg( &sym );
                 } else { /* FUNCTION */         /* 28-oct-91 */
-                    #ifndef WCPP
-                       ChkFunction( &sym, hsym->name );/* 05-nov-91 */
-                    #endif
+                    ChkFunction( &sym, hsym->name );/* 05-nov-91 */
                 }
                 if( tail[ bucket ] == 0 ) {
                     tail[ bucket ] = hsym->handle;

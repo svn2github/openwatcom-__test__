@@ -190,6 +190,8 @@ mad_status DIGENTRY MIDisasmInsUndoable( mad_disasm_data *dd )
     case DI_X86_out2:
     case DI_X86_outs:
         return( MS_FAIL );
+    default:
+        break;
     }
     return( MS_OK );
 }
@@ -212,7 +214,7 @@ static mad_disasm_control Cond( mad_disasm_data *dd, int taken )
     return( (MDC_JUMP | MDC_CONDITIONAL) + Adjustment( dd ) );
 }
 
-static mad_disasm_control DisasmControl( mad_disasm_data *dd, const mad_registers *mr )
+mad_disasm_control DisasmControl( mad_disasm_data *dd, const mad_registers *mr )
 {
     char            xor;
     unsigned long   val;
@@ -237,7 +239,9 @@ static mad_disasm_control DisasmControl( mad_disasm_data *dd, const mad_register
     case DI_X86_retf:
     case DI_X86_retf2:
         return( MDC_RET | MDC_TAKEN );
+    case DI_X86_jmp2:
     case DI_X86_jmp3:
+    case DI_X86_jmp4:
         return( MDC_JUMP | MDC_TAKEN );
     case DI_X86_bound:
         return( MDC_OPER | MDC_TAKEN_NOT ); /* not supported yet */
@@ -319,6 +323,8 @@ static mad_disasm_control DisasmControl( mad_disasm_data *dd, const mad_register
         if( !( dd->ins.flags & DIF_X86_OPND_LONG ) )
             val &= 0xffff;
         return Cond( dd, val == 0 );
+    default:
+        break;
     }
     return( MDC_OPER | MDC_TAKEN_NOT );
 }
@@ -389,6 +395,8 @@ mad_status DIGENTRY MIDisasmInsNext( mad_disasm_data *dd, const mad_registers *m
         case DI_X86_retf:
         case DI_X86_retf2:
             next->mach.segment = (unsigned_16)GetDataWord();
+            break;
+        default:
             break;
         }
         break;
@@ -476,6 +484,9 @@ walk_result MemReference( int opnd, mad_disasm_data *dd, MEMREF_WALKER *wk, cons
         break;
     case DRT_X86_QWORDF:
         th = X86T_DOUBLE;
+        break;
+    case DRT_X86_QWORD:
+        th = X86T_QWORD;
         break;
     case DRT_X86_WORD:
         th = X86T_WORD;
@@ -599,6 +610,8 @@ walk_result DoDisasmMemRefWalk( mad_disasm_data *dd, MEMREF_WALKER *wk, const ma
     case DI_X86_popa:
     case DI_X86_popad:
         th = (dd->ins.flags & DIF_X86_OPND_LONG) ? X86T_POPAD : X86T_POPA;
+        break;
+    default:
         break;
     }
     if( th != (mad_type_handle)-1 ) {

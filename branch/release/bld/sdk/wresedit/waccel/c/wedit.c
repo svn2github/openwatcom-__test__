@@ -30,7 +30,6 @@
 ****************************************************************************/
 
 
-#define STRICT
 #include <windows.h>
 #include <ctype.h>
 #include <string.h>
@@ -96,7 +95,7 @@ extern WAccelEntry      DefaultEntry = { FALSE, { ACCEL_ASCII, 'A', 101 },
 /****************************************************************************/
 static DLGPROC     WAccelEditWinProc = NULL;
 static HBRUSH      WEditWinBrush     = NULL;
-static COLORREF    WEditWinColor     = NULL;
+static COLORREF    WEditWinColor     = 0;
 
 int appWidth = -1;
 int appHeight = -1;

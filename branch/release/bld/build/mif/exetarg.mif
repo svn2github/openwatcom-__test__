@@ -1,0 +1,2 @@
+$(proj_name).exe : $(objs) $(libs)
+        $(cl) $(clflags) $< $(cl_libs)

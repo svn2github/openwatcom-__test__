@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Microsoft/IBM resource file format definitions.
 *
 ****************************************************************************/
 
@@ -38,9 +37,6 @@
 // that winreg.h defines a type called ppvalue
 #define _WINREG_
 #define WIN32_LEAN_AND_MEAN
-#ifndef STRICT
-#define STRICT
-#endif
 #include "windows.h"
 #endif
 
@@ -107,5 +103,6 @@ typedef uint_16 ResMemFlags;
 #define MEMFLAG_PURE                0x0020
 #define MEMFLAG_PRELOAD             0x0040
 #define MEMFLAG_DISCARDABLE         0x1000
+#define MEMFLAG_SEGALIGN            0x8000
 
 #endif

@@ -43,8 +43,7 @@
 
 /* prototypes */
 int ptr_operator( memtype mem_type, uint_8 fix_mem_type );
-int jmp( struct asm_sym *sym );
-int jmpx( expr_list *opndx );
+int jmp( expr_list *opndx );
 
 #ifdef _WASM_
 
@@ -102,8 +101,9 @@ static void jumpExtend( int far_flag )
     char buffer[MAX_LINE_LEN];
 
     /* there MUST be a conditional jump instruction in asmbuffer */
-    for( i=0; ; i++ ) {
-        if( AsmBuffer[i]->token==T_INSTR && IS_JMP( AsmBuffer[i]->value ) ) {
+    for( i = 0; ; i++ ) {
+        if( ( AsmBuffer[i]->token == T_INSTR )
+            && IS_JMP( AsmBuffer[i]->value ) ) {
             break;
         }
     }
@@ -192,88 +192,7 @@ static void FarCallToNear()
 }
 #endif
 
-static int check_jump( struct asm_sym *sym ) {
-
-    memtype mem_type;
-    memtype tmp;
-
-    if( sym == NULL ) {
-        mem_type = EMPTY;
-    } else {
-        mem_type = sym->mem_type;
-    }
-    tmp = Code->mem_type;
-    if( tmp == EMPTY ) {
-        tmp = mem_type;
-    }
-    if( IS_JMPCALLF( Code->info.token ) ) {
-        switch( tmp ) {
-        case EMPTY:
-            Code->mem_type = T_FAR;
-            break;
-        case T_FAR:
-            break;
-#ifdef _WASM_
-        case T_PROC:
-            break;
-#endif
-        case T_FWORD:
-            SET_OPSIZ_32( Code );
-            return( INDIRECT_JUMP );
-        case T_DWORD:
-            SET_OPSIZ_16( Code );
-            return( INDIRECT_JUMP );
-        default:
-            break;
-        }
-    } else if( IS_JMPCALLN( Code->info.token ) ) {
-        switch( tmp ) {
-        case T_FAR:
-//            Code->info.token++;
-            break;
-        case T_NEAR:
-            if( ( Code->info.token == T_JMP )
-                && !Code->mem_type_fixed 
-                && ( ( sym == NULL ) || ( sym->state != SYM_EXTERNAL ) ) ) {
-                Code->mem_type = T_SHORT;
-            }
-        case T_SHORT:
-            break;
-#ifdef _WASM_
-        case T_PROC:
-            break;
-#endif
-        case T_FWORD:
-            Code->info.token++;
-            SET_OPSIZ_32( Code );
-            return( INDIRECT_JUMP );
-        case T_DWORD:
-            if( Code->use32 ) {
-                SET_OPSIZ_32( Code );
-            } else {
-                Code->info.token++;
-                SET_OPSIZ_16( Code );
-            }
-            return( INDIRECT_JUMP );
-        case T_WORD:
-            SET_OPSIZ_16( Code );
-            return( INDIRECT_JUMP );
-        case EMPTY:
-            break;
-        default:
-            return( INDIRECT_JUMP );
-        }
-    }
-    return( NOT_ERROR );
-}
-
-int jmpx( expr_list *opndx )
-{
-    Code->data[Opnd_Count] = opndx->value;
-    return( jmp( opndx->sym ) );
-}
-
-int jmp( struct asm_sym *sym )                // Bug: can't handle indirect jump
+int jmp( expr_list *opndx )
 /*
   determine the displacement of jmp;
 */
@@ -282,18 +201,27 @@ int jmp( struct asm_sym *sym )                // Bug: can't handle indirect jump
     enum fixup_types    fixup_type;
     enum fixup_options  fixup_option;
     enum sym_state      state;
+    struct asm_sym      *sym;
 #ifdef _WASM_
-    dir_node                *seg;
+    dir_node            *seg;
 #endif
 
+    Code->data[Opnd_Count] = opndx->value;
+    sym = opndx->sym;
     if( sym == NULL ) {
-        return( check_jump( sym ) );
+        if( IS_JMPCALLN( Code->info.token ) )
+            Code->info.token++;
+        if( Code->data[Opnd_Count] > USHRT_MAX )
+            Code->info.opnd_type[Opnd_Count] = OP_I32;
+        else
+            Code->info.opnd_type[Opnd_Count] = OP_I16;
+        return( NOT_ERROR );
     }
 
 #ifdef _WASM_
     if( sym->mem_type == ERROR ) {
         AsmError( LABEL_NOT_DEFINED );
-        return ERROR;
+        return( ERROR );
     }
 #endif
     state = sym->state;
@@ -305,9 +233,6 @@ int jmp( struct asm_sym *sym )                // Bug: can't handle indirect jump
     }
 #endif
 
-    if( check_jump( sym ) == INDIRECT_JUMP ) {
-        return( INDIRECT_JUMP );
-    }
     if( !Code->mem_type_fixed ) {
         Code->mem_type = EMPTY;
     }

@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  command line parameter handling interfaces (OS/2)
 *
 ****************************************************************************/
 
@@ -54,12 +53,6 @@ typedef struct ExtraRes {
     struct ExtraRes     *next;
     char                 name[_MAX_PATH];
 }ExtraRes;
-
-typedef struct EnvVarInfo {
-    struct EnvVarInfo   *next;
-    char                **argv; /* points into buf */
-    char                buf[1]; /* dynamic array */
-} EnvVarInfo;
 
 typedef struct FRStrings {
     struct FRStrings    *next;
@@ -106,7 +99,6 @@ struct RCParams {
     char    PrependString[ _MAX_PATH ];
     char ** CPPArgs;    /* temporary until preprocessing done inline */
     int     VersionStamp;
-    EnvVarInfo  *EnvVariables;
     ExtraRes    *ExtraResFiles;
     FRStrings   *FindReplaceStrings;
 };
@@ -122,7 +114,8 @@ enum SegmentSortMethods {
 
 enum RCTargetOS {
     RC_TARGET_OS_WIN16,
-    RC_TARGET_OS_WIN32
+    RC_TARGET_OS_WIN32,
+    RC_TARGET_OS_OS2,
 };
 
 extern bool ScanParams( int argc, char * argv[] );

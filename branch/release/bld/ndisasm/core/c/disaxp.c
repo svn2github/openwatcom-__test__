@@ -34,8 +34,6 @@
 #include "distypes.h"
 #include "dis.h"
 
-#if DISCPU & DISCPU_axp
-
 extern long SEX( unsigned long v, unsigned bit );
 
 extern const dis_range          AXPRangeTable[];
@@ -166,6 +164,8 @@ dis_handler_return AXPMemoryFC( dis_handle *h, void *d, dis_dec_ins *ins )
         ins->op[0].type = DO_REG;
         ins->op[0].base = code.memory.rb + DR_AXP_r0;
         ins->num_ops = 1;
+    default:
+        break;
     }
     return( DHR_DONE );
 }
@@ -508,6 +508,8 @@ static unsigned AXPInsHook( dis_handle *h, void *d, dis_dec_ins *ins,
             }
         }
         break;
+    default:
+        break;
     }
     if( name != NULL && new != NULL ) {
         strcpy( name, new );
@@ -541,12 +543,12 @@ static unsigned AXPOpHook( dis_handle *h, void *d, dis_dec_ins *ins,
 {
     dis_operand *op;
 
-    if( flags & DFF_AXP_SYMBOLIC_REG ) {
+    if( flags & DFF_SYMBOLIC_REG ) {
         op = &ins->op[op_num];
-        if( op->base >= DR_AXP_r0 && op->base < DR_AXP_r31 ) {
+        if( op->base >= DR_AXP_r0 && op->base <= DR_AXP_r31 ) {
             op->base += DR_AXP_v0 - DR_AXP_r0;
         }
-        if( op->index >= DR_AXP_r0 && op->index < DR_AXP_r31 ) {
+        if( op->index >= DR_AXP_r0 && op->index <= DR_AXP_r31 ) {
             op->index += DR_AXP_v0 - DR_AXP_r0;
         }
     }
@@ -554,13 +556,13 @@ static unsigned AXPOpHook( dis_handle *h, void *d, dis_dec_ins *ins,
         op = &ins->op[op_num];
         if( op->base >= DR_AXP_f0 && op->base <= DR_AXP_sp ) {
             op->base += DR_AXP_af0 - DR_AXP_f0;
-            if( op->base == DR_AXP_ar31 && ( flags & DFF_AXP_SYMBOLIC_REG ) ) {
+            if( op->base == DR_AXP_ar31 && ( flags & DFF_SYMBOLIC_REG ) ) {
                 op->base = DR_AXP_azero;
             }
         }
         if( op->index >= DR_AXP_f0 && op->base <= DR_AXP_sp ) {
             op->index += DR_AXP_af0 - DR_AXP_f0;
-            if( op->index == DR_AXP_ar31 && ( flags & DFF_AXP_SYMBOLIC_REG ) ) {
+            if( op->index == DR_AXP_ar31 && ( flags & DFF_SYMBOLIC_REG ) ) {
                 op->index = DR_AXP_azero;
             }
         }
@@ -573,19 +575,25 @@ static dis_handler_return AXPDecodeTableCheck( int page, dis_dec_ins *ins )
     return( DHR_DONE );
 }
 
-static void AXPByteSwapHook( dis_handle *h, void *d, dis_dec_ins *ins )
+static void ByteSwap( dis_handle *h, void *d, dis_dec_ins *ins )
 {
     if( h->need_bswap ) {
-#ifdef __BIG_ENDIAN__
-        CONV_LE_32( ins->opcode );
-#else
-        CONV_BE_32( ins->opcode );
-#endif
+        SWAP_32( ins->opcode );
     }
 }
 
-const dis_cpu_data AXPData = {
-    AXPRangeTable, AXPRangeTablePos, AXPByteSwapHook, AXPDecodeTableCheck, AXPInsHook, AXPFlagHook, AXPOpHook, &AXPMaxInsName, 4
-};
+static void AXPPreprocHook( dis_handle *h, void *d, dis_dec_ins *ins )
+{
+    ByteSwap( h, d, ins );
+}
 
-#endif
+static unsigned AXPPostOpHook( dis_handle *h, void *d, dis_dec_ins *ins,
+        dis_format_flags flags, unsigned op_num, char *op_buff )
+{
+    // Nothing to do
+    return( 0 );
+}
+
+const dis_cpu_data AXPData = {
+    AXPRangeTable, AXPRangeTablePos, AXPPreprocHook, AXPDecodeTableCheck, AXPInsHook, AXPFlagHook, AXPOpHook, AXPPostOpHook, &AXPMaxInsName, 4
+};

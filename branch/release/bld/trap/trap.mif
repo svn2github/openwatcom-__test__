@@ -2,11 +2,7 @@
 # Master makefile for creating trap files
 #
 
-!ifdef __LINUX__
-description = \'Open Watcom Debugger Trap File\'
-!else
 description = 'Open Watcom Debugger Trap File'
-!endif
 
 !ifdef test
 sys_x86_os2   = sys os2
@@ -22,12 +18,15 @@ sys_axp_nt    = sys ntaxp
 targ_x86_os2   = $(name)cli1.exe
 targ_x86_os2v2 = $(name)cli.exe
 targ_x86_qnx   = $(name)cli.qnx
-targ_x86_linux = $(name)cli.elf
+targ_x86_linux = $(name)cli.exe
 targ_x86_win   = $(name)cliw.exe
 targ_x86_dos   = $(name)cli.exe
 targ_x86_nt    = $(name)cli.exe
 
 targ_axp_nt    = $(name)cli.exe
+
+targ_ppc_linux = $(name)cli.exe
+targ_mips_linux = $(name)cli.exe
 
 TRAP_objs     = testcli.obj
 TRAP_remote_objs =
@@ -38,12 +37,14 @@ sys_x86_os2  = sys os2 dll initinstance &
             export TrapInit_.1 &
             export TrapFini_.2 &
             export TrapRequest_.3 &
-            op modname=$^&
+            op modname=$^& &
+            option description $(description)
 sys_x86_os2v2  = sys os2v2 dll initinstance terminstance &
             export TrapInit_.1 &
             export TrapFini_.2 &
             export TrapRequest_.3 &
-            op modname=$^&
+            op modname=$^& &
+            option description $(description)
 sys_x86_win  = sys windows_dll &
             export WEP.1 RESIDENT &
             export TRAPINIT.2 &
@@ -67,8 +68,12 @@ sys_x86_nt   = sys nt_dll initinstance &
             export Terminate_.6 &
 # remove reference to run-time code
             alias __DLLstart_='_LibMain@12' &
+            op modname=$^& &
             option description $(description) &
-            op offset=0x6e900000, modname=$^&
+!ifneq release 0
+            op offset=0x6e900000
+!endif
+
 sys_x86_dos  = sys dos
 sys_x86_qnx  = sys pharlap rex disable 1014, 1023
 
@@ -102,7 +107,11 @@ sys_ppc_nt   = sys ntppc_dll initinstance &
 targ_x86_os2    = $(name).dll
 targ_x86_os2v2  = $(name).d32
 targ_x86_qnx    = $(name).trp
+!ifdef bootstrap
+targ_x86_linux  = $(name).so
+!else
 targ_x86_linux  = $(name).trp
+!endif
 targ_x86_win    = $(name).dll
 targ_x86_dos    = $(name).trp
 targ_x86_nt     = $(name).dll
@@ -110,6 +119,9 @@ targ_x86_nt     = $(name).dll
 targ_axp_nt     = $(name).dll
 
 targ_ppc_nt     = $(name).dll
+
+targ_ppc_linux  = $(name).so
+targ_mips_linux = $(name).so
 
 TRAP_objs   = $(os)strt.obj
 TRAP_remote_objs = remote.obj

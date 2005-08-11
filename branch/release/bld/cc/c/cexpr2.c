@@ -34,6 +34,7 @@
 #include "cgdefs.h"
 #include "cgswitch.h"
 #include "pragdefn.h"
+#include "i64.h"
 
 struct mathfuncs {
         char    *name;
@@ -173,7 +174,7 @@ extern op_flags OpFlags( type_modifiers flags )
     if( flags & FLAG_CONST )    ops |= OPFLAG_CONST;
     if( flags & FLAG_VOLATILE ) ops |= OPFLAG_VOLATILE;
     if( flags & FLAG_UNALIGNED )ops |= OPFLAG_UNALIGNED;
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
     if( flags & FLAG_NEAR )     ops |= OPFLAG_NEARPTR;
     if( flags & FLAG_FAR )      ops |= OPFLAG_FARPTR;
     if( flags & FLAG_HUGE )     ops |= OPFLAG_HUGEPTR;
@@ -190,7 +191,7 @@ extern type_modifiers FlagOps( op_flags ops )
     if( ops & OPFLAG_CONST )    flags |= FLAG_CONST;
     if( ops & OPFLAG_VOLATILE ) flags |= FLAG_VOLATILE;
     if( ops & OPFLAG_UNALIGNED )    flags|= FLAG_UNALIGNED;
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
     if( ops & OPFLAG_NEARPTR )     flags |= FLAG_NEAR;
     if( ops & OPFLAG_FARPTR )      flags |= FLAG_FAR;
     if( ops & OPFLAG_HUGEPTR )     flags |= FLAG_HUGE;
@@ -288,43 +289,34 @@ TREEPTR LongLeaf( target_long value )
     return( leaf );
 }
 
-TREEPTR LongLeaf64( uint64 value, DATA_TYPE decl_type )
+local TREEPTR EnumLeaf( struct enum_info *eip )
 {
+    DATA_TYPE   decl_type;
     TREEPTR     leaf;
 
     leaf = LeafNode( OPR_PUSHINT );
-    leaf->op.const_type = decl_type;
-    leaf->op.long64_value = value;
-    leaf->expr_type = GetType( decl_type );
-    return( leaf );
-}
-
-local TREEPTR EnumLeaf( struct enum_info *eip )
-{
-    DATA_TYPE decl_type;
-#if 0
-    XREFPTR     xref;
-
-    if( CompFlags.emit_browser_info ) {
-        xref = eip->enum_entry->xref;
-        xref->next_xref = NewXref( xref->next_xref );
-    }
-#endif
     decl_type = eip->parent->sym_type->object->decl_type;
     switch( decl_type ) {
-    case TYPE_LONG64:
-    case TYPE_ULONG64:
-    case TYPE_LONG:
-    case TYPE_ULONG:
+    case TYPE_CHAR:
+    case TYPE_UCHAR:
+    case TYPE_SHORT:
+    case TYPE_USHORT:
+        decl_type = TYPE_INT;
+        // fall through
     case TYPE_INT:
     case TYPE_UINT:
-        return( LongLeaf64( eip->value , decl_type ) );
-    case TYPE_UCHAR:
-    case TYPE_USHORT:
-        return( UIntLeaf( eip->value.u._32[L] ) );
-    default:
-        return( IntLeaf( eip->value.u._32[L] ) );
+    case TYPE_LONG:
+    case TYPE_ULONG:
+        leaf->op.long_value = eip->value.u._32[L];
+        break;
+    case TYPE_LONG64:
+    case TYPE_ULONG64:
+        leaf->op.long64_value = eip->value;
+        break;
     }
+    leaf->op.const_type = decl_type;
+    leaf->expr_type = GetType( decl_type );
+    return( leaf );
 }
 
 TREEPTR VarLeaf( SYMPTR sym, SYM_HANDLE sym_handle )
@@ -505,11 +497,12 @@ static bool IsCallValue( TREEPTR tree )
     }
     return( ret );
 }
+
 // This RVALUE thing is backwards -mjc
 local TREEPTR TakeRValue( TREEPTR tree, int void_ok )
 {
     TYPEPTR             typ;
-    char                sym_flags;
+    sym_flags           symb_flags;
     type_modifiers      decl_flags;
     target_uint         value;
     SYM_ENTRY           sym;
@@ -532,7 +525,7 @@ local TREEPTR TakeRValue( TREEPTR tree, int void_ok )
 
         if( tree->op.opr == OPR_PUSHSTRING ) {
             if( typ->object->decl_type == TYPE_USHORT ) { /* 02-aug-91 */
-                typ = PtrNode( typ->object, 0, SEG_DATA );
+                typ = PtrNode( typ->object, FLAG_NONE, SEG_DATA );
             } else {
                 StringArrayType = typ;
                 typ = StringType;
@@ -543,9 +536,9 @@ local TREEPTR TakeRValue( TREEPTR tree, int void_ok )
             decl_flags = FlagOps( tree->op.flags );
             if( tree->op.opr == OPR_PUSHADDR ) {
                 SymGet( &sym, tree->op.sym_handle );
-                sym_flags = sym.flags;
+                symb_flags = sym.flags;
                 sym.flags |= SYM_REFERENCED | SYM_ASSIGNED;
-                if( sym_flags != sym.flags ) {
+                if( symb_flags != sym.flags ) {
                     SymReplace( &sym, tree->op.sym_handle );
                 }
             }
@@ -557,13 +550,13 @@ local TREEPTR TakeRValue( TREEPTR tree, int void_ok )
         }
     } else if( typ->decl_type == TYPE_FUNCTION ) {
 
-        sym_flags = FLAG_NONE;
+        symb_flags = FLAG_NONE;
         if( tree->op.opr == OPR_PUSHADDR ) {
             SymGet( &sym, tree->op.sym_handle );
             decl_flags = sym.attrib;
-            sym_flags = sym.flags;
+            symb_flags = sym.flags;
             sym.flags |= SYM_REFERENCED | SYM_ADDR_TAKEN;
-            if( sym_flags != sym.flags ) {
+            if( symb_flags != sym.flags ) {
                     SymReplace( &sym, tree->op.sym_handle );
             }
         }else if( tree->op.opr == OPR_POINTS ){
@@ -582,7 +575,7 @@ local TREEPTR TakeRValue( TREEPTR tree, int void_ok )
         }
         if( tree->op.opr == OPR_PUSHSYM || tree->op.opr == OPR_PUSHADDR ) {
             SymGet( &sym, tree->op.sym_handle );
-            sym_flags = sym.flags;
+            symb_flags = sym.flags;
             sym.flags |= SYM_REFERENCED;                /* 07-jun-89 */
             if( CompFlags.label_dropped == 0  &&  SizeOfCount == 0 ) {
                 if( sym.level != 0      &&
@@ -597,7 +590,7 @@ local TREEPTR TakeRValue( TREEPTR tree, int void_ok )
                     }
                 }
             }
-            if( sym_flags != sym.flags ) {
+            if( symb_flags != sym.flags ) {
                 SymReplace( &sym, tree->op.sym_handle );
             }
         }
@@ -706,7 +699,7 @@ static TREEPTR AddrOp( TREEPTR tree )
             leaf->op.ulong_value += tree->right->op.ulong_value;
             tree->left = NULL;
             FreeExprTree( tree );
-            leaf->expr_type = PtrNode( typ, 0, SEG_DATA );
+            leaf->expr_type = PtrNode( typ, FLAG_NONE, SEG_DATA );
             return( leaf );
         }
     }
@@ -1124,24 +1117,31 @@ bool ConstExprAndType( const_val *val )
     switch( tree->op.opr ) {
     case OPR_PUSHINT:
         val->type = tree->op.const_type;
-        if( tree->op.const_type == TYPE_LONG64
-         ||  tree->op.const_type == TYPE_ULONG64 ){
-            val->val64 = tree->op.long64_value;
-        }else{
-            val->val32 = tree->op.long_value;
+        switch( tree->op.const_type ) {
+        case TYPE_LONG64:
+        case TYPE_ULONG64:
+            val->value = tree->op.long64_value;
+            break;
+        case TYPE_ULONG:
+        case TYPE_UINT:
+            U32ToU64( tree->op.long_value, &val->value );
+            break;
+        default:
+            I32ToI64( tree->op.long_value, &val->value );
+            break;
         }
         ret = TRUE;
         break;
     case OPR_PUSHFLOAT:
         CErr1( ERR_EXPR_MUST_BE_INTEGRAL );
-        val->val32 = (long)atof( tree->op.float_value->string );
+        I32ToI64( (long)atof( tree->op.float_value->string ), &val->value );
         ret = FALSE;
         break;
     default:
         if( tree->op.opr != OPR_ERROR ){
             CErr1( ERR_NOT_A_CONSTANT_EXPR );
         }
-        val->val32 = 0;
+        U64Clear( val->value );
         ret = FALSE;
         break;
     }
@@ -1154,7 +1154,12 @@ long int ConstExpr()
     const_val   val;
 
     ConstExprAndType( &val );
-    return( val.val32 );
+    if( ( val.type == TYPE_ULONG64 ) && !U64IsI32( val.value ) ) {
+        CErr1( ERR_CONSTANT_TOO_BIG );
+    } else if( ( val.type == TYPE_LONG64 ) && !I64IsI32( val.value ) ) {
+        CErr1( ERR_CONSTANT_TOO_BIG );
+    }
+    return( I32FetchTrunc( val.value ) );
 }
 
 
@@ -1732,7 +1737,7 @@ local TREEPTR GenIndex( TREEPTR tree, TREEPTR index_expr )
 //      return( ErrorNode( tree ) );
 //  }
     index_expr = RValue( index_expr );
-    if( DataTypeOf( TypeOf(index_expr)->decl_type ) > TYPE_ULONG64 ) {
+    if( DataTypeOf( TypeOf(index_expr) ) > TYPE_ULONG64 ) {
         CErr1( ERR_EXPR_MUST_BE_INTEGRAL );
         FreeExprTree( tree );
         return( ErrorNode( index_expr ) );
@@ -1766,7 +1771,7 @@ local TREEPTR GenIndex( TREEPTR tree, TREEPTR index_expr )
         #endif
     } else {
         #if _CPU == 8086
-            if( DataTypeOf( TypeOf(index_expr)->decl_type ) == TYPE_UINT ) {
+            if( DataTypeOf( TypeOf(index_expr) ) == TYPE_UINT ) {
                 if(( tree_flags & OPFLAG_HUGEPTR ) ||
                    ((TargetSwitches & (BIG_DATA|CHEAP_POINTER))==BIG_DATA &&
                     (tree_flags & (OPFLAG_NEARPTR | OPFLAG_FARPTR))==0)) {
@@ -1957,7 +1962,13 @@ local int IntrinsicMathFunc( SYM_NAMEPTR sym_name, int i, int n, SYMPTR sym )
     return( 0 );        /* indicate not a math intrinsic function */
 }
 
-#if _MACHINE == _ALPHA  || _MACHINE == _PPC
+#if (_CPU == _AXP) || (_CPU == _PPC) || (_CPU == _MIPS)
+// This really ought to be defined somewhere else...
+#if (_CPU == _AXP)
+    #define REG_SIZE    8
+#else
+    #define REG_SIZE    4
+#endif
 local TREEPTR GenVaStartNode( TREEPTR last_parm )
 {
     // there should be 3 parms __builtin_va_start( list, parm_name, stdarg )
@@ -1979,7 +1990,7 @@ local TREEPTR GenVaStartNode( TREEPTR last_parm )
         offset = 0;
         if( last_parm->op.opr == OPR_PUSHINT &&
             last_parm->op.long_value == 0 ) {           // varargs.h
-            offset = -8;
+            offset = -REG_SIZE;
         }
         parmsym = ValueStack[Level];            // get name of parameter
         parm_list = 0;
@@ -1987,7 +1998,7 @@ local TREEPTR GenVaStartNode( TREEPTR last_parm )
             parm_list = CurFunc->u.func.parms;
             while( parm_list != 0 ) {
                 sym = SymGetPtr( parm_list );
-                offset += (SizeOfArg( sym->sym_type ) + 7) & -8;
+                offset += (SizeOfArg( sym->sym_type ) + (REG_SIZE-1)) & -REG_SIZE;
                 if( parm_list == parmsym->op.sym_handle ) break;
                 parm_list = sym->handle;
             }
@@ -2019,7 +2030,7 @@ local TREEPTR GenAllocaNode( TREEPTR size_parm )
 
     if( Token[Level] == T_LEFT_PAREN ) {
         tree = ExprNode( 0, OPR_ALLOCA, size_parm );
-        tree->expr_type = PtrNode( GetType( TYPE_VOID ), 0, SEG_STACK );
+        tree->expr_type = PtrNode( GetType( TYPE_VOID ), FLAG_NONE, SEG_STACK );
     } else {
         // error
         tree = 0;
@@ -2028,7 +2039,7 @@ local TREEPTR GenAllocaNode( TREEPTR size_parm )
 }
 #endif
 
-#if _MACHINE == _PPC
+#if _CPU == _PPC
 local TREEPTR GenVaArgNode( TREEPTR last_parm )
 {
     // there should be 2 parms __builtin_varg( list, type_arg )
@@ -2097,7 +2108,7 @@ local TREEPTR GenFuncCall( TREEPTR last_parm )
             typ->decl_type == TYPE_FLOAT ) {
             CompFlags.float_used = 1;
         }
-        #if _CPU == 386                                 /* 22-aug-94 */
+#if _CPU == 386                                 /* 22-aug-94 */
         {
             struct aux_info     *inf;
            struct aux_entry     *ent;
@@ -2110,7 +2121,7 @@ local TREEPTR GenFuncCall( TREEPTR last_parm )
             sym_name = SymName( &sym, functree->op.sym_handle );
             ent = AuxLookup( sym_name );
         }
-        #endif
+#endif
     } else {
         typ = TypeDefault();
     }
@@ -2175,7 +2186,7 @@ local TREEPTR GenFuncCall( TREEPTR last_parm )
                         }
                     }
                 }
-#if _MACHINE == _ALPHA  || _MACHINE == _PPC
+#if (_CPU == _AXP)  || (_CPU == _PPC) || (_CPU == _MIPS)
                 if( far_strcmp( sym_name, "__builtin_va_start", n ) == 0 ) {
                     tree = GenVaStartNode( last_parm );
                     goto done_call;
@@ -2185,7 +2196,7 @@ local TREEPTR GenFuncCall( TREEPTR last_parm )
                     goto done_call;
                 }
 #endif
-#if  _MACHINE == _PPC
+#if  _CPU == _PPC
                 if( far_strcmp( sym_name, "__builtin_varg", n ) == 0 ) {
                     tree = GenVaArgNode( last_parm );
                     goto done_call;
@@ -2423,7 +2434,7 @@ TREEPTR BoolExpr( TREEPTR tree )
             }
         }
         tree = RValue( tree );
-        if( DataTypeOf( TypeOf(tree)->decl_type ) > TYPE_POINTER ) {
+        if( DataTypeOf( TypeOf(tree) ) > TYPE_POINTER ) {
             CErr1( ERR_EXPR_MUST_BE_SCALAR );
         } else if( tree->op.opr == OPR_PUSHINT ) {
             if( tree->op.ulong_value != 0 ) {

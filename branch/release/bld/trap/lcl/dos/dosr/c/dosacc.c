@@ -28,6 +28,7 @@
 *
 ****************************************************************************/
 
+//#define DEBUG_ME
 
 #include <string.h>
 #include <i86.h>
@@ -59,24 +60,16 @@ typedef enum {
     EXE_LAST_TYPE
 } EXE_TYPE;
 
-#pragma aux MoveBytes =                                         \
-/*      MoveBytes( fromseg, fromoff, toseg, tooff, len );*/     \
-0X1E            /* push   ds                            */      \
-0X8E 0XD8       /* mov    ds,ax                         */      \
-0XF3            /* rep                                  */      \
-0XA4            /* movsb                                */      \
-0X1F            /* pop    ds                            */      \
-        parm    caller  [ ax ] [ si ] [ es ] [ di ] [ cx ]      \
-        modify  [ si di ];
+#pragma aux MoveBytes =                                  \
+/*  MoveBytes( fromseg, fromoff, toseg, tooff, len ); */ \
+       " rep    movsb "                                  \
+    parm    caller  [ ds ] [ si ] [ es ] [ di ] [ cx ]   \
+    modify  [ si di ];
 
-#pragma aux MyCS =              \
-0x8c 0xc8       /* mov ax,cx */ \
-        value [ax];
-
-#pragma aux MyFlags =           \
-0x9c            /* pushf    */  \
-0x58            /* pop ax   */  \
-        value [ax];
+#pragma aux MyFlags = \
+       " pushf  "     \
+       " pop ax "     \
+    value [ax];
 
 extern void MoveBytes();
 extern unsigned short MyCS( void );
@@ -97,7 +90,7 @@ typedef _Packed struct pblock {
 //
 // NOTE: if you change this structure, you must update DBGTRAP.ASM
 //
-typedef struct watch {
+typedef _Packed struct watch {
     addr32_ptr  addr;
     dword       value;
     dword       linear;
@@ -118,7 +111,8 @@ typedef enum {
         TRAP_USER,
         TRAP_TERMINATE,
         TRAP_MACH_EXCEPTION,
-        TRAP_OVL_CHANGE
+        TRAP_OVL_CHANGE_LOAD,
+        TRAP_OVL_CHANGE_RET
 } trap_types;
 
 /* user modifiable flags */
@@ -147,10 +141,10 @@ extern char             NPXType(void);
 extern char             Have87Emu(void);
 extern void             Null87Emu( void );
 extern void             OvlTrap( int );
-extern void             Read87State( void * );
-extern void             Read87EmuState( void * );
-extern void             Write87State( void * );
-extern void             Write87EmuState( void * );
+extern void             Read87State( void far * );
+extern void             Read87EmuState( void far * );
+extern void             Write87State( void far * );
+extern void             Write87EmuState( void far * );
 extern tiny_ret_t       FindFilePath( char *, char *, char * );
 extern unsigned         Redirect( bool );
 extern unsigned         ExceptionText( unsigned, char * );
@@ -161,14 +155,15 @@ extern int              far NoOvlsHdlr( int, void * );
 extern bool             CheckOvl( addr32_ptr );
 extern int              NullOvlHdlr(void);
 
+
 extern word             far SegmentChain;
 
-static tiny_handle_t    EXE;
+static tiny_handle_t    EXEhandle;
 static tiny_ftime_t     EXETime;
 static tiny_fdate_t     EXEDate;
-#define ReadEXE( x )    TinyRead( EXE, &x, sizeof(x) )
-#define WriteEXE( x )   TinyWrite( EXE, &x, sizeof(x) )
-#define SeekEXE( x )    TinySeek( EXE, x, TIO_SEEK_START )
+#define ReadEXE( x )    TinyRead( EXEhandle, &x, sizeof(x) )
+#define WriteEXE( x )   TinyWrite( EXEhandle, &x, sizeof(x) )
+#define SeekEXEset( x ) TinySeek( EXEhandle, x, TIO_SEEK_START )
 static dword            NEOffset;
 static word             NumSegments;
 static dword            SegTable;
@@ -183,17 +178,19 @@ trap_cpu_regs   TaskRegs;
 char            DOS_major;
 char            DOS_minor;
 char            RealNPXType;
+char            CPUType;
 bool            BoundAppLoading;
 bool            IsBreak[4];
 
 struct {
     unsigned    Is386       : 1;
+    unsigned    IsMMX       : 1;
+    unsigned    IsXMM       : 1;
     unsigned    DRsOn       : 1;
     unsigned    com_file    : 1;
     unsigned    NoOvlMgr    : 1;
     unsigned    BoundApp    : 1;
-}               Flags;
-
+} Flags;
 
 #ifdef DEBUG_ME
 int out( char * str )
@@ -226,23 +223,11 @@ char * hex( unsigned long num )
     }
     return( p );
 
-#ifndef TRACE_ME
-    #undef put
-    #define put( s )    out( s )
-#endif
 }
 #else
-//    #define out( s ) 0
-//    #define put( s )
-//    #define hex( n ) 1
     #define out( s )
     #define out0( s ) 0
-    #define put( s )
     #define hex( n )
-#endif
-
-#ifndef put
-    #define put( s )
 #endif
 
 unsigned ReqGet_sys_config()
@@ -253,19 +238,16 @@ unsigned ReqGet_sys_config()
     ret->sys.os = OS_DOS;
     ret->sys.osmajor = DOS_major;
     ret->sys.osminor = DOS_minor;
-    ret->sys.cpu = X86CPUType();
-    if( ( ret->sys.cpu & X86_CPU_MASK ) >= X86_386 ) {
-        Flags.Is386 = TRUE;
-    } else {
-        Flags.Is386 = FALSE;
-    }
+    ret->sys.cpu = CPUType;
+    ret->sys.cpu |= ( Flags.IsMMX ) ? X86_MMX : 0;
+    ret->sys.cpu |= ( Flags.IsXMM ) ? X86_XMM : 0;
     if( Have87Emu() ) {
         ret->sys.fpu = X86_EMU;
     } else if( RealNPXType != 0 ) {
-        if( ( ret->sys.cpu & X86_CPU_MASK ) >= X86_486 ) {
-            ret->sys.fpu = ret->sys.cpu & X86_CPU_MASK;
-        } else {
+        if( CPUType < X86_486 ) {
             ret->sys.fpu = RealNPXType;
+        } else {
+            ret->sys.fpu = CPUType;
         }
     } else {
         ret->sys.fpu = X86_NO;
@@ -278,11 +260,11 @@ unsigned ReqGet_sys_config()
 
 unsigned ReqMap_addr()
 {
-    word        seg;
-    int         count;
-    word        *segment;
-    map_addr_req        *acc;
-    map_addr_ret        *ret;
+    word            seg;
+    int             count;
+    word            *segment;
+    map_addr_req    *acc;
+    map_addr_ret    *ret;
 
     acc = GetInPtr(0);
     ret = GetOutPtr(0);
@@ -336,9 +318,9 @@ unsigned ReqMachine_data()
 
 unsigned ReqChecksum_mem()
 {
-    unsigned_8     *ptr;
-    unsigned long   sum = 0;
-    unsigned        len;
+    unsigned_8          *ptr;
+    unsigned long       sum = 0;
+    unsigned            len;
     checksum_mem_req    *acc;
     checksum_mem_ret    *ret;
 
@@ -366,22 +348,24 @@ static bool IsInterrupt( addr48_ptr addr, unsigned length )
 unsigned ReqRead_mem()
 {
     bool          int_tbl;
-    read_mem_req        *acc;
+    read_mem_req  *acc;
     void          *data;
-    unsigned    len;
+    unsigned      len;
 
     acc = GetInPtr(0);
     data = GetOutPtr( 0 );
     acc->mem_addr.offset &= 0xffff;
     int_tbl = IsInterrupt( acc->mem_addr, acc->len );
-    if( int_tbl ) SetIntVecs();
+    if( int_tbl )
+        SetIntVecs();
     len = acc->len;
     if( ( acc->mem_addr.offset + len ) > 0xffff ) {
         len = 0x10000 - acc->mem_addr.offset;
     }
     MoveBytes( acc->mem_addr.segment, acc->mem_addr.offset,
                FP_SEG( data ), FP_OFF( data ), len );
-    if( int_tbl ) ClrIntVecs();
+    if( int_tbl )
+        ClrIntVecs();
     return( len );
 }
 
@@ -389,8 +373,8 @@ unsigned ReqRead_mem()
 unsigned ReqWrite_mem()
 {
     bool          int_tbl;
-    write_mem_req       *acc;
-    write_mem_ret       *ret;
+    write_mem_req *acc;
+    write_mem_ret *ret;
     unsigned      len;
     void          *data;
 
@@ -401,13 +385,15 @@ unsigned ReqWrite_mem()
 
     acc->mem_addr.offset &= 0xffff;
     int_tbl = IsInterrupt( acc->mem_addr, len );
-    if( int_tbl ) SetIntVecs();
+    if( int_tbl )
+        SetIntVecs();
     if( ( acc->mem_addr.offset + len ) > 0xffff ) {
         len = 0x10000 - acc->mem_addr.offset;
     }
     MoveBytes( FP_SEG( data ), FP_OFF( data ),
                acc->mem_addr.segment, acc->mem_addr.offset, len );
-    if( int_tbl ) ClrIntVecs();
+    if( int_tbl )
+        ClrIntVecs();
     ret->len = len;
     return( sizeof( *ret ) );
 }
@@ -441,7 +427,7 @@ unsigned ReqWrite_io()
 {
     write_io_req        *acc;
     write_io_ret        *ret;
-    void         *data;
+    void                *data;
     unsigned            len;
 
     acc = GetInPtr(0);
@@ -467,7 +453,7 @@ unsigned ReqWrite_io()
 unsigned ReqRead_cpu()
 {
     void          *regs;
-    read_cpu_ret        *ret;
+    read_cpu_ret  *ret;
 
     ret = GetOutPtr( 0 );
     regs = GetOutPtr( sizeof( *ret ) );
@@ -478,7 +464,7 @@ unsigned ReqRead_cpu()
 //OBSOLETE - use ReqRead_regs
 unsigned ReqRead_fpu()
 {
-    void *regs;
+    void far *regs;
 
     regs = GetOutPtr(0);
     if( Have87Emu() ) {
@@ -505,7 +491,7 @@ unsigned ReqWrite_cpu()
 //OBSOLETE - use ReqWrite_regs
 unsigned ReqWrite_fpu()
 {
-    void *regs;
+    void far *regs;
 
     regs = GetInPtr(sizeof(write_fpu_req));
     FPUContract( regs );
@@ -551,48 +537,58 @@ unsigned ReqWrite_regs( void )
 
 static EXE_TYPE CheckEXEType( char *name )
 {
-    tiny_ret_t  rc;
+    tiny_ret_t            rc;
     union {
-        tiny_ret_t          rc;
-        tiny_file_stamp_t   stamp;
-    }           exe_time;
-    word        value;
-    byte        breakpt;
+        tiny_ret_t        rc;
+        tiny_file_stamp_t stamp;
+    } exe_time;
+    word                  value;
+    byte                  breakpt;
     static dos_exe_header head;
     static os2_exe_header os2_head;
 
     Flags.com_file = FALSE;
-    EXE = 0;
+    EXEhandle = 0;
     rc = TinyOpen( name, TIO_READ_WRITE );
-    if( TINY_ERROR( rc ) ) return( EXE_UNKNOWN );
-    EXE = rc;
-    exe_time.rc = TinyGetFileStamp( EXE );
+    if( TINY_ERROR( rc ) )
+        return( EXE_UNKNOWN );
+    EXEhandle = rc;
+    exe_time.rc = TinyGetFileStamp( EXEhandle );
     EXETime = exe_time.stamp.time;
     EXEDate = exe_time.stamp.date;
-    if( ReadEXE( head ) < 0 ) return( EXE_UNKNOWN );    /* MZ Signature */
+    if( TINY_ERROR( ReadEXE( head ) ) )
+        return( EXE_UNKNOWN );    /* MZ Signature */
     switch( head.signature ) {
     case SIMPLE_SIGNATURE: // mp
     case REX_SIGNATURE: // mq
     case EXTENDED_SIGNATURE: // 'P3'
         return( EXE_PHARLAP_SIMPLE );
     case DOS_SIGNATURE:
-        if( head.reloc_offset != OS2_EXE_HEADER_FOLLOWS ) return( EXE_DOS );
-        if( SeekEXE( OS2_NE_OFFSET ) < 0 ) return( EXE_UNKNOWN );/* offset of new exe */
-        if( ReadEXE( NEOffset ) < 0 ) return( EXE_UNKNOWN );
-        if( SeekEXE( NEOffset ) < 0 ) return( EXE_UNKNOWN );
-        if( ReadEXE( os2_head ) < 0 ) return( EXE_UNKNOWN );/* NE Signature */
-        if( os2_head.signature == RAT_SIGNATURE_WORD ) return( EXE_RATIONAL_386 );
-        if( os2_head.signature != OS2_SIGNATURE_WORD ) return( EXE_UNKNOWN );
+        if( head.reloc_offset != OS2_EXE_HEADER_FOLLOWS )
+            return( EXE_DOS );
+        if( TINY_ERROR( SeekEXEset( OS2_NE_OFFSET ) ) )
+            return( EXE_UNKNOWN );/* offset of new exe */
+        if( TINY_ERROR( ReadEXE( NEOffset ) ) )
+            return( EXE_UNKNOWN );
+        if( TINY_ERROR( SeekEXEset( NEOffset ) ) )
+            return( EXE_UNKNOWN );
+        if( TINY_ERROR( ReadEXE( os2_head ) ) )
+            return( EXE_UNKNOWN );/* NE Signature */
+        if( os2_head.signature == RAT_SIGNATURE_WORD )
+            return( EXE_RATIONAL_386 );
+        if( os2_head.signature != OS2_SIGNATURE_WORD )
+            return( EXE_UNKNOWN );
         NumSegments = os2_head.segments;
         SegTable = NEOffset + os2_head.segment_off;
-        if( os2_head.align == 0 ) os2_head.align = 9;
-        SeekEXE( SegTable+(os2_head.entrynum-1)*8 );
+        if( os2_head.align == 0 )
+            os2_head.align = 9;
+        SeekEXEset( SegTable+(os2_head.entrynum-1)*8 );
         ReadEXE( value );
         StartByte = ( (long)value << os2_head.align ) + os2_head.IP;
-        SeekEXE( StartByte );
+        SeekEXEset( StartByte );
         ReadEXE( SavedByte );
         breakpt = 0xCC;
-        SeekEXE( StartByte );
+        SeekEXEset( StartByte );
         rc = WriteEXE( breakpt );
         return( EXE_OS2 );
     default:
@@ -625,22 +621,26 @@ unsigned ReqProg_load()
     Flags.BoundApp = FALSE;
     psp = DbgPSP();
     parm = GetInPtr( sizeof( prog_load_req ) );
-    if( FindFilePath( parm, exe_name, DosExtList ) != 0 ) {
+    if( TINY_ERROR( FindFilePath( parm, exe_name, DosExtList ) ) ) {
         exe_name[0] = '\0';
     }
-    while( *parm != '\0' ) ++parm;
+    while( *parm != '\0' )
+        ++parm;
     src = ++parm;
     dst = MK_FP( psp, CMD_OFFSET+1 );
     end = (char *)GetInPtr( GetTotalSize()-1 );
     for( ;; ) {
-        if( src > end ) break;
+        if( src > end )
+            break;
         ch = *src;
-        if( ch == '\0' ) ch = ' ';
+        if( ch == '\0' )
+            ch = ' ';
         *dst = ch;
         ++dst;
         ++src;
     }
-    if( src > parm ) --dst;
+    if( src > parm )
+        --dst;
     *dst = '\r';
     parm = MK_FP( psp, CMD_OFFSET );
     *parm = FP_OFF( dst ) - (CMD_OFFSET+1);
@@ -652,9 +652,9 @@ unsigned ReqProg_load()
     parmblock.fcb01.offset  = 0X005C;
     parmblock.fcb02.offset  = 0X006C;
     exe = CheckEXEType( exe_name );
-    if( EXE != 0 ) {
-        TinyClose( EXE );
-        EXE = 0;
+    if( EXEhandle != 0 ) {
+        TinyClose( EXEhandle );
+        EXEhandle = 0;
     }
     switch( exe ) {
     case EXE_RATIONAL_386:
@@ -697,13 +697,13 @@ unsigned ReqProg_load()
                 }
                 BoundAppLoading = FALSE;
                 rc = TinyOpen( exe_name, TIO_READ_WRITE );
-                if( !TINY_ERROR( rc ) ) {
-                    EXE = rc;
-                    SeekEXE( StartByte );
+                if( TINY_OK( rc ) ) {
+                    EXEhandle = rc;
+                    SeekEXEset( StartByte );
                     WriteEXE( SavedByte );
-                    TinySetFileStamp( EXE, EXETime, EXEDate );
-                    TinyClose( EXE );
-                    EXE = 0;
+                    TinySetFileStamp( EXEhandle, EXETime, EXEDate );
+                    TinyClose( EXEhandle );
+                    EXEhandle = 0;
                     rc = 0;
                     Flags.BoundApp = TRUE;
                 }
@@ -767,7 +767,9 @@ unsigned ReqSet_watch()
             for( i = 0; i < WatchCount; ++i ) {
                 needed += WatchPoints[ i ].dregs;
             }
-            if( needed <= 4 ) wr->multiplier |= USING_DEBUG_REG;
+            if( needed <= 4 ) {
+                wr->multiplier |= USING_DEBUG_REG;
+            }
         }
     }
     wr->multiplier |= 200;
@@ -870,7 +872,8 @@ static bool SetDebugRegs()
     watch               *wp;
     bool                watch386;
 
-    if( !Flags.DRsOn ) return( FALSE );
+    if( !Flags.DRsOn )
+        return( FALSE );
     needed = 0;
     for( i = WatchCount, wp = WatchPoints; i != 0; --i, ++wp ) {
         needed += wp->dregs;
@@ -903,16 +906,35 @@ static bool SetDebugRegs()
 static unsigned MapReturn( int trap )
 {
     switch( trap ) {
-    case TRAP_TRACE_POINT:      return( COND_TRACE );
-    case TRAP_BREAK_POINT:      return( COND_BREAK );
-    case TRAP_WATCH_POINT:      return( COND_WATCH );
-    case TRAP_USER:             return( COND_USER );
-    case TRAP_TERMINATE:        return( COND_TERMINATE );
+    case TRAP_TRACE_POINT:
+        out( "cond=trace point" );
+        return( COND_TRACE );
+    case TRAP_BREAK_POINT:
+        out( "cond=break point" );
+        return( COND_BREAK );
+    case TRAP_WATCH_POINT:
+        out( "cond=watch point" );
+        return( COND_WATCH );
+    case TRAP_USER:
+        out( "cond=user" );
+        return( COND_USER );
+    case TRAP_TERMINATE:
+        out( "cond=terminate" );
+        return( COND_TERMINATE );
     case TRAP_MACH_EXCEPTION:
+        out( "cond=exception" );
         ExceptNum = 0;
         return( COND_EXCEPTION );
-    case TRAP_OVL_CHANGE:       return( COND_SECTIONS );
+    case TRAP_OVL_CHANGE_LOAD:
+        out( "cond=overlay load" );
+        return( COND_SECTIONS );
+    case TRAP_OVL_CHANGE_RET:
+        out( "cond=overlay ret" );
+        return( COND_SECTIONS );
+    default:
+        break;
     }
+    out( "cond=none" );
     return( 0 );
 }
 
@@ -945,7 +967,7 @@ static unsigned ProgRun( bool step )
     out( "\r\n" );
     ret->conditions = MapReturn( ClearDebugRegs( RunProg( &TaskRegs, &TaskRegs ) ) );
     ret->conditions |= COND_CONFIG;
-    out( "cond=" ); out( hex( ret->conditions ) );
+//    out( "cond=" ); out( hex( ret->conditions ) );
     out( " CS:EIP=" ); out( hex( TaskRegs.CS ) ); out(":" ); out( hex( TaskRegs.EIP ) );
     out( " SS:ESP=" ); out( hex( TaskRegs.SS ) ); out(":" ); out( hex( TaskRegs.ESP ) );
     out( "\r\n" );
@@ -1030,18 +1052,18 @@ char *GetExeExtensions()
     return( DosExtList );
 }
 
-#pragma off(unreferenced);
 trap_version TRAPENTRY TrapInit( char *parm, char *err, bool remote )
-#pragma on(unreferenced);
 {
     trap_version ver;
 
 out( "in TrapInit\r\n" );
 out( "    checking environment:\r\n" );
+    CPUType = X86CPUType();
+    Flags.Is386 = ( CPUType >= X86_386 );
     if( parm[0] == 'D' || parm[0] == 'd' ) {
         Flags.DRsOn = FALSE;
         ++parm;
-    } else if( out0( "    CPU type\r\n" ) || ( X86CPUType() & X86_CPU_MASK ) < X86_386 ) {
+    } else if( out0( "    CPU type\r\n" ) || ( Flags.Is386 == 0 ) ) {
         Flags.DRsOn = FALSE;
     } else if( out0( "    WinEnh\r\n" ) || ( EnhancedWinCheck() & 0x7f ) ) {
         /* Enhanced Windows 3.0 VM kernel messes up handling of debug regs */
@@ -1057,6 +1079,11 @@ out( "    checking environment:\r\n" );
     }
 out( "    done checking environment\r\n" );
     err[0] = '\0'; /* all ok */
+
+    Flags.IsMMX = ( ( CPUType & X86_MMX ) != 0 );
+    Flags.IsXMM = ( ( CPUType & X86_XMM ) != 0 );
+    CPUType &= X86_CPU_MASK;
+
     /* NPXType initializes '87, so check for it before a program
        starts using the thing */
     RealNPXType = NPXType();

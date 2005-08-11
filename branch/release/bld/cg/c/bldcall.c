@@ -82,7 +82,6 @@ extern  name            *SAllocIndex(name*,name*,type_length,type_class_def,type
 extern  name            *ScaleIndex(name*,name*,type_length,type_class_def,type_length,int,i_flags);
 extern  instruction     *PushOneParm(instruction*,name*,type_class_def,type_length,call_state*);
 extern  bool            IsVolatile(name*);
-extern  void            DoNothing(instruction*);
 extern  void            TNZapParms();
 extern  name            *AllocS32Const(signed_32);
 extern  void            FPNotStack(name*);
@@ -234,7 +233,7 @@ static  instruction *DoParmDef( name *result, type_class_def class ) {
     return( parm_def );
 }
 
-#if _TARGET & ( _TARG_AXP | _TARG_PPC )
+#if _TARGET & _TARG_RISC
 
 #if _TARGET & _TARG_AXP
 #define BASE_TYPE       U8
@@ -334,7 +333,7 @@ extern  name    *DoParmDecl( sym_handle sym, type_def *tipe, hw_reg_set reg ) {
         BGDone( MakeAddrName( CG_FE, sym, tipe ) );
     }
     temp->v.usage |= USE_IN_ANOTHER_BLOCK;
-#if _TARGET & ( _TARG_AXP | _TARG_PPC )
+#if _TARGET & _TARG_RISC
     if( class == XX ) {
         return( DoAlphaParmDecl( reg, sym, tipe, temp ) );
     }
@@ -374,10 +373,15 @@ extern  name    *DoParmDecl( sym_handle sym, type_def *tipe, hw_reg_set reg ) {
         if( temp->n.class == N_TEMP && parm_name->n.class == N_TEMP ) {
             temp->t.location = parm_name->t.location;
         } else {
-        #if _TARGET & _TARG_PPC
-            // for PPC varargs routines, ensure that taking the address of
-            // a parm coming in in a register will force that parm into
-            // the correct location in the caller's frame (yes - it sucks)
+        #if (_TARGET & _TARG_PPC) || (_TARGET & _TARG_MIPS)
+            // for PowerPC varargs routines, ensure that taking the address
+            // of a parm coming in in a register will force that parm into the
+            // correct home location in the caller's frame (yes - it sucks)
+            // For MIPS, ensure that taking the address of a parm passed in
+            // register will always force it to the right home location,
+            // varargs or not. All this is done basically so that crappy code
+            // that doesn't use stdarg.h properly would work - we have some
+            // in our own clib ;-)
             temp->t.location = CurrProc->state.parm.offset - ptipe->length;
         #endif
         }
@@ -437,7 +441,7 @@ extern  void    AddCallIns( instruction *ins, cn call ) {
         attr = 0;
         if( call_name->m.memory_type == CG_FE ) {
             attr = FEAttr( call_name->v.symbol );
-            #if _TARGET & (_TARG_AXP|_TARG_PPC)
+            #if _TARGET & _TARG_RISC
             // in case the inline assembly code references a local variable
             if( FEAuxInfo( call_name->v.symbol, CALL_BYTES ) != NULL ) {
                 CurrProc->targ.base_is_fp = TRUE;
@@ -732,7 +736,7 @@ extern  void    BGReturn( an retval, type_def *tipe ) {
     TargetModel = SaveModel;
 }
 
-#if _TARGET & ( _TARG_AXP | _TARG_PPC )
+#if _TARGET & _TARG_RISC
 
 static pn   BustUpStruct( pn parm, type_class_def from, type_class_def using ) {
 /******************************************************************************/
@@ -784,9 +788,13 @@ static void SplitStructParms( pn *parm_list, call_state *state ) {
 #if _TARGET & _TARG_PPC
     if( _IsTargetModel( CG_OS2_CC ) ) return;
     tipe = U4;
-#else
+#elif _TARGET & _TARG_AXP
     state = state;
     tipe = U8;
+#elif _TARGET & _TARG_MIPS
+    tipe = U4;
+#else
+    #error Unknown RISC CPU
 #endif
     last_parm = parm_list;
     parm = *last_parm;
@@ -838,7 +846,7 @@ extern  bool        AssgnParms( cn call, bool in_line ) {
     state = call->state;
     call_ins = call->ins;
     parms = 0;
-#if _TARGET & ( _TARG_AXP | _TARG_PPC )
+#if _TARGET & _TARG_RISC
     SplitStructParms( &call->parms, state );
     parm = call->parms;
 #endif

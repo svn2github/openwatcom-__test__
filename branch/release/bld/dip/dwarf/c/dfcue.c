@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  DWARF DIP source line cues.
 *
 ****************************************************************************/
 
@@ -37,10 +36,6 @@
 #include "dfline.h"
 #include "dfmod.h"
 #include "dfmodinf.h"
-
-/*
-        Stuff for source line cues
-*/
 
 /************************/
 /*** cue cache **********/
@@ -97,15 +92,41 @@ imp_mod_handle  DIPENTRY DIPImpCueMod( imp_image_handle *ii,
 typedef struct{
     uint_16         index;
     char*           ret;
+    uint_16         num_dirs;
+    dr_line_dir*    dirs;
 }file_walk_name;
 
 static int ACueFile( void *_info, dr_line_file *curr ) {
 /******************************************************/
     file_walk_name  *info = _info;
     int cont;
+    int i;
 
     if( info->index  == curr->index ){
-        info->ret = curr->name;
+        if( curr->name ) {
+            if( curr->dir != 0) {
+                for( i = 0; i < info->num_dirs; i++ ) {
+                    if( info->dirs[i].index == curr->dir )
+                        break;
+                }
+                if( i < info->num_dirs ) {
+                    info->ret = DCAlloc( strlen( curr->name ) + strlen( info->dirs[i].name ) + 2);
+                    strcpy( info->ret, info->dirs[i].name );
+                    strcat( info->ret, "/");
+                    strcat( info->ret, curr->name );
+                    DCFree( curr->name );
+                } else {
+                    /* This should be an error, but it isn't fatal as we should
+                     * never get here in practice.
+                     */
+                    info->ret = curr->name;
+                }
+            } else {
+                info->ret = curr->name;
+            }
+        } else {
+            info->ret = NULL;
+        }
         cont = FALSE;
     }else{
         cont = TRUE;
@@ -114,36 +135,89 @@ static int ACueFile( void *_info, dr_line_file *curr ) {
     return( cont  );
 }
 
-static int ACueDir( void *d, dr_line_dir *curr ){
-    d = d;
-    curr = curr;
+static int ACueDir( void *_info, dr_line_dir *curr ){
+    file_walk_name  *info = _info;
+
+    if( info ) {
+        info->dirs = DCRealloc( info->dirs, sizeof( dr_line_dir ) * (info->num_dirs + 1) );
+        info->dirs[info->num_dirs].index = curr->index;
+        info->dirs[info->num_dirs].name = DCAlloc( strlen( curr->name ) + 1 );
+        strcpy( info->dirs[info->num_dirs].name, curr->name );
+        info->num_dirs++;
+    }
     return( TRUE );
 }
+
+static int IsRelPathname( const char *name )
+{
+    /* Figure out if a pathname is relative - could be fancier */
+    return( (name[0] != '/') && (name[0] != '\\') );
+}
+
 unsigned        DIPENTRY DIPImpCueFile( imp_image_handle *ii,
                         imp_cue_handle *ic, char *buff, unsigned max )
 {
-    char        *name;
-    file_walk_name wlk;
-    unsigned    len;
-    im_idx      imx;
-    dr_handle   stmts;
+    char            *name;
+    char            *dir_path;
+    file_walk_name  wlk;
+    unsigned        len;
+    unsigned        dir_len;
+    im_idx          imx;
+    dr_handle       stmts;
+    dr_handle       cu_handle;
+    int             i;
 
     imx = ic->imx;
     DRSetDebug( ii->dwarf->handle ); /* must do at each call into dwarf */
-    stmts  = ii->mod_map[imx].stmts;
-    if( stmts == NULL ){
+    stmts = ii->mod_map[imx].stmts;
+    if( stmts == NULL ) {
+        DCStatus( DS_FAIL );
+        return( 0 );
+    }
+    cu_handle = ii->mod_map[imx].cu_tag;
+    if( cu_handle == NULL ) {
         DCStatus( DS_FAIL );
         return( 0 );
     }
     wlk.index = ic->fno;
     wlk.ret = NULL;
-    DRWalkLFiles( stmts, ACueFile, &wlk, ACueDir, NULL );
+    wlk.num_dirs = 0;
+    wlk.dirs = NULL;
+    DRWalkLFiles( stmts, ACueFile, &wlk, ACueDir, &wlk );
     name = wlk.ret;
-    if( name == NULL ){
+
+    // Free directory and file table information
+    for( i = 0; i < wlk.num_dirs; i++)
+        DCFree(wlk.dirs[i].name);
+    DCFree(wlk.dirs);
+
+    if( name == NULL ) {
         DCStatus( DS_FAIL );
         return( 0 );
     }
-    len = NameCopy( buff, name, max );
+    // If compilation unit has a DW_AT_comp_dir attribute, we need to
+    // stuff that in front of the file pathname, unless that is absolute
+    dir_len = DRGetCompDirBuff( cu_handle, NULL, 0 );
+    if( (dir_len > 1) && IsRelPathname( name ) ) {  // Ignore empty comp dirs
+        if( max == 0 ) {
+            len = NameCopy( buff, name, max ) + dir_len;
+        } else {
+            dir_path = DCAlloc( dir_len );
+            if( dir_path == NULL ) {
+                DCStatus( DS_FAIL );
+                return( 0 );
+            }
+            DRGetCompDirBuff( cu_handle, dir_path, dir_len );
+            len = NameCopy( buff, dir_path, max );
+            DCFree( dir_path );
+            if( max > len + 1 ) {
+                len += NameCopy( buff + len, "/", 1 + 1 );
+                len += NameCopy( buff + len, name, max - len );
+            }
+        }
+    } else {
+        len = NameCopy( buff, name, max );
+    }
     DCFree( name );
     return( len );
 }

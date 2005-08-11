@@ -3,15 +3,14 @@
 # a small subset can be built
 set PROJDIR=<CWD>
 
-[ INCLUDE <LANG_BLD>/master.ctl ]
-[ INCLUDE <LANG_BLD>/wproj.ctl ]
+[ INCLUDE <OWROOT>/bat/master.ctl ]
 
 set OWLINUXBUILD=bootstrap
 # compiled using GNU make + gcc + ar
 [ INCLUDE <DEVDIR>/clib/prereq.ctl ]
 [ INCLUDE <DEVDIR>/builder/lang.ctl ]
-[ INCLUDE <DEVDIR>/pmake/lang.ctl ]
-[ INCLUDE <DEVDIR>/yacc/lang.ctl ]
+[ INCLUDE <DEVDIR>/pmake/prereq.ctl ]
+[ INCLUDE <DEVDIR>/yacc/prereq.ctl ]
 [ INCLUDE <DEVDIR>/sdk/rc/prereq.ctl ]
 [ INCLUDE <DEVDIR>/orl/prereq.ctl ]
 [ INCLUDE <DEVDIR>/wstrip/prereq.ctl ]
@@ -38,12 +37,19 @@ set OWLINUXBUILD=bootstrap
 [ INCLUDE <DEVDIR>/dwarf/lang.ctl ]
 [ INCLUDE <DEVDIR>/cg/lang.ctl ]
 [ INCLUDE <DEVDIR>/cc/lang.ctl ]
-<CPCMD> <DEVDIR>/cc/linux386.386/wcc386c.elf <DEVDIR>/build/binl/wcc386
-<CPCMD> <DEVDIR>/cc/linux386.i86/wcci86c.elf <DEVDIR>/build/binl/wcc
 [ INCLUDE <DEVDIR>/plusplus/lang.ctl ]
-<CPCMD> <DEVDIR>/plusplus/linux386.386/wcpp386.elf <DEVDIR>/build/binl/wpp386
-<CPCMD> <DEVDIR>/plusplus/linux386.i86/wcppi86.elf <DEVDIR>/build/binl/wpp
 [ INCLUDE <DEVDIR>/plusplus/cpplib/lang.ctl ]
+[ INCLUDE <DEVDIR>/cc/wcl/lang.ctl ]
+
+[ BLOCK <1> build cprel2 ]
+    <CPCMD> <DEVDIR>/cc/wcl/linux386.386/wcl386.exe    <OWBINDIR>/wcl386
+    <CPCMD> <DEVDIR>/cc/wcl/linux386.i86/wcl.exe       <OWBINDIR>/wcl
+    <CPCMD> <DEVDIR>/cc/linux386.386/wcc386c.elf       <OWBINDIR>/wcc386
+    <CPCMD> <DEVDIR>/cc/linux386.i86/wcci86c.elf       <OWBINDIR>/wcc
+    <CPCMD> <DEVDIR>/plusplus/linux386.386/wcpp386.elf <OWBINDIR>/wpp386
+    <CPCMD> <DEVDIR>/plusplus/linux386.i86/wcppi86.elf <OWBINDIR>/wpp
+
+[ BLOCK . . ]
 set OWLINUXBUILD=normal
 
 # all is ready to do everything else now
@@ -67,3 +73,11 @@ set OWLINUXBUILD=normal
     rm -rf <DEVDIR>/cc/<OBJDIR>
     rm -rf <DEVDIR>/wasm/<OBJDIR>
     rm -rf <DEVDIR>/wl/<OBJDIR>
+
+    rm -f <OWBINDIR>/wcl386
+    rm -f <OWBINDIR>/wcl
+    rm -f <OWBINDIR>/wcc386
+    rm -f <OWBINDIR>/wcc
+    rm -f <OWBINDIR>/wpp386
+    rm -f <OWBINDIR>/wpp
+    

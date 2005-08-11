@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Object Reader Library public definitions.
 *
 ****************************************************************************/
 
@@ -104,7 +103,8 @@ typedef enum {
     ORL_FILE_TYPE_EXECUTABLE,
     ORL_FILE_TYPE_SHARED_OBJECT,
     ORL_FILE_TYPE_DLL,
-    ORL_FILE_TYPE_IMPORT
+    ORL_FILE_TYPE_IMPORT,
+    ORL_FILE_TYPE_CORE
 } orl_file_type;
 
 typedef enum {
@@ -233,6 +233,7 @@ typedef enum {
     ORL_RELOC_TYPE_SEGMENT,     // 16-bit segment relocation
     ORL_RELOC_TYPE_WORD_14,     // a direct ref to a 14-bit address shifted 2
     ORL_RELOC_TYPE_WORD_24,     // a direct ref to a 24-bit address shifted 2
+    ORL_RELOC_TYPE_WORD_26,     // a direct ref to a 28-bit address shifted 2
     ORL_RELOC_TYPE_REL_14,      // relative ref to a 14-bit address shifted 2
     ORL_RELOC_TYPE_REL_24,      // relative ref to a 24-bit address shifted 2
     ORL_RELOC_TYPE_REL_32,      // relative ref to a 32-bit address

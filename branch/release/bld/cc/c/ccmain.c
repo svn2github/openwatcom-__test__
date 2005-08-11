@@ -41,7 +41,7 @@
 #include <stdarg.h>
 #include <signal.h>
 #include <ctype.h>
-#if _OS == _CMS
+#if defined( __CMS__ )
     #include <file.h>
     #include <errno.h>
     #include <setup.h>
@@ -50,7 +50,7 @@
     /* plist format to be passed to main */
     int const _parms = UNTOKENIZED;
     int const _staksize = (100*1024);/* stack size */
-#elif _OS == _QNX
+#elif defined( __QNX__ )
     #include <stdio.h>
     #ifdef __WATCOMC__
         #include <i86.h>
@@ -58,7 +58,7 @@
     #include <fcntl.h>
     #include <unistd.h>
     #include <sys/stat.h>
-#elif _OS == _LINUX
+#elif defined( __LINUX__ )
     #include <stdio.h>
     #include <fcntl.h>
     #include <unistd.h>
@@ -85,7 +85,7 @@
     #include <conio.h>
 #endif
 
-#if defined(__QNX__) || defined(__LINUX__)
+#if defined(__UNIX__)
     #define IS_PATH_SEP( ch ) ((ch) == '/')
 #else
     #define IS_PATH_SEP( ch ) ((ch) == '/' || (ch) == '\\')
@@ -95,6 +95,8 @@
 extern  char    CharSet[];
 
 static char IsStdIn;
+
+#define MAX_INC_DEPTH   255
 static int IncFileDepth;
 
 int PrintWhiteSpace;     // also refered from cmac2.c
@@ -144,7 +146,7 @@ void ClearGlobals ( void )
     DepFile = NULL;
     SymLoc  = NULL;
     HFileList = NULL;
-    IncFileDepth = 255;
+    IncFileDepth = MAX_INC_DEPTH;
     SegmentNum = FIRST_PRIVATE_SEGMENT;
     BufSize = BUF_SIZE;
     Buffer = CMemAlloc( BufSize );
@@ -159,7 +161,7 @@ unsigned char _real87;
 int FrontEnd( char **cmdline )
 {
         _real87 = _8087 = 0;/* set to 0 in case 8087 is present; 27-may-91 */
-#if _HOST == 386 && defined(__WATCOMC__)
+#if defined( __386__ ) && defined( __WATCOMC__ )
         _amblksiz = 16;
 #endif
     InitGlobalVars();
@@ -169,7 +171,7 @@ int FrontEnd( char **cmdline )
 
     SwitchChar = _dos_switch_char();
     ClearGlobals();
-    #if _OS == _CMS
+    #if defined( __CMS__ )
         setxedit( 1 ); /* mjc */
     #endif
     DoCCompile( cmdline );
@@ -451,7 +453,7 @@ static int OpenPgmFile( void )
 
 char *CreateFileName( char *template, char *extension, bool forceext )
 {
-    #if _OS != _CMS
+    #if ! defined( __CMS__ )
         char buff[ _MAX_PATH2 ];
         char *drive;
         char *dir;
@@ -621,7 +623,7 @@ void OpenCppFile()
         MyExit( 1 );
     } else {
         if( CppWidth == 0 ) {
-            #if _OS == _CMS
+            #if defined( __CMS__ )
                 CppWidth = lrecl( fileno( CppFile ) )-1;
             #else
                 CppWidth = ~0;
@@ -634,7 +636,7 @@ void OpenCppFile()
 
 void OpenDefFile()
 {
-#if _OS != _CMS
+#if ! defined( __CMS__ )
     char buff[_MAX_PATH2];
     char name[_MAX_PATH ];
     char *fname;
@@ -703,7 +705,7 @@ int OpenSrcFile( char *filename, int delimiter )
     char        *ext;
     int         save;
     FCB         *curr;
-
+    // include path here...
     _splitpath2( filename, buff, &drive, &dir, &name, &ext );
     if( drive[0] != '\0' || IS_PATH_SEP(dir[0]) ) {
         // 14-sep-94 if drive letter given or path from root given
@@ -819,6 +821,13 @@ void CloseSrcFile( FCB *srcfcb )
 
 static int OpenFCB( FILE *fp, char *filename )
 {
+    if( CompFlags.track_includes ) {
+        // Don't track the top level file (any semi-intelligent user should
+        // have no trouble tracking *that* down)
+        if( IncFileDepth < MAX_INC_DEPTH )
+            CInfoMsg( INFO_INCLUDING_FILE, filename );
+    }
+
     if( FCB_Alloc( fp, filename ) == 0 ) {       /* split apart 19-sep-89 */
         CErr1( ERR_OUT_OF_MEMORY );
         return( FALSE );
@@ -856,7 +865,7 @@ static int TryOpen( char *prefix, char *separator, char *filename, char *suffix 
     auto char   buf[2*130];
 
     if( IncFileDepth == 0 ) {
-        CErr2( ERR_INCDEPTH, 255 );
+        CErr2( ERR_INCDEPTH, MAX_INC_DEPTH );
         CSuicide();
         return( 0 );
     }
@@ -908,25 +917,40 @@ FNAMEPTR AddFlist( char const *filename )
 {
     FNAMEPTR    flist;
     FNAMEPTR    *lnk;
-    int         index;
+    unsigned    index;
 
     index = 0;
     lnk = &FNames;
     while( (flist = *lnk) != NULL ) {
-        if( strcmp( filename, flist->name ) == 0 ) break;
+        if( strcmp( filename, flist->name ) == 0 )
+            break;
         lnk = &flist->next;
         index++;
     }
     if( flist == NULL ) {
-        flist = (FNAMEPTR)CMemAlloc( strlen( filename )
-                            + sizeof( struct fname_list ) );
+        char const *p;
+        for( p = filename; p[0]; p++ ) {
+            if( IS_PATH_SEP( p[0] ) ) {
+                break;
+            }
+        }
+        if( !p[0] && DependHeaderPath ) {
+            flist = (FNAMEPTR)CMemAlloc( strlen( DependHeaderPath )
+                                       + strlen( filename )
+                                       + sizeof( struct fname_list ) );
+            sprintf( flist->name, "%s%s", DependHeaderPath, filename );
+        } else {
+            flist = (FNAMEPTR)CMemAlloc( strlen( filename )
+                                       + sizeof( struct fname_list ) );
+            strcpy( flist->name, filename );
+        }
+        *lnk = flist;
         flist->next = NULL;
         flist->index = index;
+        flist->index_db = -1;
         flist->rwflag = TRUE;
         flist->once   = FALSE;
         flist->fullpath = NULL;
-        strcpy( flist->name, filename );
-        *lnk = flist;
         flist->mtime = _getFilenameTimeStamp( filename );
     }
     return( flist );
@@ -945,8 +969,7 @@ FNAMEPTR FileIndexToFName( unsigned file_index )
 char *FNameFullPath( FNAMEPTR flist )
 {
     char   fullbuff[2*PATH_MAX];
-    char *fullpath;
-
+    char   *fullpath;
 
     if( flist->fullpath == NULL ) {
         fullpath = SrcFullPath( fullbuff, flist->name, sizeof( fullbuff ) );
@@ -1119,23 +1142,6 @@ void SrcFileReadOnlyFile( char const *file )
     if( flist  != NULL ) {
         flist->rwflag = FALSE;
     }
-}
-
-int FListSrcQue( void )
-{
-    FNAMEPTR    flist;
-    char       *fullpath;
-    int         count;
-    int         fno;
-    // this is all very kludged in
-    count = 0;
-    flist = FNames;
-    while( flist != NULL ) {
-        fullpath = FNameFullPath( flist );
-        fno = DBSrcFile( fullpath );
-        flist = flist->next;
-    }
-    return( count );
 }
 
 static int FCB_Alloc( FILE *fp, char *filename )

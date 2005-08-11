@@ -464,6 +464,11 @@ typedef DWORD FLONG;
 #define SE_CHANGE_NOTIFY_NAME	TEXT("SeChangeNotifyPrivilege")
 #define SE_REMOTE_SHUTDOWN_NAME	TEXT("SeRemoteShutdownPrivilege")
 #define SE_CREATE_GLOBAL_NAME TEXT("SeCreateGlobalPrivilege")
+#define SE_UNDOCK_NAME TEXT("SeUndockPrivilege")
+#define SE_MANAGE_VOLUME_NAME TEXT("SeManageVolumePrivilege")
+#define SE_IMPERSONATE_NAME TEXT("SeImpersonatePrivilege")
+#define SE_ENABLE_DELEGATION_NAME TEXT("SeEnableDelegationPrivilege")
+#define SE_SYNC_AGENT_NAME TEXT("SeSyncAgentPrivilege")
 #define SE_GROUP_MANDATORY 1
 #define SE_GROUP_ENABLED_BY_DEFAULT 2
 #define SE_GROUP_ENABLED 4
@@ -1349,7 +1354,7 @@ typedef struct _GUID {
 	unsigned short Data3;
 	unsigned char  Data4[8];
 } GUID, *REFGUID, *LPGUID;
-#define SYSTEM_LUID { QuadPart:999 }
+#define SYSTEM_LUID { 0x3e7, 0x0 }
 #endif /* GUID_DEFINED */
 typedef struct _GENERIC_MAPPING {
 	ACCESS_MASK GenericRead;
@@ -2002,7 +2007,10 @@ typedef union _ULARGE_INTEGER {
 #endif /* NONAMELESSUNION */
   ULONGLONG QuadPart;
 } ULARGE_INTEGER, *PULARGE_INTEGER;
-typedef LARGE_INTEGER LUID,*PLUID;
+typedef struct _LUID {
+  DWORD LowPart;
+  LONG HighPart;
+} LUID, *PLUID;
 #pragma pack(push,4)
 typedef struct _LUID_AND_ATTRIBUTES {
 	LUID   Luid;
@@ -2115,15 +2123,34 @@ typedef struct _SECURITY_DESCRIPTOR {
 	PACL Dacl;
 } SECURITY_DESCRIPTOR, *PSECURITY_DESCRIPTOR, *PISECURITY_DESCRIPTOR;
 typedef enum _TOKEN_INFORMATION_CLASS {
-	TokenUser=1,TokenGroups,TokenPrivileges,TokenOwner,
-	TokenPrimaryGroup,TokenDefaultDacl,TokenSource,TokenType,
-	TokenImpersonationLevel,TokenStatistics,TokenRestrictedSids,
-	TokenSessionId
+	TokenUser=1,
+	TokenGroups,
+	TokenPrivileges,
+	TokenOwner,
+	TokenPrimaryGroup,
+	TokenDefaultDacl,
+	TokenSource,
+	TokenType,
+	TokenImpersonationLevel,
+	TokenStatistics,
+	TokenRestrictedSids,
+	TokenSessionId,
+	TokenGroupsAndPrivileges,
+	TokenSessionReference,
+	TokenSandBoxInert,
+	TokenAuditPolicy,
+	TokenOrigin  
 } TOKEN_INFORMATION_CLASS;
 typedef enum _SID_NAME_USE {
-	SidTypeUser=1,SidTypeGroup,SidTypeDomain,SidTypeAlias,
-	SidTypeWellKnownGroup,SidTypeDeletedAccount,SidTypeInvalid,
-	SidTypeUnknown
+	SidTypeUser=1,
+	SidTypeGroup,
+	SidTypeDomain,
+	SidTypeAlias,
+	SidTypeWellKnownGroup,
+	SidTypeDeletedAccount,
+	SidTypeInvalid,
+	SidTypeUnknown,
+	SidTypeComputer
 } SID_NAME_USE,*PSID_NAME_USE;
 typedef struct _QUOTA_LIMITS {
 	SIZE_T PagedPoolLimit;
@@ -3320,13 +3347,52 @@ typedef OSVERSIONINFOA OSVERSIONINFO,*POSVERSIONINFO,*LPOSVERSIONINFO;
 typedef OSVERSIONINFOEXA OSVERSIONINFOEX,*POSVERSIONINFOEX,*LPOSVERSIONINFOEX;
 #endif
 
-#if (WIN32_WINNT >= 0x0500)
+#if (_WIN32_WINNT >= 0x0500)
 ULONGLONG WINAPI VerSetConditionMask(ULONGLONG,DWORD,BYTE);
 #endif
 
-#if defined(__GNUC__)
-
 PVOID GetCurrentFiber(void);
+PVOID GetFiberData(void);
+
+#ifdef _X86_
+#if defined(__GNUC__)
+#if (__GNUC__ >= 3)
+/* Support -masm=intel.  */
+extern __inline__ PVOID GetCurrentFiber(void)
+{
+    void* ret;
+    __asm__ __volatile__ (
+	"mov{l}	{%%fs:0x10,%0|%0,%%fs:0x10}"
+	: "=r" (ret) /* allow use of reg eax,ebx,ecx,edx,esi,edi */
+	);
+    return ret;
+}
+
+extern __inline__ PVOID GetFiberData(void)
+{
+    void* ret;
+    __asm__ __volatile__ (
+	"mov{l}	{%%fs:0x10,%0|%0,%%fs:0x10}\n\t"
+	"mov{l}	{(%0),%0|%0,[%0]}"
+	: "=r" (ret) /* allow use of reg eax,ebx,ecx,edx,esi,edi */
+	);
+    return ret;
+}
+
+static __inline__ struct _TEB * NtCurrentTeb(void)
+{
+    struct _TEB *ret;
+
+    __asm__ __volatile__ (
+        "mov{l} {%%fs:0x18,%0|%0,%%fs:0x18}\n"
+        : "=r" (ret)
+        : /* no inputs */
+    );
+
+    return ret;
+}
+
+#else /* __GNUC__ >= 3 */
 extern __inline__ PVOID GetCurrentFiber(void)
 {
     void* ret;
@@ -3337,12 +3403,11 @@ extern __inline__ PVOID GetCurrentFiber(void)
     return ret;
 }
 
-PVOID GetFiberData(void);
 extern __inline__ PVOID GetFiberData(void)
 {
     void* ret;
     __asm__ __volatile__ (
-	"movl	%%fs:0x10,%0\n"
+	"movl	%%fs:0x10,%0\n\t"
 	"movl	(%0),%0"
 	: "=r" (ret) /* allow use of reg eax,ebx,ecx,edx,esi,edi */
 	);
@@ -3358,19 +3423,17 @@ static __inline__ struct _TEB * NtCurrentTeb(void)
         : "=r" (ret)
         : /* no inputs */
     );
-
     return ret;
 }
+#endif /* __GNUC__ >= 3 */
 
 #else
 
-extern PVOID GetCurrentFiber(void);
 #pragma aux GetCurrentFiber = \
         "mov	eax, dword ptr fs:0x10" \
         value [eax] \
         modify [eax];
 
-extern PVOID GetFiberData(void);
 #pragma aux GetFiberData = \
 	"mov	eax, dword ptr fs:0x10" \
 	"mov	eax, [eax]" \
@@ -3378,6 +3441,7 @@ extern PVOID GetFiberData(void);
         modify [eax];
         
 #endif /* __GNUC__ */
+#endif /* _X86_ */
 
 #endif /* RC_INVOKED */
 

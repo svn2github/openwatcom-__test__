@@ -3,14 +3,14 @@
 
 set PROJDIR=<CWD>
 
-[ INCLUDE <LANG_BLD>/master.ctl ]
-[ INCLUDE <LANG_BLD>/wproj.ctl ]
+[ INCLUDE <OWROOT>/bat/master.ctl ]
 [ LOG <LOGFNAME>.<LOGEXT> ]
+
+cdsay .
 
 [ BLOCK <1> build rel2 ]
 #=======================
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
-    cdsay <PROJDIR>
 
 [ BLOCK <1> rel2 cprel2 ]
 #========================
@@ -23,6 +23,8 @@ set PROJDIR=<CWD>
 #        <CPCMD> <DEVDIR>/dip/export/dos386/export.sym       <RELROOT>/rel2/binw/export.dsy
         <CPCMD> <DEVDIR>/dip/watcom/dos386/watcom.dip       <RELROOT>/rel2/binw/
 #        <CPCMD> <DEVDIR>/dip/watcom/dos386/watcom.sym       <RELROOT>/rel2/binw/watcom.dsy
+        <CPCMD> <DEVDIR>/dip/mapsym/dos386/mapsym.dip       <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/mapsym/dos386/mapsym.sym       <RELROOT>/rel2/binw/watcom.dsy
 
   [ IFDEF (os_win "") <2*> ]
         <CPCMD> <DEVDIR>/dip/dwarf/wini86/dwarf.dll         <RELROOT>/rel2/binw/
@@ -33,6 +35,8 @@ set PROJDIR=<CWD>
 #        <CPCMD> <DEVDIR>/dip/export/wini86/export.sym       <RELROOT>/rel2/binw/
         <CPCMD> <DEVDIR>/dip/watcom/wini86/watcom.dll       <RELROOT>/rel2/binw/
 #        <CPCMD> <DEVDIR>/dip/watcom/wini86/watcom.sym       <RELROOT>/rel2/binw/
+        <CPCMD> <DEVDIR>/dip/mapsym/wini86/mapsym.dll       <RELROOT>/rel2/binw/
+#        <CPCMD> <DEVDIR>/dip/mapsym/wini86/mapsym.sym       <RELROOT>/rel2/binw/
 
   [ IFDEF (os_os2 "") <2*> ]
 #        <CPCMD> <DEVDIR>/dip/dwarf/os2i86/dwarf.dll         <RELROOT>/rel2/binp/dll/
@@ -44,29 +48,39 @@ set PROJDIR=<CWD>
 #        <CPCMD> <DEVDIR>/dip/watcom/os2i86/watcom.dll       <RELROOT>/rel2/binp/dll/
 #        <CPCMD> <DEVDIR>/dip/watcom/os2i86/watcom.sym       <RELROOT>/rel2/binp/dll/
         <CPCMD> <DEVDIR>/dip/dwarf/os2386/dwarf.d32         <RELROOT>/rel2/binp/
+        <CPCMD> <DEVDIR>/dip/dwarf/os2386/dwarf.sym         <RELROOT>/rel2/binp/
         <CPCMD> <DEVDIR>/dip/codeview/os2386/codeview.d32   <RELROOT>/rel2/binp/
+        <CPCMD> <DEVDIR>/dip/codeview/os2386/codeview.sym   <RELROOT>/rel2/binp/
         <CPCMD> <DEVDIR>/dip/export/os2386/export.d32       <RELROOT>/rel2/binp/
+        <CPCMD> <DEVDIR>/dip/export/os2386/export.sym       <RELROOT>/rel2/binp/
         <CPCMD> <DEVDIR>/dip/watcom/os2386/watcom.d32       <RELROOT>/rel2/binp/
+        <CPCMD> <DEVDIR>/dip/watcom/os2386/watcom.sym       <RELROOT>/rel2/binp/
+        <CPCMD> <DEVDIR>/dip/mapsym/os2386/mapsym.d32       <RELROOT>/rel2/binp/
+        <CPCMD> <DEVDIR>/dip/mapsym/os2386/mapsym.sym       <RELROOT>/rel2/binp/
 
   [ IFDEF (os_nt "") <2*> ]
         <CPCMD> <DEVDIR>/dip/dwarf/nt386/dwarf.dll          <RELROOT>/rel2/binnt/
-#        <CPCMD> <DEVDIR>/dip/dwarf/nt386/dwarf.sym          <RELROOT>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/dwarf/nt386/dwarf.sym          <RELROOT>/rel2/binnt/
         <CPCMD> <DEVDIR>/dip/codeview/nt386/codeview.dll    <RELROOT>/rel2/binnt/
-#        <CPCMD> <DEVDIR>/dip/codeview/nt386/codeview.sym    <RELROOT>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/codeview/nt386/codeview.sym    <RELROOT>/rel2/binnt/
         <CPCMD> <DEVDIR>/dip/export/nt386/export.dll        <RELROOT>/rel2/binnt/
-#        <CPCMD> <DEVDIR>/dip/export/nt386/export.sym        <RELROOT>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/export/nt386/export.sym        <RELROOT>/rel2/binnt/
         <CPCMD> <DEVDIR>/dip/watcom/nt386/watcom.dll        <RELROOT>/rel2/binnt/
-#        <CPCMD> <DEVDIR>/dip/watcom/nt386/watcom.sym        <RELROOT>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/watcom/nt386/watcom.sym        <RELROOT>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/mapsym/nt386/mapsym.dll        <RELROOT>/rel2/binnt/
+        <CPCMD> <DEVDIR>/dip/mapsym/nt386/mapsym.sym        <RELROOT>/rel2/binnt/
 
   [ IFDEF (os_linux "") <2*> ]
         <CPCMD> <DEVDIR>/dip/dwarf/linux386/dwarf.dip       <RELROOT>/rel2/binl/
-#        <CPCMD> <DEVDIR>/dip/dwarf/linux386/dwarf.sym       <RELROOT>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/dwarf/linux386/dwarf.sym       <RELROOT>/rel2/binl/
         <CPCMD> <DEVDIR>/dip/watcom/linux386/watcom.dip     <RELROOT>/rel2/binl/
-#        <CPCMD> <DEVDIR>/dip/watcom/linux386/watcom.sym     <RELROOT>/rel2/binl/
-#        <CPCMD> <DEVDIR>/dip/codeview/linux386/codeview.dip <RELROOT>/rel2/binl/
-#        <CPCMD> <DEVDIR>/dip/codeview/linux386/codeview.sym <RELROOT>/rel2/binl/
-#        <CPCMD> <DEVDIR>/dip/export/linux386/export.dip     <RELROOT>/rel2/binl/
-#        <CPCMD> <DEVDIR>/dip/export/linux386/export.sym     <RELROOT>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/watcom/linux386/watcom.sym     <RELROOT>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/codeview/linux386/codeview.dip <RELROOT>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/codeview/linux386/codeview.sym <RELROOT>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/export/linux386/export.dip     <RELROOT>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/export/linux386/export.sym     <RELROOT>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/mapsym/linux386/mapsym.dip     <RELROOT>/rel2/binl/
+        <CPCMD> <DEVDIR>/dip/mapsym/linux386/mapsym.sym     <RELROOT>/rel2/binl/
 
   [ IFDEF axp <2*> ]
 #        <CPCMD> <DEVDIR>/dip/dwarf/ntaxp/dwarf.dll          <RELROOT>/rel2/axpnt/
@@ -90,6 +104,9 @@ set PROJDIR=<CWD>
 
 [ BLOCK <1> clean ]
 #==================
-    pmake -d all <2> <3> <4> <5> <6> <7> <8> <9> -h clean
-    cdsay <PROJDIR>
+    pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
 
+[ BLOCK . . ]
+#============
+
+cdsay <PROJDIR>

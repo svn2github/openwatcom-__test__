@@ -51,7 +51,7 @@ typedef int     aux_flags;
 struct aux_info {
         call_class      class;
         union {
-#if _MACHINE == _ALPHA || _MACHINE == _PPC
+#if _CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
             risc_byte_seq *code;
 #else
             byte_seq    *code;
@@ -65,8 +65,6 @@ struct aux_info {
 #if _CPU == 370
         linkage_regs    *linkage;
 #endif
-#if _MACHINE == _ALPHA
-#endif
         hw_reg_set      returns;
         hw_reg_set      streturn;
         hw_reg_set      save;
@@ -77,7 +75,7 @@ struct aux_info {
         int             use;            // use count
         aux_flags       flags;
         int             aux_info_index;
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
         char           *except_rtn;
 #endif
 };
@@ -99,15 +97,17 @@ global struct aux_entry         *AuxList;
 global struct aux_info          *CurrAlias;
 global struct aux_entry         *CurrEntry;
 global struct aux_info          *CurrInfo;
+global struct aux_info          *DftCallConv;
 
 global struct aux_info          DefaultInfo;
+global struct aux_info          WatcallInfo;
 global struct aux_info          CdeclInfo;
 global struct aux_info          PascalInfo;
 global struct aux_info          FortranInfo;
 global struct aux_info          SyscallInfo;            /* 04-jul-91 */
 global struct aux_info          OptlinkInfo;            /* 04-jul-91 */
 global struct aux_info          StdcallInfo;            /* 08-oct-92 */
-global struct aux_info          FastCallInfo;
+global struct aux_info          FastcallInfo;
 #if _CPU == 386
 global struct aux_info          Far16CdeclInfo;
 global struct aux_info          Far16PascalInfo;

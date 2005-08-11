@@ -80,7 +80,6 @@ extern void     ResetObj2Supp( void );
 extern void     ResetObjIO( void );
 extern void     ResetObjOMF( void );
 extern void     ResetObjPass1( void );
-extern void     ResetDistrib( void );
 extern void     ResetObjStrip( void );
 extern void     ResetOMFReloc( void );
 extern void     ResetReloc( void );
@@ -212,7 +211,7 @@ extern void ResetSubSystems( void )
     ResetObjIO();
     ResetObjOMF();
     ResetObjPass1();
-    ResetDistrib();
+//    ResetDistrib(); // duplicate call
     ResetObjStrip();
     ResetOMFReloc();
     ResetReloc();
@@ -367,7 +366,7 @@ static void ResetMisc( void )
 /***************************/
 /* Linker support initialization. */
 {
-    LinkFlags = REDEFS_OK | CASE_FLAG;
+    LinkFlags = REDEFS_OK | CASE_FLAG | FAR_CALLS_FLAG;
     LinkState = MAKE_RELOCS;
     AbsGroups = NULL;
     DataGroup = NULL;

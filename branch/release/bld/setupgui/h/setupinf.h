@@ -44,7 +44,6 @@ typedef enum {
     DOING_DEFAULTS,
     PRESCAN_FILE,
     FINAL_SCAN,
-    DOING_DISKETTE,
 } pass_type;
 
 extern void CheckStateVars();
@@ -66,7 +65,7 @@ extern bool SimFileSplit( int parm );
 extern bool SimFileLastSplit( int parm );
 extern char *NextToken(char *buf,char delim);
 extern void SaveState(void);
-extern long SimInit(char *buff,char*buff2);
+extern long SimInit( char *buff );
 extern void SimSetTargTempDisk( int parm, char disk );
 extern char *SimGetTargTempDisk( int parm );
 extern int SimGetTargNumFiles( int parm );
@@ -102,6 +101,7 @@ extern void SimGetPMDesc(int parm,char *buff);
 extern long SimGetPMIconInfo(int parm,char *buff);
 extern unsigned char SimCheckPMCondition(int parm);
 extern void SimGetPMGroupName( int parm, char *buff );
+extern void SimGetPMGroupFName( int parm, char *buff );
 extern int SimGetNumPMGroups();
 extern int SimNumProfile(void);
 extern void SimProfInfo(int parm,char *app_name,char *key_name,char *value,char *file_name,char *hive_name);
@@ -124,7 +124,6 @@ extern void CheckDLLCount( char * );
 extern void SimCalcAddRemove(void);
 extern void SimSetNeedGetDiskSizes();
 extern unsigned char PatchFiles(void );
-extern bool MakeDisks(void );
 extern void MsgPut(int resourceid,va_list arglist);
 extern void PatchError(int format,... );
 extern void FilePatchError(int format,... );
@@ -164,7 +163,7 @@ int                     EvalCondition( char *str );
 // Defines used by the SETUP program.
 #define MAXBUF          128
 #define MAXVALUE        256
-#define MAXENVVAR       1024
+#define MAXENVVAR       2048
 
 
 typedef enum{

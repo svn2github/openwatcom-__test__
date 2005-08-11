@@ -72,7 +72,6 @@ extern  instruction     *MakeCondition(opcode_defs,name*,name*,int,int,type_clas
 extern  void            ReplIns(instruction*,instruction*);
 extern  void            PrefixIns(instruction*,instruction*);
 extern  void            DupSeg(instruction*,instruction*);
-extern  void            DoNothing(instruction*);
 extern  name            *SegName(name*);
 extern  void            DelSeg(instruction*);
 extern  name            *ScaleIndex(name*,name*,type_length,type_class_def,type_length,int,i_flags);
@@ -430,9 +429,13 @@ extern  instruction     *rSPLITCMP( instruction *ins ) {
         break;
     }
     if( high != NULL ) {
-        if( not_equal != NULL ) {
-            DoNothing( not_equal );     /* don't need to redo compare,*/
-        }                               /* just want another conditional jump*/
+/*
+ * 2005-04-06 RomanT (bug #407)
+ * I removed calls do DoNothing(), it seems ok, extra jumps are perfectly
+ * optimized out in other places of compiler. Calling DoNothing() on chain
+ * of conditions to reuse existing CC flags is ugly and causes unpredictable
+ * logical faults in other places.
+ */
         DupSeg( ins, high );
         PrefixIns( ins, high );
     } else {

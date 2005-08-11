@@ -61,6 +61,8 @@ static char     *Font_end[]={
     "</B></U></I>",  // 7: ITALIC + BOLD + UNDERLINE
 };
 
+#define HTML_SPACE "&nbsp;"
+
 static int Font_list[100];      // up to 100 nested fonts
 static int Font_list_curr= 0;
 
@@ -88,6 +90,7 @@ static int translate_char_html(
 /****************************/
 
     char                ch,
+    char                next_ch,
     char                *buf
 ) {
     switch( ch ) {
@@ -108,6 +111,12 @@ static int translate_char_html(
         strcpy( buf, "&quot;" );
         break;
 
+    case ' ':
+        if( next_ch == ' ' ) {
+            strcpy( buf, HTML_SPACE );
+            break;
+        }
+        /* fall through */
     default:
         buf[0] = ch;
         buf[1] = '\0';
@@ -118,7 +127,7 @@ static int translate_char_html(
 }
 
 static char *translate_str_html(
-/*****************************/
+/******************************/
 
     char                *str
 ) {
@@ -129,7 +138,7 @@ static char *translate_str_html(
 
     len = 1;
     for( t_str = str; *t_str != '\0'; ++t_str ) {
-        len += translate_char_html( *t_str, buf );
+        len += translate_char_html( *t_str, *(t_str+1), buf );
     }
     if( len > Trans_len ) {
         if( Trans_str != NULL ) {
@@ -140,7 +149,7 @@ static char *translate_str_html(
     }
     ptr = Trans_str;
     for( t_str = str; *t_str != '\0'; ++t_str ) {
-        len = translate_char_html( *t_str, buf );
+        len = translate_char_html( *t_str, *(t_str+1), buf );
         strcpy( ptr, buf );
         ptr += len;
     }
@@ -150,15 +159,16 @@ static char *translate_str_html(
 }
 
 static int trans_add_char_html(
-/****************************/
+/******************************/
 
     char                ch,
+    char                next_ch,
     section_def         *section,
     int                 *alloc_size
 ) {
     char                buf[IPF_TRANS_LEN];
 
-    translate_char_html( ch, buf );
+    translate_char_html( ch, next_ch, buf );
     return( trans_add_str( buf, section, alloc_size ) );
 }
 
@@ -173,7 +183,7 @@ static int trans_add_str_html(
 
     len = 0;
     for( ; *str != '\0'; ++str ) {
-        len += trans_add_char_html( *str, section, alloc_size );
+        len += trans_add_char_html( *str, *(str+1), section, alloc_size );
     }
 
     return( len );
@@ -203,7 +213,6 @@ static int trans_add_list(
 
 static void read_tabs(
 /********************/
-
     char                *tab_line
 ) {
     char                *ptr;
@@ -246,7 +255,7 @@ static int tab_align(
         len =  Tab_list[i] - ch_len;
     }
     for( i = len; i > 0; --i ) {
-        trans_add_char_html( ' ', section, alloc_size );
+        trans_add_str_html( HTML_SPACE, section, alloc_size );
     }
 
     return( len );
@@ -575,16 +584,21 @@ int html_trans_line(
             if( Tab_xmp && ch == Tab_xmp_char ) {
                 len = tab_align( ch_len, section, &alloc_size );
                 ch_len += len;
-                line_len += len;
+                line_len += len * sizeof( HTML_SPACE );
                 ptr = skip_blank( ptr );
-            } else {
-                line_len += trans_add_char_html( ch, section, &alloc_size );
-                ++ch_len;
             }
             if( line_len > 120 && ch == ' ' && !Tab_xmp ) {
                 /* break onto the next line */
                 line_len = 0;
                 trans_add_char( '\n', section, &alloc_size );
+                if( *ptr == ' ' ) {
+                    line_len += trans_add_str( HTML_SPACE, section, &alloc_size );
+                    ++ch_len;
+                    ptr++;
+                }
+            } else {
+                line_len += trans_add_char_html( ch, *ptr, section, &alloc_size );
+                ++ch_len;
             }
         }
     }

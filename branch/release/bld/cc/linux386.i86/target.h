@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  Compiler target description file for Linux x86 host
+* Description:  Configuration for Linux x86 host, 16-bit x86 target.
 *
 ****************************************************************************/
 
@@ -39,14 +39,9 @@
 
 #define VERSION         PRODUCTION
 
-#define _MACHINE        _PC
 #define _CPU            8086
-
-#define _OS             _LINUX
-#define _EMS            0
 
 #define __TGT_SYS       __TGT_SYS_X86
 
-#define _HOST           386
 #endif
 

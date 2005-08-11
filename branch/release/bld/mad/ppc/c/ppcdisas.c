@@ -41,7 +41,14 @@ static dis_handle DH;
 
 mad_status DisasmInit()
 {
-    if( DisInit( DISCPU_axp, &DH, FALSE ) != DR_OK ) {
+    bool        swap_bytes;
+
+#ifdef __BIG_ENDIAN__
+    swap_bytes = FALSE;
+#else
+    swap_bytes = TRUE;
+#endif
+    if( DisInit( DISCPU_ppc, &DH, swap_bytes ) != DR_OK ) {
         return( MS_ERR | MS_FAIL );
     }
     return( MS_OK );
@@ -275,7 +282,7 @@ static mad_disasm_control Cond( mad_disasm_data *dd, mad_registers const *mr,
     }
 }
 
-#define TRANS_REG( mr, r ) (*(unsigned_64 *)((unsigned_8*)(mr) + RegTrans[r]))
+#define TRANS_REG( mr, r ) (*(unsigned_64 *)((unsigned_8*)(mr) + RegTrans[r - DR_PPC_FIRST]))
 
 static unsigned TrapTest( mad_disasm_data *dd, mad_registers const *mr )
 {
@@ -408,6 +415,8 @@ mad_disasm_control DisasmControl( mad_disasm_data *dd, mad_registers const *mr )
             c |= MDC_TAKEN;
         }
         return( c );
+    default:
+        break;
     }
     return( MDC_OPER | MDC_TAKEN );
 }
@@ -422,7 +431,7 @@ mad_status      DIGENTRY MIDisasmInsNext( mad_disasm_data *dd, mad_registers con
     mad_disasm_control  dc;
 
     memset( next, 0, sizeof( *next ) );
-    next->mach.offset = mr->ppc.iar.u._32[0] + sizeof( unsigned_32 );
+    next->mach.offset = mr->ppc.iar.u._32[I64LO32] + sizeof( unsigned_32 );
     dc = DisasmControl( dd, mr );
     if( (dc & MDC_TAKEN_MASK) == MDC_TAKEN_NOT ) {
         return( MS_OK );

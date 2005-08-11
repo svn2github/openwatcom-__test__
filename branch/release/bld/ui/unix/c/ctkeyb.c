@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Terminal keyboard input processing.
 *
 ****************************************************************************/
 
@@ -275,6 +274,8 @@ int nextc(int n)        // delay in 0.1 seconds -- not to exceed 9
         if( test == -1 ) {
             return -1;
         }
+    } else if( fds == 2 ) {
+        return 256; /* mouse event */
     } else {
         return -1;
     }
@@ -309,6 +310,11 @@ EVENT ck_keyboardevent()
     static unsigned short       real_shift;
 
     ev = TrieRead();
+    ck_shift_state();
+    if( ShftState != ( real_shift | sticky ) ) {
+        /* did it change? */
+        real_shift = ShftState;
+    }
     switch( ev ) {
     case EV_STICKY_FUNC:
         sticky ^= S_FUNC;
@@ -366,7 +372,11 @@ EVENT ck_keyboardevent()
             */
             switch( ev ) {
             case '\x08':
-                ev = EV_RUB_OUT;
+               /* ctrl-backspace often does the opposite of backspace */
+                if( strcmp(key_backspace, "\x08" ) == 0 )
+                    ev = EV_RUB_OUT;
+                else
+                    ev = EV_CTRL_BACKSPACE;
                 break;
             case '\x09':
                 ev = EV_TAB_FORWARD;
@@ -394,13 +404,13 @@ EVENT ck_keyboardevent()
             }
         }
         if( ev ) {
-            QNXDebugPrintf1( "UI: Something read: %4.4X", ev );
+            UIDebugPrintf1( "UI: Something read: %4.4X", ev );
         }
         return( ev );
     }
     ShftState = real_shift;
     if( ev ) {
-        QNXDebugPrintf1( "UI: Something read: %4.4X", ev );
+        UIDebugPrintf1( "UI: Something read: %4.4X", ev );
     }
     return( ev );
 }
@@ -412,7 +422,7 @@ EVENT tk_keyboardevent()
 
     ev = ck_keyboardevent();
     if( ev != EV_MOUSE_PRESS ) return( ev );
-    QNXDebugPrintf0( "UI: Mouse event handling" );
+    UIDebugPrintf0( "UI: Mouse event handling" );
     tm_saveevent();
     return( EV_NO_EVENT ); /* make UI check for mouse events */
 }
@@ -428,6 +438,15 @@ int init_trie()
     if( !TrieInit() ) return( FALSE );
 
     if( !init_interminfo() ) return( FALSE );
+
+    str = getenv( "TERM" );
+    /* attempt to adjust backspace with the terminfo definition */
+    if( str && strncmp(str, "xterm", 5) == 0 ) {
+        if( strcmp(key_backspace, "\x08" ) == 0 )
+            write( UIConHandle, "\x1b[?67h", 6 );
+        else if( strcmp(key_backspace, "\x7f" ) == 0 )
+            write( UIConHandle, "\x1b[?67l", 6 );
+    }
 
     buff[1] = '\0';
     for( i = 0; i < NUM_ELTS( InStandard ); ++i ) {

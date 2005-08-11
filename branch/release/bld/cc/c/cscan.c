@@ -29,11 +29,13 @@
 ****************************************************************************/
 
 
-#include "i64.h"
 #include "cvars.h"
 #include "scan.h"
 #include "escchars.h"
 #include "asciiout.h"
+#include "i64.h"
+
+#include "kwhash.h"
 
 enum scan_class {
     SCAN_NAME = 0,      // identifier
@@ -175,21 +177,7 @@ int CalcHash( char *id, int len )
 {
     unsigned    hash;
 
-    hash = len + TokValue[ id[ FIRST_INDEX ] - ' ' ] * FIRST_SCALE;
-#if LAST_INDEX > 0
-    if( len >= LAST_INDEX+1 ) {
-        hash += TokValue[ id[len-(LAST_INDEX+1)] - ' ' ] * LAST_SCALE;
-    }
-#else
-    hash += TokValue[ id[len-(LAST_INDEX+1)] - ' ' ] * LAST_SCALE;
-#endif
-    hash &= KEYWORD_HASH_MASK;
-#ifdef KEYWORD_HASH_EXTRA
-    if( hash >= KEYWORD_HASH ) {
-        hash -= KEYWORD_HASH;
-    }
-#endif
-    KwHashValue = hash;
+    KwHashValue = keyword_hash( id, TokValue, len ) + FIRST_KEYWORD;
     hash = hashpjw( id );
     HashValue = hash % SYM_HASH_SIZE;
 #if ( MACRO_HASH_SIZE > 0x0ff0 ) && ( MACRO_HASH_SIZE < 0x0fff )
@@ -211,19 +199,21 @@ int KwLookup( const char *buf )
     char        *keyword;
     /*  lookup id in keyword table */
 
-    hash = KwHashValue + FIRST_KEYWORD;
-
-    if( hash == T_INLINE && !CompFlags.extensions_enabled && !CompFlags.c99_extensions )
-        hash = T_ID;
+    hash = KwHashValue;
 
     if( !CompFlags.c99_extensions ) {
         switch( hash ) {
+        case T_INLINE:
+            if( !CompFlags.extensions_enabled )
+                hash = T_ID;
+            break;
         case T_RESTRICT:
         case T__COMPLEX:
         case T__IMAGINARY:
         case T__BOOL:
         case T___OW_IMAGINARY_UNIT:
             hash = T_ID;
+            break;
         }
     }
 
@@ -251,14 +241,11 @@ int IdLookup( const char *buf )
 int doScanName()
 {
     int         token;
-    union {
     int         c;
-    unsigned char uc;
-    } u;
     char        *scanptr;
     char        *p;
 
-    u.c = CurrChar;
+    c = CurrChar;
 //      we know that NextChar will be pointing to GetNextChar()
 //      so it is safe to inline the function here.
 //      NextChar could also be pointing to ReScanBuffer().
@@ -266,30 +253,30 @@ int doScanName()
     for(;;) {
         scanptr = ScanCharPtr;
         for(;;) {
-            if( (CharSet[u.c] & (C_AL | C_DI)) == 0 ) break;
-            *p++ = u.uc;
-            u.uc = *scanptr++;
-            if( (CharSet[u.c] & (C_AL | C_DI)) == 0 ) break;
-            *p++ = u.uc;
-            u.uc = *scanptr++;
-            if( (CharSet[u.c] & (C_AL | C_DI)) == 0 ) break;
-            *p++ = u.uc;
-            u.uc = *scanptr++;
-            if( (CharSet[u.c] & (C_AL | C_DI)) == 0 ) break;
-            *p++ = u.uc;
-            u.uc = *scanptr++;
-            if( (CharSet[u.c] & (C_AL | C_DI)) == 0 ) break;
-            *p++ = u.uc;
-            u.uc = *scanptr++;
-            if( (CharSet[u.c] & (C_AL | C_DI)) == 0 ) break;
-            *p++ = u.uc;
-            u.uc = *scanptr++;
-            if( (CharSet[u.c] & (C_AL | C_DI)) == 0 ) break;
-            *p++ = u.uc;
-            u.uc = *scanptr++;
-            if( (CharSet[u.c] & (C_AL | C_DI)) == 0 ) break;
-            *p++ = u.uc;
-            u.uc = *scanptr++;
+            if( (CharSet[c] & (C_AL | C_DI)) == 0 ) break;
+            *p++ = c;
+            c = *scanptr++;
+            if( (CharSet[c] & (C_AL | C_DI)) == 0 ) break;
+            *p++ = c;
+            c = *scanptr++;
+            if( (CharSet[c] & (C_AL | C_DI)) == 0 ) break;
+            *p++ = c;
+            c = *scanptr++;
+            if( (CharSet[c] & (C_AL | C_DI)) == 0 ) break;
+            *p++ = c;
+            c = *scanptr++;
+            if( (CharSet[c] & (C_AL | C_DI)) == 0 ) break;
+            *p++ = c;
+            c = *scanptr++;
+            if( (CharSet[c] & (C_AL | C_DI)) == 0 ) break;
+            *p++ = c;
+            c = *scanptr++;
+            if( (CharSet[c] & (C_AL | C_DI)) == 0 ) break;
+            *p++ = c;
+            c = *scanptr++;
+            if( (CharSet[c] & (C_AL | C_DI)) == 0 ) break;
+            *p++ = c;
+            c = *scanptr++;
             if( p >= &Buffer[BufSize - 16] ) {
                 char *oldbuf = Buffer;
                 EnlargeBuffer( BufSize * 2 );
@@ -297,11 +284,11 @@ int doScanName()
             }
         }
         ScanCharPtr = scanptr;
-        if( (CharSet[u.c] & C_EX) == 0 ) break;
-        u.c = GetCharCheck( u.c );
-        if( (CharSet[u.c] & (C_AL | C_DI)) == 0 ) break;
+        if( (CharSet[c] & C_EX) == 0 ) break;
+        c = GetCharCheck( c );
+        if( (CharSet[c] & (C_AL | C_DI)) == 0 ) break;
     }
-    CurrChar = u.c;
+    CurrChar = c;
     if( p >= &Buffer[BufSize - 18] ) {
         char *oldbuf = Buffer;
         EnlargeBuffer( BufSize * 2 );
@@ -1054,7 +1041,7 @@ int ScanDelim1()
 
     Buffer[0] = CurrChar;
     Buffer[1] = '\0';
-    token = TokValue[ CurrChar - ' ' ];
+    token = TokValue[ CurrChar ];
     c = *ScanCharPtr++;
     if( CharSet[c] & C_EX ) {
         c = GetCharCheck( c );
@@ -1152,7 +1139,7 @@ int ScanDelim2()
     c = CurrChar;
     Buffer[0] = c;
     Buffer[1] = '\0';
-    chrclass = TokValue[ c - ' ' ];
+    chrclass = TokValue[ c ];
     tok = chrclass & C_MASK;
     chr2 = NextChar();          // can't inline this copy of NextChar
     if( chr2 == '=' ) {         /* if second char is an = */
@@ -1516,7 +1503,7 @@ int ESCChar( int c, const char **pbuf, char *error )
         case 'v':
             c = ESCAPE_v;
             break;
-#if _OS == _QNX
+#ifdef __QNX__
         case 'l':
             /* for lazy QNX programmers */
             if( CompFlags.extensions_enabled ) {
@@ -1539,44 +1526,41 @@ int ESCChar( int c, const char **pbuf, char *error )
 int ScanWhiteSpace()
 {
     char        *scanptr;
-    union {
     int         c;
-    unsigned char uc;
-    } u;
 
     if( NextChar == getCharAfterBackSlash ) {
         for(;;) {
-            u.c = NextChar();
-            if( (CharSet[u.c] & C_WS) == 0 ) break;
+            c = NextChar();
+            if( (CharSet[c] & C_WS) == 0 ) break;
         }
     } else {
-        u.c = 0;
+        c = 0;
         for(;;) {
             scanptr = ScanCharPtr;
             for(;;) {
-                u.uc = *scanptr++;
-                if( (CharSet[u.c] & C_WS) == 0 ) break;
-                u.uc = *scanptr++;
-                if( (CharSet[u.c] & C_WS) == 0 ) break;
-                u.uc = *scanptr++;
-                if( (CharSet[u.c] & C_WS) == 0 ) break;
-                u.uc = *scanptr++;
-                if( (CharSet[u.c] & C_WS) == 0 ) break;
-                u.uc = *scanptr++;
-                if( (CharSet[u.c] & C_WS) == 0 ) break;
-                u.uc = *scanptr++;
-                if( (CharSet[u.c] & C_WS) == 0 ) break;
-                u.uc = *scanptr++;
-                if( (CharSet[u.c] & C_WS) == 0 ) break;
-                u.uc = *scanptr++;
-                if( (CharSet[u.c] & C_WS) == 0 ) break;
+                c = *scanptr++;
+                if( (CharSet[c] & C_WS) == 0 ) break;
+                c = *scanptr++;
+                if( (CharSet[c] & C_WS) == 0 ) break;
+                c = *scanptr++;
+                if( (CharSet[c] & C_WS) == 0 ) break;
+                c = *scanptr++;
+                if( (CharSet[c] & C_WS) == 0 ) break;
+                c = *scanptr++;
+                if( (CharSet[c] & C_WS) == 0 ) break;
+                c = *scanptr++;
+                if( (CharSet[c] & C_WS) == 0 ) break;
+                c = *scanptr++;
+                if( (CharSet[c] & C_WS) == 0 ) break;
+                c = *scanptr++;
+                if( (CharSet[c] & C_WS) == 0 ) break;
             }
             ScanCharPtr = scanptr;
-            if( (CharSet[u.c] & C_EX) == 0 ) break;
-            u.c = GetCharCheck( u.c );
-            if( (CharSet[u.c] & C_WS) == 0 ) break;
+            if( (CharSet[c] & C_EX) == 0 ) break;
+            c = GetCharCheck( c );
+            if( (CharSet[c] & C_WS) == 0 ) break;
         }
-        CurrChar = u.c;
+        CurrChar = c;
     }
     return( T_WHITE_SPACE );
 }
@@ -1642,7 +1626,7 @@ int ScanCarriageReturn()
 
 #if defined(__DOS__) || defined(__OS2__) || defined(__NT__) || defined(__OSI__)
     #define     SYS_EOF_CHAR 0x1A
-#elif defined(__QNX__) || defined(__LINUX__)
+#elif defined(__UNIX__)
     #undef      SYS_EOF_CHAR
 #else
     #error System end of file character not configured.

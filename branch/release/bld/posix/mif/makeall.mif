@@ -1,3 +1,11 @@
+!ifdef __LINUX__
+all : .symbolic
+
+clean : .symbolic
+
+clean_build : .symbolic
+
+!else
 
 !ifdef prebuild
 !include $(posix_dir)/mif/bld_cmds.mif
@@ -5,24 +13,26 @@
 !include $(posix_dir)/mif/commands.mif
 !endif
 !include $(posix_dir)/mif/targos.mif
+!include $(posix_dir)/mif/common.mif
+
+!ifdef __UNIX__
+altposixlibdir=$(posix_dir)/misc/$(targos)/ms
+!else
+altposixlibdir=$(posix_dir)\misc\$(targos)\ms
+!endif
 
 all : lib $(commands) .symbolic
         @%null
 
 lib : .symbolic $(__MAKEFILES__)
 curr_dir_all=$+ $(%cwd) $-
-!ifdef __UNIX__
-        @cd $(posix_dir)/misc/$(targos)
-!else
-        @cd $(posix_dir)\misc\$(targos)
-!endif
+        @cd $(posixlibdir)
+        !@wmake -h
 !ifeq targos dos
-        !@wmake -h model=c
-        !@wmake -h model=s
+        @cd $(altposixlibdir)
+        !@wmake -h
 !else ifeq targos dosos2
-        !@wmake -h model=c
-        !@wmake -h model=s
-!else
+        @cd $(altposixlibdir)
         !@wmake -h
 !endif
         @cd $(curr_dir_all)
@@ -35,6 +45,15 @@ $(commands) : .symbolic $(__MAKEFILES__)
 !endif
 
 clean : .symbolic
-        @if exist rm.exe @erase rm.exe
-        !@wmake -h -f $(posix_dir)/misc/$(targos)/makefile clean clean_dir=$(posix_dir)/misc/$(targos)
+        !@wmake -h -f $(posixlibdir)/makefile clean clean_dir=$(posixlibdir)
+!ifeq targos dos
+        !@wmake -h -f $(altposixlibdir)/makefile clean clean_dir=$(altposixlibdir)
+!else ifeq targos dosos2
+        !@wmake -h -f $(altposixlibdir)/makefile clean clean_dir=$(altposixlibdir)
+!endif
         rm -f *.ex? *.?bj *.map *.lst *.smp *.lnk *.lbc *.lib *.err
+        @if exist rm.exe erase rm.exe
+
+clean_build : .symbolic
+        @for %i in ($(commands)) do rm -f $(%OWBINDIR)/%i.exe
+!endif

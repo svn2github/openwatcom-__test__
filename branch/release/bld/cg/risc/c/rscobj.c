@@ -29,7 +29,7 @@
 ****************************************************************************/
 
 
-#include <io.h>
+#include <unistd.h>
 #include <assert.h>
 #include <string.h>
 #include "standard.h"
@@ -222,16 +222,33 @@ static  void    DefaultLibs( void ){
 }
 #endif
 
+static void stringOut( char *name, void *data )
+/*********************************************/
+{
+    *(char **)data = name;
+}
+
 static  void    EmitImports( void ) {
 /***********************************/
 
     void        *auto_import;
+    char        *name;
 
     auto_import = NULL;
     for(;;) {
         auto_import = FEAuxInfo( auto_import, NEXT_IMPORT );
-        if( auto_import == NULL ) break;
+        if( auto_import == NULL )
+            break;
         OWLEmitImport( owlFile, FEAuxInfo( auto_import, IMPORT_NAME ) );
+    }
+    auto_import = NULL;
+    for(;;) {
+        auto_import = FEAuxInfo( auto_import, NEXT_IMPORT_S );
+        if( auto_import == NULL )
+            break;
+        DoOutObjectName( FEAuxInfo( auto_import, IMPORT_NAME_S ),
+                         stringOut, &name, NORMAL );
+        OWLEmitImport( owlFile, name );
     }
 }
 
@@ -309,24 +326,25 @@ static void DoDFSegRange( void ) {
     currSection = old;
 }
 
-extern  void    ObjFini() {
-/**************************/
+extern  void    ObjFini( void )
+/*****************************/
+{
+    offset          code_size;
+    section_def     *curr;
 
-    if( _IsModel( DBG_DF ) ){
-        if( _IsModel( DBG_LOCALS | DBG_TYPES ) ){
-            offset        codesize;
-            section_def  *curr;
+    curr = FindSection( codeSection );
+    code_size = OWLTellSize( curr->owl_handle  );
 
-            curr = FindSection( codeSection );
-            codesize = OWLTellSize( curr->owl_handle  );
+    if( _IsModel( DBG_DF ) ) {
+        if( _IsModel( DBG_LOCALS | DBG_TYPES ) ) {
             DoDFSegRange();
-            DFObjFiniDbgInfo( codesize );
+            DFObjFiniDbgInfo( code_size );
 #if 0 // save for jimr
-        }else if( _IsModel( NUMBERS ) ){
+        } else if( _IsModel( NUMBERS ) ) {
             DFObjLineFiniDbgInfo();
 #endif
         }
-    }else if( _IsModel( DBG_CV ) ){
+    } else if( _IsModel( DBG_CV ) ) {
         CVObjFiniDbgInfo();
     }
     DefaultLibs();
@@ -336,6 +354,8 @@ extern  void    ObjFini() {
     OWLFini( owlHandle );
     DeleteSections();
     CloseObj();
+    FEMessage( MSG_CODE_SIZE, (pointer)code_size );
+//    FEMessage( MSG_DATA_SIZE, (pointer)data_size );
 }
 
 // FIXME: This sucks - but time runneth out
@@ -423,17 +443,27 @@ extern  void    InitSegDefs() {
 
     // fixme - should use routines with some error checking
     owl_client_funcs    funcs = { PutBytes, NULL, NULL, CGAlloc, CGFree };
+    owl_format          format;
 
     owlHandle = OWLInit( &funcs,
-    #if _TARGET & _TARG_AXP
+#if _TARGET & _TARG_AXP
         OWL_CPU_ALPHA
-    #elif _TARGET & _TARG_PPC
+#elif _TARGET & _TARG_PPC
         OWL_CPU_PPC
-    #else
-        #error Unknown RISC target
-    #endif
+#elif _TARGET & _TARG_MIPS
+        OWL_CPU_MIPS
+#else
+    #error Unknown RISC target
+#endif
         );
-    owlFile = OWLFileInit( owlHandle, FEAuxInfo( NULL, SOURCE_NAME ), (owl_client_file)MAGIC_FLAG, OWL_FORMAT_COFF, OWL_FILE_OBJECT );
+
+    if( _IsModel( OBJ_ELF ) ) {
+        format = OWL_FORMAT_ELF;
+    } else {
+        format = OWL_FORMAT_COFF;
+    }
+
+    owlFile = OWLFileInit( owlHandle, FEAuxInfo( NULL, SOURCE_NAME ), (owl_client_file)MAGIC_FLAG, format, OWL_FILE_OBJECT );
     if( _IsTargetModel( OWL_LOGGING ) ) {
         OWLLogEnable( owlFile, (void *)STDOUT_FILENO );
     }

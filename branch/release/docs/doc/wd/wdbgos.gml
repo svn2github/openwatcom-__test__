@@ -15,6 +15,8 @@ See the section entitled :HDREF refid='vidwin3'..
 See the section entitled :HDREF refid='viddll'..
 .note Disabling 386/486 debug registers
 See the section entitled :HDREF refid='viddosd'..
+.note Linux debugging
+See the section entitled :HDREF refid='vidlinux'..
 .note QNX debugging
 See the section entitled :HDREF refid='vidqnx'..
 .endnote
@@ -31,6 +33,14 @@ The &dbgname supports debugging of 32-bit applications developed with
 A DOS extender must be used to run the application.
 The following DOS extenders are supported.
 .begnote $break
+.*
+.note CauseWay DOS Extender
+.ix 'DOS extenders' 'CauseWay'
+.ix 'CauseWay'
+a public domain DOS extender included in the &watc32 and &watf32 packages.
+Note that this DOS extender is largely compatible with DOS/4GW and can often
+be used interchangeably.
+.*
 .note DOS/4GW
 .ix 'DOS extenders' 'DOS/4GW'
 .ix 'DOS/4GW'
@@ -40,6 +50,7 @@ a DOS extender from Tenberry Software, Inc.
 DOS/4GW is a subset of Tenberry Software's DOS/4G product.
 DOS/4GW is customized for use with &watc32 and &watf32 and is
 included in these packages.
+.*
 .note 386|DOS-Extender
 .ix 'DOS extenders' '386|DOS-Extender'
 .ix '386|DOS-Extender'
@@ -49,6 +60,43 @@ included in these packages.
 .endnote
 .*
 .beglevel
+.*
+.section *refid=vidcw Debugging CauseWay 32-bit DOS Extender Applications
+.*
+.np
+.ix 'CauseWay'
+.ix 'CWSTUB.EXE'
+.ix 'CW.TRP'
+.ix 'trap file' 'CW.TRP'
+When using the CauseWay DOS extender, the "CWSTUB.EXE" file must be located
+in one of the directories listed in the DOS
+.ev PATH
+environment variable.
+The "CWSTUB.EXE" file will usually be stored in the "BINW" directory
+of the &company compiler package.
+You must also use the
+.sy TRap=CW
+option.
+The "CW.TRP" file will usually be stored in the "BINW" directory of
+the &company compiler package.
+You should ensure that this "BINW" directory is included in the DOS
+.ev PATH
+environment variable.
+Otherwise, you must specify the full path name for the trap file.
+.np
+The help file "CWHELP.EXE" must also be located in one of the
+directories listed in the DOS
+.ev PATH
+environment variable.
+It will usually be stored in the "BINW" directory of the &company
+compiler package.
+.exam begin
+C>&dbgcmd /trap=cw hello
+  or
+C>set &dbgcmd=/trap#cw
+C>&dbgcmd hello
+.exam end
+.*
 .*
 .section *refid=vidrsi Debugging DOS/4G(W) 32-bit DOS Extender Applications
 .*
@@ -270,7 +318,7 @@ try to use either of the Windows debuggers in a seamless Win-OS/2 session.
 .endpoint
 .np
 If you find that the Windows debugger starts too slowly, try using the
-.sy DIp=WATCOM
+.sy DIp=DWARF
 option. This prevents the debugger from searching each DLL in the
 system for debugging information. It will start up faster, but you
 will not be able to see the name of the Windows API calls.
@@ -346,6 +394,115 @@ file parameter.
 .exam begin
 C>&dbgcmd /trap=std;d calendar
 .exam end
+.*
+.section *refid=vidlinux Debugging Under Linux
+.*
+.np
+.ix 'debugging under Linux'
+.ix 'Linux' 'debugging'
+.ix '.wdrc'
+.ix 'Linux' 'customization'
+When the debugger starts up, it will attempt to open the
+initialization file
+.mono .wdrc
+provided that you have not specified the
+.sy Invoke
+command line option.
+It looks for this file in all the usual places (
+.ct
+.ev CWD,
+.ev WD_PATH,
+.mono /opt/watcom/wd
+.ct ).
+This file normally contains your customization commands.
+If it is found, it is processed as the default configuration file.
+You would normally place this file in your home directory.
+.np
+If the file does not exist, the debugger then looks for
+the
+.mono &dbgcmd..&dbgsuff
+file.
+.np
+If you do not want the debugger to use the
+.mono .wdrc
+file then you can do one of two things &mdash. make sure that it
+cannot be located (e.g., delete it) or use the
+.sy Invoke
+command line option (you could specify the
+.mono &dbgcmd..&dbgsuff
+file as the target).
+.np
+The supplied version of the
+.mono &dbgcmd..&dbgsuff
+file contains an "invoke" command referencing the file
+.mono setup..&dbgsuff.
+This file, in turn, contains a "configfile" command and "invoke"
+commands referencing other command files.
+The "configfile" command marks
+.mono setup.&dbgsuff
+as the default file name to use when the debugger writes out the
+current configuration.
+.np
+The following section entitled :HDREF refid='vidlinuxs'. describes the
+search order for debugger files under Linux.
+.*
+.beglevel
+.*
+.section *refid=vidlinuxs Search Order for &dbgname Support Files under Linux
+.*
+.np
+There are several supporting files provided with the &dbgname..
+These files fall into five categories.
+.ix 'support files' 'dbg'
+.ix 'support files' 'trp'
+.ix 'support files' 'prs'
+.ix 'support files' 'hlp'
+.ix 'support files' 'sym'
+.autonote
+.note
+&dbgname command files (files with the ".&dbgsuff" suffix).
+.note
+&dbgname trap files (files with the ".trp" suffix).
+.note
+&dbgname parser files (files with the ".prs" suffix).
+.note
+&dbgname help files (files with the ".hlp" suffix).
+.note
+&dbgname symbolic debugging information files (files with the ".sym"
+suffix).
+.endnote
+.np
+.ix 'support files' 'search order'
+.ix 'search order' 'Linux'
+The search order for &dbgname support files is as follows:
+.autopoint
+.point
+the current directory,
+.point
+the paths listed in the
+.ev &dbgcmdup._PATH
+environment variable,
+.point
+the path listed in the
+.ev HOME
+environment variable
+.point
+the directory where &dbgname was started from
+.point
+"../wd" directory relative to the directory where &dbgname was started
+from, and, finally,
+.point
+the "/opt/watcom/wd" directory.
+.endpoint
+.np
+You should note the following when using the remote debugging feature
+of the &dbgname..
+When the
+.sy REMotefiles
+option is specified, the debugger also attempts to locate the &dbgname's
+support files (command files, trap files, etc.) on the task machine.
+.*
+.endlevel
 .*
 .section *refid=vidqnx Debugging Under QNX
 .*

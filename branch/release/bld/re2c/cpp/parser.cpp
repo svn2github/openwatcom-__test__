@@ -1,6 +1,35 @@
-#ifndef lint
-static char yysccsid[] = "@(#)yaccpar	1.8 (Berkeley) 01/20/90";
-#endif
+/****************************************************************************
+*
+*                            Open Watcom Project
+*
+*    Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
+*
+*  ========================================================================
+*
+*    This file contains Original Code and/or Modifications of Original
+*    Code as defined in and that are subject to the Sybase Open Watcom
+*    Public License version 1.0 (the 'License'). You may not use this file
+*    except in compliance with the License. BY USING THIS FILE YOU AGREE TO
+*    ALL TERMS AND CONDITIONS OF THE LICENSE. A copy of the License is
+*    provided with the Original Code and Modifications, and is also
+*    available at www.sybase.com/developer/opensource.
+*
+*    The Original Code and all software distributed under the License are
+*    distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+*    EXPRESS OR IMPLIED, AND SYBASE AND ALL CONTRIBUTORS HEREBY DISCLAIM
+*    ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF
+*    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR
+*    NON-INFRINGEMENT. Please see the License for the specific language
+*    governing rights and limitations under the License.
+*
+*  ========================================================================
+*
+* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
+*               DESCRIBE IT HERE!
+*
+****************************************************************************/
+
+
 #define YYBYACC 1
 #line 2 "parser.y"
 
@@ -18,10 +47,10 @@ static Scanner *in;
 
 #line 19 "parser.y"
 typedef union {
-    Symbol	*symbol;
-    RegExp	*regexp;
-    Token	*token;
-    char	op;
+    Symbol      *symbol;
+    RegExp      *regexp;
+    Token       *token;
+    char        op;
 } YYSTYPE;
 #line 27 "y.tab.c"
 #define CLOSE 257
@@ -202,10 +231,10 @@ void parse(int i, ostream &o){
     o << "#line " << in->line() << " \"" << (fileName? fileName : "<stdin>") << "\"\n";
 
     while(in->echo(o)){
-	yyparse();
-	if(spec)
-	    genCode(o, spec);
-	o << "#line " << in->line() << "\n";
+        yyparse();
+        if(spec)
+            genCode(o, spec);
+        o << "#line " << in->line() << "\n";
     }
 }
 #line 212 "y.tab.c"
@@ -237,7 +266,7 @@ yyparse()
     *yyssp = yystate = 0;
 
 yyloop:
-    if (yyn = yydefred[yystate]) goto yyreduce;
+    if ((yyn = yydefred[yystate]) != 0) goto yyreduce;
     if (yychar < 0)
     {
         if ((yychar = yylex()) < 0) yychar = 0;
@@ -252,7 +281,7 @@ yyloop:
         }
 #endif
     }
-    if ((yyn = yysindex[yystate]) && (yyn += yychar) >= 0 &&
+    if (((yyn = yysindex[yystate]) != 0) && (yyn += yychar) >= 0 &&
             yyn <= YYTABLESIZE && yycheck[yyn] == yychar)
     {
 #if YYDEBUG
@@ -270,22 +299,14 @@ yyloop:
         if (yyerrflag > 0)  --yyerrflag;
         goto yyloop;
     }
-    if ((yyn = yyrindex[yystate]) && (yyn += yychar) >= 0 &&
+    if (((yyn = yyrindex[yystate]) != 0) && (yyn += yychar) >= 0 &&
             yyn <= YYTABLESIZE && yycheck[yyn] == yychar)
     {
         yyn = yytable[yyn];
         goto yyreduce;
     }
     if (yyerrflag) goto yyinrecovery;
-#ifdef lint
-    goto yynewerror;
-#endif
-yynewerror:
     yyerror("syntax error");
-#ifdef lint
-    goto yyerrlab;
-#endif
-yyerrlab:
     ++yynerrs;
 yyinrecovery:
     if (yyerrflag < 3)
@@ -293,7 +314,7 @@ yyinrecovery:
         yyerrflag = 3;
         for (;;)
         {
-            if ((yyn = yysindex[*yyssp]) && (yyn += YYERRCODE) >= 0 &&
+            if (((yyn = yysindex[*yyssp]) != 0) && (yyn += YYERRCODE) >= 0 &&
                     yyn <= YYTABLESIZE && yycheck[yyn] == YYERRCODE)
             {
 #if YYDEBUG
@@ -351,7 +372,7 @@ yyreduce:
 case 1:
 #line 38 "parser.y"
 { accept = 0;
-		  spec = NULL; }
+                  spec = NULL; }
 break;
 case 2:
 #line 41 "parser.y"
@@ -360,8 +381,8 @@ break;
 case 4:
 #line 46 "parser.y"
 { if(yyvsp[-3].symbol->re)
-		      in->fatal("sym already defined");
-		  yyvsp[-3].symbol->re = yyvsp[-1].regexp; }
+                      in->fatal("sym already defined");
+                  yyvsp[-3].symbol->re = yyvsp[-1].regexp; }
 break;
 case 5:
 #line 52 "parser.y"
@@ -390,9 +411,9 @@ break;
 case 11:
 #line 70 "parser.y"
 { yyval.regexp =  mkDiff(yyvsp[-2].regexp, yyvsp[0].regexp);
-		  if(!yyval.regexp)
-		       in->fatal("can only difference char sets");
-		}
+                  if(!yyval.regexp)
+                       in->fatal("can only difference char sets");
+                }
 break;
 case 12:
 #line 77 "parser.y"
@@ -409,18 +430,18 @@ break;
 case 15:
 #line 85 "parser.y"
 {
-		    switch(yyvsp[0].op){
-		    case '*':
-			yyval.regexp = mkAlt(new CloseOp(yyvsp[-1].regexp), new NullOp());
-			break;
-		    case '+':
-			yyval.regexp = new CloseOp(yyvsp[-1].regexp);
-			break;
-		    case '?':
-			yyval.regexp = mkAlt(yyvsp[-1].regexp, new NullOp());
-			break;
-		    }
-		}
+                    switch(yyvsp[0].op){
+                    case '*':
+                        yyval.regexp = mkAlt(new CloseOp(yyvsp[-1].regexp), new NullOp());
+                        break;
+                    case '+':
+                        yyval.regexp = new CloseOp(yyvsp[-1].regexp);
+                        break;
+                    case '?':
+                        yyval.regexp = mkAlt(yyvsp[-1].regexp, new NullOp());
+                        break;
+                    }
+                }
 break;
 case 16:
 #line 101 "parser.y"
@@ -428,13 +449,13 @@ case 16:
 break;
 case 17:
 #line 103 "parser.y"
-{ yyval.op = (yyvsp[-1].op == yyvsp[0].op) ? yyvsp[-1].op : '*'; }
+{ yyval.op = ((yyvsp[-1].op == yyvsp[0].op) != 0) ? yyvsp[-1].op : '*'; }
 break;
 case 18:
 #line 107 "parser.y"
 { if(!yyvsp[0].symbol->re)
-		      in->fatal("can't find symbol");
-		  yyval.regexp = yyvsp[0].symbol->re; }
+                      in->fatal("can't find symbol");
+                  yyval.regexp = yyvsp[0].symbol->re; }
 break;
 case 19:
 #line 111 "parser.y"
@@ -481,7 +502,7 @@ break;
         if (yychar == 0) goto yyaccept;
         goto yyloop;
     }
-    if ((yyn = yygindex[yym]) && (yyn += yystate) >= 0 &&
+    if (((yyn = yygindex[yym]) != 0) && (yyn += yystate) >= 0 &&
             yyn <= YYTABLESIZE && yycheck[yyn] == yystate)
         yystate = yytable[yyn];
     else

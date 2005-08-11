@@ -486,9 +486,21 @@ extern void AddSegment( segdata *sd, class_entry *class )
     if( sd->isabs || sd->combine == COMBINE_INVALID ) {
         MakeNewLeader( sd, class, info );
     } else {
+        char    *seg_name = sd->u.name;
+
         FindALeader( sd, class, info );
-        if( sd->u.leader->info & USE_32 != info & USE_32 ) {
-            LnkMsg( ERR+MSG_CANT_COMBINE_32_AND_16, NULL );
+        if( (sd->u.leader->info & USE_32) != (info & USE_32) ) {
+            char    *segname_16;
+            char    *segname_32;
+
+            if( info & USE_32 ) {
+                segname_16 = sd->u.leader->segname;
+                segname_32 = seg_name;
+            } else {
+                segname_16 = seg_name;
+                segname_32 = sd->u.leader->segname;
+            }
+            LnkMsg( ERR+MSG_CANT_COMBINE_32_AND_16, "12", segname_32, segname_16 );
         }
     }
     Ring2Append( &CurrMod->segs, sd );
@@ -662,6 +674,19 @@ extern void AddToGroup( group_entry *group, seg_leader *seg )
                                    seg->group->sym->name, group->sym->name );
         return;
     }
+    if( (group->leaders != NULL) && ((group->leaders->info & USE_32) != (seg->info & USE_32)) ) {
+        char    *segname_16;
+        char    *segname_32;
+
+        if( seg->info & USE_32 ) {
+            segname_16 = group->leaders->segname;
+            segname_32 = seg->segname;
+        } else {
+            segname_16 = seg->segname;
+            segname_32 = group->leaders->segname;
+        }
+        LnkMsg( ERR+MSG_CANT_COMBINE_32_AND_16, "12", segname_32, segname_16 );
+    }
     seg->group = group;
     Ring2Append( &group->leaders, seg );
 }
@@ -683,7 +708,6 @@ extern void DefineSymbol( symbol *sym, segnode *seg, offset off,
 {
     unsigned    name_len;
     bool        frame_ok;
-    segdata *   sym_seg;
 
     if( seg != NULL ) {
         frame = 0;
@@ -712,18 +736,13 @@ extern void DefineSymbol( symbol *sym, segnode *seg, offset off,
                 sym->p.seg = NULL;
             }
         }
-        if( seg != NULL ) {
-            sym_seg = seg->entry;
-        } else {
-            sym_seg = NULL;
-        }
 
         ClearSymUnion( sym );
         SetAddPubSym(sym, SYM_REGULAR, CurrMod, off, frame);
         sym->info &= ~SYM_DISTRIB;
         if( seg != NULL ) {
             if( LinkFlags & STRIP_CODE ) {
-                DefStripSym( sym, sym_seg );
+                DefStripSym( sym, seg->entry );
             }
             if( seg->info & SEG_CODE ) {
                 if( FmtData.type & MK_OVERLAYS && FmtData.u.dos.distribute
@@ -731,14 +750,17 @@ extern void DefineSymbol( symbol *sym, segnode *seg, offset off,
                     sym->info |= SYM_DISTRIB;
                 }
             }
+            sym->p.seg = seg->entry;
+            if( sym->p.seg->isabs )
+                sym->info |= SYM_ABSOLUTE;
             TryDefVector( sym );
         } else {
             if( LinkFlags & STRIP_CODE ) {
                 CleanStripInfo( sym );
             }
             sym->info |= SYM_ABSOLUTE;
+            sym->p.seg = NULL;
         }
-        sym->p.seg = sym_seg;
     }
 }
 

@@ -29,6 +29,7 @@
 *
 ****************************************************************************/
 
+
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -44,6 +45,7 @@
 #include "errors.h"
 #include "rcio.h"
 #include "yydriver.h"
+#include "yydrivr2.h"
 #include "param.h"
 #include "depend.h"
 #include "rcldstr.h"
@@ -92,11 +94,16 @@ static int Pass1( void )
     int     noerror;
 
     noerror = RcPass1IoInit();
-    if (noerror) {
+    if( noerror ) {
         if( !CmdLineParms.PreprocessOnly ) {
             SetDefLang();
-            ParseInit();
-            Parse();
+            if( CmdLineParms.TargetOS == RC_TARGET_OS_OS2 ) {
+                ParseInitOS2();
+                ParseOS2();
+            } else {
+                ParseInit();
+                Parse();
+            }
             WriteDependencyRes();
         } else {
             CreatePreprocFile();
@@ -119,15 +126,23 @@ static int Pass2( void )
     int     noerror;
 
     noerror = RcPass2IoInit();
-    if (noerror) {
+    if( noerror ) {
         switch( Pass2Info.OldFile.Type ) {
-        case EXE_TYPE_NE:
+        case EXE_TYPE_NE_WIN:
             noerror = MergeResExeNE();
+            break;
+        case EXE_TYPE_NE_OS2:
+            noerror = MergeResExeOS2NE();
             break;
         case EXE_TYPE_PE:
             noerror = MergeResExePE();
             break;
+        case EXE_TYPE_LX:
+            noerror = MergeResExeLX();
+            break;
         default: //EXE_TYPE_UNKNOWN
+            RcError( ERR_INTERNAL, INTERR_UNKNOWN_RCSTATUS );
+            noerror = FALSE;
             break;
         }
         RcPass2IoShutdown( noerror );
@@ -148,7 +163,7 @@ int main( int argc, char * argv[] )
 #ifndef DLL_COMPILE
     RcMemInit();
     Layer0InitStatics();
-#if !defined( __UNIX__ ) /* _grow_handles doesn't work yet */
+#if !defined(__UNIX__) && !defined(__OSI__) /* _grow_handles doesn't work yet */
     _grow_handles(100);
 #endif
 #endif

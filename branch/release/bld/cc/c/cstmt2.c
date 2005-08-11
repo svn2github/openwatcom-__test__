@@ -30,6 +30,7 @@
 
 
 #include "cvars.h"
+#include "i64.h"
 
 typedef struct block_entry {
     struct block_entry  *prev_block;
@@ -351,7 +352,9 @@ static void ReturnStmt( SYM_HANDLE func_result, struct return_info *info )
     }
     block = BlockStack;                                 /* 16-apr-94 */
     while( block != NULL ) {
-        if( block->block_type == T__TRY ) break;
+        if( ( block->block_type == T__TRY )
+          || ( block->block_type == T___TRY ) )
+            break;
         block = block->prev_block;
     }
     if( block != NULL ) {
@@ -528,6 +531,7 @@ void Statement( void )
             continue;
 #ifdef __SEH__
         case T__LEAVE:
+        case T___LEAVE:
             LeaveStmt();
             DeadCode = 1;
             if( BlockStack->block_type != T_LEFT_BRACE ) break;
@@ -582,6 +586,7 @@ void Statement( void )
             break;
 #ifdef __SEH__
         case T__TRY:
+        case T___TRY:
             TryStmt();
             continue;
 #endif
@@ -697,14 +702,18 @@ static void EndOfStmt( void )
             break;
 #ifdef __SEH__
         case T__TRY:
-            if( EndTry() )      return;
+        case T___TRY:
+            if( EndTry() )
+                return;
             break;
         case T__EXCEPT:
+        case T___EXCEPT:
             DropBreakLabel();
             TryScope = BlockStack->parent_index;
             CompFlags.exception_handler = 0;
             break;
-        case T__FINALLY:                                /* 23-mar-94 */
+        case T__FINALLY:
+        case T___FINALLY:
             AddStmt( LeafNode( OPR_END_FINALLY ) );
             CompFlags.in_finally_block = 0;
             TryScope = BlockStack->parent_index;
@@ -776,8 +785,10 @@ static void BreakStmt( void )
     block = BlockStack;
     if( block != NULL ) {
         while( block != LoopStack ) {
-            if( block->block_type == T_SWITCH ) break;
-            if( block->block_type == T__TRY ) {
+            if( block->block_type == T_SWITCH )
+                break;
+            if( ( block->block_type == T__TRY )
+              || ( block->block_type == T___TRY ) ) {
                 try_scope = block->parent_index;
             }
             block = block->prev_block;
@@ -802,7 +813,9 @@ static void LeaveStmt( void )
     NextToken();
     block = BlockStack;
     while( block != NULL ) {
-        if( block->block_type == T__TRY ) break;
+        if( ( block->block_type == T__TRY )
+          || ( block->block_type == T___TRY ) )
+            break;
         block = block->prev_block;
     }
     if( block != NULL ) {
@@ -825,7 +838,8 @@ static void ContinueStmt( void )
             try_scope = -2;
             block = BlockStack;
             while( block != LoopStack ) {
-                if( block->block_type == T__TRY ) {
+                if( ( block->block_type == T__TRY )
+                  || ( block->block_type == T___TRY ) ) {
                     try_scope = block->parent_index;
                 }
                 block = block->prev_block;
@@ -1057,16 +1071,21 @@ static void AddCaseLabel( unsigned long value )
 static void CaseStmt( void )
 {
     const_val val;
+
     NextToken();
     if( SwitchStack ) {
         if( ConstExprAndType( &val ) ){
-            AddCaseLabel( val.val32 );
+            if( ( val.type == TYPE_ULONG64 ) && !U64IsU32( val.value ) ) {
+                CErr1( ERR_CONSTANT_TOO_BIG );
+            } else if( ( val.type == TYPE_LONG64 ) && !I64IsI32( val.value ) ) {
+                CErr1( ERR_CONSTANT_TOO_BIG );
+            }
+            AddCaseLabel( U32FetchTrunc( val.value) );
         }
         MustRecog( T_COLON );
         if( CurToken == T_RIGHT_BRACE ) {
             CErr1( ERR_STMT_REQUIRED_AFTER_CASE );
         }
-//      FlushScoreBoard();
     } else {
         CErr1( ERR_MISPLACED_CASE );
         ConstExprAndType( &val );        /* grab constant expression */
@@ -1135,7 +1154,8 @@ static int EndTry( void )
     tree->op.try_index = BlockStack->try_index;
     tree->op.parent_scope = parent_scope;
     AddStmt( tree );
-    if( CurToken == T__EXCEPT ) {
+    if( ( CurToken == T__EXCEPT )
+      || ( CurToken == T___EXCEPT ) ) {
         NextToken();
         BlockStack->block_type = T__EXCEPT;
         BlockStack->break_label = NextLabel();
@@ -1150,7 +1170,7 @@ static int EndTry( void )
         CompFlags.exception_filter_expr = 0;
         CompFlags.exception_handler = 1;
         typ = TypeOf( expr );
-        expr_type = DataTypeOf( typ->decl_type );
+        expr_type = DataTypeOf( typ );
         if( expr_type != TYPE_VOID ) {
             if( expr_type > TYPE_ULONG ) {
                 CErr1( ERR_EXPR_MUST_BE_INTEGRAL );
@@ -1165,7 +1185,8 @@ static int EndTry( void )
         tree->expr_type = GetType( TYPE_VOID );
         AddStmt( tree );
         return( 1 );
-    } else if( CurToken == T__FINALLY ) {
+    } else if( ( CurToken == T__FINALLY )
+      || ( CurToken == T___FINALLY ) ) {
         CompFlags.in_finally_block = 1;
         NextToken();
         BlockStack->block_type = T__FINALLY;
@@ -1314,5 +1335,4 @@ static void EndSwitch( void )
     }
     CMemFree( sw );
 #endif
-//    FlushScoreBoard();
 }

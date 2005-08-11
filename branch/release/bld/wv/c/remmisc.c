@@ -65,6 +65,7 @@ unsigned int            MaxPacketLen;
 
 static void TrapFailed()
 {
+    KillTrap();
     StartupErr( LIT( ERR_REMOTE_LINK_BROKEN ) );
 }
 
@@ -124,6 +125,7 @@ void InitTrap( char *trap_file )
     in_mx.req = REQ_CONNECT;
     in_mx.ver.major = TRAP_MAJOR_VERSION;
     in_mx.ver.minor = TRAP_MINOR_VERSION;
+    in_mx.ver.remote = FALSE;
     in[0].ptr = &in_mx;
     in[0].len = sizeof( in_mx );
     out[0].ptr = &out_mx;

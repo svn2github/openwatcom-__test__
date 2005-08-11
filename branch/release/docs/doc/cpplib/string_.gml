@@ -5,6 +5,12 @@ Objects of this type may be concatenated, substringed, compared and
 searched without the need for memory management by the user.
 Unlike a C string, this object has no delimiting character, so any character
 in the collating sequence, or character set, may be stored in an object.
+:P.
+The class documented here is the Open Watcom legacy string class. It
+is not related to the
+:MONO.std::basic_string
+class template nor to its corresponding specialization
+:MONO.std::string.
 .*
 :CLFNM.String
 :CMT.========================================================================
@@ -490,7 +496,13 @@ object. Like C strings, the value of the
 without the addition of any characters. No special processing occurs for any
 characters in the &obj. that have special meaning for the
 :ARG.strm
-object, such as carriage-returns.
+object, such as carriage-returns. 
+:P.
+The underlying implementation of the &fn. uses the ostream write method, which 
+writes unformatted characters to the output stream. If formatted output is required, 
+then the programmer should make use of the classes accessor methods, such as 
+c_str(), and pass the resulting data item to the stream using the appropriate 
+insert operator.
 :RSLTS.
 The &fn. returns a reference to the
 :ARG.strm

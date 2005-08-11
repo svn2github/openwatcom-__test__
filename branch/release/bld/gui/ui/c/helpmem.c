@@ -31,9 +31,11 @@
 #include "guiwind.h"
 #include "helpmem.h"
 #include <stdlib.h>
-#include "trmem.h"
+#ifdef TRMEM
+    #include "trmem.h"
 
-extern _trmem_hdl   GUIMemHandle;
+    extern _trmem_hdl   GUIMemHandle;
+#endif
 
 void HelpMemFree( void *ptr )
 {

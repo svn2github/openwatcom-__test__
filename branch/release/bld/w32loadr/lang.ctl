@@ -3,13 +3,13 @@
 
 set PROJDIR=<CWD>
 
-[ INCLUDE <LANG_BLD>/master.ctl ]
-[ INCLUDE <LANG_BLD>/wproj.ctl ]
+[ INCLUDE <OWROOT>/bat/master.ctl ]
 [ LOG <LOGFNAME>.<LOGEXT> ]
+
+cdsay .
 
 [ BLOCK <1> build rel2 ]
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
-    cd <PROJDIR>
 
 [ BLOCK <1> rel2 cprel2 acprel2 ]
 #================================
@@ -20,15 +20,19 @@ set PROJDIR=<CWD>
 #   <CPCMD> dos386/tntrun.exe   <RELROOT>/rel2/binw/tntrun.exe
 
   [ IFDEF (os_os2 "") <2*> ]
-    <CPCMD> os2386/w32bind.exe  ../build/binp/w32bind.exe
-    <CPCMD> os2386/os2ldr.exe   ../build/binp/os2ldr.exe
+#    <CPCMD> os2386/w32bind.exe  ../build/binp/w32bind.exe
+#    <CPCMD> os2386/os2ldr.exe   ../build/binp/os2ldr.exe
 
   [ IFDEF (os_nt "") <2*> ]
-    <CPCMD> nt386/ntrunner.exe  <RELROOT>/rel2/binnt/w32run.exe
+    <CPCMD> nt386/w32run.exe  <RELROOT>/rel2/binnt/w32run.exe
 #    these are now real NT exe's - don't copy the stub
 #    <CPCMD> nt/*.exe           <RELROOT>/rel2/binnt/
 
 [ BLOCK <1> clean ]
 #=================
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
-    cd <PROJDIR>
+
+[ BLOCK . . ]
+#============
+
+cdsay <PROJDIR>

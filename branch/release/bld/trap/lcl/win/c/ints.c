@@ -31,7 +31,6 @@
 
 
 #include <stdio.h>
-#define STRICT
 #include <windows.h>
 #include <string.h>
 #include <dos.h>
@@ -195,7 +194,7 @@ void __export FAR PASCAL DoneWithInterrupt( LPVOID data )
         memcpy( &SaveEAX, data, sizeof( interrupt_struct ) );
     }
     IntAccessed--;
-    if( IntAccessed <= 0 ) {
+    if( (int)IntAccessed <= 0 ) {
         IDTInit( IDTSel );
         HookIDT( ReflectInt1Int3 );
         OurOwnInt = 0;

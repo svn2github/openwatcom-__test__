@@ -9,19 +9,23 @@ objs = &
     pool.obj
     
 !ifdef test1
-cflags = -d2-j
+test_cflags = -d2-j
 !else
-cflags = -ox-d1-j
+test_cflags = -ox-d1-j
 !endif
 
-cflags += -zq-w0-i.
+test_cflags += -zq-w0-i.
 
-cflags_386 += $(cflags) -mf
-cflags_i86 += $(cflags) -ml -fi=noinline.h
-cflags_axp += $(cflags)
+test_cflags_386 = -mf
+test_cflags_i86 = -ml -fi=noinline.h
+test_cflags_axp =
+
+stack_386=opt stack=16k
+stack_i86=opt stack=8k
+stack_axp=opt stack=16k
 
 .cpp.obj:
-    $(wpp_$(arch)) $[* $(cflags_$(arch))
+    $(wpp_$(arch)) $[* $(test_cflags) $(test_cflags_$(arch))
     
 test : .symbolic mdarr.$(exe) diarr.$(exe)
     $(run) mdarr >exec.out
@@ -49,7 +53,7 @@ tort.lbc : $(__MAKEFILES__)
 tort.lnk : $(__MAKEFILES__)
     %create $^@
     @%append $^@ $(lnk_$(arch))
-    @%append $^@ OPTION stack=16k, quiet, map
+    @%append $^@ $(stack_$(arch))
     @%append $^@ $(ldebug_$(arch))
     
 global : .symbolic

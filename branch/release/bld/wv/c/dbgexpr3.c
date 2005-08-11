@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Debugger expression handling, Part III (Type conversion).
 *
 ****************************************************************************/
 
@@ -248,63 +247,33 @@ void FromItem( item_mach *tmp, stack_entry *entry )
 
 void ToItem( stack_entry *entry, item_mach *tmp )
 {
-    unsigned    size;
+    unsigned            size;
+    mad_type_info       src_type;
+    mad_type_info       dst_type;
 
     if( entry->info.size > sizeof( *tmp ) ) {
         Error( ERR_NONE, LIT( ERR_TYPE_CONVERSION ) );
     }
-    //NYI: use MAD routines
+    //NYI: use MAD routines for all conversions
     size = entry->info.size;
     switch( entry->info.kind ) {
     case TK_BOOL:
     case TK_ENUM:
     case TK_CHAR:
     case TK_INTEGER:
+        MADTypeInfo( MADTypeForDIPType( &entry->info ), &dst_type );
         if( (entry->info.modifier & TM_MOD_MASK) == TM_SIGNED ) {
-            switch( size ) {
-            case 1:
-                tmp->sb = I32FetchTrunc( entry->v.sint );
-                return;
-            case 2:
-                tmp->sw = I32FetchTrunc( entry->v.sint );
-                return;
-            case 4:
-                tmp->sd = I32FetchTrunc( entry->v.sint );
-                return;
-            case 8:
-                tmp->sq = entry->v.sint;
-                return;
-            }
+            MADTypeInfoForHost( MTK_INTEGER, -sizeof( entry->v.sint ), &src_type );
         } else {
-            switch( size ) {
-            case 1:
-                tmp->ub = U32FetchTrunc( entry->v.uint );
-                return;
-            case 2:
-                tmp->uw = U32FetchTrunc( entry->v.uint );
-                return;
-            case 4:
-                tmp->ud = U32FetchTrunc( entry->v.uint );
-                return;
-            case 8:
-                tmp->sq = entry->v.uint;
-                return;
-            }
+            MADTypeInfoForHost( MTK_INTEGER, sizeof( entry->v.sint ), &src_type );
         }
-        break;
+        MADTypeConvert( &src_type, &entry->v.uint, &dst_type, tmp, 0 );
+        return;
     case TK_REAL:
-        switch( size ) {
-        case 4:
-            tmp->sf.r = LDToD( &entry->v.real );
-            return;
-        case 8:
-            tmp->lf.r = LDToD( &entry->v.real );
-            return;
-        case 10:
-            tmp->xf = entry->v.real;
-            return;
-        }
-        break;
+        MADTypeInfo( MADTypeForDIPType( &entry->info ), &dst_type );
+        MADTypeInfoForHost( MTK_FLOAT, sizeof( entry->v.real ), &src_type );
+        MADTypeConvert( &src_type, &entry->v.real, &dst_type, tmp, 0 );
+        return;
     case TK_COMPLEX:
         switch( size ) {
         case 8:
@@ -682,9 +651,6 @@ static bool (* const ConvFunc[])( stack_entry *, conv_class ) = {
 };
 
 
-#define UTRUNC( typ )   (U32ToU64( (typ)U32FetchTrunc( entry->v.uint ), &entry->v.uint))
-#define STRUNC( typ )   (I32ToI64( (typ)I32FetchTrunc( entry->v.sint ), &entry->v.sint))
-
 /*
  * ConvertTo -- convert 'entry' to the given 'class'.
  *      'entry' should be an rvalue.
@@ -703,22 +669,22 @@ void ConvertTo( stack_entry *entry, type_kind k, type_modifier m, unsigned s )
     from = ConvIdx( &entry->info );
     switch( from ) {
     case U1:
-        UTRUNC( unsigned_8 );
+        U32ToU64( U8FetchTrunc( entry->v.uint ), &entry->v.uint );
         break;
     case U2:
-        UTRUNC( unsigned_16 );
+        U32ToU64( U16FetchTrunc( entry->v.uint ), &entry->v.uint );
         break;
     case U4:
-        UTRUNC( unsigned_32 );
+        U32ToU64( U32FetchTrunc( entry->v.uint ), &entry->v.uint );
         break;
     case I1:
-        STRUNC( signed_8 );
+        I32ToI64( I8FetchTrunc( entry->v.uint ), &entry->v.uint );
         break;
     case I2:
-        STRUNC( signed_16 );
+        I32ToI64( I16FetchTrunc( entry->v.uint ), &entry->v.uint );
         break;
     case I4:
-        STRUNC( signed_32 );
+        I32ToI64( I32FetchTrunc( entry->v.uint ), &entry->v.uint );
         break;
     case F4:
         DToLD( (float)LDToD( &entry->v.real ), &entry->v.real );
@@ -753,6 +719,8 @@ void ConvertTo( stack_entry *entry, type_kind k, type_modifier m, unsigned s )
             entry->v.string.allocated = dest;
             LocationCreate( &entry->v.string.loc, LT_INTERNAL, dest );
         }
+        break;
+    default:
         break;
     }
     entry->info.kind = k;

@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Object file output using OWL.
 *
 ****************************************************************************/
 
@@ -35,10 +34,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#ifdef AS_PPC
-  #define OBJ_OWL_CPU   OWL_CPU_PPC
+#if defined( __UNIX__ )
+  #define OBJ_EXT        ".o"
 #else
-  #define OBJ_OWL_CPU   OWL_CPU_ALPHA
+  #define OBJ_EXT        ".obj"
 #endif
 
 extern int              ExitStatus;
@@ -120,7 +119,19 @@ bool ObjInit( char *fname ) {
     SectionInit();
     _splitpath( fname, NULL, NULL, name, NULL );
     if( !objectDefined ) {
-        _makepath( objName, NULL, NULL, name, ".obj" );
+        _makepath( objName, NULL, NULL, name, OBJ_EXT );
+    } else {
+        char    tmpName[ _MAX_PATH2 ];
+        char    *tmpNode;
+        char    *tmpDir;
+        char    *tmpFname;
+        char    *tmpExt;
+        _splitpath2( objName, tmpName, &tmpNode, &tmpDir, &tmpFname, &tmpExt );
+        if( *tmpExt == 0 )
+            tmpExt = OBJ_EXT;
+        if( *tmpFname == 0 )
+            tmpFname = name;
+        _makepath( objName, tmpNode, tmpDir, tmpFname, tmpExt );
     }
     objectDefined = FALSE;      // so that the /fo applies only to the 1st obj
     _makepath( errorFilename, NULL, NULL, name, ".err" );

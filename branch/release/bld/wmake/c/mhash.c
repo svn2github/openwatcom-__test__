@@ -24,10 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Hash function used by make utility.
 *
 ****************************************************************************/
+
 
 #include <string.h>
 
@@ -44,33 +44,37 @@ extern HASH_T Hash( const char *s, HASH_T prime )
  * Basically just a 16-bit version of that 32-bit function.
  */
 {
-    const UINT16 *p;
-    HASH_T      h;
-    UINT16      w;
+    const UINT16    *p;
+    HASH_T          h;
+    UINT16          w;
 
     h = 0;
-    p = (const UINT16 *)s;
+    p = (const void *)s;
 #if 0
     /* I compared this hash (pjw) with the simple hash that follows using
        wfc386, watfor77, codegen, and nethack.  In all cases the simple hash
        was faster (no suprise) and had approx. the same number of collisions.
        So, I hereby retire hashpjw until a sunnier day... 07-jul-91 DJG */
-    for(;;) {
+    for( ;; ) {
         HASH_T  g;
 
         w = *p;
         ++p;
-        if( (UINT8)( w & 0xff ) == NULLCHAR ) break;
-        w |= ' ';       /* convert to upper case */
+        if( (UINT8)(w & 0xff) == NULLCHAR ) {
+            break;
+        }
+        w |= ' ';           /* convert to upper case */
         h = ( h << 2 ) + (UINT8)( w & 0xff );
         g = h & 0xf000;
         if( g != 0U ) {
             h ^= g;
             h ^= g >> 12;
         }
-        if( (UINT8)( w >> 8 ) == NULLCHAR ) break;
-        w |= ( ' ' << 8 );      /* convert to upper case */
-        h = ( h << 2 ) + (UINT8)( w >> 8 );
+        if( (UINT8)(w >> 8) == NULLCHAR ) {
+            break;
+        }
+        w |= (' ' << 8);    /* convert to upper case */
+        h = (h << 2) + (UINT8)(w >> 8);
         g = h & 0xf000;
         if( g != 0U ) {
             h ^= g;
@@ -78,16 +82,20 @@ extern HASH_T Hash( const char *s, HASH_T prime )
         }
     }
 #else
-    for(;;) {
+    for( ;; ) {
         w = *p;
 #ifdef __BIG_ENDIAN__
         /* we have to swap the bytes! */
         w = ((w & 0xff) << 8) + (w >> 8);
 #endif
         ++p;
-        if( ( w & 0xff ) == NULLCHAR ) break;
-        h += w | ( ( ' '<< 8 ) | ' ');  /* convert to upper case */
-        if( (UINT8)( w >> 8 ) == NULLCHAR ) break;
+        if( (w & 0xff) == NULLCHAR ) {
+            break;
+        }
+        h += w | ( (' '<< 8) | ' ');    /* convert to upper case */
+        if( (UINT8)(w >> 8) == NULLCHAR ) {
+            break;
+        }
     }
 #endif
     return( h % prime );
@@ -99,7 +107,7 @@ extern HASHTAB *NewHashTab( HASH_T prime )
  * allocate a new table, with prime entries
  */
 {
-    HASHTAB *tab;
+    HASHTAB     *tab;
 
     tab = CallocSafe( sizeof( *tab ) + prime * sizeof( HASHNODE ) );
     tab->prime = prime;
@@ -113,14 +121,14 @@ extern void AddHashNode( HASHTAB *tab, HASHNODE *node )
  * add a node to a table in proper hash order
  */
 {
-    HASH_T h;
+    HASH_T      h;
 
     assert( tab != NULL && node != NULL );
 
     h = Hash( node->name, tab->prime );
 
-    node->next = tab->nodes[ h ];
-    tab->nodes[ h ] = node;
+    node->next = tab->nodes[h];
+    tab->nodes[h] = node;
 }
 
 
@@ -166,27 +174,22 @@ extern void FreeHashTab( HASHTAB *tab )
 
 
 extern HASHNODE *FindHashNode( HASHTAB *tab, const char *name,
-                               BOOLEAN caseSensitive )
-/**************************************************************
+    BOOLEAN caseSensitive )
+/*************************************************************
  * Find node named name
  */
 {
     HASH_T      h;
     HASHNODE    *cur;
+    int         (*cmp)( const char *s1, const char *s2 );
 
+    cmp = ( caseSensitive ) ? strcmp : stricmp;
     h = Hash( name, tab->prime );
-    cur = tab->nodes[ h ];
-    while( cur != NULL ) {
-        if (caseSensitive) {
-            if( strcmp( cur->name, name ) == 0 ) {
-                return( cur );
-            }
-        } else {
-            if( stricmp( cur->name, name ) == 0 ) {
-                return( cur );
-            }
+    
+    for( cur = tab->nodes[h]; cur != NULL; cur = cur->next ) {
+        if( cmp( cur->name, name ) == 0 ) {
+            return( cur );
         }
-        cur = cur->next;
     }
     return( NULL );
 }
@@ -194,7 +197,7 @@ extern HASHNODE *FindHashNode( HASHTAB *tab, const char *name,
 
 extern HASHNODE *RemHashNode( HASHTAB *tab, const char *name,
                               BOOLEAN caseSensitive)
-/*************************************************************
+/************************************************************
  * unlink a node named name, and return pointer to unlinked node.
  * return NULL if node doesn't exist.
  */
@@ -202,17 +205,16 @@ extern HASHNODE *RemHashNode( HASHTAB *tab, const char *name,
     HASH_T      h;
     HASHNODE    **cur;
     HASHNODE    *old;
+    int         (*cmp)( const char *s1, const char *s2 );
+
+    cmp = ( caseSensitive ) ? strcmp : stricmp;
 
     h = Hash( name, tab->prime );
 
-    cur = &(tab->nodes[h]);
-    while( *cur != NULL ) {
-        if (caseSensitive) {
-            if( strcmp( (*cur)->name, name ) == 0 ) break;
-        } else {
-            if( stricmp( (*cur)->name, name ) == 0 ) break;
+    for( cur = &(tab->nodes[h]); *cur != NULL; cur = &(*cur)->next ) {
+        if( cmp( (*cur)->name, name ) == 0 ) {
+            break;
         }
-        cur = &(*cur)->next;
     }
 
     if( *cur == NULL ) {

@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  PowerPC instruction tracing support.
 *
 ****************************************************************************/
 
@@ -47,7 +46,7 @@ void            DIGENTRY MITraceInit( mad_trace_data *td, mad_registers const *m
 
 mad_status      DIGENTRY MITraceHaveRecursed( address watch_stack, mad_registers const *mr )
 {
-    if( mr->ppc.sp.u._32[0] < watch_stack.mach.offset ) {
+    if( mr->ppc.sp.u._32[I64LO32] < watch_stack.mach.offset ) {
         return( MS_OK );
     }
     return( MS_FAIL );
@@ -60,9 +59,10 @@ mad_trace_how   DIGENTRY MITraceOne( mad_trace_data *td, mad_disasm_data *dd, ma
 
     dc = DisasmControl( dd, mr );
     ra = td->ra;
-    td->ra = mr->ppc.iar.u._32[0] + sizeof( unsigned_32 );
+    td->ra = mr->ppc.iar.u._32[I64LO32] + sizeof( unsigned_32 );
     switch( tk ) {
     case MTRK_OUT:
+        // NYI: this doesn't always work - lr need not contain useful value!
         memset( brk, 0, sizeof( *brk ) );
         brk->mach.offset = ra;
         return( MTRH_BREAK );
@@ -70,8 +70,16 @@ mad_trace_how   DIGENTRY MITraceOne( mad_trace_data *td, mad_disasm_data *dd, ma
         return( MTRH_STEP );
     case MTRK_OVER:
         switch( dc & MDC_TYPE_MASK ) {
+        case MDC_CALL:
+             /* Handle special case of call to the next instruction, which is used
+              * to get the GOT pointer in position independent code.
+              */
+             if( dd->ins.op[0].value == sizeof( unsigned_32 ) )
+                 return( MTRH_STEP );
+             break;
         case MDC_OPER:
         case MDC_RET:
+        case MDC_JUMP:
             return( MTRH_STEP );
         }
         break;
@@ -92,8 +100,8 @@ void            DIGENTRY MITraceFini( mad_trace_data *td )
     /* nothing to do */
 }
 
-#define JMP_SHORT       0x4800000c
-#define BRK_POINT       0x00000000
+#define JMP_SHORT       0x4800000c      // 'b' (to 3rd next instruction)
+#define BRK_POINT       0x7fe00008      // 'trap'
 
 mad_status              DIGENTRY MIUnexpectedBreak( mad_registers *mr, unsigned *maxp, char *buff )
 {
@@ -111,14 +119,14 @@ mad_status              DIGENTRY MIUnexpectedBreak( mad_registers *mr, unsigned 
     *maxp = 0;
     if( max > 0 ) buff[0] = '\0';
     memset( &a, 0, sizeof( a ) );
-    a.mach.offset = mr->ppc.iar.u._32[0];
+    a.mach.offset = mr->ppc.iar.u._32[I64LO32];
     memset( &data, 0, sizeof( data ) );
     MCReadMem( a, sizeof( data ), &data );
     if( data.brk != BRK_POINT ) return( MS_FAIL );
-    mr->ppc.iar.u._32[0] += sizeof( unsigned_32 );
+    mr->ppc.iar.u._32[I64LO32] += sizeof( unsigned_32 );
     if( data.br != JMP_SHORT ) return( MS_OK );
     if( memcmp( data.name, "WVIDEO\0\0", 8 ) != 0 ) return( MS_OK );
-    a.mach.offset = mr->ppc.r3.u._32[0];
+    a.mach.offset = mr->ppc.r3.u._32[I64LO32];
     len = 0;
     for( ;; ) {
         if( MCReadMem( a, sizeof( ch ), &ch ) == 0 ) break;

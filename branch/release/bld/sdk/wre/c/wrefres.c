@@ -30,7 +30,6 @@
 ****************************************************************************/
 
 
-#define STRICT
 #include <windows.h>
 #include <string.h>
 #include "wreglbl.h"
@@ -87,7 +86,7 @@ Bool WREResNodeContainsLangNode ( WResResNode *rnode, WResLangNode *lnode )
     WResLangNode *ln;
 
     if ( !rnode || !lnode ) {
-        return ( NULL );
+        return ( FALSE );
     }
 
     ln = rnode->Head;

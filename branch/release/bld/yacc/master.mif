@@ -1,10 +1,11 @@
 proj_name = yacc
+yacc_autodepends = .autodepend
 
 !include cproj.mif
 !include deftarg.mif
 !include defrule.mif
 
-inc_dirs = $(yacc_dir)/h
+inc_dirs = -I"$(yacc_dir)/h"
 
 .c: ../c
 
@@ -16,6 +17,9 @@ objs =                  &
         dont_opt.obj    &
         elimunit.obj    &
         fpopen.obj      &
+	genfast.obj     &
+	gensupp.obj     &
+        gentable.obj    &
         getname.obj     &
         lalr1.obj       &
         lr0.obj         &
@@ -23,8 +27,6 @@ objs =                  &
         sentence.obj    &
         used.obj        &
         yacc.obj
+# genc.obj, genobj.obj, and recover.obj are unused
 
-table_objs = gentable.obj genfast.obj gensupp.obj
-
-$(proj_name).exe : $(objs) $(table_objs)
-        $(linker) option quiet $(lflags) name $^. file { $< }
+!include exetarg.mif

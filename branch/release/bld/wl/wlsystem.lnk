@@ -183,7 +183,6 @@ system begin netware_clib
     option caseexact
     option start=_Prelude
     option exit=_Stop
-    file %NOVELLNDK%/imports/clibpre.obj
     library %WATCOM%/lib386/netware/clib3s.lib
     import @%NOVELLNDK%/imports/clib.imp
 end
@@ -242,6 +241,14 @@ system begin linux
     option osname='Linux x86'
     libpath %WATCOM%/lib386
     libpath %WATCOM%/lib386/linux
+    format elf
+    op exportall
+    op norelocs
+end
+system begin linuxmips
+    option osname='Linux MIPS'
+    libpath %WATCOM%/libmps
+    libpath %WATCOM%/libmps/linux
     format elf
     op exportall
     op norelocs

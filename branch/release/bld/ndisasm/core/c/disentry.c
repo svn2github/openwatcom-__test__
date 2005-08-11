@@ -29,6 +29,7 @@
 ****************************************************************************/
 
 
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include "distypes.h"
@@ -49,6 +50,9 @@ extern const dis_cpu_data       JVMData;
 #endif
 #if DISCPU & DISCPU_sparc
 extern const dis_cpu_data       SPARCData;
+#endif
+#if DISCPU & DISCPU_mips
+extern const dis_cpu_data       MIPSData;
 #endif
 
 long SEX( unsigned long v, unsigned bit )
@@ -122,6 +126,11 @@ dis_return DisInit( dis_cpu cpu, dis_handle *h, bool swap_bytes )
         h->d = &SPARCData;
         break;
 #endif
+#if DISCPU & DISCPU_mips
+    case DISCPU_mips:
+        h->d = &MIPSData;
+        break;
+#endif
     default:
         return( DR_FAIL );
     }
@@ -145,6 +154,7 @@ void DisDecodeInit( dis_handle *h, dis_dec_ins *ins )
     case DISCPU_axp:
     case DISCPU_ppc:
     case DISCPU_sparc:
+    case DISCPU_mips:
         ins->size = sizeof( unsigned_32 );
         break;
     }
@@ -172,11 +182,15 @@ dis_return DisDecode( dis_handle *h, void *d, dis_dec_ins *ins )
     int                         offs;
 
     start = 0;
+    curr  = 0;
     table = h->d->range;
     for( ;; ) {
         dr = DisCliGetData( d, start, sizeof( ins->opcode ), &ins->opcode );
-        if( dr != DR_OK ) return( dr );
-        h->d->bswap_hook( h, d, ins );
+        if( dr != DR_OK ) {
+            ins->num_ops = 0;   /* must reset num_ops before returning! */
+            return( dr );
+        }
+        h->d->preproc_hook( h, d, ins );
         page = 0;
         for( pos = h->d->range_pos ; *pos != -1 ; ++pos, ++page ) {
             if( h->d->decode_check( page, ins ) != DHR_DONE )
@@ -222,9 +236,12 @@ char *DisAddReg( dis_register reg, char *dst, dis_format_flags flags )
                         (flags & DFF_REG_UP) ) ] );
 }
 
-char *DisOpFormat( void *d, dis_dec_ins *ins, dis_format_flags flags,
+char *DisOpFormat( dis_handle *h, void *d, dis_dec_ins *ins, dis_format_flags flags,
                         unsigned i, char *p )
 {
+    const char chLbrac = h->cpu == DISCPU_sparc ? '[' : '(';
+    const char chRbrac = h->cpu == DISCPU_sparc ? ']' : ')';
+
     p += DisCliValueString( d, ins, i, p );
     switch( ins->op[i].type & DO_MASK ) {
     case DO_REG:
@@ -235,7 +252,7 @@ char *DisOpFormat( void *d, dis_dec_ins *ins, dis_format_flags flags,
     case DO_MEMORY_ABS:
     case DO_MEMORY_REL:
         if( ins->op[i].base != DR_NONE || ins->op[i].index != DR_NONE ) {
-            *p++ = '(';
+            *p++ = chLbrac;
             p = DisAddReg( ins->op[i].base, p, flags );
             if( ins->op[i].index != DR_NONE ) {
                 *p++ = ',';
@@ -245,7 +262,7 @@ char *DisOpFormat( void *d, dis_dec_ins *ins, dis_format_flags flags,
                     *p++ = '0' + ins->op[i].scale;
                 }
             }
-            *p++ = ')';
+            *p++ = chRbrac;
         }
         break;
     }
@@ -279,14 +296,19 @@ dis_return DisFormat( dis_handle *h, void *d, dis_dec_ins *ins_p,
         p = opers;
         for( i = 0; i < ins.num_ops; ++i ) {
             if( !(ins.op[i].type & DO_HIDDEN) ) {
-                if( p != opers ) *p++ = ',';
+                if( p != opers )
+                    *p++ = ',';
                 len = h->d->op_hook( h, d, &ins, flags, i, p );
                 p += len;
                 if( len == 0 ) {
-                    p = DisOpFormat( d, &ins, flags, i, p );
+                    p = DisOpFormat( h, d, &ins, flags, i, p );
                 }
             }
         }
+        if( p != opers )
+            *p++ = ' ';
+        len = h->d->post_op_hook( h, d, &ins, flags, i, p );
+        p += len;
         *p = '\0';
     }
     return( DR_OK );

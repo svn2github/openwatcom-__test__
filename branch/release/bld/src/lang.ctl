@@ -3,16 +3,14 @@
 
 set PROJDIR=<CWD>
 
-[ INCLUDE <LANG_BLD>/master.ctl ]
-[ INCLUDE <LANG_BLD>/wproj.ctl ]
+[ INCLUDE <OWROOT>/bat/master.ctl ]
 [ LOG <LOGFNAME>.<LOGEXT> ]
 
 cdsay .
 
 [ BLOCK <1> build rel2 ]
-    cdsay ../f77/samples
+#=======================
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
-    cdsay <PROJDIR>
 
 [ BLOCK <1> rel2 cprel2 ]
 #========================
@@ -52,19 +50,6 @@ cdsay .
     <CPCMD> <DEVDIR>/watcom/h/mdef.inc                  <RELROOT>/rel2/src/startup/mdef.inc
 
     <CPCMD> <DEVDIR>/src/misc/*.*                       <RELROOT>/rel2/src/
-    <CPCMD> <DEVDIR>/src/os2/pdd/*.*                    <RELROOT>/rel2/src/os2/pdd/
-    <CPCMD> <DEVDIR>/f77/src/*.*                        <RELROOT>/rel2/src/fortran/
-    <CPCMD> <DEVDIR>/f77/src/win/*.*                    <RELROOT>/rel2/src/fortran/win/
-    <CPCMD> <DEVDIR>/f77/src/dos/*.*                    <RELROOT>/rel2/src/fortran/dos/
-    <CPCMD> <DEVDIR>/f77/src/os2/*.*                    <RELROOT>/rel2/src/fortran/os2/
-    <CPCMD> <DEVDIR>/f77/samples/os2/*.*                <RELROOT>/rel2/samples/fortran/os2/
-    <CPCMD> <DEVDIR>/f77/samples/os2/rexx/*.*           <RELROOT>/rel2/samples/fortran/os2/rexx/
-    <CPCMD> <DEVDIR>/f77/samples/mthread/mthrdos2.for   <RELROOT>/rel2/samples/fortran/os2/mthread.for
-    <CPCMD> <DEVDIR>/f77/samples/mthread/mthrdnt.for    <RELROOT>/rel2/samples/fortran/win32/mthread.for
-    <CPCMD> <DEVDIR>/f77/samples/win/*.*                <RELROOT>/rel2/samples/fortran/win/
-    <CPCMD> <DEVDIR>/f77/samples/windll/*.*             <RELROOT>/rel2/samples/fortran/win/dll/
-    <CPCMD> <DEVDIR>/f77/samples/dll/*.*                <RELROOT>/rel2/samples/fortran/os2/dll/
-    <CPCMD> <DEVDIR>/f77/samples/dll/*.*                <RELROOT>/rel2/samples/fortran/win32/dll/
 
     <CPCMD> <DEVDIR>/plusplus/cpplib/contain/cpp/*.*    <RELROOT>/rel2/src/cpplib/contain/
 
@@ -79,6 +64,11 @@ cdsay .
     <CPCMD> <DEVDIR>/src/goodies/*.*                    <RELROOT>/rel2/samples/goodies/
     <CPCMD> <DEVDIR>/src/os2/*.*                        <RELROOT>/rel2/samples/os2/
     <CPCMD> <DEVDIR>/src/os2/dll/*.*                    <RELROOT>/rel2/samples/os2/dll/
+    <CPCMD> <DEVDIR>/src/os2/pdd/*.*                    <RELROOT>/rel2/samples/os2/pdd/
+    <CPCMD> <DEVDIR>/src/os2/som/*.*                    <RELROOT>/rel2/samples/os2/som/
+    <CPCMD> <DEVDIR>/src/os2/som/classes/*.*            <RELROOT>/rel2/samples/os2/som/classes/
+    <CPCMD> <DEVDIR>/src/os2/som/helloc/*.*             <RELROOT>/rel2/samples/os2/som/helloc/
+    <CPCMD> <DEVDIR>/src/os2/som/hellocpp/*.*           <RELROOT>/rel2/samples/os2/som/hellocpp/
     <CPCMD> <DEVDIR>/src/win/*.*                        <RELROOT>/rel2/samples/win/
     <CPCMD> <DEVDIR>/src/clibexam/kanji/*.*             <RELROOT>/rel2/samples/clibexam/kanji/
     <CPCMD> <DEVDIR>/src/clibexam/test/*.*              <RELROOT>/rel2/samples/clibexam/test/
@@ -162,4 +152,9 @@ cdsay .
 
 [ BLOCK <1> clean ]
 #==================
-    sweep killobjs
+    pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
+
+[ BLOCK . . ]
+#============
+
+cdsay <PROJDIR>

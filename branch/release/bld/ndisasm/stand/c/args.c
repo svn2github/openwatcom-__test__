@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WDISASM command line handling.
+* Description:  Standalone disassembler command line processing.
 *
 ****************************************************************************/
 
@@ -101,7 +101,7 @@ static char *skipFileName( char * cmd ) {
 }
 
 static char *skipToNextArg( char * cmd ) {
-    while( !isspace( *cmd ) && *cmd != '/' && *cmd != '-' && *cmd ) {
+    while( !isspace( *cmd ) && !IS_OPT_DELIM( *cmd ) && *cmd ) {
         cmd++;
     }
     while( isspace( *cmd ) && *cmd ) {
@@ -133,12 +133,16 @@ static void composeFileNames( bool list_file )
 
     // object file name
     _splitpath2( ObjFileName, path, &drive, &dir, &file_name, &extension );
+#ifndef __UNIX__
+    // tacking on an extension is self-defeating on UNIX, and the extra
+    // dot at end trick doesn't work either
     if( strlen( extension ) == 0 ) {
         length = strlen( ObjFileName );
         MemFree( ObjFileName );
         ObjFileName = (char *) MemAlloc( length + strlen( OBJ_FILE_EXTENSION ) + 1 );
         _makepath( ObjFileName, drive, dir, file_name, OBJ_FILE_EXTENSION );
     } // else file name has an extension - leave as is
+#endif    
     if( list_file ) {
         if( ListFileName == NULL ) {
             length = strlen( drive ) + strlen( dir ) + strlen( dir ) +
@@ -163,7 +167,7 @@ void HandleArgs( char *cmd )
     char *                      ptr;
     bool                        list_file = FALSE;
 
-    DFormat |= DFF_PSEUDO | DFF_AXP_SYMBOLIC_REG;
+    DFormat |= DFF_PSEUDO | DFF_SYMBOLIC_REG;
     cmd = skipBlanks( cmd );
     if( *cmd == '\0' || *cmd == '?' ) {
         printUsage( NULL );
@@ -215,7 +219,7 @@ void HandleArgs( char *cmd )
                             ++cmd;
                             break;
                         case 'r':
-                            DFormat ^= DFF_AXP_SYMBOLIC_REG;
+                            DFormat ^= DFF_SYMBOLIC_REG;
                             ++cmd;
                             break;
                         case 'i':

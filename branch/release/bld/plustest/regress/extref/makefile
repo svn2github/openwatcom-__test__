@@ -2,24 +2,28 @@ plustest_name = extref
 !include ../environ.mif
 
 !ifdef test1
-cflags = -d2
+test_cflags = -d2
 extref_eh = -xss
 !else ifdef test2
-cflags = -ot-d1
+test_cflags = -ot-d1
 extref_eh = -xst
 !else ifdef test3
-cflags = -d2
+test_cflags = -d2
 extref_eh = -xst
 !else
-cflags = -ot-d1
+test_cflags = -ot-d1
 extref_eh = -xss
 !endif
 
 !ifneq arch axp
 # until we implement it under AXP
-cflags += -zv
+test_cflags += -zv
 !endif
-cflags += -zq -i..\positive\source
+test_cflags += -zq -i..\positive\source
+
+stack_386=opt stack=8k
+stack_i86=opt stack=4k
+stack_axp=opt stack=8k
 
 lib = $(librarian_$(arch)) /n/b/q
 
@@ -35,7 +39,7 @@ extra_er03b = $(extref_eh)
 extra_er03c = $(extref_eh)
     
 .c.obj:
-    $(wpp_$(arch)) $[@ $(cflags) $(extra_$^*)
+    $(wpp_$(arch)) $[@ $(test_cflags) $(extra_$^*)
     
 tests = er01.$(exe) er02.$(exe) er03.$(exe)
     
@@ -63,7 +67,7 @@ er03.lib : er03a.obj er03b.obj
     
 er.lnk : makefile
     %create $^@
-    @%append $^@ OPTION quiet, stack=8k
+    @%append $^@ $(stack_$(arch))
 !ifneq arch axp
 # until we implement it under AXP
     @%append $^@ OPTION eliminate, vfremoval

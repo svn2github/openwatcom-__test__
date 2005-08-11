@@ -41,7 +41,7 @@
 
 #define PATCH_MAX_PATH_SIZE     250
 
-PatchWrite( void *patch, int size );
+extern void PatchWrite( void *patch, int size );
 
 extern PATCH_RET_CODE DoPatch( char *patchname,
                    int doprompt,

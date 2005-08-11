@@ -48,20 +48,11 @@
 #include <time.h>
 #include "target.h"
 
-#ifndef _HOST
- #error _HOST macro not defined
-#endif
-#ifndef _OS
- #error _OS macro not defined
-#endif
 #ifndef _CPU
  #error _CPU macro not defined
 #endif
 #ifndef VERSION
  #error VERSION macro not defined
-#endif
-#ifndef _MACHINE
- #error _MACHINE macro not defined
 #endif
 
 #if _CPU != 8086
@@ -159,7 +150,7 @@ global  int     NestLevel;      /* pre-processing level of #if */
 global  int     SkipLevel;      /* pre-processing level of #if to skip to */
 global  int     SymLevel;       /* current lex level (# of nested {) */
 global  int     HashValue;      /* hash value for identifier */
-global  int     KwHashValue;    /* hash value for keyword */
+global enum TOKEN KwHashValue;    /* hash value for keyword */
 global  int     MacHashValue;   /* hash value for macro name */
 global  char    *SavedId;       /* saved id when doing look ahead */
 global  int     SavedHash;      /* hash value for saved id */
@@ -356,6 +347,7 @@ global  char    *CodeClassName; /* name of the code class */
 global  char    *ModuleName;    /* name of module */
 global  char    *ObjectFileName;/* name of object file */
 global  char    *DependFileName;/* name of make style auto depend file */
+global  char    *DependHeaderPath;/* path to prepend if included header has none */
 global  char    *DependTarget;  /* name of target in make style autodep */
 global  char    *SrcDepName;    /* name of first depend (sourcefile)*/
 global  char     DependForceSlash;/* type of slash to force to in depend output */
@@ -447,7 +439,6 @@ global  unsigned        UnrollCount;    /* #pragma unroll(#); */
 global  unsigned char   InitialMacroFlag;
 global  unsigned char   Stack87;
 global  char            *ErrorFileName;
-global  int             DataQuadSegIndex;       /* cdinit */
 
 global struct  undef_names {
         struct undef_names *next;
@@ -538,9 +529,10 @@ extern  segment_id SymSegId( SYMPTR sym );
 
 extern  void    InitDataQuads(void);            /* cdinit */
 extern  void    FreeDataQuads(void);            /* cdinit */
+extern  int     DataQuadsAvailable(void);       /* cdinit */
 extern  int     StartDataQuadAccess(void);      /* cdinit */
 extern  DATA_QUAD *NextDataQuad(void);          /* cdinit */
-extern  void    InitSymData(TYPEPTR,int);       /* cdinit */
+extern  void    InitSymData(TYPEPTR,TYPEPTR,int);       /* cdinit */
 extern  void    StaticInit(SYMPTR,SYM_HANDLE);  /* cdinit */
 extern  void    VarDeclEquals(SYMPTR,SYM_HANDLE);/* cdinit */
 
@@ -578,17 +570,16 @@ extern  void    SetDiagPop(void);
 
 //  cexpr2.c
 extern  void    ExprInit(void);
-extern  void ChkCallNode( TREEPTR tree );
+extern  void    ChkCallNode( TREEPTR tree );
 extern  TREEPTR Expr(void);
 extern  TREEPTR AddrExpr(void);
 extern  TREEPTR BoolExpr(TREEPTR);
 extern  TREEPTR CommaExpr(void);
 extern  long int ConstExpr(void);
-typedef struct{
-    int_32    val32;
-    int64     val64;
+typedef struct {
+    int64     value;
     DATA_TYPE type;
-}const_val;
+} const_val;
 extern  bool    ConstExprAndType(const_val *);
 extern  TREEPTR SingleExpr(void);
 extern  TREEPTR IntLeaf(target_int);
@@ -600,6 +591,8 @@ extern  TREEPTR BasedPtrNode(TYPEPTR,TREEPTR);
 extern  int     IsLValue(TREEPTR);
 extern  op_flags OpFlags( type_modifiers  flags );
 extern  type_modifiers FlagOps( op_flags ops );
+extern  FIELDPTR SearchFields( TYPEPTR *class_typ, unsigned long *field_offset,
+                               char *name );
 
 //cfeinfo.c
 extern  int     VarFunc(SYMPTR);
@@ -627,6 +620,7 @@ extern  void    EmitSym(SYMPTR,SYM_HANDLE);
 extern  int     CGenType(TYPEPTR);
 extern  void    GenInLineFunc( SYM_HANDLE sym_handle );
 extern  bool    IsInLineFunc( SYM_HANDLE sym_handle );
+extern  int     PtrType( TYPEPTR typ, type_modifiers flags );
 
 extern  void    EmitDataQuads(void);            /* cgendata */
 extern  void    EmitZeros(unsigned long);       /* cgendata */
@@ -710,7 +704,7 @@ extern  TYPEPTR TernType(TREEPTR,TREEPTR);
 extern  TYPEPTR TypeOf(TREEPTR);
 extern  TREEPTR UComplement(TREEPTR);
 extern  TREEPTR UMinus(TREEPTR);
-extern  DATA_TYPE DataTypeOf(DATA_TYPE);
+extern  DATA_TYPE DataTypeOf(TYPEPTR);
 extern  int     FuncPtr(TYPEPTR);
 extern  TREEPTR ParmAss( TREEPTR opnd, TYPEPTR newtyp );
 extern  pointer_class   ExprTypeClass( TYPEPTR typ );
@@ -768,9 +762,9 @@ extern  void    SetCurrInfo(void);              /* cpragma */
 extern  void    XferPragInfo(char*,char*);      /* cpragma */
 extern  void    EnableDisableMessage(int,unsigned);/* cpragma */
 
-extern  void    AsmStmt(void);                  /* cprag86 */
-extern  void    PragAux(void);                  /* cprag86 */
-extern  hw_reg_set PragRegName(char *);         /* cprag86 */
+extern  void    AsmStmt(void);                  /* cprag??? */
+extern  void    PragAux(void);                  /* cprag??? */
+extern  hw_reg_set PragRegName(char *);         /* cprag??? */
 
 extern  void    InitPurge(void);                /* cpurge */
 extern  void    PurgeMemory(void);              /* cpurge */
@@ -844,8 +838,8 @@ extern  TYPEPTR GetType(DATA_TYPE);
 extern  TYPEPTR ArrayNode(TYPEPTR);
 extern  TYPEPTR FuncNode(TYPEPTR, int, TYPEPTR *);
 extern  TYPEPTR TypeDefault(void);
-extern  TYPEPTR PtrNode(TYPEPTR,int,int);
-extern  TYPEPTR BPtrNode(TYPEPTR,int,int,SYM_HANDLE, BASED_KIND);
+extern  TYPEPTR PtrNode(TYPEPTR,type_modifiers,int);
+extern  TYPEPTR BPtrNode(TYPEPTR,type_modifiers,int,SYM_HANDLE, BASED_KIND);
 extern  TYPEPTR TypeNode(DATA_TYPE,TYPEPTR);
 extern  int     TypeQualifier(void);
 extern  void    TypeSpecifier( decl_info *info );
@@ -898,7 +892,7 @@ extern  SYM_HANDLE GetBlockSymList( void );
 extern  void    InitStmt( void );
 extern  void    SwitchPurge( void );
 
-#if _OS == _CMS || ! defined(__WATCOMC__)
+#if defined( __CMS__ ) || ! defined(__WATCOMC__)
     #define  __va_list  va_list
     #define  __puts     puts
     #define  __printf   printf
@@ -911,7 +905,7 @@ extern  void    SwitchPurge( void );
     extern  int     __printf(const char *__format,...);
     extern  int     __vfprintf(FILE *__fp,const char *__format,__va_list __arg);
     extern  int     __fprintf(FILE *__fp,const char *__format,...);
-#if _HOST == 386
+#if defined(__386__)
     #pragma aux myexit aborts;
     #pragma aux my_exit aborts;
 #endif
@@ -919,7 +913,7 @@ extern  void    SwitchPurge( void );
     extern  void    my_exit( int );
 #endif
 
-#if _OS == _DOS || (_OS == _OS2 && !defined(__386__))
+#if defined( __DOS__ ) || ( defined( __OS2__ ) && !defined(__386__))
     #define _syserrno _doserrno
 #else
     #define _syserrno errno

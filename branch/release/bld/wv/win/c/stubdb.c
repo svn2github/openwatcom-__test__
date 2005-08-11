@@ -75,6 +75,10 @@ static bool             Done;
 extern char             *TrpFile;
 
 
+void WndMemInit( void )
+{
+}
+
 void InitScreen( void )
 {
 }

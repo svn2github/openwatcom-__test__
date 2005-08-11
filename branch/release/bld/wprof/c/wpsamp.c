@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Display profile samples in the GUI.
 *
 ****************************************************************************/
 
@@ -43,24 +42,6 @@
 #include "wpasmfil.h"
 #include "msg.h"
 
-//#include "wpsamp.def"
-//#include "wpwind.def"
-//#include "wpsrcfil.def"
-//#include "wpasmfil.def"
-//#include "wpsort.def"
-//#include "wpbar.def"
-//#include "wpgather.def"
-//#include "wpnumrow.def"
-//#include "wpgetrow.def"
-//#include "rptsamps.def"
-//#include "clrsamps.def"
-//#include "setsamps.def"
-//#include "dlgsamp.def"
-//#include "srcmgt.def"
-//#include "wppushin.def"
-//#include "dipinter.def"
-//#include "memutil.def"
-//#include "msg.def"
 extern image_info *SImageGetImage(a_window *wnd,int row);
 extern mod_info *SModGetModule(a_window *wnd,int row);
 extern file_info *SFileGetFile(a_window *wnd,int row);
@@ -250,7 +231,7 @@ static bint         absGraphBar;
 static bint         relGraphBar;
 static char         relData[20];
 static char         absData[20];
-static char         lineData[6];
+static char         lineData[64];
 
 
 wnd_info WPSampleInfo = {
@@ -297,10 +278,12 @@ STATIC void * sampleCreateWin()
     wnd_create_struct   info;
     char *              title;
 
-    title = __alloca( 255 );
+#define TITLE_LEN       255
+
+    title = __alloca( TITLE_LEN );
     if( title == NULL ) return( NULL );
     WndInitCreateStruct( &info );
-    sprintf( title, LIT( Sample_Data ), CurrSIOData->samp_file_name );
+    snprintf( title, TITLE_LEN, LIT( Sample_Data ), CurrSIOData->samp_file_name );
     info.text = title;
     info.info = &WPSampleInfo;
     info.extra = CurrSIOData;
@@ -431,7 +414,7 @@ STATIC bint sampleProcTopStatus( a_window * wnd, int row, int piece,
         return( B_TRUE );
     }
     max_y = WndMaxCharY( wnd );
-    max_x = WndMaxCharX( wnd );
+    max_x = WndAvgCharX( wnd );
     vertical_x = SEPARATOR_POINT + max_x / 2;
     client_width = WPGetClientWidth( wnd );
     cross_y = max_y * (STATUS_ROW-1) - max_y/4;
@@ -476,7 +459,7 @@ STATIC bint sampleProcBotStatus( a_window * wnd, int row, int piece,
         return( B_TRUE );
     }
     max_y = WndMaxCharY( wnd );
-    max_x = WndMaxCharX( wnd );
+    max_x = WndAvgCharX( wnd );
     vertical_x = SEPARATOR_POINT + max_x / 2;
     client_height = WPGetClientHeight( wnd );
     client_width = WPGetClientWidth( wnd );
@@ -517,9 +500,9 @@ STATIC bint sampleProcStatus( a_window * wnd, int row, int piece,
         line->text = LIT( Empty_Str );
         abs_count = curr_sio->abs_count;
         rel_count = curr_sio->rel_count;
-        sprintf( relData, "%ld.%ld%%", rel_count/10,
+        snprintf( relData, sizeof( relData ), "%ld.%ld%%", rel_count/10,
                  rel_count-((rel_count/10)*10) );
-        sprintf( absData, "%ld.%ld%%", abs_count/10,
+        snprintf( absData, sizeof( absData ), "%ld.%ld%%", abs_count/10,
                  abs_count-((abs_count/10)*10) );
         if( WPPixelTruncWidth( WndMaxCharX( wnd ) / 2 ) == 0 ) {
             point_adjust = WndMaxCharX( wnd ) / 2;
@@ -596,7 +579,8 @@ STATIC bint sampleProcStatus( a_window * wnd, int row, int piece,
         line->indent = SEPARATOR_POINT + WndMaxCharX( wnd );
         curr_sio = WndExtra( wnd );
         if( curr_sio->level_open == LEVEL_ROUTINE ) {
-            sprintf( lineData, "%s: %.5d", statusHeaders[curr_sio->level_open],
+            snprintf( lineData, sizeof( lineData ), "%s: %.5d",
+                     statusHeaders[curr_sio->level_open],
                      curr_sio->curr_display_row+1 );
             line->text = lineData;
         } else {
@@ -917,7 +901,7 @@ STATIC bint sasmGetLine( a_window * wnd, int row )
         if( dispHighLight ) {
             dispCount = 0;
         } else {
-            dispCount = asm_line->u.asm.tick_count;
+            dispCount = asm_line->u.asm_line.tick_count;
         }
         localTicks = curr_sio->curr_mod->agg_count;
         maxTime = wpasm_file->max_time;
@@ -1002,19 +986,23 @@ STATIC bint sampleSetLine( a_window * wnd, int row, int piece,
         line->tabstop = B_FALSE;
         line->master_tabstop = B_TRUE;
     } else if( piece == PIECE_BAR ) {
-        line->draw_bar = B_TRUE;
-        barData.bar_style = GUI_BAR_SHADOW;
-        barData.bar_colour = WPA_REL_BAR;
-        barData.bar_colour2 = WPA_ABS_BAR;
-        barData.bar_size2 = bar2Extent;
-        barData.bar_group = B_TRUE;
-        barData.bar_selected = B_FALSE;
         line->extent = barExtent;
         line->indent = BAR_TAIL_POINT - barExtent;
         if( WPPixelTruncWidth( WndMaxCharX( wnd ) / 2 ) == 0 ) {
             line->indent -= WndMaxCharX( wnd ) / 2;
         }
-        line->text = (char *)&barData;
+        if( barExtent || bar2Extent ) {
+            barData.bar_style = GUI_BAR_SHADOW;
+            barData.bar_colour = WPA_REL_BAR;
+            barData.bar_colour2 = WPA_ABS_BAR;
+            barData.bar_size2 = bar2Extent;
+            barData.bar_group = B_TRUE;
+            barData.bar_selected = B_FALSE;
+            line->draw_bar = B_TRUE;
+            line->text = (char *)&barData;
+        } else {
+            line->text = LIT( Empty_Str );
+        }
         line->tabstop = B_FALSE;
         line->master_tabstop = B_TRUE;
     } else if( piece == PIECE_SEPARATOR ) {

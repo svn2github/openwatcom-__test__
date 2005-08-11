@@ -1,7 +1,34 @@
+/****************************************************************************
+*
+*                            Open Watcom Project
+*
+*    Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
+*
+*  ========================================================================
+*
+*    This file contains Original Code and/or Modifications of Original
+*    Code as defined in and that are subject to the Sybase Open Watcom
+*    Public License version 1.0 (the 'License'). You may not use this file
+*    except in compliance with the License. BY USING THIS FILE YOU AGREE TO
+*    ALL TERMS AND CONDITIONS OF THE LICENSE. A copy of the License is
+*    provided with the Original Code and Modifications, and is also
+*    available at www.sybase.com/developer/opensource.
+*
+*    The Original Code and all software distributed under the License are
+*    distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+*    EXPRESS OR IMPLIED, AND SYBASE AND ALL CONTRIBUTORS HEREBY DISCLAIM
+*    ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF
+*    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR
+*    NON-INFRINGEMENT. Please see the License for the specific language
+*    governing rights and limitations under the License.
+*
+*  ========================================================================
+*
+* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
+*               DESCRIBE IT HERE!
+*
+****************************************************************************/
 
-//Revision 1.1  1994/04/08  15:27:59  peter
-//Initial revision
-//
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -11,7 +38,7 @@
 #include "dfa.h"
 
 inline char octCh(uint c){
-    return '0' + c%8;
+    return '0' + (char)c%8;
 }
 
 void prtCh(ostream &o, uchar c){
@@ -39,11 +66,11 @@ void printSpan(ostream &o, uint lb, uint ub){
     o << "*";
     o << "[";
     if((ub - lb) == 1){
-    prtCh(o, lb);
+    prtCh(o, (uchar)lb);
     } else {
-    prtCh(o, lb);
+    prtCh(o, (uchar)lb);
     o << "-";
-    prtCh(o, ub-1);
+    prtCh(o, (uchar)ub-1);
     }
     o << "]";
 }
@@ -119,15 +146,16 @@ DFA::DFA(Ins *ins, uint ni, uint lb, uint ub, Char *rep)
     State *s = toDo;
     toDo = s->link;
 
-    Ins **cP, **iP, *i;
+    Ins **cP, **iP;
+    Ins *i;
     uint nGoTos = 0, j;
 
     s->rule = NULL;
-    for(iP = s->kernel; i = *iP; ++iP){
+    for(iP = s->kernel; (i = *iP) != NULL; ++iP){
         if(i->i.tag == CHAR){
         for(Ins *j = i + 1; j < (Ins*) i->i.link; ++j){
-            if(!(j->c.link = goTo[j->c.value - lb].to))
-            goTo[nGoTos++].ch = j->c.value;
+            if((j->c.link = goTo[j->c.value - lb].to) == 0)
+            goTo[nGoTos++].ch = (Char)j->c.value;
             goTo[j->c.value - lb].to = j;
         }
         } else if(i->i.tag == TERM){
@@ -169,7 +197,7 @@ DFA::DFA(Ins *ins, uint ni, uint lb, uint ub, Char *rep)
 
 DFA::~DFA(){
     State *s;
-    while(s = head){
+    while((s = head) != NULL){
     head = s->next;
     delete s;
     }
@@ -184,13 +212,14 @@ void DFA::addState(State **a, State *s){
 }
 
 State *DFA::findState(Ins **kernel, uint kCount){
-    Ins **cP, **iP, *i;
+    Ins **cP, **iP;
+    Ins *i;
     State *s;
 
     kernel[kCount] = NULL;
 
     cP = kernel;
-    for(iP = kernel; i = *iP; ++iP){
+    for(iP = kernel; (i = *iP) != NULL; ++iP){
      if(i->i.tag == CHAR || i->i.tag == TERM){
          *cP++ = i;
     } else {
@@ -202,7 +231,7 @@ State *DFA::findState(Ins **kernel, uint kCount){
 
     for(s = head; s; s = s->next){
      if(s->kCount == kCount){
-         for(iP = s->kernel; i = *iP; ++iP)
+         for(iP = s->kernel; (i = *iP) != 0; ++iP)
          if(!isMarked(i))
              goto nextState;
          goto unmarkAll;
@@ -219,7 +248,7 @@ State *DFA::findState(Ins **kernel, uint kCount){
     toDo = s;
 
 unmarkAll:
-    for(iP = kernel; i = *iP; ++iP)
+    for(iP = kernel; (i = *iP) != NULL; ++iP)
      unmark(i);
 
     return s;

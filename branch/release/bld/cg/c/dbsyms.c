@@ -194,6 +194,7 @@ found:;
 
 
 static void  AddCueBlk( cue_ctl *ctl ){
+/**************************************/
     cue_blk *new;
 
     new = _Alloc( new, sizeof( *new ) );
@@ -428,7 +429,7 @@ static void SourceCueFini( cue_ctl *ctl ){
 extern  void    InitDbgInfo() {
 /******************************/
     cue_idx     idx;
-    char       *fname;
+    char        *fname;
     uint        fno;
 
     idx = idx;
@@ -437,9 +438,9 @@ extern  void    InitDbgInfo() {
     SrcFileNoInit();
     DBNested( FALSE ); /* set nesting */
     SourceCueInit( &LineInfo );
-//  fname = FEAuxInfo( NULL, SOURCE_NAME );
- // fno = DBSrcFile( fname );
-//  idx = CueAdd( fno, 1, 1 );
+    fname = FEAuxInfo( NULL, SOURCE_NAME );
+    fno = DBSrcFile( fname );
+    idx = CueAdd( fno, 1, 1 );
     SrcLine = 1;
     if( _IsModel( DBG_DF ) ) {
         DFInitDbgInfo();

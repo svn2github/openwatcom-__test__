@@ -732,9 +732,9 @@ If it is issued, please report this problem.
 A segment relocation in the flat memory model was encountered.
 "%a" defines the location of the fixup.
 .*
-.errnote 2064 cannot combine 32-bit segments with 16-bit segments
+.errnote 2064 cannot combine 32-bit segments (%s1) with 16-bit segments (%s2)
 .np
-A 16-bit segment and a 32-bit segment have been encountered.
+A 32-bit segment "%s1" and a 16-bit segment "%s2" have been encountered.
 Mixing object files created by a 286 compiler and object files created
 by a 386 compiler is the most probable cause of this error.
 .*
@@ -838,7 +838,7 @@ If it is issued, please report this problem.
 .errnote 2073 bad Novell file format specified
 .np
 An invalid NetWare executable file format was specified.
-Valid formats are NLM, DSK, NAM, LAN, MSL, HAM, CDM or a numerical 
+Valid formats are NLM, DSK, NAM, LAN, MSL, HAM, CDM or a numerical
 module type.
 .if &e'&optdoc eq 1 .do begin
 .np
@@ -1016,18 +1016,6 @@ This message is issued when the linker has encountered an i/o error
 while processing the file and is unable to determine the cause.
 This message may be issued when reading from object and library files,
 or writing to the executable and spill file.
-:CMT. .*
-:CMT. .errnote 1095 debugging information too large.
-:CMT. .np
-:CMT. This message is only issued when linking an application that has been
-:CMT. compiled with version 9.0 of the compiler or earlier.
-:CMT. Later versions of the compiler have removed this limit.
-:CMT. .*
-:CMT. .errnote 3096 incompatible types of debugging information found
-:CMT. .np
-:CMT. The linker has encountered more than one class of debugging
-:CMT. information in the object files it is processing (e.g., Codeview and
-:CMT. WATCOM).
 .*
 .if '&overlay' eq 'yes' .do begin
 .errnote 3097 too many library modules
@@ -1315,7 +1303,7 @@ If it is issued, please report this problem.
 The linker has encountered a segment that appears in more than 11000
 object files.
 An empty segment does not affect this limit.
-This can only occur with WATCOM debugging information.
+This can only occur with Watcom debugging information.
 If this message appears, switch to DWARF debugging information.
 .if &e'&optdoc eq 1 .do begin
 .np
@@ -1488,7 +1476,7 @@ If it is issued, please report this problem.
 .*
 .errnote 1149 Only one debugging format can be specified
 .np
-The debugging format must be one of WATCOM, Codeview, Dwarf (default),
+The debugging format must be one of Watcom, CodeView, DWARF (default),
 or Novell.
 You cannot specify multiple debugging formats.
 .if &e'&optdoc eq 1 .do begin
@@ -1555,7 +1543,7 @@ The resource file is invalid or corrupt.
 .*
 .errnote 3159 incremental linking only supports DWARF debugging information
 .np
-When OPTION INCREMENTAL is used, you cannot specify non-Dwarf
+When OPTION INCREMENTAL is used, you cannot specify non-DWARF
 debugging information for the executable.  You must specify DEBUG
 DWARF when requesting debugging information.
 .if &e'&optdoc eq 1 .do begin

@@ -37,64 +37,40 @@
 typedef addr32_ptr      dos_addr;
 
 #include "ovltab.h"
+#include "ovldbg.h"
 
-extern unsigned_8       RunProg(trap_cpu_regs *, trap_cpu_regs *);
-extern void             SetDbgTask(void);
-extern void             SetUsrTask(void);
+extern unsigned_8       RunProg( trap_cpu_regs *, trap_cpu_regs * );
+extern void             SetDbgTask( void );
+extern void             SetUsrTask( void );
 extern void             far OvlTrap( int );
 
 extern trap_cpu_regs    TaskRegs;
 
-enum {
-    OVL_GET_STATE_SIZE,
-    OVL_READ_STATE,
-    OVL_WRITE_STATE,
-    OVL_TRANS_VECT_ADDR,
-    OVL_TRANS_RET_ADDR,
-    OVL_GET_OVL_TBL,
-    OVL_GET_REMAP_ENTRY,
-    OVL_GET_DATA
-};
-
 static unsigned         OvlStateSize;
 static int              (far *OvlRequest)( int, void far * );
 
-#pragma off(unreferenced);
 static int far NoOvlsHdlr( int req, void far *data )
-#pragma on(unreferenced);
+/**************************************************/
 {
     return( 0 );
 }
 
-void NullOvlHdlr()
+void NullOvlHdlr( void )
+/**********************/
 {
     OvlRequest = &NoOvlsHdlr;
 }
 
-#define OVL_SIGNATURE 0x2112
-
-_Packed struct ovl_header {
-    unsigned_16 signature;
-    void        (far *hook)();
-    unsigned_16 handler_offset;
 #if 1 //support for the 9.5 overlay manager, remove at a later date.
-    unsigned_16 spare1;
-    unsigned_16 spare2;
-    unsigned_16 dyn_area;
-#endif
-};
-
-#if 1 //support for the 9.5 overlay manager, remove at a later date.
-static struct ovl_header        *Hdr;
+static struct ovl_header        far *Hdr;
 #endif
 
 bool CheckOvl( addr32_ptr start )
+/*******************************/
 {
-    struct ovl_header   *hdr;
-    byte                *code;
+    struct ovl_header   far *hdr;
 
-    code = MK_FP( start.segment, start.offset );
-    hdr = (struct ovl_header *)(code + 2);
+    hdr = MK_FP( start.segment, start.offset );
     if( hdr->signature == OVL_SIGNATURE ) {
 #if 1 //support for the 9.5 overlay manager, remove at a later date.
         Hdr = hdr;
@@ -107,38 +83,42 @@ bool CheckOvl( addr32_ptr start )
     return( FALSE );
 }
 
-unsigned ReqOvl_state_size()
+unsigned ReqOvl_state_size( void )
+/********************************/
 {
     ovl_state_size_ret  *ret;
 
     ret = GetOutPtr( 0 );
-    ret->size = OvlRequest( OVL_GET_STATE_SIZE, 0 );
+    ret->size = OvlRequest( OVLDBG_GET_STATE_SIZE, 0 );
     OvlStateSize = ret->size;
     return( sizeof( *ret ) );
 }
 
-unsigned ReqOvl_read_state()
+unsigned ReqOvl_read_state( void )
+/********************************/
 {
-    OvlRequest( OVL_READ_STATE, GetOutPtr(0) );
+    OvlRequest( OVLDBG_GET_OVERLAY_STATE, GetOutPtr( 0 ) );
     return( OvlStateSize );
 }
 
-unsigned ReqOvl_write_state()
+unsigned ReqOvl_write_state( void )
+/*********************************/
 {
     SetUsrTask(); /* overlay manager needs access to its file table */
-    OvlRequest( OVL_WRITE_STATE, GetInPtr( sizeof( ovl_write_state_req ) ) );
+    OvlRequest( OVLDBG_SET_OVERLAY_STATE, GetInPtr( sizeof( ovl_write_state_req ) ) );
     SetDbgTask();
     return( 0 );
 }
 
-unsigned ReqOvl_trans_vect_addr()
+unsigned ReqOvl_trans_vect_addr( void )
+/*************************************/
 {
     ovl_trans_vect_addr_req     *acc;
     ovl_trans_vect_addr_ret     *ret;
 
     acc = GetInPtr( 0 );
     ret = GetOutPtr( 0 );
-    if( OvlRequest( OVL_TRANS_VECT_ADDR, &acc->ovl_addr ) ) {
+    if( OvlRequest( OVLDBG_TRANSLATE_VECTOR_ADDR, &acc->ovl_addr ) ) {
         ret->ovl_addr = acc->ovl_addr;
     } else {
         ret->ovl_addr.sect_id = 0;
@@ -146,14 +126,15 @@ unsigned ReqOvl_trans_vect_addr()
     return( sizeof( *ret ) );
 }
 
-unsigned ReqOvl_trans_ret_addr()
+unsigned ReqOvl_trans_ret_addr( void )
+/************************************/
 {
     ovl_trans_ret_addr_req      *acc;
     ovl_trans_ret_addr_ret      *ret;
 
     acc = GetInPtr( 0 );
     ret = GetOutPtr( 0 );
-    if( OvlRequest( OVL_TRANS_RET_ADDR, &acc->ovl_addr ) ) {
+    if( OvlRequest( OVLDBG_TRANSLATE_RETURN_ADDR, &acc->ovl_addr ) ) {
         ret->ovl_addr = acc->ovl_addr;
     } else {
         ret->ovl_addr.sect_id = 0;
@@ -161,19 +142,21 @@ unsigned ReqOvl_trans_ret_addr()
     return( sizeof( *ret ) );
 }
 
-unsigned ReqOvl_get_remap_entry()
+unsigned ReqOvl_get_remap_entry( void )
+/*************************************/
 {
     ovl_get_remap_entry_req     *acc;
     ovl_get_remap_entry_ret     *ret;
 
     acc = GetInPtr( 0 );
     ret = GetOutPtr( 0 );
-    ret->remapped = OvlRequest( OVL_GET_REMAP_ENTRY, &acc->ovl_addr );
+    ret->remapped = OvlRequest( OVLDBG_GET_MOVED_SECTION, &acc->ovl_addr );
     ret->ovl_addr = acc->ovl_addr;
     return( sizeof( *ret ) );
 }
 
-unsigned ReqOvl_get_data()
+unsigned ReqOvl_get_data( void )
+/******************************/
 {
     ovl_get_data_req    *acc;
     ovl_get_data_ret    *ret;
@@ -182,7 +165,7 @@ unsigned ReqOvl_get_data()
     acc = GetInPtr( 0 );
     ret = GetOutPtr( 0 );
     addr.sect_id = acc->sect_id;
-    if( !OvlRequest( OVL_GET_DATA, &addr ) ) {
+    if( !OvlRequest( OVLDBG_GET_SECTION_DATA, &addr ) ) {
         addr.mach.segment = 0;
     }
 #if 1 //support for the 9.5 overlay manager, remove at a later date.
@@ -192,19 +175,20 @@ unsigned ReqOvl_get_data()
         ovltab_entry    *curr;
 
         if( addr.mach.segment == 0 ) {
-            OvlRequest( OVL_GET_OVL_TBL, &tbl );
-            if( tbl->prolog.major == OVL_MAJOR_VERSION
-             && tbl->prolog.minor == OVL_MINOR_VERSION ) {
+            OvlRequest( OVLDBG_GET_OVL_TBL_ADDR, &tbl );
+            if( ( tbl->prolog.major == OVL_MAJOR_VERSION )
+                && ( tbl->prolog.minor == OVL_MINOR_VERSION ) ) {
                 num_sects = 0;
                 for( curr = &tbl->entries[0]; curr->flags_anc != OVLTAB_TERMINATOR; ++curr ) {
                     ++num_sects;
-                    if( num_sects > addr.sect_id ) break;
+                    if( num_sects > addr.sect_id ) {
+                        break;
+                    }
                 }
                 if( addr.sect_id <= num_sects ) {
                     addr.mach.segment = tbl->entries[addr.sect_id-1].code_handle;
-                    if( addr.mach.segment == 0 ) {
+                    if( addr.mach.segment == 0 )
                         addr.mach.segment = Hdr->dyn_area;
-                    }
                     addr.sect_id = tbl->entries[addr.sect_id-1].num_paras;
                 }
             }

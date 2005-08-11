@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  DWARF debug information loading.
 *
 ****************************************************************************/
 
@@ -71,10 +70,27 @@ uint Lookup_section_name( const char *name ){
     return( sect );
 }
 
-static dip_status GetSectInfo( dig_fhandle f, uint_32 *sizes, uint_32 *bases ){
+static void ByteSwapShdr( Elf32_Shdr *elf_sec, int byteswap )
+{
+    if( byteswap ) {
+        SWAP_32( elf_sec->sh_name );
+        SWAP_32( elf_sec->sh_type );
+        SWAP_32( elf_sec->sh_flags );
+        SWAP_32( elf_sec->sh_addr );
+        SWAP_32( elf_sec->sh_offset );
+        SWAP_32( elf_sec->sh_size );
+        SWAP_32( elf_sec->sh_link );
+        SWAP_32( elf_sec->sh_info );
+        SWAP_32( elf_sec->sh_addralign );
+        SWAP_32( elf_sec->sh_entsize );
+    }
+}
+
+static dip_status GetSectInfo( dig_fhandle f, uint_32 *sizes,
+                               uint_32 *bases, unsigned *byteswap )
 /*****************************************************************/
 // Fill in the starting offset & length of the dwarf sections
-
+{
     TISTrailer          dbg_head;
     Elf32_Ehdr          elf_head;
     Elf32_Shdr          elf_sec;
@@ -109,6 +125,32 @@ static dip_status GetSectInfo( dig_fhandle f, uint_32 *sizes, uint_32 *bases ){
     if( memcmp( elf_head.e_ident, ELF_SIGNATURE, ELF_SIGNATURE_LEN ) ) {
         return( DS_FAIL );
     }
+    if( elf_head.e_ident[EI_CLASS] == ELFCLASS64 ) {
+        // no support yet
+        return( DS_FAIL );
+    }
+
+    *byteswap = FALSE;
+#ifdef __BIG_ENDIAN__
+    if( elf_head.e_ident[EI_DATA] == ELFDATA2LSB ) {
+#else
+    if( elf_head.e_ident[EI_DATA] == ELFDATA2MSB ) {
+#endif
+        *byteswap = TRUE;
+        SWAP_16( elf_head.e_type );
+        SWAP_16( elf_head.e_machine );
+        SWAP_32( elf_head.e_version );
+        SWAP_32( elf_head.e_entry );
+        SWAP_32( elf_head.e_phoff );
+        SWAP_32( elf_head.e_shoff );
+        SWAP_32( elf_head.e_flags );
+        SWAP_16( elf_head.e_ehsize );
+        SWAP_16( elf_head.e_phentsize );
+        SWAP_16( elf_head.e_phnum );
+        SWAP_16( elf_head.e_shentsize );
+        SWAP_16( elf_head.e_shnum );
+        SWAP_16( elf_head.e_shstrndx );
+    }
 
     // grab the string table, if it exists
     if( !elf_head.e_shstrndx ){
@@ -123,18 +165,18 @@ static dip_status GetSectInfo( dig_fhandle f, uint_32 *sizes, uint_32 *bases ){
            + elf_head.e_shstrndx * elf_head.e_shentsize+start;
     DCSeek( f, offset, DIG_ORG );
     DCRead( f, &elf_sec, sizeof( Elf32_Shdr ) );
+    ByteSwapShdr( &elf_sec, *byteswap );
     string_table = DCAlloc( elf_sec.sh_size );
     DCSeek( f, elf_sec.sh_offset + start, DIG_ORG );
     DCRead( f, string_table, elf_sec.sh_size );
     for( i = 0; i < elf_head.e_shnum; i++ ) {
         DCSeek( f, elf_head.e_shoff + i * elf_head.e_shentsize + start, DIG_ORG );
         DCRead( f, &elf_sec, sizeof( Elf32_Shdr ) );
-        if( elf_sec.sh_type == SHT_PROGBITS ){
-            sect = Lookup_section_name( &string_table[elf_sec.sh_name] );
-            if ( sect < DR_DEBUG_NUM_SECTS ){
-                bases[sect] = elf_sec.sh_offset + start;
-                sizes[sect] = elf_sec.sh_size;
-            }
+        ByteSwapShdr( &elf_sec, *byteswap );
+        sect = Lookup_section_name( &string_table[elf_sec.sh_name] );
+        if ( sect < DR_DEBUG_NUM_SECTS ){
+            bases[sect] = elf_sec.sh_offset + start;
+            sizes[sect] = elf_sec.sh_size;
         }
     }
     DCFree( string_table );
@@ -154,7 +196,6 @@ static void DWRRead( void *_f, dr_section sect, void *buff, size_t size ) {
 
     base = f->dwarf->sect_offsets[sect];
     DCRead( f->sym_file, buff, size );
-
 }
 
 static void DWRSeek( void *_f, dr_section sect, long offs ) {
@@ -184,6 +225,10 @@ static void DWRFree( void *what ){
 
 static void DWRErr( dr_except code ){
 /************************************/
+#if !defined( NDEBUG ) && defined( __WATCOMC__ ) && defined( __386__ )
+    // for easier debugging
+    __asm int 3;
+#endif
     switch( code ){
     case DREXCEP_OUT_OF_VM:
         DCStatus( DS_ERR | DS_NO_READ_MEM );
@@ -207,9 +252,9 @@ DWRSetRtns(DWRRead, DWRSeek, DWRAlloc, DWRRealloc, DWRFree, DWRErr);
 
 static dip_status InitDwarf( imp_image_handle *ii ){
 /**************************************************/
-    unsigned long    sect_sizes[DR_DEBUG_NUM_SECTS];
+    unsigned long   sect_sizes[DR_DEBUG_NUM_SECTS];
     dwarf_info      *dwarf;
-    dip_status       ret;
+    dip_status      ret;
 
     dwarf = DCAlloc( sizeof( *dwarf ) );
     ii->dwarf = dwarf;
@@ -218,9 +263,9 @@ static dip_status InitDwarf( imp_image_handle *ii ){
         DCStatus( ret );
         goto error_exit;
     }
-    ret = GetSectInfo( ii->sym_file, sect_sizes, dwarf->sect_offsets );
+    ret = GetSectInfo( ii->sym_file, sect_sizes, dwarf->sect_offsets, &ii->is_byteswapped );
     if( ret != DS_OK )goto error_exit;
-    dwarf->handle = DRDbgInitNFT( ii, sect_sizes );
+    dwarf->handle = DRDbgInitNFT( ii, sect_sizes, ii->is_byteswapped );
     if( dwarf->handle == NULL ){
         ret = DS_ERR | DS_NO_MEM;
         DCStatus( ret );

@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Routines accessing far memory.
 *
 ****************************************************************************/
 
@@ -123,11 +122,7 @@ extern void _backward(void);
 
 #endif
 
-#if defined( _NEC_PC )
-    #define ATTR_FLIP_MASK      0x04
-#else
-    #define ATTR_FLIP_MASK      0x77
-#endif
+#define ATTR_FLIP_MASK      0x77
 
 intern void cdecl farfill( LPPIXEL start, PIXEL fill, int len, int snow )
 {
@@ -154,7 +149,7 @@ intern void cdecl farfill( LPPIXEL start, PIXEL fill, int len, int snow )
 
 intern void cdecl farcopy( LPPIXEL src, LPPIXEL dst, int len, int snow )
 {
-#if defined(__AXP__)
+#if defined(__AXP__) || defined(__PPC__) || defined(__MIPS__)
     _unused( snow );
     memmove( dst, src, len*sizeof(PIXEL) );
 #elif defined( __386__ ) || defined( UNIX )

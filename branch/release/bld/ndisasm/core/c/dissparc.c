@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Instruction decoding for Sun SPARC architecture.
 *
 ****************************************************************************/
 
@@ -34,8 +33,6 @@
 #include <ctype.h>
 #include "distypes.h"
 #include "dis.h"
-
-#if DISCPU & DISCPU_sparc
 
 #include "bool.h"
 #include "sparcenc.h"
@@ -285,6 +282,8 @@ static unsigned SPARCInsHook( dis_handle *h, void *d, dis_dec_ins *ins,
             ins->num_ops = 0;
         }
         break;
+    default:
+        break;
     }
     if( name != NULL && new != NULL ) {
         strcpy( name, new );
@@ -301,7 +300,7 @@ static unsigned SPARCFlagHook( dis_handle *h, void *d, dis_dec_ins *ins,
 
 static dis_register sparcTranslate( dis_register reg ) {
 
-    if( reg >= DR_SPARC_r0 && reg < DR_SPARC_r31 ) {
+    if( reg >= DR_SPARC_r0 && reg <= DR_SPARC_r31 ) {
         reg += DR_SPARC_g0 - DR_SPARC_r0;
         switch( reg ) {
         case DR_SPARC_i6:
@@ -309,6 +308,8 @@ static dis_register sparcTranslate( dis_register reg ) {
             break;
         case DR_SPARC_o6:
             reg = DR_SPARC_sp;
+            break;
+        default:
             break;
         }
     }
@@ -320,12 +321,13 @@ static unsigned SPARCOpHook( dis_handle *h, void *d, dis_dec_ins *ins,
 {
     dis_operand *op;
 
-    if( flags & DFF_AXP_SYMBOLIC_REG ) {
+    ins->op[op_num].ref_type = DRT_SPARC_WORD;
+    if( flags & DFF_SYMBOLIC_REG ) {
         op = &ins->op[op_num];
-        if( op->base >= DR_SPARC_r0 && op->base < DR_SPARC_r31 ) {
+        if( op->base >= DR_SPARC_r0 && op->base <= DR_SPARC_r31 ) {
             op->base = sparcTranslate( op->base );
         }
-        if( op->index >= DR_SPARC_r0 && op->index < DR_SPARC_r31 ) {
+        if( op->index >= DR_SPARC_r0 && op->index <= DR_SPARC_r31 ) {
             op->index = sparcTranslate( op->index );
         }
     }
@@ -337,19 +339,25 @@ static dis_handler_return SPARCDecodeTableCheck( int page, dis_dec_ins *ins )
     return( DHR_DONE );
 }
 
-static void SPARCByteSwapHook( dis_handle *h, void *d, dis_dec_ins *ins )
+static void ByteSwap( dis_handle *h, void *d, dis_dec_ins *ins )
 {
     if( h->need_bswap ) {
-#ifdef __BIG_ENDIAN__
-        CONV_LE_32( ins->opcode );
-#else
-        CONV_BE_32( ins->opcode );
-#endif
+        SWAP_32( ins->opcode );
     }
 }
 
-const dis_cpu_data SPARCData = {
-    SPARCRangeTable, SPARCRangeTablePos, SPARCByteSwapHook, SPARCDecodeTableCheck, SPARCInsHook, SPARCFlagHook, SPARCOpHook, &SPARCMaxInsName, 4
-};
+static void SPARCPreprocHook( dis_handle *h, void *d, dis_dec_ins *ins )
+{
+    ByteSwap( h, d, ins );
+}
 
-#endif
+static unsigned SPARCPostOpHook( dis_handle *h, void *d, dis_dec_ins *ins,
+        dis_format_flags flags, unsigned op_num, char *op_buff )
+{
+    // Nothing to do
+    return( 0 );
+}
+
+const dis_cpu_data SPARCData = {
+    SPARCRangeTable, SPARCRangeTablePos, SPARCPreprocHook, SPARCDecodeTableCheck, SPARCInsHook, SPARCFlagHook, SPARCOpHook, SPARCPostOpHook, &SPARCMaxInsName, 4
+};

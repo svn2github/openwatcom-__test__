@@ -34,7 +34,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-#include <process.h>
+#ifdef __WATCOMC__
+    #include <process.h>
+#else
+    #include "clibext.h"
+#endif
 
 #include "common.h"
 #include "msg.h"
@@ -70,7 +74,7 @@ STATIC char *   eatAllChars( char * );
 enum {
     FAIL_OPT,
     DIP_OPT,
-#if _OS == _OS_DOS
+#if defined( __DOS__ )
     NOCHARREMAP_OPT,
     NOGRAPHICSMOUSE_OPT,
 #endif
@@ -80,7 +84,7 @@ enum {
 
 STATIC char * cmdNames[] = {
     "dip",
-#if _OS == _OS_DOS
+#if defined( __DOS__ )
     "nocharremap",
     "nographicsmouse",
 #endif
@@ -94,7 +98,7 @@ STATIC char * cmdNames[] = {
 
 STATIC unsigned_8 cmdLen[] = {
     3,
-#if _OS == _OS_DOS
+#if defined( __DOS__ )
     4,
     3,
 #endif
@@ -107,7 +111,7 @@ STATIC unsigned_8 cmdLen[] = {
 
 STATIC int cmdType[] = {
     DIP_OPT,
-#if _OS == _OS_DOS
+#if defined( __DOS__ )
     NOGRAPHICSMOUSE_OPT,
     NOCHARREMAP_OPT,
 #endif
@@ -124,7 +128,7 @@ STATIC char * cmdUsage[] = {
     LIT( Usage3 ),
     LIT( Usage4 ),
     LIT( Usage5 ),
-#ifndef __QNX__
+#if defined( __DOS__ )
     LIT( Usage6 ),
     LIT( Usage7 ),
     LIT( Usage8 ),
@@ -232,7 +236,7 @@ STATIC bint procCmd( char * cmd )
             switch( cmd_type ) {
             case FAIL_OPT:
                 ErrorMsg( LIT( Cmd_Option_Not_Valid ), cmd-1 );
-#if _OS == _OS_WIN || _OS == _OS_NT || defined(_OS2_PM)
+#if defined( __WINDOWS__ ) || defined( __NT__ ) || defined( __OS2_PM__ )
                 fatal( LIT( Usage ) );
 #else
                 /* fall through */
@@ -272,7 +276,7 @@ STATIC bint procCmd( char * cmd )
                     WProfDips[old_len] = NULLCHAR;
                 }
                 break;
-#if _OS == _OS_DOS
+#if defined( __DOS__ )
             case NOGRAPHICSMOUSE_OPT:
             case NOCHARREMAP_OPT:
                 WndStyle &= ~(GUI_CHARMAP_DLG|GUI_CHARMAP_MOUSE);

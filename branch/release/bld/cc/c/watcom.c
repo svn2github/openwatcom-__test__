@@ -53,11 +53,14 @@ void CBanner()
 {
     if( CompFlags.banner_printed ) return;              /* 13-mar-90 */
     if( CompFlags.quiet_mode )     return;
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
     BannerMsg( banner1w( "C Alpha AXP Optimizing Compiler",
                                                 _WCC_VERSION_ ) );
-#elif _MACHINE == _PPC
+#elif _CPU == _PPC
     BannerMsg( banner1w( "C PowerPC Optimizing Compiler",
+                                                _WCC_VERSION_ ) );
+#elif _CPU == _MIPS
+    BannerMsg( banner1w( "C MIPS Optimizing Compiler",
                                                 _WCC_VERSION_ ) );
 #else
     BannerMsg( banner1w( "C" _386 _COMPILER, _WCC_VERSION_ ) );

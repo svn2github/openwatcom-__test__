@@ -97,6 +97,13 @@
 .do end
 .*
 .if &version ge 112 .do begin
+:CMT. .note adhp
+:hotlink refid='SWadhp'.
+~b~b~b~b~b~b
+.br
+.do end
+.*
+.if &version ge 112 .do begin
 :CMT. .note adt
 :hotlink refid='SWadt'.
 ~b~b~b~b~b~b
@@ -412,6 +419,11 @@
 ~b~b~b~b~b~b
 .br
 .*
+:CMT. .note fti
+:hotlink refid='SWfti'.
+~b~b~b~b~b~b
+.br
+.*
 :CMT. .note fx
 :hotlink refid='SWfx'.
 ~b~b~b~b~b~b
@@ -641,6 +653,10 @@
 .br
 .*
 :hotlink refid='SWoa'.
+~b~b~b~b~b~b
+.br
+.*
+:hotlink refid='SWpil'.
 ~b~b~b~b~b~b
 .br
 .*

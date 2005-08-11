@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  DIP imports interface.
 *
 ****************************************************************************/
 
@@ -121,12 +120,15 @@ dip_imp_routines        ImpInterface = {
 };
 
 
-#if defined(__386__)
+#if defined( __386__ )
+
+#if defined( __WATCOMC__ )
 #pragma aux DIPLOAD "*"
-#elif defined( __WINDOWS__)
+#endif
+
+#elif defined( __WINDOWS__ )
 
 #include <stdlib.h>
-#define STRICT
 #include <windows.h>
 #include <i86.h>
 
@@ -195,15 +197,13 @@ int PASCAL WinMain( HINSTANCE this_inst, HINSTANCE prev_inst,
 
     return( 0 );
 }
-#elif defined(M_I86)
+#elif defined( M_I86 )
 #pragma aux DIPLOAD "*" loadds
-#elif defined(__AXP__)
-/* nothing to do */
 #else
-#error DIPIMP.C not configured for system
+/* nothing to do for Alpha, PowerPC etc. */
 #endif
 
-#if defined(__DOS__) || defined(__UNIX__)
+#if defined( __DOS__ ) || defined( __UNIX__ )
     const char __based( __segname( "_CODE" ) ) Signature[4] = "DIP";
 #endif
 
@@ -213,7 +213,7 @@ dip_imp_routines *DIPLOAD( dip_status *status, dip_client_routines *client )
 #if defined(__WINDOWS__) && !defined(__386__)
     {
         FARPROC start;
-   
+
         start = MakeProcInstance( (FARPROC)DIPImpStartup, ThisInst );
         *status = ((dip_status(DIPENTRY*)(void)) start)();
         FreeProcInstance( start );

@@ -5,6 +5,8 @@
 Usage: wccaxp [options] file [options]
 :elsesegment Tppc
 Usage: wccppc [options] file [options]
+:elsesegment Tmis
+Usage: wccmps [options] file [options]
 :elsesegment T386
 Usage: wcc386 [options] file [options]
 :elsesegment
@@ -35,7 +37,9 @@ Options:
 :endsegment
 -aa           allow non const initializers for local aggregates or unions
 -ad[=<file>]  generate make style auto depend file
+-add[=<file>] set source dependancy name in auto depend file
 -adt[=<file>] set make style auto depend target name
+-adhp[=<file>]set default for no header path
 -adbs         force slashes to backward '\\' slashes (auto dep gen)
 -adfs         force slashes to forward '/' slashes (auto dep gen)
 -ai           turn off type checking on static initialization
@@ -62,6 +66,14 @@ Options:
 -ec           emit code coverage gear
 :endsegment
 :segment T386 | Ti86
+-ecc          set default calling convention to __cdecl
+-ecd          set default calling convention to __stdcall
+-ecf          set default calling convention to __fastcall
+-eco          set default calling convention to _Optlink
+-ecp          set default calling convention to __pascal
+-ecr          set default calling convention to __fortran
+-ecs          set default calling convention to _Syscall
+-ecw          set default calling convention to __watcall (default)
 -ee           call epilogue hook routine
 -ef           use full pathnames in error and warning messages
 :endsegment
@@ -71,9 +83,21 @@ Options:
 -en           emit routine names in the code segment
 -ep[=<num>]   call prologue hook routine with <num> stack bytes available
 :endsegment
+:segment Taxp | Tppc | Tmps
+-eb           emit big-endian object files
+-el           emit little-endian object files
+:endsegment
+:: add T386 later
+:segment Taxp | Tppc | Tmps
+-eoc          emit COFF object files
+-eoe          emit ELF object files
+:endsegment
+:segment HIDDEN
+-eoo          emit OMF object files
+:endsegment
 -eq           do not display error messages (they are still written to a file)
 :segment T386
--et           P5 profiling
+-et           Pentium profiling
 -ez           generate PharLap EZ-OMF object files
 :endsegment
 -fh[=<file>]  use pre-compiled headers
@@ -81,6 +105,7 @@ Options:
 -fi=<file>    force <file> to be included
 -fo[=<file>]  set object or preprocessor output file name
 -fr[=<file>]  set error file name
+-fti          print informational message when opening include file
 :segment T386 | Ti86
 -fp2          generate 287 floating-point code
 -fp3          generate 387 floating-point code
@@ -123,8 +148,8 @@ Options:
 :segment T386 | Ti86
 -nt=<id>      set name of text segment
 :endsegment
-:segment Taxp
--o{a,b,d,e,h,i,k,l,n,o,r,s,t,u,x,z} control optimization
+:segment Taxp | Tppc | Tmps
+-o{a,b,d,e,h,i,k,h,l,n,o,p,r,s,t,u,x,z} control optimization
 :elsesegment
 -o{a,b,c,d,e,f[+],h,i,k,l,m,n,o,p,r,s,t,u,x,z} control optimization
 :endsegment
@@ -154,12 +179,13 @@ Options:
   s           -> favor code size over execution time in optimizations
   t           -> favor execution time over code size in optimizations
   u           -> all functions must have unique addresses
-:segment Taxp
+:segment Taxp | Tppc | Tmps
   x           -> equivalent to -obiler -s
 :elsesegment
   x           -> equivalent to -obmiler -s
 :endsegment
   z           -> NULL points to valid memory in the target environment
+-pil          preprocessor ignores #line directive
 -p{c,l,w=<num>} preprocess source file
   c           -> preserve comments
   l           -> insert #line directives
@@ -173,7 +199,7 @@ Options:
 -sg           generate calls to grow the stack
 -st           touch stack through SS first
 :endsegment
-:segment Taxp
+:segment Taxp | Tmps
 -si           initialize stack frame storage with pattern
 :endsegment
 -tp=<id>      set #pragma on( <id> )

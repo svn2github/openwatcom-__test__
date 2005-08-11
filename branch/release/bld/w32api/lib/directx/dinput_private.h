@@ -70,12 +70,12 @@ extern GUID GUID_Slider;
 extern GUID GUID_Key;
 extern GUID GUID_POV;
 
-#ifdef __GNUC__
-#define SECTION_TEXT __attribute__ ((section(".text")))
-#define SECTION_RDATA __attribute__ ((section(".rdata")))
+#if defined (__WATCOMC__)
+#define ATTRIBUTE_TEXT_SECTION __based( __segname( "_CODE" ) )
+#elif defined (__GNUC__)
+#define ATTRIBUTE_TEXT_SECTION  __attribute__ ((section(".text")))
 #else
-#define SECTION_TEXT
-#define SECTION_RDATA
+#define ATTRIBUTE_TEXT_SECTION
 #endif
 
 #endif

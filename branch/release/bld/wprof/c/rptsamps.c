@@ -24,16 +24,13 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Dump formatted profiler data to a file.
 *
 ****************************************************************************/
 
 
+#include <stdio.h>
 #include <fcntl.h>
-#ifndef __ALPHA__
-#include <i86.h>
-#endif
 #include <sys/stat.h>
 #include <string.h>
 #include <time.h>
@@ -48,18 +45,11 @@
 #include "sampinfo.h"
 #include "pathlist.h"
 
-//#include "getsamps.def"
-//#include "msg.def"
-//#include "memutil.def"
-//#include "support.def"
-//#include "utils.def"
-//#include "dipinter.def"
-
 extern unsigned         FormatAddr( address a, char *buffer, unsigned max );
 
-extern sio_data *       SIOData;
+extern sio_data         *SIOData;
 
-STATIC FILE     *df;
+STATIC FILE             *df;
 
 STATIC void dumpSampleImages( bint, sio_data * );
 STATIC void dumpSampleInfo();
@@ -69,15 +59,16 @@ STATIC void dumpSampleInfo();
 extern void ReportSampleInfo()
 /****************************/
 {
-    sio_data *      curr_sio;
+    sio_data        *curr_sio;
 
+    if( SIOData == NULL ) return;
     df = fopen( "report.dmp", "w" );
     if( df != NULL ) {
         curr_sio = SIOData;
-        for(;;) {
+        for( ;; ) {
             curr_sio = curr_sio->next;
             dumpSampleInfo();
-            fprintf(  df, "\n" );
+            fprintf( df, "\n" );
             dumpSampleImages( B_TRUE, curr_sio );
             if( curr_sio == SIOData ) break;
         }
@@ -91,10 +82,10 @@ STATIC void dumpSampleImages( bint all_info, sio_data * curr_sio )
 /****************************************************************/
 {
     location_list   ll;
-    image_info *    curr_image;
-    mod_info *      curr_mod;
-    file_info *     curr_file;
-    rtn_info *      curr_rtn;
+    image_info      *curr_image;
+    mod_info        *curr_mod;
+    file_info       *curr_file;
+    rtn_info        *curr_rtn;
     int             image_index;
     int             mod_count;
     int             file_count;
@@ -170,12 +161,12 @@ STATIC void dumpSampleImages( bint all_info, sio_data * curr_sio )
 STATIC void dumpSampleInfo()
 /**************************/
 {
-    sio_data *          sio_rover;
-    mark_data *         mark;
-    overlay_data *      ovl;
-    image_info *        image;
-    remap_data *        remap;
-    ovl_entry *         ovl_entry;
+    sio_data            *sio_rover;
+    mark_data           *mark;
+    overlay_data        *ovl;
+    image_info          *image;
+    remap_data          *remap;
+    ovl_entry           *ovl_entry;
     int                 image_index;
     long int            count;
     int                 index;

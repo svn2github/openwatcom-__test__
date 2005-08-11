@@ -11,7 +11,6 @@
 :set symbol="exeextn" value="exe".
 :set symbol="libvarname" value="lib".
 :set symbol="tmpvarname" value="tmp".
-:set symbol="currdir" value="default".
 .*
 .im dosfiles
 .*
@@ -51,6 +50,7 @@ is any of the following:
 .note CVPACK
 .note DOSSEG
 .note ELIMINATE
+.note [NO]FARCALLS
 .note INCREMENTAL
 .note MANGLEDNAMES
 .note MAP[=map_file]
@@ -118,6 +118,5 @@ is any of the following:
 .im wlprompt
 .*
 .im wlmemlay
-.im wlmem
 .*
 .helppref

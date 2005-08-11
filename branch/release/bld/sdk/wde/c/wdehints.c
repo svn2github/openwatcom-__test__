@@ -30,7 +30,6 @@
 ****************************************************************************/
 
 
-#define STRICT
 #include <windows.h>
 #include <win1632.h>
 #include <stdio.h>
@@ -170,7 +169,7 @@ static WdeHintItem WdeHints[] =
 ,   { IDM_FMBOTTOM              , WDE_HINT_FMBOTTOM             }
 ,   { IDM_DDE_CLEAR             , WDE_HINT_DDE_CLEAR            }
 ,   { IDM_DDE_UPDATE_PRJ        , WDE_HINT_DDE_UPDATE_PRJ       }
-,   { -1                        , NULL                          }
+,   { -1                        , 0                             }
 };
 
 static WdePopupHintItem WdeInitialPopupHints[] =

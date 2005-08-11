@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Inline assembler support for various front ends.
 *
 ****************************************************************************/
 
@@ -39,7 +38,7 @@
 
 #define ASMCODESTART    "0ASM"          // must be a non-usable string
 
-uint_32                 *AsmCodeBuffer;
+unsigned char           *AsmCodeBuffer;
 uint_32                 AsmCodeAddress;
 uint_32                 AsmLastAddress;
 asmreloc                *AsmRelocs;
@@ -66,7 +65,7 @@ static owl_offset tellOffset( void ) {
 static void doEmitData( char *buffer, int size ) {
 //************************************************
 
-    memcpy( &((char *)AsmCodeBuffer)[AsmCodeAddress], buffer, size );
+    memcpy( &AsmCodeBuffer[AsmCodeAddress], buffer, size );
     AsmCodeAddress += size;
     if( AsmCodeAddress > AsmLastAddress ) {
         AsmLastAddress = AsmCodeAddress;
@@ -103,26 +102,30 @@ static owl_offset relocTargetDisp( owl_offset from, owl_offset to ) {
 
     owl_offset  ret;
 
-    #ifdef AS_ALPHA
+#ifdef AS_ALPHA
     from += 4;  // Alpha uses updated PC
-    #endif // PPC & MIPS uses current PC
+#endif // PPC & MIPS uses current PC
     assert( ( to % 4 ) == 0 );
     assert( ( from % 4 ) == 0 );
     ret = to - from;
-    #if defined(AS_PPC)
+#if defined( AS_PPC )
     return( ret );
-    #elif defined(AS_ALPHA)
+#elif defined( AS_ALPHA )
     return( ret >> 2 );
-    #else
+#elif defined( AS_MIPS )
+    // TODO
+    return( ret >> 2 );
+#else
     #error Unknown CPU type for assembler!
-    #endif
+#endif
 }
 
 static unsigned relocMasks[] = {
-#ifdef AS_PPC
+#if defined( AS_PPC )
     0xffffffff,         /* OWL_RELOC_ABSOLUTE */
     0xffffffff,         /* OWL_RELOC_WORD */
     0x0000ffff,         /* OWL_RELOC_HALF_HI */
+    0x0000ffff,         /* OWL_RELOC_HALF_HA */
     0x00000000,         /* OWL_RELOC_PAIR */
     0x0000ffff,         /* OWL_RELOC_HALF_LO */
     0x0000fffc,         /* OWL_RELOC_BRANCH_REL */
@@ -131,10 +134,25 @@ static unsigned relocMasks[] = {
     0x03fffffc,         /* OWL_RELOC_JUMP_ABS */
     0x0000ffff,         /* OWL_RELOC_SECTION_INDEX */
     0xffffffff,         /* OWL_RELOC_SECTION_OFFSET */
-#else
+#elif defined( AS_ALPHA )
     0xffffffff,         /* OWL_RELOC_ABSOLUTE */
     0xffffffff,         /* OWL_RELOC_WORD */
     0x0000ffff,         /* OWL_RELOC_HALF_HI */
+    0x0000ffff,         /* OWL_RELOC_HALF_HA, unused */
+    0x00000000,         /* OWL_RELOC_PAIR */
+    0x0000ffff,         /* OWL_RELOC_HALF_LO */
+    0x001fffff,         /* OWL_RELOC_BRANCH_REL */
+    0x001fffff,         /* OWL_RELOC_BRANCH_ABS, unused */
+    0x00003fff,         /* OWL_RELOC_JUMP_REL */
+    0x00003fff,         /* OWL_RELOC_JUMP_ABS, unused */
+    0x0000ffff,         /* OWL_RELOC_SECTION_INDEX */
+    0xffffffff,         /* OWL_RELOC_SECTION_OFFSET */
+#elif defined( AS_MIPS )
+    // TODO
+    0xffffffff,         /* OWL_RELOC_ABSOLUTE */
+    0xffffffff,         /* OWL_RELOC_WORD */
+    0x0000ffff,         /* OWL_RELOC_HALF_HI */
+    0x0000ffff,         /* OWL_RELOC_HALF_HA, unused? */
     0x00000000,         /* OWL_RELOC_PAIR */
     0x0000ffff,         /* OWL_RELOC_HALF_LO */
     0x001fffff,         /* OWL_RELOC_BRANCH_REL */
@@ -164,7 +182,7 @@ static void doReloc( asmreloc *reloc ) {
     sym = SymLookup( reloc->name );
     displacement = relocTargetDisp( reloc->offset, getSymOffset( sym ) );
     bit_mask = relocBitMask( reloc );
-    data = (uint_32 *)&(((char *)AsmCodeBuffer)[ reloc->offset ]);
+    data = (uint_32 *)&AsmCodeBuffer[ reloc->offset ];
     *data = (*data&~bit_mask)|(((displacement&bit_mask)+(*data&bit_mask))&bit_mask);
 }
 
@@ -296,7 +314,7 @@ extern void ObjEmitRelocAddend( owl_reloc_type type, uint_32 addend ) {
     uint_32     *pdata;
 
     bit_mask = relocMasks[ type ];
-    pdata = (uint_32 *)&(((char *)AsmCodeBuffer)[ AsmCodeAddress ]);
+    pdata = (uint_32 *)&AsmCodeBuffer[ AsmCodeAddress ];
     *pdata = (*pdata&~bit_mask)|(((addend&bit_mask)+(*pdata&bit_mask))&bit_mask);
 }
 

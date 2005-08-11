@@ -50,7 +50,8 @@ bool        IsMS386;
 bool        IsIntel;
 bool        DumpRaw;
 jmp_buf     BailOutJmp;
-byte        rec_type;
+byte        rec_type[10] = { 0 };
+int         rec_count = 0;
 
 const char *RecNumberToName( byte code )
 {
@@ -139,8 +140,9 @@ const char *RecNumberToName( byte code )
         return( "LLNAME" );
     case LIB_HEADER_REC:
         /* this is the oddball in the MS386 format */
-        if( IsMS386 ) {
+        if( IsMS386 )
             IsMS386 = FALSE;
+        if( code & 1 ) {
             return( "LIBTAIL" );
         } else {
             return( "LIBHEAD" );
@@ -271,13 +273,13 @@ void BackupByte( void )
     --RecPtr;
 }
 
-#if defined( M_I86 ) || defined( __386__ )
 unsigned_16 GetUInt( void )
 /*************************/
 {
     unsigned_16 word;
 
     word = *(unsigned_16 *)RecPtr;
+    CONV_LE_16( word );
     RecPtr += 2;
     return( word );
 }
@@ -288,32 +290,10 @@ unsigned_32 GetLInt( void )
     unsigned_32 dword;
 
     dword = *(unsigned_32 *)RecPtr;
+    CONV_LE_32( dword );
     RecPtr += 4;
     return( dword );
 }
-#else
-unsigned_16 GetUInt( void )
-/*************************/
-{
-    unsigned_16 lo;
-    unsigned_16 hi;
-
-    lo = GetByte();
-    hi = GetByte();
-    return( lo + (hi << 8) );
-}
-
-unsigned_32 GetLInt( void )
-/*************************/
-{
-    unsigned_32 lo;
-    unsigned_32 hi;
-
-    lo = GetUInt();
-    hi = GetUInt();
-    return( lo + (hi << 16 ) );
-}
-#endif
 
 unsigned_32 GetEither( void )
 /***************************/
@@ -328,12 +308,13 @@ unsigned_32 GetEither( void )
     return( value );
 }
 
-void GetName( void )
+byte GetName( void )
 /******************/
 {
     NameLen = GetByte();
     NamePtr = RecPtr;
     RecPtr += NameLen;
+    return( NameLen );
 }
 
 unsigned_16 GetIndex( void )
@@ -362,7 +343,7 @@ unsigned_32 GetVariable( void )
         size = GetUInt();
     } else if( index == COMDEF_LEAF_3 ) {
         lo = GetUInt();
-        size = lo + ( GetByte() << 16 );
+        size = lo + ( (unsigned_32)GetByte() << 16 );
     } else if( index == COMDEF_LEAF_4 ) {
         size = GetLInt();
     } else {
@@ -446,6 +427,7 @@ void ProcFile( FILE *fp, bool is_intel )
     const char  *recname;
     unsigned_32 total_padding;
     int         raw_dump;
+    int         i;
 
     IsPharLap = FALSE;
     IsMS386 = FALSE;
@@ -473,7 +455,13 @@ void ProcFile( FILE *fp, bool is_intel )
         if( IsMS386 ) {
             IsIntel = FALSE;
         }
-        if( rec_type && ( rec_type != ( hdr[ 0 ] & ~1 ))) continue;
+        no_disp = ( rec_count == 0 ) ? FALSE : TRUE;
+        for( i = 0; i < rec_count; i++ ) {
+            if( rec_type[ i ] == ( hdr[ 0 ] & ~1 )) {
+                no_disp = FALSE;
+                break;
+            }
+        }
         recname = RecNumberToName( hdr[ 0 ] );
         cksum = -( cksum - RecBuff[ RecLen - 1 ] );
         Output( CRLF "%s%s(%2) recnum:%u, offset:%X, len:%x, chksum:%b(%2)" CRLF,
@@ -482,11 +470,21 @@ void ProcFile( FILE *fp, bool is_intel )
         RecLen--;
         if( setjmp( BailOutJmp ) == 0 ) {
             switch( hdr[ 0 ] & ~1 ) {
-            case CMD_RHEADR:    ProcRHeadr();                   break;
-            case CMD_ENDREC:    ProcEndRec();                   break;
-            case CMD_THEADR:    ProcTHeadr();                   break;
-            case CMD_LHEADR:    ProcLHeadr();                   break;
-            case CMD_COMENT:    ProcComent();                   break;
+            case CMD_RHEADR:
+                ProcRHeadr();
+                break;
+            case CMD_ENDREC:
+                ProcEndRec();
+                break;
+            case CMD_THEADR:
+                ProcTHeadr();
+                break;
+            case CMD_LHEADR:
+                ProcLHeadr();
+                break;
+            case CMD_COMENT:
+                ProcComent();
+                break;
             case CMD_MODEND:
                 ProcModEnd();
                 if( page_len != 0 ) {
@@ -498,30 +496,74 @@ void ProcFile( FILE *fp, bool is_intel )
                     }
                 }
                 break;
-            case CMD_STATIC_EXTDEF: /* fall through */
-            case CMD_EXTDEF:    ProcExtNames();                 break;
-            case CMD_STATIC_PUBDEF: /* fall through */
-            case CMD_PUBDEF:    ProcPubDefs();                  break;
-            case CMD_LOCSYM:    ProcLocSyms();                  break;
-            case CMD_LINNUM:    ProcLinNums();                  break;
-            case CMD_LLNAME:        /* fall through */
-            case CMD_LNAMES:    ProcNames( &Nameindex );        break;
-            case CMD_SEGDEF:    ProcSegDefs();                  break;
-            case CMD_GRPDEF:    ProcGrpDef();                   break;
-            case CMD_FIXUP:     ProcFixup();                    break;
-            case CMD_LEDATA:    ProcLedata();                   break;
-            case CMD_LIDATA:    ProcLidata();                   break;
-            case CMD_LIBNAM:    ProcNames( &Libindex );         break;
-            case CMD_STATIC_COMDEF: /* fall through */
-            case CMD_COMDEF:    ProcComDef();                   break;
-            case CMD_BAKPAT:    ProcBackPat();                  break;
-            case CMD_CEXTDF:    ProcComExtDef();                break;
-            case CMD_COMDAT:    ProcComDat();                   break;
-            case CMD_LINSYM:    ProcLineSym();                  break;
-            case CMD_ALIAS:     ProcAlias();                    break;
-            case CMD_NBKPAT:    ProcNameBackPat();              break;
-            case CMD_VERNUM:    ProcVerNum();                   break;
-            case CMD_VENDEXT:   ProcVendExt();                  break;
+            case CMD_STATIC_EXTDEF:
+                /* fall through */
+            case CMD_EXTDEF:
+                ProcExtNames();
+                break;
+            case CMD_STATIC_PUBDEF:
+                /* fall through */
+            case CMD_PUBDEF:
+                ProcPubDefs();
+                break;
+            case CMD_LOCSYM:
+                ProcLocSyms();
+                break;
+            case CMD_LINNUM:
+                ProcLinNums();
+                break;
+            case CMD_LLNAME:
+                /* fall through */
+            case CMD_LNAMES:
+                ProcNames( &Nameindex );
+                break;
+            case CMD_SEGDEF:
+                ProcSegDefs();
+                break;
+            case CMD_GRPDEF:
+                ProcGrpDef();
+                break;
+            case CMD_FIXUP:
+                ProcFixup();
+                break;
+            case CMD_LEDATA:
+                ProcLedata();
+                break;
+            case CMD_LIDATA:
+                ProcLidata();
+                break;
+            case CMD_LIBNAM:
+                ProcNames( &Libindex );
+                break;
+            case CMD_STATIC_COMDEF:
+                /* fall through */
+            case CMD_COMDEF:
+                ProcComDef();
+                break;
+            case CMD_BAKPAT:
+                ProcBackPat();
+                break;
+            case CMD_CEXTDF:
+                ProcComExtDef();
+                break;
+            case CMD_COMDAT:
+                ProcComDat();
+                break;
+            case CMD_LINSYM:
+                ProcLineSym();
+                break;
+            case CMD_ALIAS:
+                ProcAlias();
+                break;
+            case CMD_NBKPAT:
+                ProcNameBackPat();
+                break;
+            case CMD_VERNUM:
+                ProcVerNum();
+                break;
+            case CMD_VENDEXT:
+                ProcVendExt();
+                break;
             case LIB_HEADER_REC:
                 if( hdr[ 0 ] & 1 ) {
                     /* LIB_TRAILER_REC */

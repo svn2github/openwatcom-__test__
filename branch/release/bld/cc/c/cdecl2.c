@@ -31,10 +31,9 @@
 
 
 #include "cvars.h"
-#include "toggle.h"
 #include "pragdefn.h"
 #include "cgswitch.h"
-
+#include "i64.h"
 
 TYPEPTR *MakeParmList( struct parm_list *, int, int );
 struct parm_list *NewParm( TYPEPTR, struct parm_list * );
@@ -367,13 +366,15 @@ local SYM_HANDLE VarDecl( SYMPTR sym, stg_classes stg_class, decl_state *state )
     if( old_sym_handle != 0 ) {                         /* 28-feb-94 */
         SymGet( &old_sym, old_sym_handle );
         if( old_sym.level == SymLevel ) {
+            SetDiagSymbol( &old_sym, old_sym_handle );
             if( old_sym.stg_class == SC_EXTERN  &&  stg_class == SC_EXTERN ) {
-                SetDiagSymbol( &old_sym, old_sym_handle );
                 if( ! IdenticalType( old_sym.sym_type, sym->sym_type ) ) {
                     CErr2p( ERR_TYPE_DOES_NOT_AGREE, sym->name );
                 }
-                SetDiagPop();
+            } else if( old_sym.stg_class == SC_TYPEDEF ) {
+                CErr2p( ERR_SYM_ALREADY_DEFINED, sym->name );
             }
+            SetDiagPop();
         }
     }
     if( stg_class == SC_EXTERN ) {              /* 27-oct-88 */
@@ -603,42 +604,32 @@ int DeclList( SYM_HANDLE *sym_head )
                 info.typ = TypeDefault();
             }
             if( info.stg == SC_NULL  && (state & DECL_STATE_NOTYPE) ) {
-                switch( CurToken ) {
-                case T_ID:
-                case T_LEFT_PAREN:
-                case T___EXPORT:
-                case T___LOADDS:
-                case T___NEAR:
-                case T___FAR:
-                case T___HUGE:
-                case T___CDECL:
-                case T___PASCAL:
-                case T___FORTRAN:
-                case T__SYSCALL:                        /* 04-jul-91 */
-                case T___STDCALL:                       /* 03-feb-95 */
-                case T___FASTCALL:
-                case T___INTERRUPT:
-                case T___SAVEREGS:
-                case T_TIMES:                           /* 30-nov-94 */
-                    break;
-                case T_IF:
-                case T_FOR:
-                case T_WHILE:
-                case T_DO:
-                case T_SWITCH:
-                case T_BREAK:
-                case T_CONTINUE:
-                case T_CASE:
-                case T_DEFAULT:
-                case T_ELSE:
-                case T_GOTO:
-                case T_RETURN:
-                    FlushBadCode();
-                    continue;
-                default:
-                    CErr2p( ERR_EXPECTING_DECL_BUT_FOUND, Tokens[CurToken] );
-                    NextToken();
-                    break;
+                if( TokenClass[ CurToken ] == TC_MODIFIER ) {
+                } else {
+                    switch( CurToken ) {
+                    case T_ID:
+                    case T_LEFT_PAREN:
+                    case T_TIMES:
+                        break;
+                    case T_IF:
+                    case T_FOR:
+                    case T_WHILE:
+                    case T_DO:
+                    case T_SWITCH:
+                    case T_BREAK:
+                    case T_CONTINUE:
+                    case T_CASE:
+                    case T_DEFAULT:
+                    case T_ELSE:
+                    case T_GOTO:
+                    case T_RETURN:
+                        FlushBadCode();
+                        continue;
+                    default:
+                        CErr2p( ERR_EXPECTING_DECL_BUT_FOUND, Tokens[CurToken] );
+                        NextToken();
+                        break;
+                    }
                 }
             }
             break;
@@ -724,49 +715,49 @@ TYPEPTR TypeName()
 local type_modifiers GetModifiers( void )
 {
     type_modifiers        modifier;
-    int                   hash;
-
-    static type_modifiers const ModifierFlags[] = {
-            0,
-            FLAG_NEAR,          // TC_NEAR
-            FLAG_FAR,           // TC_FAR
-#if _CPU == 8086
-            FLAG_HUGE,          // TC_HUGE
-#else
-            FLAG_FAR,            // TC_HUGE      // close
-#endif
-
-#if _CPU == 8086
-            FLAG_FAR,           // TC_FAR16      // avoid giving error
-#else
-            FLAG_FAR16,         // TC_FAR16
-#endif
-            FLAG_INTERRUPT,     // TC_INTERRUPT
-            LANG_CDECL,         // TC_CDECL
-            LANG_PASCAL,        // TC_PASCAL
-            LANG_FORTRAN,       // TC_FORTRAN
-            LANG_SYSCALL,       // TC_SYSCALL           /* 04-jul-91 */
-            LANG_STDCALL,       // TC_STDCALL
-            LANG_FASTCALL,      // TC_FASTCALL
-            LANG_OPTLINK,       // TC_OPTLINK
-            FLAG_EXPORT,        // TC_EXPORT
-            FLAG_LOADDS,        // TC_LOADDS
-            FLAG_SAVEREGS,      // TC_SAVEREGS
-    };
 
     modifier = 0;
-    for(;;) {
-        hash = TokenClass[ CurToken ];
-        if( hash >= TC_MODIFIER ) break;        /* 04-jul-90, c/=/>=/ */
-        modifier |= ModifierFlags[ hash ];
+    for( ; TokenClass[ CurToken ] == TC_MODIFIER; ) {
+        switch( CurToken ) {
+        case T___NEAR:      modifier |= FLAG_NEAR;      break;
+        case T___FAR:       modifier |= FLAG_FAR;       break;
+#if _CPU == 8086
+        case T__FAR16:
+        case T___FAR16:     modifier |= FLAG_FAR;       break;
+        case T___HUGE:      modifier |= FLAG_HUGE;      break;
+#else
+        case T__FAR16:
+        case T___FAR16:     modifier |= FLAG_FAR16;     break;
+        case T___HUGE:      modifier |= FLAG_FAR;       break;
+#endif
+        case T___INTERRUPT: modifier |= FLAG_INTERRUPT; break;
+        case T__CDECL:
+        case T___CDECL:     modifier |= LANG_CDECL;     break;
+        case T___FASTCALL:  modifier |= LANG_FASTCALL;  break;
+        case T___FORTRAN:   modifier |= LANG_FORTRAN;   break;
+        case T__OPTLINK:    modifier |= LANG_OPTLINK;   break;
+        case T__PASCAL:
+        case T___PASCAL:    modifier |= LANG_PASCAL;    break;
+        case T___STDCALL:   modifier |= LANG_STDCALL;   break;
+        case T__SYSCALL:
+        case T___SYSCALL:
+        case T__SYSTEM:     modifier |= LANG_SYSCALL;   break;
+        case T___WATCALL:   modifier |= LANG_WATCALL;   break;
+        case T__EXPORT:
+        case T___EXPORT:    modifier |= FLAG_EXPORT;    break;
+        case T___LOADDS:    modifier |= FLAG_LOADDS;    break;
+        case T___SAVEREGS:  modifier |= FLAG_SAVEREGS;  break;
+        default:
+            break;
+        }
         NextToken();
     }
     return( modifier );
 }
 
 struct mod_info {
-    int             segment;
-    type_modifiers  modifier;  // const, vol flags
+    int              segment;
+    type_modifiers   modifier;  // const, vol flags
     BASED_KIND       based_kind;
     SYM_HANDLE       based_sym;
 };
@@ -913,10 +904,12 @@ local TYPEPTR Pointer( TYPEPTR ptr_typ, struct mod_info *info )
         }
         if( CurToken == T_TIMES ) {
             NextToken();
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
             // * seg16 binds with * cause of IBM dorks, and so does far16
-            if( CurToken == T__SEG16 || CurToken == T___FAR16 ) {
-#if _CPU == 386                                         /* 15-nov-91 */
+            if( ( CurToken == T__SEG16 ) 
+              || ( CurToken == T__FAR16 )
+              || ( CurToken == T___FAR16 ) ) {
+#if _CPU == 386
                 info->modifier |= FLAG_FAR16;
 #else
                 info->modifier |= FLAG_FAR;
@@ -1017,7 +1010,7 @@ void Declarator( SYMPTR sym, type_modifiers mod, TYPEPTR typ, decl_state state )
                 type_list = MakeParmList( NewParm(parm_type,NULL), 1, 0 );
             }
             typ = FuncNode( typ, info.modifier, type_list );
-            typ = PtrNode( typ, 0, SEG_DATA );
+            typ = PtrNode( typ, FLAG_NONE, SEG_DATA );
             MustRecog( T_RIGHT_PAREN );
         } else {
             if( (state & DECL_STATE_ISPARM) && TokenClass[ CurToken ] == TC_STG_CLASS ) {
@@ -1155,9 +1148,14 @@ local TYPEPTR ArrayDecl( TYPEPTR typ )
         if( CurToken != T_RIGHT_BRACKET ) {
             const_val val;
 
-            if( ConstExprAndType( &val ) ){
-                dimension = val.val32;
-            }else{
+            if( ConstExprAndType( &val ) ) {
+                if( ( val.type == TYPE_ULONG64 ) && !U64IsI32( val.value ) ) {
+                    CErr1( ERR_CONSTANT_TOO_BIG );
+                } else if( ( val.type == TYPE_LONG64 ) && !I64IsI32( val.value ) ) {
+                    CErr1( ERR_CONSTANT_TOO_BIG );
+                }
+                dimension = I32FetchTrunc( val.value );
+            } else {
                 dimension = 1;
             }
             if( dimension <= 0 ) {
@@ -1175,6 +1173,7 @@ local TYPEPTR ArrayDecl( TYPEPTR typ )
         MustRecog( T_RIGHT_BRACKET );
         next_node = ArrayNode( typ );
         next_node->u.array->dimension = dimension;
+        next_node->u.array->unspecified_dim = ( dimension == 0 );
         if( first_node == NULL ) {
             first_node = next_node;
         } else {

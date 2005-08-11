@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Interface to x86 CPU detection routines.
 *
 ****************************************************************************/
 
@@ -34,15 +33,26 @@
 
 #if defined( MD_x86 )
 
+#ifdef __WATCOMC__
+
+#if _M_IX86 > 100
+
 #pragma aux GetMSW = \
-        ".286p"      \
         "smsw ax"    \
         value [ax];
 extern unsigned short GetMSW( void );
 
+#endif
+
 #define MSW_EM       0x04
 
 #define HAVE_EMU (GetMSW() & MSW_EM)
+
+#else
+
+#define HAVE_EMU     0
+
+#endif
 
 extern unsigned X86CPUType( void );
 

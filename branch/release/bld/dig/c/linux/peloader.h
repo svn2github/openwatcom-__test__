@@ -55,15 +55,19 @@ Structure of a module handle when loaded from disk
 {secret}
 ****************************************************************************/
 typedef struct {
+    u_char  *pbase;         /* Base of image in memory                  */
     u_char  *ptext;         /* Text section read from disk              */
     u_char  *pdata;         /* Data section read from disk              */
+    u_char  *pbss;          /* BSS section read                         */
     u_char  *pimport;       /* Import section read from disk            */
     u_char  *pexport;       /* Export section read from disk            */
     u_long  textBase;       /* Base of text section in image            */
     u_long  dataBase;       /* Base of data section in image            */
+    u_long  bssBase;        /* Base of BSS data section in image        */
     u_long  importBase;     /* Offset of import section in image        */
     u_long  exportBase;     /* Offset of export section in image        */
     u_long  exportDir;      /* Offset of export directory               */
+    char    *modname;       /* Filename of the image                    */
     } PE_MODULE;
 
 /****************************************************************************
@@ -99,7 +103,7 @@ extern "C" {            /* Use "C" linkage when in C++ mode */
 u_long      PE_getFileSize(FILE *f,u_long startOffset);
 PE_MODULE * PE_loadLibraryExt(FILE *f,u_long offset,u_long *size);
 PE_MODULE * PE_loadLibrary(const char *szDLLName);
-PE_MODULE * PE_loadLibrary_handle(int fd);
+PE_MODULE * PE_loadLibraryHandle(int fd,const char *szDLLName);
 void *      PE_getProcAddress(PE_MODULE *hModule,const char *szProcName);
 void        PE_freeLibrary(PE_MODULE *hModule);
 int         PE_getError(void);

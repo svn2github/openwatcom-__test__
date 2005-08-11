@@ -272,13 +272,40 @@ static void SetFPU(void)
     }
 }
 
+static char memory_model = 0;
+
+static void SetMM(void)
+/******************************/
+{
+    char buffer[20];
+
+    switch( OptValue ) {
+    case 'c':
+    case 'f':
+    case 'h':
+    case 'l':
+    case 'm':
+    case 's':
+    case 't':
+        break;
+    default:
+        strcpy( buffer, "/m" );
+        strcat( buffer, (char *)&OptValue );
+        MsgPrintf1( MSG_UNKNOWN_OPTION, buffer );
+        exit( 1 );
+    }
+
+    memory_model = OptValue;
+    return;    
+}
+
 static void SetMemoryModel(void)
 /******************************/
 {
     char buffer[20];
     char *model;
 
-    switch( OptValue ) {
+    switch( memory_model ) {
     case 'c':
         model = "COMPACT";
         break;
@@ -301,16 +328,12 @@ static void SetMemoryModel(void)
         model = "TINY";
         break;
     default:
-        strcpy( buffer, "/m" );
-        strcat( buffer, (char *)&OptValue );
-        MsgPrintf1( MSG_UNKNOWN_OPTION, buffer );
-        exit( 1 );
+        return;
     }
 
     strcpy( buffer, ".MODEL " );
     strcat( buffer, model );
     InputQueueLine( buffer );
-
     return;    
 }
 
@@ -318,7 +341,7 @@ static void Ignore(void) {};
 
 static void Set_BT(void) { SetTargName( OptParm,  OptScanPtr - OptParm ); }
 
-static void Set_C(void) { Options.output_data_in_code_records = FALSE; }
+static void Set_C(void) { Options.output_comment_data_in_code_records = FALSE; }
 
 static void Set_D(void) { Options.debug_flag = (OptValue != 0) ? TRUE : FALSE; }
 
@@ -353,6 +376,10 @@ static void Set_ZCM(void) { Options.watcom_c_mangler = FALSE; }
 static void Set_ZLD(void) { Options.emit_dependencies = FALSE; }
 
 static void Set_ZQ(void) { Options.quiet = TRUE; }
+
+static void Set_ZZ(void) { Options.use_stdcall_at_number = FALSE; }
+
+static void Set_ZZO(void) { Options.mangle_stdcall = FALSE; }
 
 static void HelpUsage(void) { usage_msg();}
 
@@ -389,7 +416,6 @@ static struct option const cmdl_options[] = {
     { "fp0",    0,        SetFPU },
     { "fp2",    2,        SetFPU },
     { "fp3",    3,        SetFPU },
-    { "fp4",    4,        SetFPU },
     { "fp5",    5,        SetFPU },
     { "fp6",    6,        SetFPU },
     { "fpi87",  '7',      SetFPU },
@@ -402,13 +428,13 @@ static struct option const cmdl_options[] = {
     { "hw",     'w',      Ignore },
     { "i=@",    0,        SetInclude },
     { "j",      0,        Set_S },
-    { "mc",     'c',      SetMemoryModel },
-    { "mf",     'f',      SetMemoryModel },
-    { "mh",     'h',      SetMemoryModel },
-    { "ml",     'l',      SetMemoryModel },
-    { "mm",     'm',      SetMemoryModel },
-    { "ms",     's',      SetMemoryModel },
-    { "mt",     't',      SetMemoryModel },
+    { "mc",     'c',      SetMM },
+    { "mf",     'f',      SetMM },
+    { "mh",     'h',      SetMM },
+    { "ml",     'l',      SetMM },
+    { "mm",     'm',      SetMM },
+    { "ms",     's',      SetMM },
+    { "mt",     't',      SetMM },
     { "nc=$",   'c',      Set_N },
     { "nd=$",   'd',      Set_N },
     { "nm=$",   'm',      Set_N },
@@ -422,39 +448,43 @@ static struct option const cmdl_options[] = {
     { "w=#",    0,        SetWarningLevel },
     { "zld",    0,        Set_ZLD },
     { "zcm",    0,        Set_ZCM },
+    { "zz",     0,        Set_ZZ },
+    { "zzo",    0,        Set_ZZO },
     { "zq",     0,        Set_ZQ },
     { 0,        0,        0 }
 };
 
 global_options Options = {
-    /* sign_value       */      FALSE,
-    /* stop_at_end      */      FALSE,
-    /* quiet            */      FALSE,
-    /* banner_printed   */      FALSE,
-    /* debug_flag       */      FALSE,
-    /* naming_convention*/      ADD_USCORES,
-    /* floating_point   */      DO_FP_EMULATION,
-    /* output_data_in_code_records */   TRUE,
+    /* sign_value       */          FALSE,
+    /* stop_at_end      */          FALSE,
+    /* quiet            */          FALSE,
+    /* banner_printed   */          FALSE,
+    /* debug_flag       */          FALSE,
+    /* naming_convention*/          ADD_USCORES,
+    /* floating_point   */          DO_FP_EMULATION,
+    /* output_comment_data_in_code_records */   TRUE,
 
-    /* error_count      */      0,
-    /* warning_count    */      0,
-    /* error_limit      */      20,
-    /* warning_level    */      2,
-    /* warning_error    */      FALSE,
-    /* build_target     */      NULL,
+    /* error_count      */          0,
+    /* warning_count    */          0,
+    /* error_limit      */          20,
+    /* warning_level    */          2,
+    /* warning_error    */          FALSE,
+    /* build_target     */          NULL,
 
-    /* code_class       */      NULL,
-    /* data_seg         */      NULL,
-    /* test_seg         */      NULL,
-    /* module_name      */      NULL,
+    /* code_class       */          NULL,
+    /* data_seg         */          NULL,
+    /* text_seg         */          NULL,
+    /* module_name      */          NULL,
 
     #ifdef DEBUG_OUT
-    /* debug            */      FALSE,
+    /* debug            */          FALSE,
     #endif
-    /* default_name_mangler */  NULL,
-    /* allow_c_octals   */      FALSE,
-    /* emit_dependencies */     TRUE,
-    /* Watcom C name mangler */ TRUE
+    /* default_name_mangler */      NULL,
+    /* allow_c_octals   */          FALSE,
+    /* emit_dependencies */         TRUE,
+    /* Watcom C name mangler */     TRUE,
+    /* stdcall at number */         TRUE,
+    /* mangle stdcall   */          TRUE
 };
 
 static int OptionDelimiter( char c )
@@ -584,6 +614,7 @@ int main()
 #else
     do_init_stuff( &argv[1] );
 #endif
+    SetMemoryModel();
     WriteObjModule();           // main body: parse the source file
     if( !Options.quiet ) {
         PrintStats();
@@ -879,7 +910,6 @@ void set_fpu_parameters( void )
         cpu_directive( T_DOT_287 );
         break;
     case 3:
-    case 4:
     case 5:
     case 6:
         cpu_directive( T_DOT_387 );

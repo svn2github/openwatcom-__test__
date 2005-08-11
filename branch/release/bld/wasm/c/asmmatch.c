@@ -132,7 +132,7 @@ static int output( int i )
         case T_REPNZ:
         case T_REPNE:
             if( ins->allowed_prefix != REPxx ) {
-                AsmError( REP_PREFIX_IS_NOT_ALLOWED_ON_THIS_INSTRUCTION );
+                AsmError( REPX_PREFIX_IS_NOT_ALLOWED_ON_THIS_INSTRUCTION );
                 return( ERROR );
             }
             break;
@@ -732,6 +732,9 @@ static int match_phase_3( int *i, enum operand_type determinant )
 #endif
                     Code->prefix.opsiz = FALSE;
                     cur_opnd = OP_I8;
+                    if( InsFixups[OPND2] != NULL ) {
+                        InsFixups[OPND2]->fixup_type = FIX_LOBYTE;
+                    }
                 } else if( last_opnd & OP_R16 ) {
                     // 16-bit register, so output 16-bit data
 #if defined(_WASM_)

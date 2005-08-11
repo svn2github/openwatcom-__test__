@@ -33,7 +33,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <process.h>
+#if defined(__WATCOMC__)
+    #include <process.h>
+#endif
 #if defined(__AXP__) && defined(__NT__)
     #include <windows.h>
 #endif
@@ -100,9 +102,19 @@ void OpeningStatement( void )
     Output( banner3a "\r\n" );
 }
 
-int main()
+#ifndef __WATCOMC__
+int  _argc;
+char **_argv;
+#endif
+
+int main( int argc, char **argv )
 {
     char key;
+
+#ifndef __WATCOMC__
+    _argc = argc;
+    _argv = argv;
+#endif
 
     Initialize();
     OpeningStatement();

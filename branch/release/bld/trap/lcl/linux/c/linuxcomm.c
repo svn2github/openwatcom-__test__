@@ -36,6 +36,7 @@
 #include <termios.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include "exeelf.h"
 #include "linuxcomm.h"
 #include "trpimp.h"
 
@@ -44,15 +45,15 @@ void print_msg( const char *format, ... )
     va_list     args;
     static char buf[2048];
 
-    va_start(args,format);
-    vsprintf(buf,format,args);
-    write( 1, buf, strlen(buf) );
-    va_end(args);
+    va_start( args, format );
+    vsprintf( buf, format, args );
+    write( 1, buf, strlen( buf ) );
+    va_end( args );
 }
 
 char *StrCopy( char *src, char *dst )
 {
-    while( *dst = *src ) {
+    while( (*dst = *src) ) {
         ++src;
         ++dst;
     }
@@ -114,7 +115,7 @@ unsigned FindFilePath( int exe, char *name, char *result )
     return 0;
 }
 
-unsigned ReqRead_user_keyboard()
+unsigned ReqRead_user_keyboard( void )
 {
     read_user_keyboard_req  *acc;
     read_user_keyboard_ret  *ret;
@@ -125,7 +126,8 @@ unsigned ReqRead_user_keyboard()
 
     acc = GetInPtr( 0 );
     ret = GetOutPtr( 0 );
-
+    CONV_LE_16( acc->wait );
+    
     tcgetattr( STDIN_FILENO, &old );
     new = old;
     new.c_iflag &= ~(IXOFF | IXON);
@@ -150,18 +152,19 @@ unsigned ReqRead_user_keyboard()
     return( sizeof( *ret ) );
 }
 
-unsigned ReqGet_err_text()
+unsigned ReqGet_err_text( void )
 {
     get_err_text_req    *acc;
     char                *err_txt;
 
     acc = GetInPtr( 0 );
+    CONV_LE_32( acc->err );
     err_txt = GetOutPtr( 0 );
     strcpy( err_txt, strerror( acc->err ) );
     return( strlen( err_txt ) + 1 );
 }
 
-unsigned ReqSplit_cmd()
+unsigned ReqSplit_cmd( void )
 {
     char                *cmd;
     char                *start;
@@ -180,6 +183,8 @@ unsigned ReqSplit_cmd()
         case '\t':
             ret->parm_start = cmd - start + 1;
             ret->cmd_end = cmd - start;
+            CONV_LE_16( ret->cmd_end );
+            CONV_LE_16( ret->parm_start );
             return( sizeof( *ret ) );
         }
         ++cmd;
@@ -187,10 +192,12 @@ unsigned ReqSplit_cmd()
     }
     ret->parm_start = cmd - start;
     ret->cmd_end = cmd - start;
+    CONV_LE_16( ret->cmd_end );
+    CONV_LE_16( ret->parm_start );
     return( sizeof( *ret ) );
 }
 
-unsigned ReqGet_next_alias()
+unsigned ReqGet_next_alias( void )
 {
     get_next_alias_ret  *ret;
 
@@ -200,13 +207,12 @@ unsigned ReqGet_next_alias()
     return( sizeof( *ret ) );
 }
 
-unsigned ReqSet_user_screen()
+unsigned ReqSet_user_screen( void )
 {
     return( 0 );
 }
 
-unsigned ReqSet_debug_screen()
+unsigned ReqSet_debug_screen( void )
 {
     return( 0 );
 }
-

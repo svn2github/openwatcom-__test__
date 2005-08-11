@@ -47,8 +47,8 @@ executable files that run under FlashTek's DOS extender
 .bull
 executable files that run under Phar Lap's 386|DOS-Extender
 .bull
-executable files that run under Tenberry Software's DOS/4G and DOS/4GW
-DOS extenders
+executable files that run under CauseWay DOS extender, Tenberry Software's
+DOS/4G and DOS/4GW DOS extenders, and compatible products
 .bull
 NetWare Loadable Modules (NLMs) that run under Novell's NetWare
 operating system
@@ -60,6 +60,10 @@ QNX executable files
 16-bit Windows (Win16) executable files including Dynamic Link Libraries
 .bull
 32-bit Windows (Win32) executable files including Dynamic Link Libraries
+.bull
+raw binary images
+.bull
+Intel Hex files (Hex80, Hex86 and extended linear)
 .endbull
 .np
 .ix 'host operating system'

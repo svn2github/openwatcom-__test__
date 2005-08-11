@@ -29,11 +29,7 @@
 ****************************************************************************/
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <i86.h>
-#include <limits.h>
-#include <malloc.h>
 #include "exitwmsg.h"
 #include "initfini.h"
 #include "thread.h"
@@ -44,22 +40,24 @@ int     _argc;                      /* argument count  */
 char    **_argv;                    /* argument vector */
 
 /* address of FP exception handler */
+#if defined( __386__ )
 extern  void    (*__FPE_handler)(int);
 
-static void __null_FPE_rtn()
+static void __null_FPE_rtn( int i )
 {
 }
+#endif
 
 extern int main( int, char **, char ** );
 
-void __cdecl _LinuxMain(int argc, char **argv, char **arge)
+void __cdecl _LinuxMain( int argc, char **argv, char **arge )
 {
 //    thread_data *tdata;
 
     // Initialise the heap. To do this we call sbrk() with
     // a value of 0, which will return the current top of the
     // process address space which is where we start the heap.
-    _curbrk             = (unsigned)sbrk(0);
+    _curbrk             = (unsigned)sbrk( 0 );
 
     // TODO: Need to find the end of the stack from the kernel! For now
     //       we make it big enough to cover the heap. This will work, but
@@ -68,12 +66,14 @@ void __cdecl _LinuxMain(int argc, char **argv, char **arge)
     _argc               = argc;
     _argv               = argv;
     environ             = arge;
+#if defined( __386__ )
     __FPE_handler =     &__null_FPE_rtn;
+#endif
     __InitRtns( 1 );
 //    tdata = __alloca( __ThreadDataSize );
 //    memset( tdata, 0, __ThreadDataSize );
 //    tdata->__data_size = __ThreadDataSize;
     __InitRtns( 255 );
     _amblksiz = 8 * 1024;       /* set minimum memory block allocation  */
-    exit(main(argc,argv,arge));
+    exit( main( argc, argv, arge ) );
 }

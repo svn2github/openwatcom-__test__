@@ -1,11 +1,10 @@
-Open Watcom C/C++/FORTRAN Version 1.3 - README
-----------------------------------------------
+Open Watcom C/C++ Version 1.4 - README
+--------------------------------------
 
-Welcome to the Open Watcom C/C++ and FORTRAN/77 version 1.3 release! This
-README provides helpful hints to help you get the software package up and
-running. For more detailed information on installation and setup, please
-refer to online Getting Started Guide (c_readme.hlp/c_readme.inf for
-the C/C++ compiler or f_readme.hlp/f_readme.inf for the FORTRAN compiler).
+Welcome to the Open Watcom C/C++ version 1.4 release! This README provides
+helpful hints to help you get the software package up and running. For more
+detailed information on installation and setup, please refer to online
+Getting Started Guide (c_readme.hlp/c_readme.inf).
 
 ===========================================================
 Important
@@ -21,8 +20,8 @@ Environment variables used by Open Watcom
 ===========================================================
 
 For proper operation the Open Watcom compilers require few environment
-variables o be set up correctly. These variables differ slightly depending
-on the ost platform (DOS, OS/2, Win32). The common variables are:
+variables to be set up correctly. These variables differ slightly depending
+on the host platform (DOS, OS/2, Win32). The common variables are:
 
  - PATH     - points to directories containing Open Watcom executables
  - WATCOM   - points to the directory where Open Watcom is installed
@@ -30,11 +29,9 @@ on the ost platform (DOS, OS/2, Win32). The common variables are:
  - EDPATH   - points to VI/VIW configuration files
  - INCLUDE  - points to directories containing header files used by the
               C/C++ compilers
- - FINCLUDE - points to directories containing header files used by the
-              FORTRAN compilers
  - LIB      - points to directories containing library files; note that
               Open Watcom linker is able to locate Open Watcom runtime
-          libraries without this variable
+              libraries without this variable
  - WWINHELP - points to the directory on the CDROM drive where help files are
               located. This may minimize hard disk space requirements
 
@@ -65,7 +62,7 @@ OS/2 specifics
  - LIBPATH   - either the BEGINLIBPATH/ENDLIBPATH environment variable or the
                LIBPATH statement in CONFIG.SYS must point to the binp\dll
                subdirectory of Open Watcom in order to let the OS find
-           Open Watcom DLLs
+               Open Watcom DLLs
  - HELP      - points to binp\help to let Open Watcom GUI tools locate online
                help files
  - BOOKSHELF - points to binp\help to allow the IPF viewer (VIEW.EXE) locate
@@ -130,4 +127,3 @@ REM SET LIB=
 SET HELP=%WATCOM%\BINP\HELP;%HELP%
 SET BOOKSHELF=%WATCOM%\BINP\HELP;%BOOKSHELF%
 ---------------------------------------------------------------------------
-

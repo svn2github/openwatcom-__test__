@@ -49,7 +49,6 @@ typedef char __far *va_list[1];
 #include <dos.h>
 #include <share.h>
 #include <sys/stat.h>
-#define STRICT
 #include <windows.h>
 #include "winext.h"
 #include "watcom.h"
@@ -169,7 +168,7 @@ int Init32BitTask( HINSTANCE thishandle, HINSTANCE prevhandle, LPSTR cmdline,
     WORD                i,amount,bytes_read,j;
     WORD                sel;
     int                 handle;
-    long                rc;
+    tiny_ret_t          rc;
     DWORD               size,currsize,curroff,minmem,maxmem;
     DWORD               relsize,exelen;
     struct wstart_vars  far *dataptr;
@@ -202,7 +201,7 @@ int Init32BitTask( HINSTANCE thishandle, HINSTANCE prevhandle, LPSTR cmdline,
      */
     GetModuleFileName( thishandle, file, 128 );
     rc = _fTinyOpen( file, TIO_READ );
-    if( rc == -1 ) {
+    if( TINY_ERROR( rc ) ) {
         return( Fini( 2, (char _FAR *)"Error opening file",
                     (char _FAR *)file) );
     }
@@ -493,7 +492,7 @@ int Init32BitTask( HINSTANCE thishandle, HINSTANCE prevhandle, LPSTR cmdline,
 extern void RelocateDWORD( short, long, long );
 extern void RelocateWORD( short, long, short );
 
-#pragma aux RelocateDWORD = ".386p " \
+#pragma aux RelocateDWORD = \
         "mov     es,si" \
         "shl     edx,16" \
         "mov     dx,ax" \

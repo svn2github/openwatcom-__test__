@@ -18,6 +18,8 @@ run on the following platforms:
 .bull
 DOS
 .bull
+CauseWay DOS Extender
+.bull
 Tenberry Software DOS/4G Extender
 .bull
 Phar Lap DOS Extender
@@ -29,6 +31,8 @@ Windows NT/2000/XP
 Windows 9x
 .bull
 16 and 32-bit OS/2
+.bull
+GNU/Linux
 .bull
 QNX
 .bull
@@ -52,7 +56,7 @@ you should know about.
 The debugger's user interface has been redesigned. There are GUI
 versions of the debugger that run under Windows 3.x, Windows NT/2000/XP,
 Windows 9x, and 32-bit OS/2. There are also character mode versions
-that run under DOS, Windows 3.x, OS/2, and QNX. All versions share a
+that run under DOS, Windows 3.x, OS/2, Linux and QNX. All versions share a
 common user interface incorporating powerful features like context
 sensitive menus, eliminating the need for command oriented debugging.
 .*

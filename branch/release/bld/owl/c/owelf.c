@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Emit ELF object.
 *
 ****************************************************************************/
 
@@ -71,7 +70,11 @@ static void writeFileHeader( owl_file_handle file ) {
     header.e_ident[ EI_MAG2 ] = ELFMAG2;
     header.e_ident[ EI_MAG3 ] = ELFMAG3;
     header.e_ident[ EI_CLASS ] = ELFCLASS32;
+#if defined( __BIG_ENDIAN__ )
+    header.e_ident[ EI_DATA ] = ELFDATA2MSB;
+#else
     header.e_ident[ EI_DATA ] = ELFDATA2LSB;
+#endif
     header.e_ident[ EI_VERSION ] = EV_CURRENT;
     header.e_type = ET_REL;
     header.e_machine = machineTypes[ file->info->cpu ];
@@ -232,13 +235,52 @@ static Elf32_Word sectionFlags( owl_section_type type ) {
     return( flags );
 }
 
-static void doSectionHeader( owl_section_handle section, Elf32_Shdr *header ) {
-//*****************************************************************************
+static uint_32 sectionAlignment( owl_section_info *section )
+//**********************************************************
+{
+    uint_32     alignment = 0;
 
+    switch( section->align ) {
+    case  1:
+    case  2:
+    case  4:
+    case  8:
+    case 16:
+    case 32:
+    case 64:
+        alignment = section->align;
+        break;
+    default:
+        assert( 0 );    // must be power of two
+        break;
+    }
+    return( alignment );
+}
+
+static owl_offset sectionPadding( owl_section_handle section, owl_offset offset )
+//*******************************************************************************
+{
+    owl_offset          mod;
+    owl_offset          padding;
+
+    padding = 0;
+    if( section->align != 0 ) {
+        mod = offset % section->align;
+        if( mod != 0 ) {
+            padding = section->align - mod;
+        }
+    }
+    section->x.elf.pad_amount = padding;
+    return( padding );
+}
+
+static void doSectionHeader( owl_section_handle section, Elf32_Shdr *header )
+//***************************************************************************
+{
     initSectionHeader( header, sectionTypes( section->type ), sectionFlags( section->type ) );
     header->sh_name = OWLStringOffset( section->name );
-    header->sh_addralign = 0;   // fixme - this needs to be done - will affect next_section calculation below
-    header->sh_size = section->size;
+    header->sh_addralign = sectionAlignment( section );
+    header->sh_size = section->size + sectionPadding( section, section->size );
     if( !( section->type & OWL_SEC_ATTR_BSS ) ) {
         header->sh_offset = section->file->x.elf.next_section;
         section->file->x.elf.next_section += header->sh_size;
@@ -308,9 +350,17 @@ static void emitReloc( owl_section_handle sec, owl_reloc_info *reloc, Elf32_Rela
 
     elf_reloc->r_offset = reloc->location;
     elf_reloc->r_info = ELF32_R_INFO( reloc->symbol->index, ElfRelocType( reloc->type, sec->file->info->cpu ) );
+    bit_mask = OWLRelocBitMask( sec->file, reloc );
+#ifdef __BIG_ENDIAN__ //TODO check target, not host
+    // When targeting big endian machines, halfword relocs do not start
+    // where the instruction starts because high bits are stored first and
+    // reloc is in the low bits. Adjust the location of the reloc for those.
+    // Bit of a hack really, but this is the easiest place to do it.
+    if( !(bit_mask & 0xffff0000) )
+        elf_reloc->r_offset += 2;
+#endif
     if( useRela ) {
         // dig up the embedded addend within the object and put it here
-        bit_mask = OWLRelocBitMask( sec->file, reloc );
         old_loc = OWLBufferTell( sec->buffer );
         OWLBufferSeek( sec->buffer, reloc->location );
         data = 0;
@@ -320,6 +370,21 @@ static void emitReloc( owl_section_handle sec, owl_reloc_info *reloc, Elf32_Rela
         data &= ~bit_mask;
         OWLBufferWrite( sec->buffer, (char *)&data, data_size );
         OWLBufferSeek( sec->buffer, old_loc );
+    }
+}
+
+static void emitSectionPadding( owl_section_info *curr )
+//******************************************************
+{
+    char                *buffer;
+    owl_offset          padding;
+
+    padding = curr->x.elf.pad_amount;
+    if( padding != 0 ) {
+        buffer = _ClientAlloc( curr->file, padding );
+        memset( buffer, 0, padding );
+        _ClientWrite( curr->file, buffer, padding );
+        _ClientFree( curr->file, buffer );
     }
 }
 
@@ -354,6 +419,7 @@ static void emitSectionData( owl_file_handle file ) {
         }
         if( !_OwlSectionBSS( curr ) ) {
             OWLBufferEmit( curr->buffer );
+            emitSectionPadding( curr );
         }
         if( reloc_buffer ) {
             // Now write out the prepared reloc_buffer
@@ -374,6 +440,7 @@ static void prepareRelocSections( owl_file_handle file ) {
 
     switch( file->info->cpu ) {
     case OWL_CPU_INTEL:
+    case OWL_CPU_MIPS:    // MIPS SysV ABI supplement says so
         useRela = FALSE;
         break;
     default:
@@ -381,6 +448,7 @@ static void prepareRelocSections( owl_file_handle file ) {
         break;
     }
     for( curr = file->sections; curr != NULL; curr = curr->next ) {
+        curr->x.elf.pad_amount = 0;
         if( curr->first_reloc != NULL ) {
             strcpy( buffer, (useRela ? ".rela" : ".rel") );
             strcat( buffer, OWLStringText( curr->name ) );

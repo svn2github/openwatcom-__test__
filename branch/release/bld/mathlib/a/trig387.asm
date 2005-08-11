@@ -311,6 +311,7 @@ chk_C2  proc    near
         mov     _BP,_SP         ; get access to stack
         push    _AX             ; allocate stack space
         fstsw   word ptr -2[_BP]; get status word
+        fwait
         mov     AH,-1[_BP]      ; get flags
         or      AH,1            ; force carry bit on (assume arg in range)
         sahf                    ; copy to flags
@@ -320,6 +321,7 @@ chk_C2  proc    near
           _loop                 ; - loop (reduce argument to range)
             fprem               ; - - reduce the argument
             fstsw  word ptr -2[_BP]; - - get status
+            fwait
             mov    AH,-1[_BP]   ; - - ...
             sahf                ; - - ...
           _until  np            ; - until argument in range
@@ -341,7 +343,7 @@ else
         push    BP              ; save BP
         mov     BP,SP           ; get access to parms
         fld     qword ptr argx[BP]; load argument x
-        call    IF@DCOS         ; calculate cos(x)
+        lcall   IF@DCOS         ; calculate cos(x)
         pop     BP              ; restore BP
 endif                           ; __386__
         ret_pop 8               ; return
@@ -357,7 +359,7 @@ else
         push    BP              ; save BP
         mov     BP,SP           ; get access to parms
         fld     qword ptr argx[BP]; load argument x
-        call    IF@DSIN         ; calculate sin(x)
+        lcall   IF@DSIN         ; calculate sin(x)
         pop     BP              ; restore BP
 endif                           ; __386__
         ret_pop 8               ; return
@@ -518,7 +520,7 @@ else
         push    BP              ; save BP
         mov     BP,SP           ; get access to parms
         fld     qword ptr argx[BP]; load argument x
-        call    IF@DTAN         ; calculate tan(x)
+        lcall   IF@DTAN         ; calculate tan(x)
         pop     BP              ; restore BP
 endif                           ; __386__
         ret_pop 8               ; return

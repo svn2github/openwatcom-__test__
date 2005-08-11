@@ -170,7 +170,7 @@ static  bool    Aligned( name *op, type_length align, type_class_def tipe ) {
             actual = FlagsToAlignment( op->i.index_flags );
         }
         if( ( op->i.constant % 8 ) != 0 ) {
-            actual = __min( actual, op->i.constant & 0x07 );
+            actual = min( actual, op->i.constant & 0x07 );
         }
         return( align <= actual );
     }
@@ -210,10 +210,13 @@ extern  bool    DoVerify( vertype kind, instruction *ins ) {
             TypeClassSize[ ins->type_class ] >= 4 ) return( FALSE );
 #endif
         return( HalfWordConst( ins->operands[ 0 ] ) );
-    case V_AXPBRANCH:
+    case V_AXPBRANCH:   // FIXME: appears to be unused!
         op = ins->operands[ 1 ];
         return( ins->result == NULL && op->n.class == N_CONSTANT &&
                 op->c.const_type == CONS_ABSOLUTE && op->c.int_value == 0 );
+    case V_MIPSBRANCH:
+        return( ins->result == NULL && (ins->head.opcode == OP_CMP_EQUAL
+                || ins->head.opcode == OP_CMP_NOT_EQUAL) );
     case V_RESNOTNULL:
         return( ins->result != NULL );
     case V_RESNULL:

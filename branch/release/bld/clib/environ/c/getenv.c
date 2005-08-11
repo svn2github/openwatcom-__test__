@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  Implementation of getenv()
+* Description:  Implementation of getenv().
 *
 ****************************************************************************/
 
@@ -46,39 +46,66 @@
         #define CMP_FUNC        strncmp
     #endif
 #else
-    #ifdef __WIDECHAR__
-        #define CMP_FUNC        _wcsnicmp
-    #else
-        #define CMP_FUNC        _mbsnicmp
-    #endif
+    #define CMP_FUNC        _wcsnicmp
 #endif
 
+#if !defined(__UNIX__) && !defined(__WIDECHAR__) && !defined(__NETWARE__)
 
-_WCRTLINK CHAR_TYPE *__F_NAME(getenv,_wgetenv)( const CHAR_TYPE *name )
-    {
-#ifdef __NETWARE__
-        name = name;
-#else
-        CHAR_TYPE **    envp;
-        CHAR_TYPE *     p;
-        int             len;
+_WCRTLINK char *getenv( const char *name )
+{
+    char        **envp;
+    char        *p;
 
-        #ifdef __WIDECHAR__
-            if( _RWD_wenviron == NULL )  __create_wide_environment();
-        #endif
+    /*** Find the environment string ***/
+    __ptr_check( name, 0 );
+    envp = _RWD_environ;
+    if( (envp != NULL) && (name != NULL) ) {
+        for( ; p = *envp; ++envp ) {
+            const char  *s = name;
 
-        /*** Find the environment string ***/
-        __ptr_check( name, 0 );
-        envp = __F_NAME(_RWD_environ,_RWD_wenviron);
-        if( envp != NULL  &&  name != NULL ) {
-            len = __F_NAME(strlen,wcslen)( name );
-            for( ; p = *envp; ++envp ) {
-                if( CMP_FUNC( p, name, len ) == 0 ) {
-                    if( p[len] == __F_NAME('=',L'=') )  return( &p[len+1] );
+            while( *p != '\0' ) {   /* simple check is sufficient for p, not s */
+                if ( _mbterm( s ) ) {
+                    if( *p == '=' )  return( p + 1 );
+                    break;
                 }
+                if ( _mbctoupper( _mbsnextc( p ) ) != _mbctoupper( _mbsnextc( s ) ) )
+                    break;
+                p = _mbsinc( p );   /* skip over character */
+                s = _mbsinc( s );   /* skip over character */
             }
         }
-#endif
-        return( NULL );                 /* not found */
     }
+    return( NULL );                 /* not found */
+}
 
+#else
+
+_WCRTLINK CHAR_TYPE *__F_NAME(getenv,_wgetenv)( const CHAR_TYPE *name )
+{
+#ifdef __NETWARE__
+    name = name;
+#else
+    CHAR_TYPE       **envp;
+    CHAR_TYPE       *p;
+    int             len;
+
+    #ifdef __WIDECHAR__
+        if( _RWD_wenviron == NULL )  __create_wide_environment();
+    #endif
+
+    /*** Find the environment string ***/
+    __ptr_check( name, 0 );
+    envp = __F_NAME(_RWD_environ,_RWD_wenviron);
+    if( (envp != NULL) && (name != NULL) ) {
+        len = __F_NAME(strlen,wcslen)( name );
+        for( ; p = *envp; ++envp ) {
+            if( CMP_FUNC( p, name, len ) == 0 ) {
+                if( p[len] == __F_NAME('=',L'=') )  return( &p[len+1] );
+            }
+        }
+    }
+#endif
+    return( NULL );                 /* not found */
+}
+
+#endif

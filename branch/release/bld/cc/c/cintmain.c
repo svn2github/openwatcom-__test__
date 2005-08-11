@@ -29,11 +29,14 @@
 ****************************************************************************/
 
 
+#include "cvars.h"
 #include <unistd.h>
 #include <limits.h>
-#include "cvars.h"
-#if _OS == _DOS || _OS == _OS2 || _OS == _NT
-    #include <process.h>
+#if defined( __DOS__ ) || defined( __OS2__ ) || defined( __OSI__ ) || defined( __NT__ )
+  #include <process.h>
+#endif
+#ifdef __OSI__
+  #include "ostype.h"
 #endif
 
 void ResetHandlers()
@@ -45,13 +48,15 @@ void ResetHandlers()
 char **_argv;
 #endif
 
-#if _OS == _DOS || _OS == _OS2 || _OS == _NT
-int main()
+#if defined( __DOS__ ) || defined( __OS2__ ) || defined( __OSI__ ) || defined( __NT__ )
+int main( void )
     {
         char       *argv[2];
+        int        ret;
+#if !defined( __OSI__ )	
         char       *buffer;
         int        len;
-        int        ret;
+#endif	
 #else
 int main( int argc, char **argv )
     {
@@ -63,12 +68,12 @@ int main( int argc, char **argv )
 #endif
         FrontEndInit( FALSE );
         atexit( ResetHandlers );
-#if _OS == _CMS
+#if defined( __CMS__ )
         /* skip command name at the start */
         argv[0] = strchr( argv[0], ' ' );
         ret = FrontEnd( &argv[0] );
-#elif _OS == _DOS || _OS == _OS2  || _OS == _NT
-  #if  _OS == _DOS
+#elif defined( __DOS__ ) || defined( __OS2__ ) || defined( __NT__ )
+  #ifdef __DOS__
         fclose( stdaux );                   /* 15-dec-92 */
         fclose( stdprn );
   #endif

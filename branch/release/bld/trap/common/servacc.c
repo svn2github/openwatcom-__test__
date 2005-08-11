@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Remote server request router.
 *
 ****************************************************************************/
 
@@ -34,7 +33,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <process.h>
 #include "banner.h"
 #include "trpimp.h"
 #include "trperr.h"
@@ -54,17 +52,17 @@ static mx_entry     Out[1];
 static void AccTrap( bool want_return )
 {
     if( want_return ) {
-        PutBuffPacket( TrapAccess( 1, &In, 1, &Out ), (void  *)RWBuff );
+        PutBuffPacket( TrapAccess( 1, &In[0], 1, &Out[0] ), (void  *)RWBuff );
     } else {
-        TrapAccess( 1, &In, 0, NULL );
+        TrapAccess( 1, &In[0], 0, NULL );
     }
 }
 
 static bool AccConnect()
 {
-    connect_req *acc;
-    char            *data;
-    connect_ret  *ret;
+    connect_req         *acc;
+    char                *data;
+    connect_ret         *ret;
     unsigned            max;
     unsigned            len;
 
@@ -76,10 +74,11 @@ static bool AccConnect()
         PutBuffPacket( sizeof( *acc ) + sizeof( TRP_ERR_WRONG_SERVER_VERSION ),
                         (void *)RWBuff );
     } else {
-        len = TrapAccess( 1, &In, 1, &Out );
+        len = TrapAccess( 1, &In[0], 1, &Out[0] );
         max = MaxPacketSize();
         if( max > sizeof( RWBuff ) ) max = sizeof( RWBuff );
         if( ret->max_msg_size > max ) ret->max_msg_size = max;
+        CONV_LE_16( ret->max_msg_size );
         PutBuffPacket( len, (void  *)RWBuff );
     }
     if( data[0] != '\0' ) {
@@ -111,8 +110,8 @@ bool Session()
         #endif
         In[0].len = GetPacket();
         In[0].ptr = GetPacketBuffPtr();
-        In_Mx_Ptr = &In;
-        Out_Mx_Ptr = &Out;
+        In_Mx_Ptr = &In[0];
+        Out_Mx_Ptr = &Out[0];
         In_Mx_Num = 1;
         Out_Mx_Num = 1;
         req = *(access_req *)In[0].ptr;

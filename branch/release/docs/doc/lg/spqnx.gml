@@ -11,7 +11,6 @@
 :set symbol="exeextn" value="qnx".
 :set symbol="libvarname" value="LIB".
 :set symbol="tmpvarname" value="TMPDIR".
-:set symbol="currdir" value="current working".
 .*
 .im qnxfiles
 .*
@@ -49,6 +48,7 @@ is any of the following:
 .note CVPACK
 .note DOSSEG
 .note ELIMINATE
+.note [NO]FARCALLS
 .note HEAPSIZE=n
 .note INCREMENTAL
 .note LINEARRELOCS
@@ -134,6 +134,5 @@ is any of the following:
 .im wlprompt
 .*
 .im wlmemlay
-.im wlmem
 .*
 .helppref

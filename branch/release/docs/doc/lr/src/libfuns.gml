@@ -271,6 +271,7 @@
 .fnc feof                       feof.gml        DOS QNX W WIN32
 .fnc ferror                     ferror.gml      DOS QNX W WIN32
 .fnc fflush                     fflush.gml      DOS QNX W WIN32
+.fnc ffs                        ffs.gml         DOS QNX W WIN32
 .fnc fgetc                      fgetc.gml       DOS QNX W WIN32
 .fnw fgetwc                     fgetc.gml       DOS QNX W WIN32
 .fnu _ufgetc                    fgetc.gml       DOS
@@ -410,7 +411,7 @@
 .fnc getlogin                   getlogin.gml        QXO
 .fnm _getmbcp                   getmbcp.gml     DOS       WIN32
 .fnc getnid                     getnid.gml          QXO
-.fnc getopt                     getopt.gml          QXO
+.fnc getopt                     getopt.gml      DOS QXO   WIN32
 .fn7 _get_osfhandle             getosfha.gml    DOS       WIN32
 .fnc getpgrp                    getpgrp.gml         QXO
 .fnc _getphyscoord              gr_getpc.gml    DOS QNX W GRAPH
@@ -769,19 +770,24 @@
 .fnf _fmemccpy                  memccpy.gml     DOS QNX W WIN32
 .fnc memchr                     memchr.gml      DOS QNX W WIN32
 .fnf _fmemchr                   memchr.gml      DOS QNX W WIN32
+.fnw wmemchr                    memchr.gml      DOS QNX W WIN32
 .fnc memcmp                     memcmp.gml      DOS QNX W WIN32
 .fnf _fmemcmp                   memcmp.gml      DOS QNX W WIN32
+.fnw wmemcmp                    memcmp.gml      DOS QNX W WIN32
 .fnc memcpy                     memcpy.gml      DOS QNX W WIN32
 .fnf _fmemcpy                   memcpy.gml      DOS QNX W WIN32
+.fnw wmemcpy                    memcpy.gml      DOS QNX W WIN32
 .fnc memicmp                    memicmp.gml     DOS QNX W WIN32
 .fnc _memicmp                   memicmp.gml     DOS       WIN32
 .fnf _fmemicmp                  memicmp.gml     DOS QNX W WIN32
 .fnc _memmax                    _memmax.gml     DOS QNX W WIN32
 .fnc memmove                    memmove.gml     DOS QNX W WIN32
 .fnf _fmemmove                  memmove.gml     DOS QNX W WIN32
+.fnw wmemmove                   memmove.gml     DOS QNX W WIN32
 .fn7 _m_empty                   mempty.gml      DOS QXO   WIN32
 .fnc memset                     memset.gml      DOS QNX W WIN32
 .fnf _fmemset                   memset.gml      DOS QNX W WIN32
+.fnw wmemset                    memset.gml      DOS QNX W WIN32
 .fn7 _m_from_int                mfromint.gml    DOS QXO   WIN32
 .fnc min                        min.gml         DOS QNX W WIN32
 .fnc mkdir                      mkdir.gml       DOS QNX W WIN32
@@ -791,6 +797,7 @@
 .fnc mkfifo                     mkfifo.gml          QXO
 .fnc MK_FP                      mk_fp.gml       DOS QNX W WIN32
 .fnc mknod                      mknod.gml           QXO
+.fnc mkstemp                    mkstemp.gml     DOS QNX W WIN32
 .fn7 _mktemp                    mktemp.gml      DOS       WIN32
 .fnw _wmktemp                   mktemp.gml      DOS       WIN32
 .fnc mktime                     mktime.gml      DOS QNX W WIN32
@@ -1199,7 +1206,9 @@
 .fn8 _stati64                   stat.gml        DOS       WIN32
 .fnw _wstat                     stat.gml        DOS       WIN32
 .fnw _wstati64                  stat.gml        DOS       WIN32
+.fnc lstat                      stat.gml        DOS       WIN32
 .fnc _status87                  _status8.gml    DOS QNX W WIN32
+.fnc strcasecmp                 strcase.gml     DOS QNX W WIN32
 .fnc strcat                     strcat.gml      DOS QNX W WIN32
 .fnf _fstrcat                   strcat.gml      DOS QNX W WIN32
 .fnw wcscat                     strcat.gml      DOS QNX W WIN32
@@ -1273,6 +1282,10 @@
 .fnw _wcsinc                    strinc.gml      DOS QNX W WIN32
 .fnm _mbsinc                    strinc.gml      DOS       WIN32
 .fnn _fmbsinc                   strinc.gml      DOS       WIN32
+.fnc strlcat                    strlcat.gml     DOS QNX W WIN32
+.fnw wcslcat                    strlcat.gml     DOS QNX W WIN32
+.fnc strlcpy                    strlcpy.gml     DOS QNX W WIN32
+.fnw wcslcpy                    strlcpy.gml     DOS QNX W WIN32
 .fnc strlen                     strlen.gml      DOS QNX W WIN32
 .fnf _fstrlen                   strlen.gml      DOS QNX W WIN32
 .fnw wcslen                     strlen.gml      DOS QNX W WIN32
@@ -1286,6 +1299,7 @@
 .fnm _mbslwr                    strlwr.gml      DOS       WIN32
 .fnn _fmbslwr                   strlwr.gml      DOS       WIN32
 .fnu _ustrlwr                   strlwr.gml      DOS       WIN32
+.fnc strncasecmp                strncase.gml    DOS QNX W WIN32
 .fnc strncat                    strncat.gml     DOS QNX W WIN32
 .fnf _fstrncat                  strncat.gml     DOS QNX W WIN32
 .fnw wcsncat                    strncat.gml     DOS QNX W WIN32
@@ -1591,6 +1605,7 @@
 .fnc Writemsgmx                 writemsx.gml        QXO
 .fnc Yield                      yield.gml           QXO
 .fnc zentohan                   zentohan.gml    NEC
+
 .*
 .* .ty End of build pass - count = &__idx
 .*

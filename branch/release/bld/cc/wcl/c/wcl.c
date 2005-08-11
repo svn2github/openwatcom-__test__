@@ -63,6 +63,13 @@
   #define WCLENV      "WCLPPC"          /* name of environment variable    */
   #define STACKSIZE   "8192"            /* default stack size              */
   #define _NAME_      "C/C++ PowerPC "
+#elif defined(WCLMPS)
+  #define WCLNAME     "wclmps"          /* Name of Compile and Link Utility*/
+  #define CC          "wccmps"          /* Open Watcom C compiler          */
+  #define CCXX        "wppmps"          /* Open Watcom C++ compiler        */
+  #define WCLENV      "WCLMPS"          /* name of environment variable    */
+  #define STACKSIZE   "8192"            /* default stack size              */
+  #define _NAME_      "C/C++ MIPS "
 #elif defined(WCL386)
   #define WCLNAME     "wcl386"          /* Name of Compile and Link Utility*/
   #define CC          "wcc386"          /* Open Watcom C compiler          */
@@ -85,27 +92,28 @@
 #endif
 #define LINK        "wlink"             /* Open Watcom linker              */
 #define TEMPFILE    "@__WCL__.LNK"      /* temporary linker directive file */
-                                        /* mask for illegal file types     */
-static  char    *Cmd;               /* command line parameters            */
 static  char    *Word;              /* one parameter                      */
 static  char    *SystemName;        /* system to link for                 */
 static  char    Files[MAX_CMD];     /* list of filenames from Cmd         */
-        char    Libs[MAX_CMD];      /* list of libraires from Cmd         */
+        char    Libs[MAX_CMD];      /* list of libraries from Cmd         */
+static  char    Resources[MAX_CMD]; /* list of resources from Cmd         */
 static  char    CC_Opts[MAX_CMD];   /* list of compiler options from Cmd  */
 static  char    CC_Path[_MAX_PATH]; /* path name for wcc.exe              */
 static  char    PathBuffer[_MAX_PATH];/* buffer for path name of tool     */
         FILE    *Fp;                /* file pointer for Temp_Link         */
-static  char    *Link_Name;         /* name for Temp_Link if /fd specified*/
+static  char    *Link_Name;         /* Temp_Link copy if /fd specified    */
 static  char    *Temp_Link;         /* temporary linker directive file    */
+                                    /* Temp_Link concurrent usages clash  */
         struct  list *Obj_List;     /* linked list of object filenames    */
 static  struct directives *Directive_List; /* linked list of directives   */
-static  char    Switch_Chars[4];    /* valid switch characters            */
         char    Exe_Name[_MAX_PATH];/* name of executable                 */
         char    *Map_Name;          /* name of map file                   */
         char    *Obj_Name;          /* object file name pattern           */
-static  char    *StackSize;         /* size of stack                      */
-static  char    DebugFlag;          /* debug info wanted                  */
+static  char    *StackSize = NULL;  /* size of stack                      */
+static  char    DebugFlag = 0;      /* debug info wanted                  */
 static  char    Conventions;        /* 'r' for -3r or 's' for -3s         */
+static  char    Switch_Chars[4];    /* valid switch characters            */
+static  int     via_environment = FALSE;
 
 struct  flags   Flags;
 
@@ -113,13 +121,18 @@ struct  flags   Flags;
  *  Static function prototypes
  */
 
-int     Parse( void );
-int     CompLink( void );
-char    *SkipSpaces( char * );
-void    Fputnl( char *, FILE * );
-void    *MemAlloc( int );
-void    MakeName( char *, char * );
-void    Usage( void );
+static int     Parse( char * );
+static int     CompLink( void );
+static char    *SkipSpaces( char * );
+extern void    Fputnl( char *, FILE * );
+extern void    *MemAlloc( int );
+static void    MakeName( char *, char * );
+static void    Usage( void );
+static void    initialize_Flags( void );
+static int     handle_environment_variable( const char *env );
+static void    *makeTmpEnv( char *arg );
+static void    killTmpEnv( char *env );
+
 #if defined( __UNIX__ )
   #define _dos_switch_char() '-'
 #elif defined( __OS2__ ) || defined( __NT__ )
@@ -134,27 +147,18 @@ void    Usage( void );
 #endif
 
 
-char *EnglishMsgs[] = {
 #undef pick
-#undef E
-#undef J
-#define E(msg)  msg
-#define J(msg)
 #define pick(code,english)      english
+
+extern const char *WclMsgs[] = {
 #include "wclmsg.h"
 };
 
-char *JapaneseMsgs[] = {
-#undef pick
-#undef E
-#undef J
-#define E(msg)
-#define J(msg)  msg
-#define pick(code,japanese)     japanese
-#include "wclmsg.h"
+static const char *EnglishHelp[] = {
+#include "wclhelp.h"
+NULL
 };
 
-char    **WclMsgs = EnglishMsgs;
 
 void print_banner( void )
 {
@@ -175,9 +179,9 @@ void  main()
     char        *wcl_env;
     char        *p;
     char        *q;
+    char        *Cmd;               /* command line parameters            */
 
-//      determine language to use and set WclMsgs
-
+    (void)setvbuf( stdout, NULL, _IOLBF, 0 );
     CC_Opts[0] = '\0';
 
     Switch_Chars[0] = '-';
@@ -215,14 +219,19 @@ void  main()
     }
 
     Temp_Link = TEMPFILE;
+    errno = 0; /* Standard C does not require fopen failure to set errno */
     if( ( Fp = fopen( &Temp_Link[ 1 ], "w" ) ) == NULL ) {
-        PrintMsg( WclMsgs[ UNABLE_TO_OPEN_TEMPORARY_FILE ] );
+        /* Message before banner decision as '@' option uses Fp in Parse() */
+        PrintMsg( WclMsgs[ UNABLE_TO_OPEN_TEMPORARY_FILE ], Temp_Link+1,
+            strerror( errno ) );
         exit( 1 );
     }
     Map_Name = NULL;
     Obj_Name = NULL;
     Directive_List = NULL;
-    rc = Parse();
+    initialize_Flags();
+    rc = Parse( Cmd );
+
     if( rc == 0 ) {
         if( ! Flags.be_quiet ) {
             print_banner();
@@ -243,6 +252,9 @@ void  main()
 
 static char *ScanFName( char *end, int len )
 {
+#if 0
+    // I can't find any use for this anymore, perhaps I am wrong?
+    // If there isn't any problems, this should be removed away.
     int quoted;
 
     if( *Word == '=' ) {
@@ -256,9 +268,6 @@ static char *ScanFName( char *end, int len )
         if( !quoted ) {
             if( *end == ' '  ) break;
             if( *end == '\t'  ) break;                  /* 16-mar-91 */
-#ifndef __UNIX__
-            if( *end == Switch_Chars[1] ) break;
-#endif
         } else if( *end == '"'  ) {
             quoted = 0;
         }
@@ -266,13 +275,21 @@ static char *ScanFName( char *end, int len )
         ++len;
         ++end;
     }
+#endif
     Word[ len ] = NULLCHAR;
     return( end );
 }
 
 static int FileExtension( char *p, char *ext )
 {
+    char        unquoted[_MAX_PATH];
     char        *dot;
+
+    /* Remove quoted from filename to make it easier to compare extension.
+     * We are here assuming that filename comes with quotes or doesn't need them.
+     */
+    UnquoteFName( unquoted, sizeof(unquoted), p );
+    p = unquoted;
 
     dot = NULL;
     while( *p != '\0' ) {
@@ -296,7 +313,7 @@ static void AddDirective( int len )
     p = MemAlloc( sizeof(struct directives) );
     p->next = NULL;
     p->directive = MemAlloc( len + 1 );
-    strcpy( p->directive, Word );
+    UnquoteFName( p->directive, len + 1, Word );
     if( Directive_List == NULL ) {
         Directive_List = p;
     } else {
@@ -306,32 +323,19 @@ static void AddDirective( int len )
     }
 }
 
-static  int  Parse( void )
-/************************/
+static int Parse( char *Cmd )
+/***************************/
 {
     char        opt;
     char        *end;
     FILE        *atfp;
     char        buffer[_MAX_PATH];
+    char        unquoted[_MAX_PATH];
     int         len;
     char        *p;
     int         wcc_option;
 
-    Flags.map_wanted   = 0;
-    Flags.two_case     = 0;
-    Flags.tiny_model   = 0;
-    Flags.be_quiet     = 0;
-    Flags.no_link      = 0;
-    Flags.do_link      = 0;
-    Flags.do_cvpack    = 0;
-    Flags.link_for_dos = 0;
-    Flags.link_for_os2 = 0;
-    Flags.windows      = 0;
-    Flags.math_8087    = 1;
-    DebugFlag          = 0;
-    StackSize = NULL;
     Conventions = 'r';
-
     /* Cmd will always begin with at least one */
     /* non-space character if we get this far  */
 
@@ -347,25 +351,9 @@ static  int  Parse( void )
 
         end = Cmd;
         if( *Cmd == '"' ) {
-            for(;;) {
-                ++end;
-                if( *end == '\0' ) break;
-                if( *end == '"'  ) break;
-            }
+            end = FindNextWS( end );
         } else {
-            for(;;) {
-                if( *end == '\0' ) break;
-                if( *end == ' '  ) break;
-                if( *end == '\t'  ) break;              /* 16-mar-91 */
-#ifndef __UNIX__
-                if( *end == Switch_Chars[1] ) break;
-#endif
-                if( opt == '-'  ||  opt == Switch_Chars[1] ) {
-                    /* if we are processing a switch, stop at a '-' */
-                    if( *end == '-' ) break;
-                }
-                ++end;
-            }
+            end = FindNextWSOrOpt( end, opt, Switch_Chars );
         }
         len = end - Cmd;
         if( len != 0 ) {
@@ -376,7 +364,16 @@ static  int  Parse( void )
                 end = ScanFName( end, len );
                 if( FileExtension( Word, ".lib" ) ) {
                     strcat( Libs, Libs[0] != '\0' ? "," : " " );
+
+                    /* remove quotes and change them to be compatible with wlink */
+                    UnquoteFName( unquoted, sizeof(unquoted), Word );
+                    BuildQuotedFName( Word, "", unquoted, "'" );
+
                     strcat( Libs, Word );
+                } else
+                if( FileExtension( Word, ".res" ) ) {
+                    strcat( Resources, Word );
+                    strcat( Resources, " " );
                 } else {
                     strcat( Files, Word );
                     strcat( Files, " " );
@@ -387,6 +384,16 @@ static  int  Parse( void )
                 Word[ len ] = NULLCHAR;
                 wcc_option = 1;         /* assume its a wcc option */
                 switch( tolower( *Cmd ) ) {
+
+                case 'b':               /* possibly -bcl */
+                    if( strnicmp( Word, "cl=", 3 ) == 0 ) {
+                        strcat( CC_Opts, " -bt=" );
+                        strcat( CC_Opts, Word+3 );
+                        Flags.link_for_sys = TRUE;
+                        SystemName = strdup( Word+3 );
+                        wcc_option = 0;
+                    }
+                    break;
 
                 case 'f':               /* files option */
                     end = ScanFName( end, len );
@@ -465,10 +472,21 @@ static  int  Parse( void )
                     break;
                 case '@':
                     if( Word[0] != '\0' ) {
+                        char const * const      env = getenv( Word );
+
+                        if( env != NULL ) {
+                            if( handle_environment_variable( env ) )
+                                return( 1 );          // Recursive call failed
+                            via_environment = TRUE;
+                            Cmd = end;
+                            continue;
+                        }
+
                         end = ScanFName( end, len );
                         MakeName( Word, ".lnk" );
+                        errno = 0;
                         if( ( atfp = fopen( Word, "r" ) ) == NULL ) {
-                            PrintMsg( WclMsgs[UNABLE_TO_OPEN_DIRECTIVE_FILE], Word );
+                            PrintMsg( WclMsgs[UNABLE_TO_OPEN_DIRECTIVE_FILE], Word, strerror(  errno ) );
                             return( 1 );
                         }
                         while( fgets( buffer, sizeof(buffer), atfp ) != NULL ) {
@@ -569,8 +587,13 @@ static  int  Parse( void )
                     }
                     break;
                 case '"':                           /* 17-dec-91 */
+                    /* As parameter passing to linker is a special case, we need to pass
+                     * whole command instead of first character removed. This allows us
+                     * to parse also string literals in AddDirective.
+                     */
                     wcc_option = 0;
-                    if( *end == '"'  )  ++end;
+                    strncpy( Word, Cmd, ++len);
+                    Word[ len ] = NULLCHAR;
                     AddDirective( len );
                     break;
                 }
@@ -616,7 +639,7 @@ static char *SrcName( char *name )
     _splitpath2( name, buffer, NULL, NULL, NULL, &ext );
     p = &ext[0];
     if( ext[0] == '\0' ) {
-        p = strchr( name, '\0' );
+        p = name + strlen( name );
         strcpy( p, ".cxx" );
         if( access( name, F_OK ) != 0 ) {
             strcpy( p, ".cpp" );
@@ -679,7 +702,13 @@ static  int  CompLink( void )
 #if defined(WCLAXP)
         Fputnl( "system ntaxp", Fp );
 #elif defined(WCLPPC)
+  #if defined(__LINUX__)
+        Fputnl( "system linuxppc", Fp );
+  #else
         Fputnl( "system ntppc", Fp );
+  #endif
+#elif defined(WCLMPS)
+        Fputnl( "system linuxmips", Fp );
 #elif defined(WCL386)
   #if defined(__OS2__)
         Fputnl( "system os2v2", Fp );           /* 04-feb-92 */
@@ -708,6 +737,27 @@ static  int  CompLink( void )
         }
 #endif
     }
+
+    /* pass given resources to linker */
+    p = Resources;
+    while( *p != '\0' ) {
+        if( *p == '"' ) {
+            end = strpbrk(++p, "\"");   /* get quoted filespec */
+        } else {
+            end = strpbrk(p, " ");      /* get filespec */
+        }
+        if( end == NULL )
+            break;
+        *(end++) = 0;
+        if( *end == ' ' )
+            end++;
+        fputs( "option resource='", Fp );
+        fputs( p, Fp );
+        Fputnl( "'", Fp );
+
+        p = end;                        /* get next filename */
+    }
+
     for( d_list = Directive_List; d_list; d_list = d_list->next ) {
         Fputnl( d_list->directive, Fp );
     }
@@ -715,29 +765,31 @@ static  int  CompLink( void )
     errors_found = 0;                   /* 21-jan-92 */
     p = Files;
     while( *p != '\0' ) {
-        if( *p == '"' ) {
-            end = strpbrk(++p, "\"");        /* get quoted filespec */
-        } else {
-            end = strpbrk(p, " ");         /* get filespec */
-        }
-        if( end != NULL ) {
+        end = FindNextWS(p);
+        if( *end != '\0' ) {
             *(end++) = 0;
             if( *end == ' ' ) end++;
         }
-        strcpy( Word, p );
+        UnquoteFName( Word, MAX_CMD, p ); /* Word has MAX_CMD characters allocated */
+
         cc_name = SrcName( Word );      /* if no extension, assume .c */
 
         file = GetName( Word );         /* get first matching filename */
         path = MakePath( Word );        /* isolate path portion of filespec */
         while( file != NULL ) {         /* while more filenames: */
-            strcpy( Word, path );
-            strcat( Word, file );
-            if( ! FileExtension( Word, OBJ_EXT ) ) { // if not .obj, compile
-                if( ! Flags.be_quiet ) {
+            BuildQuotedFName( Word, path, file, "\"" );
+
+            if( !FileExtension( Word, OBJ_EXT ) &&  // if not .obj or .o, compile
+                !FileExtension( Word, OBJ_EXT_SECONDARY ) ) {
+                void    *tmp_env = NULL;
+                    
+                if( via_environment && strlen( CC_Opts ) >= 20 ) // 20 to allow wclxxxxx=y
+                    tmp_env = makeTmpEnv( CC_Opts );
+                if( !Flags.be_quiet )
                     PrintMsg( "       %s %s %s\n", cc_name, Word, CC_Opts );
-                    fflush( stdout );
-                }
                 rc = spawnlp( P_WAIT, CC_Path, cc_name, Word, CC_Opts, NULL );
+                if( tmp_env )
+                    killTmpEnv( tmp_env );
                 if( rc != 0 ) {
                     if( rc == -1  ||  rc == 255 ) {
                         PrintMsg( WclMsgs[ UNABLE_TO_INVOKE_EXE ], CC_Path );
@@ -765,11 +817,10 @@ static  int  CompLink( void )
     BuildLinkFile();
 
     if( ( Obj_List != NULL || Flags.do_link )  &&  Flags.no_link == FALSE ) {
-        FindPath( "wlink" EXE_EXT, PathBuffer );
-        if( ! Flags.be_quiet ) {
-            puts( "" );
+        FindPath( LINK EXE_EXT, PathBuffer );
+        if( !Flags.be_quiet ) {
+            PrintMsg( "       %s %s\n", LINK, Temp_Link );
         }
-        fflush( stdout );
         rc = spawnlp( P_WAIT, PathBuffer, LINK, Temp_Link, NULL );
         if( rc != 0 ) {
             if( rc == -1  ||  rc == 255 ) {
@@ -781,6 +832,9 @@ static  int  CompLink( void )
         }
         if( Flags.do_cvpack ){
             FindPath( "cvpack" EXE_EXT, PathBuffer );
+            if( !Flags.be_quiet ) {
+                PrintMsg( "       %s %s\n", "cvpack", Exe_Name );
+            }
             rc = spawnlp( P_WAIT, PathBuffer, "cvpack", Exe_Name, NULL );
             if( rc != 0 ) {
                 if( rc == -1  ||  rc == 255 ) {
@@ -807,39 +861,28 @@ static  char  *SkipSpaces( char *ptr )
 static  void  MakeName( char *name, char *ext )
 /*********************************************/
 {
-    if( strrchr( name, '.' ) <= strstr( name, PATH_SEP_STR ) ) {
+    /* If the last '.' is before the last path seperator character */
+    if( strrchr( name, '.' ) <= strpbrk( name, PATH_SEP_STR ) ) {
         strcat( name, ext );
     }
 }
 
 
-char *EnglishHelp[] = {
-    #undef E
-    #undef J
-    #define E(msg)      msg,
-    #define J(msg)
-    #include "wclhelp.h"
- NULL };
-
-char *JapaneseHelp[] = {
-    #undef E
-    #undef J
-    #define E(msg)
-    #define J(msg)      msg,
-    #include "wclhelp.h"
- NULL };
-
 static  void  Usage( void )
 /*************************/
 {
-    char        **list;
-    char        *p;
+    char const  **list;
+    char const  *p;
     int         lines_printed;
     unsigned int i, n;
     auto        char buf[82];
+#ifndef __UNIX__
+    int const   paging = isatty( fileno( stdout ) );
+    int const   height = 24; /* Number of lines assumed on screen */
+#endif
 
     print_banner();
-    lines_printed = 3;
+    lines_printed = 4;
     list = EnglishHelp;
     while( *list ) {
         memset( buf, ' ', 80 );
@@ -852,16 +895,12 @@ static  void  Usage( void )
             }
             n = (n+1) / 2;                      /* half way through list */
 #ifndef __UNIX__
-            if( isatty( fileno( stdout ) ) ) {
-                if( lines_printed != 0 ) {
-                    if( lines_printed + n > 25 ) {
-                        fputs( WclMsgs[ PRESS_ANY_KEY_TO_CONTINUE ], stdout );
-                        fflush( stdout );
-                        getch();
-                        puts( "" );
-                        lines_printed = 0;
-                    }
-                }
+            if( paging && lines_printed != 0 && lines_printed >= height ) {
+                fputs( WclMsgs[ PRESS_ANY_KEY_TO_CONTINUE ], stdout );
+                fflush( stdout );
+                getch();
+                puts( "" );
+                lines_printed = 0;
             }
 #endif
             puts( buf );
@@ -878,6 +917,15 @@ static  void  Usage( void )
                 buf[i] = '\0';
                 puts( buf );
                 lines_printed++;
+#ifndef __UNIX__
+                if( paging && lines_printed != 0 && lines_printed >= height ) {
+                    fputs( WclMsgs[ PRESS_ANY_KEY_TO_CONTINUE ], stdout );
+                    fflush( stdout );
+                    getch();
+                    puts( "" );
+                    lines_printed = 0;
+                }
+#endif
                 p = list[n];
                 if( p == NULL ) break;
                 if( *p == '[' ) break;
@@ -891,4 +939,106 @@ static  void  Usage( void )
             ++list;
         }
     }
+}
+
+static void initialize_Flags( void )
+{
+    struct flags const zero_flags = { 0 };
+
+    Flags = zero_flags;
+    Flags.math_8087 = 1;
+
+}
+
+static int handle_environment_variable( const char *env )
+// This is an adaptation of code in sdk/rc/rc/c/param.c
+{
+    typedef struct EnvVarInfo {
+        struct EnvVarInfo       *next;
+        char                    *varname;
+        // An anonymous copy of Word and *env is appended here
+    } EnvVarInfo;
+    EnvVarInfo          *info;
+    static EnvVarInfo   *stack = 0; // Needed to detect recursion.
+    unsigned            argbufsize;
+    size_t              varlen;     // size to hold varname copy.
+    int                 result;     // Parse Result.
+
+    for( info = stack; info != NULL; info = info->next ) {
+#if !defined(__UNIX__)
+        if( stricmp( Word, info->varname ) == 0 ) // Case-insensitive
+#else
+        if( strcmp( Word, info->varname ) == 0 )  // Case-sensitive
+#endif
+        {
+            PrintMsg( WclMsgs[RECURSIVE_ENVIRONMENT_VARIABLE], Word );
+            return( 1 );
+        }
+    }
+    argbufsize = strlen( env ) + 1;         // inter-parameter spaces map to 0
+    varlen = strlen( Word ) + 1;            // Copy taken to detect recursion.
+    info = MemAlloc( sizeof *info + argbufsize + varlen );
+    info->next = stack;
+    stack = info;                           // push info on stack
+    info->varname = (char *)info + sizeof *info;
+    strcpy( info->varname, Word );
+    result = Parse( strcpy( info->varname + varlen, env ) );
+    stack = info->next;                     // pop stack
+    free( info );
+    return( result );
+}
+
+/*
+ * makeTmpEnv() and killTmpEnv() ar adapted from synonyms in wmake/c/mexec.c.
+ * They are simpler because support for recursion is not needed.
+ */
+static void *makeTmpEnv( char *arg )
+/*
+ *  Copy arg into an environment var if possible.  If succeeds, then changes
+ *  arg to just "@WCLxxxxx", and returns non-zero.  Otherwise leaves
+ *  arg alone and returns zero.
+ */
+{
+    int         wcl_index;
+    char        buf[ 20 ]; /* "WCLxxxxx=" + '\0' = 11 + room for FmtStr */
+    size_t      len;
+    size_t      buflen;
+    char        *env;
+
+    wcl_index = 1;
+    while( sprintf( buf, "WCL%d", wcl_index ), getenv( buf ) != NULL ) {
+        ++wcl_index;
+    }
+    len = strlen( arg );
+    buflen = strlen( buf );
+    if( len < 4 + buflen )       /* need room for " @WCLxxxxx" */
+        return( 0 );
+                        /* "WCLxxxxx=" + arg + '\0' */
+    env = MemAlloc( len + buflen +2 );
+    sprintf( env, "%s=%s", buf, arg );
+    if( putenv( env ) != 0 )
+        return( 0 );
+    if( !Flags.be_quiet )
+        PrintMsg( "       set %s\n", env );
+    sprintf( arg, " @%s", buf );
+    return( env );
+}
+
+static void killTmpEnv( char *env )
+{
+    char const * const  equals = strchr( env, '=' );
+
+    if( equals ) {
+        size_t const    chars = 1 + (size_t)( equals - env );
+        char * const    never_free = MemAlloc( 1 + chars );
+
+        strncpy( never_free, env, chars );
+        never_free[chars] = 0;
+        if( !Flags.be_quiet )
+            PrintMsg( "       set %s\n", never_free );
+        if( putenv( never_free ) == 0 )
+            free( env );
+        free( never_free ); /* Actually OK */
+    }
+        
 }

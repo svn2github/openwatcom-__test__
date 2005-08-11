@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Mainline for applications using GUI library.
 *
 ****************************************************************************/
 
@@ -47,7 +46,10 @@
 #include "guizlist.h"
 #include "guideath.h"
 #include "guidead.h"
-#ifdef UNIX
+#ifndef __WATCOMC__
+    #include "clibext.h"
+    #include <termio.h>
+#elif defined( UNIX )
     #include "clibext.h"
     #include "stdtypes.h"
     #ifdef HP
@@ -64,7 +66,6 @@ bool GUIMainTouched = FALSE;
 
 #ifdef __WINDOWS__
 #include "swap.h"
-#define STRICT
 #include <windows.h>
 #include "win1632.h"
 #include <dos.h>
@@ -87,7 +88,7 @@ int PASCAL WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
     char **             _argv;
     int                 _argc;
 
-    a_bool              In_raw_mode = FALSE;
+    bool                In_raw_mode = FALSE;
     struct termios      Saved_terminal_configuration;
 #endif
 

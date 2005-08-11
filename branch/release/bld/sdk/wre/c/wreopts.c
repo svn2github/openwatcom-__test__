@@ -30,7 +30,6 @@
 ****************************************************************************/
 
 
-#define STRICT
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,6 +39,8 @@
 #include "wrestrdp.h"
 #include "wremem.h"
 #include "wreopts.h"
+#include "watini.h"
+#include "inipath.h"
 
 /****************************************************************************/
 /* macro definitions                                                        */
@@ -74,7 +75,7 @@ static void  WREStrToRect          ( char *, RECT * );
 /****************************************************************************/
 /* external variables                                                       */
 /****************************************************************************/
-char WREProfileName[] = "watcom.ini";
+char WREProfileName[_MAX_PATH] = WATCOM_INI;
 char WRESectionName[] = "wre";
 
 /****************************************************************************/
@@ -226,6 +227,8 @@ void WREStrToRect ( char *str, RECT *r )
 void WREInitOpts( void )
 {
     WRECurrentState = WREDefaultState;
+    GetConfigFilePath( WREProfileName, sizeof(WREProfileName) );
+    strcat( WREProfileName, "\\" WATCOM_INI );
     WREReadOpts( &WRECurrentState );
     if( WRECurrentState.last_dir ) {
         WRESetInitialDir( WRECurrentState.last_dir );

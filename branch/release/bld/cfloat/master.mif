@@ -1,11 +1,9 @@
 proj_name       = cf
-inc_dirs        = $(watcom_dir)/h;../h
+inc_dirs        = -I"../h"
 
 !include cproj.mif
 !include deftarg.mif
 !include defrule.mif
-
-extra_c_flags_386 = -fpc
 
 .c: $(cfloat_dir)/c
 

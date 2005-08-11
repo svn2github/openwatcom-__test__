@@ -29,10 +29,11 @@
 ****************************************************************************/
 
 
+#include <io.h>
+#include <stdlib.h>
+
 extern "C" {
-    #include <io.h>
     #include "rcdefs.h"
-    #include "stdlib.h"
     #include "banner.h"
 };
 
@@ -72,6 +73,7 @@ extern "C" {
 #include "vhelpstk.hpp"
 #include "veditdlg.hpp"
 #include "ide.h"
+#include "autoenv.h"
 
 #define OLDEST_SUPPORTED_VERSION 23
 #define LATEST_SUPPORTED_VERSION 40
@@ -151,6 +153,16 @@ WEXPORT VpeMain::VpeMain()
     , _autoRefresh( TRUE )
     , _ddeServer( "WAT_IDE", "project", this, (sbc)&VpeMain::DdeCallback )
 {
+    /* check and fix env vars if needed; this should perhaps be done in
+     * the GUI library and not here.
+     */
+    watcom_setup_env();
+    if( getenv( "WATCOM" ) == NULL ) {
+        WMessageDialog::messagef( this, MsgError, MsgOk, _viperError,
+        "WATCOM environment variable not set.\n"
+        "IDE will not function correctly" );
+    }
+
     #if defined( __WINDOWS__ ) || defined( __NT__ )
     /* stuff to set up the BLUESKY env. var */
     {
@@ -583,6 +595,9 @@ void VpeMain::onPopup0a( WPopupMenu* pop )
         break;
     case PVCS:
         pop->checkItem( TRUE, 2 );
+        break;
+    case PERFORCE:
+        pop->checkItem( TRUE, 6 );
         break;
     }
 }

@@ -22,11 +22,11 @@ Source code is available under the Sybase Open Watcom Public License.
 See http://www.openwatcom.org/ for details.
 .dm trdmrk end
 :set symbol="ver"       value="1".
-:set symbol="rev"       value="3".
+:set symbol="rev"       value="4".
 :set symbol="pver"      value="10".
 :set symbol="prev"      value="6".
-:set symbol="version"   value="130".
-:set symbol="vermacro"  value="1230".
+:set symbol="version"   value="140".
+:set symbol="vermacro"  value="1240".
 :set symbol="minram"    value="8 MB".
 :set symbol="mfc16"     value="MFC 2.52b".
 :set symbol="mfc32"     value="MFC 4.1".
@@ -82,7 +82,7 @@ See http://www.openwatcom.org/ for details.
 .*
 :set symbol="lnkname"   value="&company Linker".
 :set symbol="lnkcmd"    value="wlink".
-:set symbol="overlay"   value="no".
+:set symbol="overlay"   value="yes".
 :set symbol="m2wcmd"    value="ms2wlink".
 :set symbol="fcename"   value="&company Far Call Optimization Enabling Utility"
 :set symbol="fcecmd"    value="fcenable".
@@ -90,10 +90,14 @@ See http://www.openwatcom.org/ for details.
 :set symbol="libcmd"    value="wlib".
 :set symbol="stripname" value="&company Strip Utility".
 :set symbol="stripcmd"  value="wstrip".
+:set symbol="e2bname"   value="&company Exe2bin".
+:set symbol="e2bcmd"    value="exe2bin".
+:set symbol="e2bcmdu"   value="Exe2bin".
 .if '&target' eq 'QNX' .do begin
 :set symbol="lnkcmdup"  value="wlink".
 :set symbol="m2wcmdup"  value="ms2wlink".
 :set symbol="fcecmdup"  value="fcenable".
+:set symbol="e2bcmdup"  value="exe2bin".
 :set symbol="libcmdup"  value="wlib".
 :set symbol="stripcmdup" value="wstrip".
 :set symbol="libvar"    value="LIB".
@@ -105,6 +109,7 @@ See http://www.openwatcom.org/ for details.
 :set symbol="fcecmdup"  value="FCENABLE".
 :set symbol="libcmdup"  value="WLIB".
 :set symbol="stripcmdup" value="WSTRIP".
+:set symbol="e2bcmdup"  value="EXE2BIN".
 :set symbol="libvar"    value="lib".
 :set symbol="pathvar"   value="watcom".
 .do end

@@ -1,9 +1,10 @@
-#pmake: all build lcl os_win cpu_i86 cpu_386 trap x86
+#pmake: build lcl os_win cpu_i86 cpu_386 trap x86
+
+host_os  = win
 host_cpu = i86
-host_os = win
 
 #
-# Create the Windows 3.x STD.DLL
+# Create the Windows 3.x std.dll
 #
 
 os      = win
@@ -57,7 +58,9 @@ extra_linker = &
         segment CLASS 'BSS' MOVEABLE
 
 extra_srcs += ;$(trap_dir)/lcl/dos/c;$(sdk_dir)/misc
-inc_dirs += ;$(trap_dir)/lcl/dos/h;$(sdk_dir)/misc
+inc_dirs += -I"$(trap_dir)/lcl/dos/h" -I"$(sdk_dir)/misc"
+
+extra_c_flags_i86 = -3
 
 extra_a_flags_misc = -fpi87
 

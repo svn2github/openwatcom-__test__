@@ -141,6 +141,7 @@ extern int  __FLDC(long_double _WCNEAR *,long_double _WCNEAR *);
   #pragma aux   __Get87CW = \
                 "push 0"\
         float   "fstcw [esp]"\
+        float   "fwait"\
                 "pop eax"\
                 value [eax];
   #pragma aux   __Set87CW = \
@@ -173,8 +174,11 @@ extern int  __FLDC(long_double _WCNEAR *,long_double _WCNEAR *);
         float   "fstp tbyte ptr [ebx]"\
                 parm caller [eax] [edx] [ebx];
   #pragma aux   __FLDC = \
-        float   "fld tbyte ptr [eax]"\
+                /* ST(1) */\
         float   "fld tbyte ptr [edx]"\
+                /* ST(0) */\
+        float   "fld tbyte ptr [eax]"\
+                /* compare ST(0) with ST(1) */\
         float   "fcompp"\
         float   "fstsw  ax"\
                 "sahf"\
@@ -190,6 +194,7 @@ extern int  __FLDC(long_double _WCNEAR *,long_double _WCNEAR *);
                 "push  eax"\
                 "push  eax"\
         float   "fstcw [esp]"\
+        float   "fwait"\
                 "pop eax"\
                 "push eax"\
                 "or ah,0x0c"\
@@ -255,6 +260,7 @@ extern int  __FLDC(long_double _WCNEAR *,long_double _WCNEAR *);
                 "push bp"\
                 "mov  bp,sp"\
         float   "fstcw 2[bp]"\
+        float   "fwait"\
                 "pop bp"\
                 "pop ax"\
                 value [ax];
@@ -312,14 +318,18 @@ extern int  __FLDC(long_double _WCNEAR *,long_double _WCNEAR *);
                 parm caller [ax] [dx] [bx];
   #pragma aux   __FLDC = \
                 "push bp"\
-                "mov  bp,ax"\
-        float   "fld  tbyte ptr [bp]"\
                 "mov  bp,dx"\
+                /* ST(1) */\
         float   "fld  tbyte ptr [bp]"\
+                "mov  bp,ax"\
+                /* ST(0) */\
+        float   "fld  tbyte ptr [bp]"\
+                /* compare ST(0) with ST(1) */\
         float   "fcompp"\
                 "push ax"\
                 "mov  bp,sp"\
         float   "fstsw 0[bp]"\
+        float   "fwait"\
                 "pop  ax"\
                 "sahf"\
                 "sbb  dx,dx"\
@@ -339,6 +349,7 @@ extern int  __FLDC(long_double _WCNEAR *,long_double _WCNEAR *);
                 "push ax"\
                 "mov  bp,sp"\
         float   "fstcw [bp]"\
+        float   "fwait"\
                 "pop  ax"\
                 "push ax"\
                 "or   ah,0x0c"\

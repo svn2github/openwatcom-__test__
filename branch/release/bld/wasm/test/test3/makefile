@@ -1,6 +1,7 @@
 
 objs = &
 3dnow &
+absjumps &
 addrmode &
 allign &
 callcnv1 &
@@ -17,6 +18,7 @@ dsxfork &
 dsxhdlr &
 extprocf &
 extprocn &
+float &
 indirect &
 jmpimpl &
 jmpshrt &

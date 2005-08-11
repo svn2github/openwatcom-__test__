@@ -1165,7 +1165,12 @@ extern "C" {
 #define WGL_SWAP_UNDERLAY13 0x10000000
 #define WGL_SWAP_UNDERLAY14 0x20000000
 #define WGL_SWAP_UNDERLAY15 0x40000000
-#define AC_SRC_OVER 0
+#define AC_SRC_OVER		0x00
+#define AC_SRC_ALPHA		0x01
+#define AC_SRC_NO_PREMULT_ALPHA	0x01
+#define AC_SRC_NO_ALPHA		0x02
+#define AC_DST_NO_PREMULT_ALPHA	0x10
+#define AC_DST_NO_ALPHA		0x20
 #define LAYOUT_RTL 1
 #define LAYOUT_BITMAPORIENTATIONPRESERVED 8
 #if (WINVER > 0x400)
@@ -1190,6 +1195,11 @@ extern "C" {
 #define DISPLAY_DEVICE_VGA_COMPATIBLE      0x00000010
 #define DISPLAY_DEVICE_REMOVABLE           0x00000020
 #define DISPLAY_DEVICE_MODESPRUNED         0x08000000
+
+#if (_WIN32_WINNT >= 0x0500)
+#define GGI_MARK_NONEXISTING_GLYPHS 1
+#endif
+
 #ifndef RC_INVOKED
 typedef struct _ABC {
 	int abcA;
@@ -2499,12 +2509,23 @@ typedef void (CALLBACK *LINEDDAPROC)(int,int,LPARAM);
 typedef UINT (CALLBACK *LPFNDEVMODE)(HWND,HMODULE,LPDEVMODEA,LPSTR,LPSTR,LPDEVMODEA,LPSTR,UINT);
 typedef DWORD (CALLBACK *LPFNDEVCAPS)(LPSTR,LPSTR,UINT,LPSTR,LPDEVMODEA);
 
-
-#define RGB(r,g,b)	((COLORREF)((BYTE)(r) | ((BYTE)(g) << 8) | ((BYTE)(b) << 16)))
 #define MAKEPOINTS(l) (*((POINTS*)&(l)))
 #define MAKEROP4(f,b)	(DWORD)((((b)<<8)&0xFF000000)|(f))
+
+#define GetCValue(cmyk) ((BYTE)(cmyk))
+#define GetMValue(cmyk) ((BYTE)((cmyk)>> 8))
+#define GetYValue(cmyk) ((BYTE)((cmyk)>>16))
+#define GetKValue(cmyk) ((BYTE)((cmyk)>>24))
+#define CMYK(c,m,y,k) ((COLORREF)((BYTE)(k)|((BYTE)(y)<<8)|((BYTE)(m)<<16)|((BYTE)(c)<<24)))
+
+#define GetRValue(c) ((BYTE)(c))
+#define GetGValue(c) ((BYTE)(((WORD)(c))>>8))
+#define GetBValue(c) ((BYTE)((c)>>16))
+#define RGB(r,g,b) ((COLORREF)((BYTE)(r)|((BYTE)(g) << 8)|((BYTE)(b) << 16)))
+
 #define PALETTEINDEX(i)	((0x01000000|(COLORREF)(WORD)(i)))
 #define PALETTERGB(r,g,b)	(0x02000000|RGB(r,g,b))
+
 int WINAPI AbortDoc(HDC);
 BOOL WINAPI AbortPath(HDC);
 int WINAPI AddFontResourceA(LPCSTR);
@@ -2620,14 +2641,6 @@ BOOL WINAPI GdiComment(HDC,UINT,const BYTE*);
 BOOL WINAPI GdiFlush(void);
 DWORD WINAPI GdiGetBatchLimit(void);
 DWORD WINAPI GdiSetBatchLimit(DWORD);
-#define GetCValue(cmyk) ((BYTE)(cmyk))
-#define GetMValue(cmyk) ((BYTE)((cmyk)>> 8))
-#define GetYValue(cmyk) ((BYTE)((cmyk)>>16))
-#define GetKValue(cmyk) ((BYTE)((cmyk)>>24))
-#define CMYK(c,m,y,k) ((COLORREF)((((BYTE)(c)|((WORD)((BYTE)(m))<<8))|(((DWORD)(BYTE)(y))<<16))|(((DWORD)(BYTE)(k))<<24)))
-#define GetRValue(c) ((BYTE)(c))
-#define GetGValue(c) ((BYTE)(((WORD)(c))>>8))
-#define GetBValue(c) ((BYTE)((c)>>16))
 int WINAPI GetArcDirection(HDC);
 BOOL WINAPI GetAspectRatioFilterEx(HDC,LPSIZE);
 LONG WINAPI GetBitmapBits(HBITMAP,LONG,PVOID);
@@ -2865,10 +2878,16 @@ BOOL WINAPI wglUseFontBitmapsW(HDC,DWORD,DWORD,DWORD);
 BOOL WINAPI wglUseFontOutlinesA(HDC,DWORD,DWORD,DWORD,FLOAT,FLOAT,int,LPGLYPHMETRICSFLOAT);
 BOOL WINAPI wglUseFontOutlinesW(HDC,DWORD,DWORD,DWORD,FLOAT,FLOAT,int,LPGLYPHMETRICSFLOAT);
 
-#if (WINVER>= 0x0500)
+#if (WINVER >= 0x0500)
 BOOL WINAPI AlphaBlend(HDC,int,int,int,int,HDC,int,int,int,int,BLENDFUNCTION);
 BOOL WINAPI GradientFill(HDC,PTRIVERTEX,ULONG,PVOID,ULONG,ULONG);
 BOOL WINAPI TransparentBlt(HDC,int,int,int,int,HDC,int,int,int,int,UINT);
+#endif
+
+#if (_WIN32_WINNT >= 0x0500)
+DWORD WINAPI GetFontUnicodeRanges(HDC,LPGLYPHSET);
+DWORD WINAPI GetGlyphIndicesA(HDC,LPCSTR,int,LPWORD,DWORD);
+DWORD WINAPI GetGlyphIndicesW(HDC,LPCWSTR,int,LPWORD,DWORD);
 #endif
 
 #ifdef UNICODE
@@ -2945,7 +2964,10 @@ typedef DISPLAY_DEVICEW DISPLAY_DEVICE, *PDISPLAY_DEVICE, *LPDISPLAY_DEVICE;
 #define UpdateICMRegKey UpdateICMRegKeyW
 #define wglUseFontBitmaps wglUseFontBitmapsW
 #define wglUseFontOutlines wglUseFontOutlinesW
-#else
+#if (_WIN32_WINNT >= 0x0500)
+#define GetGlyphIndices  GetGlyphIndicesW
+#endif
+#else  /* UNICODE */
 typedef BYTE BCHAR;
 typedef DOCINFOA DOCINFO, *LPDOCINFO;
 typedef LOGFONTA LOGFONT,*PLOGFONT,*LPLOGFONT;
@@ -3019,8 +3041,11 @@ typedef DISPLAY_DEVICEA DISPLAY_DEVICE, *PDISPLAY_DEVICE, *LPDISPLAY_DEVICE;
 #define UpdateICMRegKey UpdateICMRegKeyA
 #define wglUseFontBitmaps wglUseFontBitmapsA
 #define wglUseFontOutlines wglUseFontOutlinesA
+#if (_WIN32_WINNT >= 0x0500)
+#define GetGlyphIndices  GetGlyphIndicesA
 #endif
-#endif
+#endif /* UNICODE */
+#endif /* RC_INVOKED */
 #ifdef __cplusplus
 }
 #endif

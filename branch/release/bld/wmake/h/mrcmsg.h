@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  mrcmsg.c interfaces
 *
 ****************************************************************************/
 
@@ -134,6 +133,7 @@
 #define USER_BREAK_ENCOUNTERED           77
 #define ERROR_TRMEM                      78
 #define MICROSOFT_MAKEFILE               79
+#define ERROR_STRING_OPEN                80
 
 /*
  * all msgs beyond here should not have a number printed with them
@@ -219,7 +219,24 @@
 #define SYS_ERR_14                      209
 #define SYS_ERR_15                      210
 
-#define USAGE_BASE                      220
+#define SIG_ERR_0                       211
+#define SIG_ERR_1                       212
+#define SIG_ERR_2                       213
+#define SIG_ERR_3                       214
+#define SIG_ERR_4                       215
+#define SIG_ERR_5                       216
+#define SIG_ERR_6                       217
+#define SIG_ERR_7                       218
+#define SIG_ERR_8                       219
+#define SIG_ERR_9                       220
+#define SIG_ERR_10                      221
+#define SIG_ERR_11                      222
+#define SIG_ERR_12                      223
+#define SIG_ERR_13                      224
+#define SIG_ERR_14                      225
+#define SIG_ERR_15                      226
+
+#define USAGE_BASE                      230
 
 
 // #define USAGE_LN_0                   160
@@ -228,27 +245,27 @@
 
 #include "usageend.gh"
 
-#define MSG_LANG_SPACING        1000
+#define MSG_LANG_SPACING                1000
 
 #define MSG_USE_E_BASE  (USAGE_BASE + RLE_ENGLISH*MSG_LANG_SPACING)
 #define MSG_USE_J_BASE  (USAGE_BASE + RLE_JAPANESE*MSG_LANG_SPACING)
 
 #define END_OF_RESOURCE_MSG             USAGE_LAST
 
-#define MAX_RESOURCE_SIZE       128
+#define MAX_RESOURCE_SIZE               128
 
 
 typedef struct table_type {
-    int         msgid;
-    char        *msgtype;
+    int     msgid;
+    char    *msgtype;
 } TABLE_TYPE;
 
-extern int MsgInit( void );
-extern int MsgGet( int resourceid, char *buffer );
-extern void MsgGetTail( int resourceid, char *buffer );
-extern void MsgFini( void );
-extern int MsgReOrder( int resourceid, char *buff, char **paratype );
-extern BOOLEAN ResAutoDep( char *name, time_t stamp, BOOLEAN (*chk)(time_t,time_t), time_t *pmax_time );
+extern int      MsgInit( void );
+extern int      MsgGet( int resourceid, char *buffer );
+extern void     MsgGetTail( int resourceid, char *buffer );
+extern void     MsgFini( void );
+extern int      MsgReOrder( int resourceid, char *buff, char **paratype );
+extern BOOLEAN  ResAutoDep( char *name, time_t stamp, BOOLEAN (*chk)(time_t,time_t), time_t *pmax_time );
 
 // extern long FileShift; /* This is defined in %devdir%\sdk\rc\wres\c\loadstr.c */ incompatible with mautores.c W.Briscoe 20031106
 #else

@@ -37,7 +37,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <process.h>
+#if defined( __WATCOMC__ )
+    #include <process.h>
+#endif
 
 #include "dis.h"
 #include "init.h"
@@ -391,6 +393,11 @@ static orl_return sectionInit( orl_sec_handle shnd )
     switch( type ) {
         case SECTION_TYPE_SYM_TABLE:
             symbolTable = shnd;
+            // Might have a label or relocation in symbol section
+            error = registerSec( shnd, type );
+            if( error == OKAY ) {
+                error = createLabelList( shnd );
+            }
             break;
         case SECTION_TYPE_DRECTVE:
             if( GetFormat() == ORL_OMF ) {
@@ -569,6 +576,46 @@ orl_machine_type GetMachineType()
     return( ORLFileGetMachineType( ObjFileHnd ) );
 }
 
+/*
+ *  Functions to convert data from the file format to the host format where the data may be byte swapped.
+ *  If the ORL file is not marked as the opposite endianness as that of the host, then the data will
+ *  not be byte swapped. This may not always be the correct behaviour, but if the data is not marked as
+ *  a particular endianness, what are we to do about it?
+ */
+
+#ifdef __BIG_ENDIAN__
+#define ENDIANNESS_TEST     ORL_FILE_FLAG_LITTLE_ENDIAN
+#else
+#define ENDIANNESS_TEST     ORL_FILE_FLAG_BIG_ENDIAN
+#endif 
+ 
+unsigned_16 FileU16toHostU16(unsigned_16 value)
+{
+    orl_file_flags  flags = ORLFileGetFlags( ObjFileHnd );
+    if( flags & ENDIANNESS_TEST )
+        return ( SWAPNC_16( value ) );
+    return value;
+}
+
+unsigned_32 FileU32toHostU32(unsigned_32 value)
+{
+    orl_file_flags  flags = ORLFileGetFlags( ObjFileHnd );
+    if( flags & ENDIANNESS_TEST )
+        return ( SWAPNC_32( value ) );
+    return value;
+}
+
+unsigned_64 FileU64toHostU64(unsigned_64 value)
+{
+    orl_file_flags  flags = ORLFileGetFlags( ObjFileHnd );
+    if( flags & ENDIANNESS_TEST ){
+        unsigned_64 new_value;        
+        new_value.u._64[0] = SWAPNC_64( value.u._64[0] );
+        return new_value;
+    }
+    return value;
+}
+
 static return_val initORL( void )
 {
     orl_file_flags      flags;
@@ -606,6 +653,9 @@ static return_val initORL( void )
             // check intended machine type
             machine_type = GetMachineType();
             switch( machine_type ) {
+            // If there's no machine specific code, the CPU we choose shouldn't
+            // matter; there are some object files like this.
+            case ORL_MACHINE_TYPE_NONE:
             case ORL_MACHINE_TYPE_ALPHA:
                 if( DisInit( DISCPU_axp, &DHnd, byte_swap ) != DR_OK ) {
                     ORLFini( ORLHnd );
@@ -624,9 +674,24 @@ static return_val initORL( void )
                     QuoteChar = '\"';
                 }
                 break;
+            case ORL_MACHINE_TYPE_R3000:
+            case ORL_MACHINE_TYPE_R4000:
+                if( DisInit( DISCPU_mips, &DHnd, byte_swap ) != DR_OK ) {
+                    ORLFini( ORLHnd );
+                    PrintErrorMsg( OKAY, WHERE_UNSUPPORTED_PROC );
+                    return( ERROR );
+                }
+                break;
             case ORL_MACHINE_TYPE_I386:
             case ORL_MACHINE_TYPE_I8086:
                 if( DisInit( DISCPU_x86, &DHnd, byte_swap ) != DR_OK ) {
+                    ORLFini( ORLHnd );
+                    PrintErrorMsg( OKAY, WHERE_UNSUPPORTED_PROC );
+                    return( ERROR );
+                }
+                break;
+            case ORL_MACHINE_TYPE_SPARC:
+                if( DisInit( DISCPU_sparc, &DHnd, byte_swap ) != DR_OK ) {
                     ORLFini( ORLHnd );
                     PrintErrorMsg( OKAY, WHERE_UNSUPPORTED_PROC );
                     return( ERROR );

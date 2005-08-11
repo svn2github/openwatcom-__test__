@@ -209,6 +209,7 @@ void InitGlobalVars( void ){
     ModuleName              = NULL; /* name of module */
     ObjectFileName          = NULL; /* name of object file */
     DependFileName          = NULL; /* Name of make style auto depend file */
+    DependHeaderPath        = NULL; /* If no path is part of an included file, use this*/
     DependForceSlash        = 0;
     PackAmount              = 0;    /* current packing alignment */
     GblPackAmount           = 0;    /* packing alignment given on command line */
@@ -225,7 +226,6 @@ void InitGlobalVars( void ){
     InitialMacroFlag        = 0;
     Stack87                 = 0;
     ErrorFileName           = NULL;
-    DataQuadSegIndex        = 0;    /* cdinit */
 
     UndefNames              = NULL;
 

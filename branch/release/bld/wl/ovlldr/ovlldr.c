@@ -24,22 +24,18 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Overlay loader.
 *
 ****************************************************************************/
 
 
 
-/* OVLLDR:       Overlay loader.
-*/
-
 #include <dos.h>
 #include <stddef.h>
 #include "ovlstd.h"
 
-extern void             NAME( OVLLDR )(void);
-extern void near        NAME( OVLMUNGE )(void *);
+extern void             NAME( OVLLDR )( void );
+extern void near        NAME( OVLMUNGE )( void * );
 extern void             (far * far NAME( DBG_HOOK ) )();
 extern void near        NAME( CHPOVLLDR )( void );
 #define LOADOVERLAY     NAME( LoadOverlay )
@@ -59,7 +55,8 @@ static void ClearInMemFlags( ovltab_entry *loaded_ovl )
     ovl_num = 1;
     ovl = __OVLTAB__.entries;
     for(;;) {
-        if( ovl->flags_anc == OVLTAB_TERMINATOR ) break;
+        if( ovl->flags_anc == OVLTAB_TERMINATOR )
+            break;
         if( ovl->flags_anc & FLAG_INMEM ) {
             if( ovl->start_para < end
                 && ovl->start_para + ovl->num_paras > loaded_ovl->start_para ) {
@@ -70,8 +67,9 @@ static void ClearInMemFlags( ovltab_entry *loaded_ovl )
                     or else we must unload this section. */
                 anc = ovl;
                 for( ;; ) {
-                    anc_num = anc->flags_anc & FLAG_ANC_MASK;
-                    if( anc_num == 0 ) break;
+                    anc_num = anc->flags_anc & OVE_FLAG_ANC_MASK;
+                    if( anc_num == 0 )
+                        break;
                     anc = &__OVLTAB__.entries[ anc_num - 1 ];
                     if( (anc->flags_anc & FLAG_INMEM) == 0 ) {
                         ovl->flags_anc &= ~FLAG_INMEM;
@@ -105,10 +103,11 @@ int near LOADOVERLAY( unsigned int ovl_num )
         if( (ovl->flags_anc & FLAG_INMEM) == 0 ) {
             loaded_something = 1;
             status = __OpenOvl__( ovl->fname );
-            if( TINY_ERROR( status ) ) __OvlExit__( OVL_OPEN_ERR );
+            if( TINY_ERROR( status ) )
+                __OvlExit__( OVL_OPEN_ERR );
             fp = TINY_INFO( status );
             status = __OvlSeek__( fp, ovl->disk_addr );
-            if( !TINY_OK( status ) ) {
+            if( TINY_ERROR( status ) ) {
                 __OvlExit__( OVL_IO_ERR );
             }
             __OvlCodeLoad__( ovl, fp );
@@ -122,7 +121,7 @@ int near LOADOVERLAY( unsigned int ovl_num )
             __OvlMsg__( OVL_RESIDENT );
 #endif
         }
-        ovl_num = ovl->flags_anc & FLAG_ANC_MASK;
+        ovl_num = ovl->flags_anc & OVE_FLAG_ANC_MASK;
     }
     return( loaded_something );
 }
@@ -153,8 +152,8 @@ static void MungeVectors( int ovl_num )
                 vect->u.v.ldr_addr = FP_OFF( NAME( CHPOVLLDR ) )
                                              - FP_OFF(&vect->u.v.ldr_addr) - 2;
             } else {
-                vect->u.m.big_nop = MOV_AX_AX;
-                vect->u.m.test_op = TEST_OPCODE;
+                vect->u.m.big_nop = OVV_MOV_AX_AX;
+                vect->u.m.test_op = OVV_TEST_OPCODE;
 #endif
             }
         }
@@ -173,7 +172,7 @@ static void DeMungeVectors( int ovl_num )
 #ifdef OVL_SMALL
         if( vect->sec_num == ovl_num ) {
             vect->call_op = CALL_INSTRUCTION;
-            vect->ldr_addr = (unsigned)NAME(OVLLDR)
+            vect->ldr_addr = (unsigned)NAME( OVLLDR )
                                        - (unsigned)(&vect->ldr_addr) - 2;
 #else
         if( vect->u.v.sec_num == ovl_num ) {
@@ -211,7 +210,7 @@ dos_addr near NAME( OVLTINIT )( void )
     ovl = __OVLTAB__.entries;
     while( ovl->flags_anc != OVLTAB_TERMINATOR ) {
         ovl->code_handle = ovl->start_para + __OVLTAB__.prolog.delta;
-        if( ovl->flags_anc & FLAG_PRELOAD ) {
+        if( ovl->flags_anc & OVE_FLAG_PRELOAD ) {
             LOADOVERLAY( ovl_num );
         }
         ovl_num++;

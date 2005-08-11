@@ -42,7 +42,7 @@ modelos=f
 !else ifeq      targos  nt386
 modelos=f
 !else ifeq      targos  ntaxp
-modelos=f
+modelos=
 !endif
 !ifndef model
 model=$(modelos)
@@ -50,14 +50,22 @@ model=$(modelos)
 memory_model_i86=$(model)
 memory_model_386=$(model)
 
-posixlib=$(posix_dir)/misc/$(targos)/posix$(model).lib
+!ifdef __UNIX__
+!ifeq targos ntaxp
+posixlibdir=$(posix_dir)/misc/$(targos)/_s
+!else
+posixlibdir=$(posix_dir)/misc/$(targos)/m$(model)
+!endif
+!else
+!ifeq targos ntaxp
+posixlibdir=$(posix_dir)\misc\$(targos)\_s
+!else
+posixlibdir=$(posix_dir)\misc\$(targos)\m$(model)
+!endif
+!endif
 
 !include cproj.mif
-
-.EXTENSIONS:
-.EXTENSIONS: .exe
-.EXTENSIONS: .cbj .sbj .lbj .mbj .fbj .obj
-.EXTENSIONS: .asm .c
+!include defrule.mif
 
 #
 #       compiler options
@@ -67,10 +75,14 @@ posixlib=$(posix_dir)/misc/$(targos)/posix$(model).lib
 #       define options for each specific operating system supported
 #
 
-!ifeq        targos  pharlap
-extra_cflags   = -bt=pharlap $(extra_cflags)
-!else ifeq   targos  ntaxp
-extra_cflags   = -dWIN32 -d_WIN32
+extra_cflags_pharlap = -bt=pharlap
+extra_cflags_ntaxp   = -DWIN32 -D_WIN32
+extra_c_flags = -D__OS_$(targos)__ -DSTANDALONE_RX $(extra_cflags_$(targos)) $(extra_cflags)
+
+!ifndef make_lib
+inc_dirs = -I"$(posix_dir)/src/$(name)" -I"$(posix_dir)/h"
+!else
+inc_dirs = -I"$(posix_dir)/h"
 !endif
 
 !ifndef make_lib
@@ -79,22 +91,3 @@ extra_cflags   = -dWIN32 -d_WIN32
 .c: $(posix_dir)/misc;$(lang_root)/src/startup
 !endif
 
-.before
-!ifndef make_lib
-extra_c_flags = -fo=.obj -d__OS_$(targos)__ -dSTANDALONE_RX -i"$(posix_dir)/src/$(name);$(posix_dir)/h;$(inc_path)"
-!else
-extra_c_flags = -fo="$(posix_dir)/misc/$(targos)/.$(model)bj" -d__OS_$(targos)__ -dSTANDALONE_RX -i"$(posix_dir)/h;$(inc_path)"
-!endif
-
-.c.obj: $(posix_autodepends)
-        $(cc) $[@ $(cflags) $(extra_cflags)
-.c.cbj: $(posix_autodepends)
-        $(cc) $[@ $(cflags) $(extra_cflags)
-.c.lbj: $(posix_autodepends)
-        $(cc) $[@ $(cflags) $(extra_cflags)
-.c.fbj: $(posix_autodepends)
-        $(cc) $[@ $(cflags) $(extra_cflags)
-.c.sbj: $(posix_autodepends)
-        $(cc) $[@ $(cflags) $(extra_cflags)
-.c.mbj: $(posix_autodepends)
-        $(cc) $[@ $(cflags) $(extra_cflags)

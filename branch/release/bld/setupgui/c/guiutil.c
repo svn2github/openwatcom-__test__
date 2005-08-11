@@ -119,8 +119,8 @@ bool WndMainEventProc( gui_window * gui, gui_event event, void *parm )
 
 gui_coord               GUIScale;
 
-extern bool SetupInit()
-/*********************/
+extern bool SetupInit( void )
+/***************************/
 {
     gui_rect            rect;
     gui_create_info     init;
@@ -164,6 +164,17 @@ extern bool SetupInit()
     GUIInitHotSpots( 1, WndGadgetArray );
     GUIGetHotSpotSize( 1, &BitMapSize );
     MainWnd = GUICreateWindow( &init );
+
+#if defined(__NT__)
+    /*
+     * GUI Toolkit now works such that default system colors are used instead of
+     * RGB colors. Since we really want nice blue background, we have to hack
+     * around that by specifying a specific RGB color and re-setting the background
+     * to use that color.
+     */
+    GUISetRGB( GUI_BRIGHT_BLUE, 0x00ff0000 );
+    GUISetWndColour( MainWnd, GUI_BACKGROUND, &MainColours[GUI_BACKGROUND] );
+#endif
 
     return( TRUE );
 }

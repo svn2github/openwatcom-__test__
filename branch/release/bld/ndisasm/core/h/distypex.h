@@ -24,13 +24,14 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Target processor platform related declarations.
 *
 ****************************************************************************/
 
 
 #ifndef DISTYPEX_H
+#define DISTYPEX_H
+
 #include "watcom.h"
 #include "bool.h"
 
@@ -40,8 +41,25 @@
 #define DISCPU_x86      0x04
 #define DISCPU_jvm      0x08
 #define DISCPU_sparc    0x10
+#define DISCPU_mips     0x20
 
-#include "discpu.h"
+#if defined( NDIS_axp )
+#define DISCPU DISCPU_axp
+#elif defined( NDIS_ppc )
+#define DISCPU DISCPU_ppc
+#elif defined( NDIS_x86 )
+#define DISCPU DISCPU_x86
+#elif defined( NDIS_jvm )
+#define DISCPU DISCPU_jvm
+#elif defined( NDIS_sparc )
+#define DISCPU DISCPU_sparc
+#elif defined( NDIS_mips )
+#define DISCPU DISCPU_mips
+#elif defined( NDIS_test )
+#define DISCPU ( DISCPU_axp | DISCPU_ppc | DISCPU_x86 | DISCPU_jvm | DISCPU_sparc | DISCPU_mips )
+#else
+#define DISCPU ( DISCPU_axp | DISCPU_ppc | DISCPU_x86 | DISCPU_sparc | DISCPU_mips )
+#endif
 
 typedef struct dis_range        dis_range;
 
@@ -92,6 +110,13 @@ typedef enum {
     #define inspick( idx, name, opcode, mask, handler ) DI_SPARC_##idx,
     #include "inssparc.h"
 #endif
+#if DISCPU & DISCPU_mips
+    DI_MIPS_FIRST,
+    DI_MIPS_SKIPBACK = DI_MIPS_FIRST - 1,
+    #undef inspick
+    #define inspick( idx, name, opcode, mask, handler ) DI_MIPS_##idx,
+    #include "insmips.h"
+#endif
     #undef inspick
     DI_LAST
 } dis_inst_type;
@@ -133,6 +158,13 @@ typedef enum {
     #define regpick( idx, name ) DR_SPARC_##idx,
     #include "regsparc.h"
 #endif
+#if DISCPU & DISCPU_mips
+    DR_MIPS_FIRST,
+    DR_MIPS_SKIPBACK = DR_MIPS_FIRST - 1,
+    #undef regpick
+    #define regpick( idx, name ) DR_MIPS_##idx,
+    #include "regmips.h"
+#endif
     #undef regpick
     DR_LAST
 } dis_register;
@@ -173,6 +205,13 @@ typedef enum {
     #undef refpick
     #define refpick( idx, name ) DRT_SPARC_##idx,
     #include "refsparc.h"
+#endif
+#if DISCPU & DISCPU_mips
+    DRT_MIPS_FIRST,
+    DRT_MIPS_SKIPBACK = DRT_MIPS_FIRST - 1,
+    #undef refpick
+    #define refpick( idx, name ) DRT_MIPS_##idx,
+    #include "refmips.h"
 #endif
     #undef refpick
     DRT_LAST
@@ -224,6 +263,17 @@ typedef enum {
 #if DISCPU & DISCPU_sparc
     DIF_SPARC_ANUL      = 0x01<<0,      /* for branch instructions - next ins anul'd */
 #endif
+#if DISCPU & DISCPU_mips
+    DIF_MIPS_NULLIFD    = 0x0001,       /* for branch instructions - next ins nullified */
+    DIF_MIPS_LINK       = 0x0002,       /* linked jump/branch (ie. a call) */
+    DIF_MIPS_LIKELY     = 0x0004,       /* branch instruction likely */
+    DIF_MIPS_FF_S       = 0x0008,       /* single precision floating point */
+    DIF_MIPS_FF_D       = 0x0010,       /* double precision floating point */
+    DIF_MIPS_FF_W       = 0x0020,       /* fixed point, word sized */
+    DIF_MIPS_FF_L       = 0x0040,       /* fixed point, doubleword sized */
+    DIF_MIPS_FF_PS      = 0x0080,       /* paired single precision floating point */
+    DIF_MIPS_FF_FLAGS   = DIF_MIPS_FF_S | DIF_MIPS_FF_D | DIF_MIPS_FF_W | DIF_MIPS_FF_L | DIF_MIPS_FF_PS,
+#endif
     DIF_NONE            = 0
 } dis_inst_flags;
 
@@ -273,7 +323,7 @@ typedef enum {
     DFF_REG_UP                  = 0x01<<1,
     DFF_ASM                     = 0x01<<2,
     DFF_PSEUDO                  = 0x01<<3,
-    DFF_AXP_SYMBOLIC_REG        = 0x01<<4,
+    DFF_SYMBOLIC_REG            = 0x01<<4,
     DFF_X86_ALT_INDEXING        = 0x01<<5,
     DFF_X86_UNIX                = 0x01<<6,
     DFF_DONE
@@ -293,5 +343,4 @@ struct dis_handle {
     bool                need_bswap;
 };
 
-#define DISTYPEX_H
 #endif

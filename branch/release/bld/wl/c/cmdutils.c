@@ -83,7 +83,9 @@ static  char            *DefExt[] = {           /* see LINK.H */
 #else
     ".elf",
 #endif
-    ".ilk"
+    ".ilk",
+    ".hex",
+    ".bin"
 };
 
 static bool     CheckFence( void );
@@ -1176,7 +1178,7 @@ extern outfilelist * NewOutFile( char * filename )
     }
 // file name not already in list, so add a list entry.
     _ChkAlloc( fnode, sizeof( outfilelist ) );
-    InitBuffFile( fnode, filename );
+    InitBuffFile( fnode, filename, TRUE );
     fnode->next = OutFiles;
     OutFiles = fnode;
     return( fnode );
@@ -1196,6 +1198,7 @@ extern section * NewSection( void )
     _ChkAlloc( sect, sizeof( section ) );
     sect->next_sect = NULL;
     sect->classlist = NULL;
+    sect->orderlist = NULL;
     sect->areas = NULL;
     sect->files = NULL;
     sect->modFilesHashed = CreateHTable( 256, StringiHashFunc, stricmp_wrapper,

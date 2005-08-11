@@ -16,9 +16,9 @@ c_dirs_root = $(vi_dir)/nt;$(vi_dir)/win
 ! else
 c_dirs_root = $(vi_dir)/win
 ! endif
-c_dirs = $(vi_dir)/c;$(c_dirs_root);$(vi_dir)/dos;$(sdk_dir)/misc;$(vi_dir)/ctl
+c_dirs = $(vi_dir)/c;$(c_dirs_root);$(vi_dir)/dos;$(sdk_dir)/misc;$(vi_dir)/ctl;$(watcom_dir)/c
 !else
-c_dirs = $(vi_dir)/c;$(c_dirs_root);$(vi_dir)/ui
+c_dirs = $(vi_dir)/c;$(c_dirs_root);$(vi_dir)/ui;$(watcom_dir)/c
 !endif
 
 .c : $(c_dirs)
@@ -37,7 +37,7 @@ extra_c_flags_i86_dos = -D__86__
 
 extra_c_flags_i86_os2 = -2
 extra_c_flags_i86_qnx = -2
-extra_c_flags_i86_win = -fpc -zW -2 -zc
+extra_c_flags_i86_win = -zW -2 -zc
 
 extra_c_flags_i86 = $(extra_c_flags_i86_$(host_os))
 
@@ -55,17 +55,13 @@ extra_c_flags_386_win = -zw -s
 
 extra_c_flags_386 = $(extra_c_flags_386_$(host_os))
 
-extra_c_flags = $(extra_c_flags_trmem) $(extra_c_flags_debug) -DNOUSE3D=1 -ai
+extra_c_flags = $(extra_c_flags_trmem) $(extra_c_flags_debug) -DNOUSE3D=1
 
-
-!ifdef __LINUX__
-.ctl.ch:
-        $(bld_bin)/parsectl $[@ $[&.ch Ctl_$^&
-.dyn.dh:
-        $(bld_bin)/parsedyn $[@ $[&.dh Dyn_$^&
-!else
-.ctl.ch:
-        $(bld_bin)\parsectl $[@ $[&.ch Ctl_$^&
-.dyn.dh:
-        $(bld_bin)\parsedyn $[@ $[&.dh Dyn_$^&
+!ifndef bootstrap
+extra_c_flags += -ai
 !endif
+
+.ctl.ch:
+        parsectl $[@ $[&.ch Ctl_$^&
+.dyn.dh:
+        parsedyn $[@ $[&.dh Dyn_$^&

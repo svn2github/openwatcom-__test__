@@ -525,7 +525,7 @@ The following describes the form of the "code_seg" pragma.
 .mbox end
 .synote
 .note seg_name
-is the name of the text segment enclosed in quotes.
+is the name of the text segment optionally enclosed in quotes.
 Also,
 .mono seg_name
 may be a macro as in:
@@ -534,7 +534,7 @@ may be a macro as in:
 #pragma code_seg ( seg_name );
 .millust end
 .note class_name
-is the optional class name of the text segment enclosed in quotes.
+is the optional class name of the text segment and may be enclosed in quotes.
 Also,
 .mono class_name
 may be a macro as in:
@@ -546,7 +546,7 @@ may be a macro as in:
 .np
 Consider the following example.
 .millust begin
-#pragma code_seg ( "my_text" );
+#pragma code_seg ( my_text );
 
 int incr( int i )
 {
@@ -624,7 +624,7 @@ The following describes the form of the "data_seg" pragma.
 .mbox end
 .synote
 .note seg_name
-is the name of the data segment enclosed in quotes.
+is the name of the data segment and may be enclosed in quotes.
 Also,
 .mono seg_name
 may be a macro as in:
@@ -633,7 +633,7 @@ may be a macro as in:
 #pragma data_seg ( seg_name );
 .millust end
 .note class_name
-is the optional class name of the data segment enclosed in quotes.
+is the optional class name of the data segment and may be enclosed in quotes.
 Also,
 .mono class_name
 may be a macro as in:
@@ -645,7 +645,7 @@ may be a macro as in:
 .np
 Consider the following example.
 .millust begin
-#pragma data_seg ( "my_data" );
+#pragma data_seg ( my_data );
 
 static int i;
 static int j;
@@ -1657,6 +1657,28 @@ or
 .kwm cdecl
 .do end
 defines the calling convention used by Microsoft compilers.
+.note __fastcall
+.ix 'alias names' '__fastcall'
+.ix '__fastcall alias name'
+.kwm __fastcall
+.if '&lang' eq 'C' or '&lang' eq 'C/C++' .do begin
+or
+.ix 'alias names' 'fastcall'
+.ix 'fastcall alias name'
+.kwm fastcall
+.do end
+defines the calling convention used by Microsoft compilers.
+.note __fortran
+.ix 'alias names' '__fortran'
+.ix '__fortran alias name'
+.kwm __fortran
+.if '&lang' eq 'C' or '&lang' eq 'C/C++' .do begin
+or
+.ix 'alias names' 'fortran'
+.ix 'fortran alias name'
+.kwm fortran
+.do end
+defines the calling convention used by &company. FORTRAN compilers.
 .note __pascal
 .kwm __pascal
 .ix 'alias names' '__pascal'
@@ -1669,7 +1691,6 @@ or
 .do end
 defines the calling convention used by OS/2 1.x and Windows 3.x API
 functions.
-.if '&machine' eq '80386' .do begin
 .note __stdcall
 .ix 'alias names' '__stdcall'
 .ix '__stdcall alias name'
@@ -1680,7 +1701,11 @@ or
 .ix 'stdcall alias name'
 .kwm stdcall
 .do end
+.if '&machine' eq '80386' .do begin
 defines a special calling convention used by the Win32 API functions.
+.do end
+.el .do begin
+defines the calling convention used by Microsoft compilers.
 .do end
 .if '&machine' eq '80386' .do begin
 .note __syscall
@@ -1707,6 +1732,17 @@ or
 are identical to
 .kwm __syscall.
 .do end
+.note __watcall
+.ix 'alias names' '__watcall'
+.ix '__watcall alias name'
+.kwm __watcall
+.if '&lang' eq 'C' or '&lang' eq 'C/C++' .do begin
+or
+.ix 'alias names' 'watcall'
+.ix 'watcall alias name'
+.kwm watcall
+.do end
+defines the default calling convention used by &company compilers.
 .endnote
 .pc
 The following describes the attributes of the above alias names.

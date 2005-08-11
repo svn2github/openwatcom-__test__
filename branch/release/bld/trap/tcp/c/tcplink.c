@@ -156,6 +156,12 @@ static unsigned FullGet( void *get, unsigned len )
     for( ;; ) {
         rec = recv( data_socket, get, len, 0 );
         if( die || rec == (unsigned)-1 ) return( REQUEST_FAILED );
+#if defined(__OS2__)
+        /* OS/2 TCP/IP docs say that return value of 0 indicates closed
+         * connection; this is unlike other TCP/IP implementations.
+         */
+        if( rec == 0 ) return( REQUEST_FAILED );
+#endif
         len -= rec;
         if( len == 0 ) break;
         get = (unsigned_8 *)get + rec;
@@ -173,6 +179,7 @@ unsigned RemoteGet( char *rec, unsigned len )
     if( FullGet( &rec_len, sizeof( rec_len ) ) != sizeof( rec_len ) ) {
         return( REQUEST_FAILED );
     }
+    CONV_LE_16( rec_len );
     if( rec_len != 0 ) {
         if( FullGet( rec, rec_len ) != rec_len ) {
             return( REQUEST_FAILED );
@@ -189,6 +196,7 @@ unsigned RemotePut( char *rec, unsigned len )
     _DBG_NET(("RemotePut\r\n"));
 
     send_len = len;
+    CONV_LE_16( send_len );
     if( die || send( data_socket, (void *)&send_len, sizeof( send_len ), 0 ) == -1 ) {
         return( REQUEST_FAILED );
     }
@@ -399,6 +407,8 @@ void RemoteUnLink( void )
 {
 #ifdef SERVER
     soclose( control_socket );
+#else
+    Terminate();
 #endif
 #if defined(__NT__) || defined(__WINDOWS__)
     WSACleanup();

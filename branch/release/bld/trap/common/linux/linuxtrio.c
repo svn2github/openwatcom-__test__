@@ -37,7 +37,9 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <sys/time.h>
-#include <process.h>
+#if defined(__WATCOMC__)
+    #include <process.h>
+#endif
 #include "trpimp.h"
 
 extern char RWBuff[];
@@ -104,7 +106,7 @@ int KeyGet()
 
 static char *StrCopy( char *src, char *dst )
 {
-    while( *dst = *src ) {
+    while( (*dst = *src) ) {
         ++src;
         ++dst;
     }
@@ -154,6 +156,9 @@ static unsigned FindFilePath( char *name, char *result )
         end = strrchr( cmd, '/' );
         if( end != NULL ) {
             *end = '\0';
+	    /* look in the executable's directory */
+            len = TryOnePath( cmd, &tmp, name, result );
+            if( len != 0 ) return( len );
             end = strrchr( cmd, '/' );
             if( end != NULL ) {
                 /* look in the wd sibling directory of where the command
@@ -164,7 +169,51 @@ static unsigned FindFilePath( char *name, char *result )
             }
         }
     }
-    return( TryOnePath( "/usr/watcom/wd", &tmp, name, result ) );
+    return( TryOnePath( "/opt/watcom/wd", &tmp, name, result ) );
+}
+
+unsigned FullPathOpen( char const *name, char *ext, char *result, unsigned max_result )
+{
+    bool                has_ext;
+    bool                has_path;
+    const char          *ptr;
+    const char          *endptr;
+    char                trpfile[256];
+    unsigned            filehndl;
+    int                 name_len = strlen(name);
+
+    has_ext = FALSE;
+    has_path = FALSE;
+    endptr = name + name_len;
+    for( ptr = name; ptr != endptr; ++ptr ) {
+        switch( *ptr ) {
+        case '.':
+            has_ext = TRUE;
+            break;
+        case '/':
+            has_ext = FALSE;
+            has_path = TRUE;
+            /* fall through */
+            break;
+        }
+    }
+    memcpy( trpfile, name, name_len );
+    if( has_ext ) {
+        trpfile[name_len] = '\0';
+    } else {
+        trpfile[ name_len++ ] = '.';
+        memcpy( trpfile + name_len, ext, strlen( ext ) + 1 );
+    }
+    if( has_path ) {
+        filehndl = open( trpfile, O_RDONLY );
+    } else {
+        if( FindFilePath( trpfile, result ) == 0 ) {
+            filehndl = -1;
+        } else {
+            filehndl = open( result, O_RDONLY );
+        }
+    }
+    return( filehndl );
 }
 
 unsigned PathOpen( char *name, unsigned name_len, char *exts )
@@ -196,7 +245,7 @@ unsigned PathOpen( char *name, unsigned name_len, char *exts )
         trpfile[name_len] = '\0';
     } else {
         trpfile[ name_len++ ] = '.';
-        memcpy( (char near *)&trpfile[ name_len ], exts, strlen( exts ) + 1 );
+        memcpy( trpfile + name_len, exts, strlen( exts ) + 1 );
     }
     if( has_path ) {
         filehndl = open( trpfile, O_RDONLY );
@@ -217,6 +266,7 @@ unsigned long GetSystemHandle( unsigned h )
 
 int WantUsage( char *ptr )
 {
+    if( *ptr == '-' ) ++ptr;
     return( *ptr == '?' );
 }
 

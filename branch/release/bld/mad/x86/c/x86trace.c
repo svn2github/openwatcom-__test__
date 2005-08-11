@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Execution tracing support for x86.
 *
 ****************************************************************************/
 
@@ -99,6 +98,8 @@ static void BreakRet( mad_trace_data *td, mad_disasm_data *dd, const mad_registe
         MCReadMem( sp, sizeof( td->brk.mach.segment ), &td->brk.mach.segment );
         sp.mach.offset += sizeof( td->brk.mach.segment );
         break;
+    default:
+        break;
     }
     MCAddrSection( &td->brk );
 }
@@ -125,6 +126,13 @@ static mad_trace_how DoTraceOne( mad_trace_data *td, mad_disasm_data *dd, mad_tr
     case MTRK_OVER:
         switch( dd->ins.type ) {
         case DI_X86_call:
+            /* Handle special case of a call to the next instruction, which is
+             * used under Linux to get the GOT pointer when compiled for
+             * 386 processors.
+             */
+            if( dd->ins.op[0].value == dd->ins.size )
+                return( MTRH_STEP );
+            /* Fall through for normal handling */
         case DI_X86_call2:
         case DI_X86_call3:
         case DI_X86_call4:
@@ -144,6 +152,8 @@ static mad_trace_how DoTraceOne( mad_trace_data *td, mad_disasm_data *dd, mad_tr
                 return( MTRH_BREAK );
             }
             return( MTRH_STEP );
+        default:
+            break;
         }
         return( MTRH_STEP );
     case MTRK_NEXT:
@@ -268,7 +278,7 @@ mad_trace_how   DIGENTRY MITraceOne( mad_trace_data *td, mad_disasm_data *dd, ma
         DoDisasmMemRefWalk( dd, TouchesScreenBuff, mr, (void *)mr );
         break;
     }
-    td->prev_ins_type = dd->ins.opcode;
+    td->prev_ins_type = dd->ins.type;
     td->prev_ins_flags = dd->ins.flags;
     switch( th ) {
     case MTRH_BREAK:
@@ -280,6 +290,8 @@ mad_trace_how   DIGENTRY MITraceOne( mad_trace_data *td, mad_disasm_data *dd, ma
         case DI_X86_int:
         case DI_X86_into:
             MCNotify( MNT_EXECUTE_LONG, NULL );
+            break;
+        default:
             break;
         }
         /* fall through */
@@ -320,6 +332,8 @@ mad_status      DIGENTRY MITraceSimulate( mad_trace_data *td, mad_disasm_data *d
         MCWriteMem( sp, sizeof( value ), &value );
         out->x86.cpu.esp = sp.mach.offset;
         return( MS_OK );
+    default:
+        break;
     }
     return( MS_UNSUPPORTED );
 }

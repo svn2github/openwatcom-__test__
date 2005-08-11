@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
-#ifdef _M_I86
+#ifdef M_I86
 #include <i86.h>
 #endif
 #include <string.h>
@@ -392,7 +392,7 @@ void CheckFcb( fcb *cfcb, int *bcnt, linenum *lnecnt  )
 
 #endif
 
-#ifndef __NT__
+#ifdef __DOS__
 #include "xmem.h"
 #ifndef NOXTD
 extern xtd_struct XMemCtrl;

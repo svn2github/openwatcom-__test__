@@ -30,7 +30,8 @@ d:\
 
     rel2    - this is where the software we actually ship gets copied
               after it is built - it matches the directory structure of our
-              shipping Open Watcom C/C++/FORTRAN tools
+              shipping Open Watcom C/C++/FORTRAN tools. Note: the rel2
+              directory structure is created on the fly.
 
     bat     - batch files, many of which aren't used anymore
               of most interest are the .ctl files - scripts for the "builder"
@@ -50,10 +51,9 @@ d:\
 
 
 ------------------------------
-2) To set up a new machine:
-
-  - Modify setvars.bat/setvars.cmd/setvars.sh to reflect your setup. See
-    comments within the file for additional information.
+2) To set up a new machine, modify setvars.bat/setvars.cmd/setvars.sh to
+   reflect your setup. See comments within the file for additional
+   information.
 
     Your path should look something like this if you are on NT:
 
@@ -65,12 +65,6 @@ d:\
     d:\bin;
     d:\tools;
     d:\bld\build\binnt
-
-  - Create directories not included in source archives/Perforce. This is
-    primarily the rel2 tree where finished binaries, libraries, include
-    files etc. end up. To do this, simply run mkrel2.bat/mkrel2.cmd which
-    should care of everything provided that you have your environment
-    variables set up correctly.
 
 ------------------------------
 3) Priming the pump:
@@ -91,6 +85,25 @@ bootstrap Open Watcom, ie. wmake, the C compiler and several other utilities
 are first built using gcc, then the rest of the tree is built using the
 freshly created Open Watcom tools. See the build.sh script in the root of
 the source tree - it should take care of everything.
+
+Some of the OW tools are still only available as DOS versions. Under Linux,
+DOSEMU and FREEDOS need to be installed to be able to do a complete build.
+In addition:
+- You need to copy parsedlg.exe from %OWROOT%/bin to %OWROOT%/docs/gml/dos,
+  to keep the dosemu PATH statement short.
+- In setvars.sh, set DOC_BUILD=1 if you want to build docs.
+- The setvars.bat file needs to be set up to use D:\ as OWROOT.
+- The dosemu autoexec.bat needs to have the "unix -e" and the end replaced by:
+
+call d:setvars.bat
+path=d:\docs\gml\dos;%PATH%
+unix -s GMLINC
+cdd d:\
+unix -s RUNASDOS_CWD
+cd %RUNASDOS_CWD%
+cd
+unix -e RUNASDOS_CMD
+exitemu
 ----
 
 We use the Open Watcom C/C++ compilers and Open Watcom wmake to build our

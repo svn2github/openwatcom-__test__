@@ -1,4 +1,4 @@
-#pmake: all os_dos cpu_386
+#pmake: os_dos cpu_386
 host_os = dos
 host_cpu = 386
 
@@ -24,4 +24,4 @@ $(xname) : ytab.h ytab.c $(objs) $(__MAKEFILES__)
 .c: ..
 
 ytab.c ytab.h: ../yydriver.c ../defgen.y
-        $(yacc) -d $]@ $[@
+        $(byacc) -d $]@ $[@

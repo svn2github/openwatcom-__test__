@@ -24,15 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  overlay support routines which can't be put in an overlay
 *
 ****************************************************************************/
 
-
-/*
-   OVERLAYS -- overlay support routines which can't be put in an overlay.
-*/
 
 #include "linkstd.h"
 #include "alloc.h"
@@ -44,6 +39,15 @@
 #include "distrib.h"
 #include "overlays.h"
 
+extern void ProcAllSects( void (*rtn)( section * ) )
+/**************************************************/
+{
+    rtn( Root );
+    if( FmtData.type & MK_OVERLAYS ) {
+        WalkAreas( Root->areas, rtn );
+    }
+}
+
 extern void ProcAllOvl( void (*rtn)( section * ) )
 /************************************************/
 {
@@ -52,8 +56,17 @@ extern void ProcAllOvl( void (*rtn)( section * ) )
     }
 }
 
-extern void ParmWalkOvl( void (*rtn)( section *, void * ), void *parm )
-/*********************************************************************/
+extern void ParmWalkAllSects( void (*rtn)( section *, void * ), void *parm )
+/**************************************************************************/
+{
+    rtn( Root, parm );
+    if( FmtData.type & MK_OVERLAYS ) {
+        ParmWalkAreas( Root->areas, rtn, parm );
+    }
+}
+
+extern void ParmWalkAllOvl( void (*rtn)( section *, void * ), void *parm )
+/************************************************************************/
 {
     if( FmtData.type & MK_OVERLAYS ) {
         ParmWalkAreas( Root->areas, rtn, parm );
@@ -72,8 +85,8 @@ static void NumASect( section *sect )
 extern void NumberSections( void )
 /********************************/
 {
-    if( FmtData.type & MK_OVERLAYS && FmtData.u.dos.distribute ) {
-        _ChkAlloc( SectOvlTab, sizeof(section *) * (OvlNum + 1) );
+    if( ( FmtData.type & MK_OVERLAYS ) && FmtData.u.dos.distribute ) {
+        _ChkAlloc( SectOvlTab, sizeof( section * ) * ( OvlNum + 1 ) );
         SectOvlTab[0] = Root;
     }
     OvlNum = 1;
@@ -84,35 +97,6 @@ extern void FillOutFilePtrs( void )
 /*********************************/
 {
     ProcAllOvl( FillOutPtr );
-}
-
-extern void DBIOvlPass2( void )
-/*****************************/
-{
-    ProcAllOvl( DBIP2Start );
-}
-
-extern void DBIOvlFini( void )
-/****************************/
-{
-    ProcAllOvl( DBIFini );
-    if( NonSect != NULL ) {
-        DBIFini( NonSect );
-    }
-}
-
-#if _LINKER != _WATFOR77
-extern void WriteOvlSecs( void )
-/******************************/
-{
-    ProcAllOvl( WriteDBISecs );
-}
-#endif
-
-extern void DBIAddrOvlStart( void )
-/*********************************/
-{
-    ProcAllOvl( DBIAddrSectStart );
 }
 
 extern void TryDefVector( symbol * sym )
@@ -144,7 +128,7 @@ extern section * GetOvlSect( char *clname )
 {
     section             *sect;
 
-    if( !(FmtData.type & MK_OVERLAYS) ) {
+    if( !( FmtData.type & MK_OVERLAYS ) ) {
         sect = Root;
     } else {
         sect = CheckOvlSect( clname );
@@ -168,7 +152,7 @@ extern void OvlPass2( void )
     }
 }
 
-#if 0           // NYI
+#ifdef OVERLAY_VERSION1
 extern void TryGetVector( extnode *ext, thread *targ )
 /****************************************************/
 {

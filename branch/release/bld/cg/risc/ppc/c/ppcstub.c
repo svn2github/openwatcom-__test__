@@ -41,12 +41,6 @@
 #include "rtclass.h"
 #include "zoiks.h"
 
-extern code_lbl *GetWeirdPPCDotDotLabel( code_lbl *lbl ) {
-/********************************************************/
-
-    return( lbl );
-}
-
 void StartBlockProfiling( block *blk ) {
 /**************************************/
 

@@ -31,7 +31,7 @@
 
 #define ENUM_HANDLE     ENUMPTR
 
-#if defined(__386__)
+#if defined( __386__ )
     typedef char * SYM_NAMEPTR;
 #else
     typedef char __FAR * SYM_NAMEPTR;
@@ -57,7 +57,8 @@ typedef unsigned_64     uint64;
 /* CONST, VOLATILE can appear in typ->decl_flags and leaf->leaf_flags.
 *  NEAR, FAR, HUGE can appear in typ->decl_flags, leaf->leaf_flags,
 *                               and sym->attrib.
-*  CDECL,PASCAL,FORTRAN,SYSCALL can appear in typ->decl_flags and sym->attrib.
+*  CDECL,PASCAL,FORTRAN,SYSCALL,STDCALL,OPTLINK,FASTCALL,WATCOM
+*                       can appear in typ->decl_flags and sym->attrib.
 *  LVALUE, CONSTANT, VOID will only appear in leaf->leaf_flags.
 *
 * freed by CFOLD
@@ -66,39 +67,41 @@ typedef enum    type_modifiers {    /* type   leaf   sym   */
     FLAG_NONE       = 0x0000,
     FLAG_CONST      = 0x0001,       /* Y0001  Y0001        */
     FLAG_VOLATILE   = 0x0002,       /* Y0002  Y0002        */
-    FLAG_RESTRICT   = 0x10000,      /* see how this flies  */
+    FLAG_RESTRICT   = 0x0004,       /* see how this flies  */
 
-    FLAG_NEAR       = 0x0004,       /* Y0004  Y0004  Y0004 */
-    FLAG_FAR        = 0x0008,       /* Y0008  Y0008  Y0008 */
-    FLAG_HUGE       = 0x0010,       /* Y0010  Y0010  Y0010 */
+    FLAG_NEAR       = 0x0008,       /* Y0008  Y0008  Y0008 */
+    FLAG_FAR        = 0x0010,       /* Y0010  Y0010  Y0010 */
+    FLAG_HUGE       = 0x0020,       /* Y0020  Y0020  Y0020 */
     FLAG_MEM_MODEL  = FLAG_NEAR | FLAG_FAR| FLAG_HUGE,
 
 
-    LANG_CDECL      = 0x0020,       /* Y0020         Y0020 */
-    LANG_PASCAL     = 0x0040,       /* Y0040         Y0040 */
-    LANG_FORTRAN    = 0x0060,       /* Y0060         Y0060 */
-    LANG_SYSCALL    = 0x0080,       /* Y0080         Y0080 */     /* 04-jul-91 */
-    LANG_STDCALL    = 0x00A0,       /* Y00A0         Y00A0 */     /* 08-jan-92 */
-    LANG_OPTLINK    = 0x00C0,       /* Y00C0         Y00C0 */
-    LANG_FASTCALL   = 0x00E0,
+    LANG_CDECL      = 0x0040,       /* Y0040         Y0040 */
+    LANG_PASCAL     = 0x0080,       /* Y0080         Y0080 */
+    LANG_FORTRAN    = 0x00C0,       /* Y00C0         Y00C0 */
+    LANG_SYSCALL    = 0x0100,       /* Y0100         Y0100 */     /* 04-jul-91 */
+    LANG_STDCALL    = 0x0140,       /* Y0140         Y0140 */     /* 08-jan-92 */
+    LANG_OPTLINK    = 0x0180,       /* Y0180         Y0180 */
+    LANG_FASTCALL   = 0x01C0,       /* Y01C0         Y01C0 */
+    LANG_WATCALL    = 0x0200,       /* Y0200         Y0200 */
     FLAG_LANGUAGES  = (LANG_CDECL  |
                        LANG_PASCAL |
                        LANG_FORTRAN|
                        LANG_SYSCALL|
                        LANG_STDCALL|
                        LANG_OPTLINK|
-                       LANG_FASTCALL),
+                       LANG_FASTCALL|
+                       LANG_WATCALL ),
     FLAG_INTERRUPT  = (FLAG_NEAR+FLAG_FAR), /* interrupt function */
     /* FLAG_NEAR + FLAG_FAR both on ==> interrupt far */
-    FLAG_SAVEREGS   = 0x0100,       /* Y0100         Y0100 */
-    FLAG_LOADDS     = 0x0200,       /* Y0200         Y0200 */
-    FLAG_EXPORT     = 0x0400,       /* Y0400         Y0400 */
-    FLAG_BASED      = 0x0800,       /* Y0800         Y0800 _based ptr or var */
-    FLAG_SEGMENT    = 0x1000,       /* Y1000         Y1000 __segment type */
-    FLAG_FAR16      = 0x2000,       /* Y2000         Y2000 __far16 modifier */
-    FLAG_UNALIGNED  = 0x4000,       /*                     _Packed structures */
-    FLAG_INLINE     = 0x8000,       /* Y8000               _inline keyword */
-    FLAG_WAS_ARRAY  = 0x8000,       /* Y8000               for "char *argv[]" */
+    FLAG_SAVEREGS   = 0x0400,       /* Y0400         Y0400 */
+    FLAG_LOADDS     = 0x0800,       /* Y0800         Y0800 */
+    FLAG_EXPORT     = 0x1000,       /* Y1000         Y1000 */
+    FLAG_BASED      = 0x2000,       /* Y2000         Y2000 _based ptr or var */
+    FLAG_SEGMENT    = 0x4000,       /* Y4000         Y4000 __segment type */
+    FLAG_FAR16      = 0x8000,       /* Y8000         Y8000 __far16 modifier */
+    FLAG_UNALIGNED  =0x10000,       /*                     _Packed structures */
+    FLAG_INLINE     =0x20000,       /* Y20000              _inline keyword */
+    FLAG_WAS_ARRAY  =0x20000,       /* Y20000              for "char *argv[]" */
 } type_modifiers;
 
 typedef enum sym_flags {
@@ -156,6 +159,7 @@ struct parm_list {
 struct array_info {
     unsigned long   dimension;
     int             refno;
+    bool            unspecified_dim;    // or flexible array member?
 };
 typedef enum BASED_KIND{
     BASED_NONE,
@@ -170,7 +174,7 @@ typedef enum BASED_KIND{
 /* matches CTypeSizes[] table in ctype.c */
 /* matches CGDataType[] table in cgen2.c */
 /* matches CTypenames[] table in cgdump.c */
-/* matches AsmDataType[] table in cprag86.c */
+/* matches AsmDataType[] table in cpragx86.c */
 typedef enum DATA_TYPE {
     TYPE_CHAR  =    0,      /* signed char */
     TYPE_UCHAR,
@@ -289,6 +293,7 @@ typedef struct fname_list {
     };
     time_t   mtime;                 /* from stat.st_mtime */
     unsigned index;
+    unsigned index_db;
     bool     rwflag;
     bool     once;
     char    *fullpath;
@@ -326,7 +331,7 @@ struct sym_hash_entry {   /* SYMBOL TABLE structure */
         TYPEPTR     sym_type;
         int         sym_type_index; /* for pre-compiled header */
     };
-#if _HOST == 386
+#if defined(  __386__ )
     SYM_HANDLE      handle;
     char            level;
 #else
@@ -448,7 +453,7 @@ typedef struct tag_entry {
         int         refno;
         int         tag_index;      /* for pre-compiled header */
     };
-#if _HOST == 386
+#if defined( __386__ )
     unsigned short  hash;           /* hash value for tag */
     char            level;
     unsigned char   alignment;      /* alignment required */
@@ -467,6 +472,18 @@ typedef struct tag_entry {
 #define TAG_HASH_SIZE   SYM_HASH_SIZE
 extern  void WalkTagList( void (*func)(TAGPTR) );
 
+/* flags for QUAD.flags field */
+
+enum quad_flags {           /* code data */
+    Q_2_INTS_IN_ONE = 0x02, /*       Y02   two integral values */
+    Q_DATA          = 0x04, /*  Y04  Y04   DATA_QUAD */
+    Q_NEAR_POINTER  = 0x08, /*       Y08   near T_ID */
+    Q_FAR_POINTER   = 0x10, /*       Y10   far T_ID */
+    Q_CODE_POINTER  = 0x20, /*       Y20   function name */
+    Q_REPEATED_DATA = 0x80, /*       Y80   repeated data item */
+    Q_NULL          = 0x00
+};
+
 typedef struct {
     union   {
         long        long_values[2];
@@ -479,26 +496,13 @@ typedef struct {
             SYM_HANDLE  sym_handle;
         } var;
     } u;
-#if _HOST == 386
+#if defined( __386__ )
     byte    opr;            /* contains T_xxxx token value */
-    byte    flags;
 #else
     int     opr;            /* contains T_xxxx token value */
-    int     flags;
 #endif
+    enum quad_flags    flags;
 } DATA_QUAD;
-
-/* flags for QUAD.flags field */
-
-enum quad_flags {           /* code data */
-    Q_2_INTS_IN_ONE = 0x02, /*       Y02   two integral values */
-    Q_DATA          = 0x04, /*  Y04  Y04   DATA_QUAD */
-    Q_NEAR_POINTER  = 0x08, /*       Y08   near T_ID */
-    Q_FAR_POINTER   = 0x10, /*       Y10   far T_ID */
-    Q_CODE_POINTER  = 0x20, /*       Y20   function name */
-    Q_REPEATED_DATA = 0x80, /*       Y80   repeated data item */
-    Q_NULL          = 0x00
-};
 
 typedef struct {
     TYPEPTR              typ;       // type seen
@@ -547,14 +551,6 @@ struct seg_info {
     unsigned allocated : 1; /* 1 => has been allocated */
 };
 
-/* scoreboard used to record statements like "i=5" */
-
-struct scoreboard {
-    struct scoreboard   *next;
-    SYM_HANDLE          sym_handle;
-    TREEPTR             const_leaf;
-};
-
 struct comp_flags {
     unsigned label_dropped          : 1;
     unsigned has_main               : 1;
@@ -590,41 +586,43 @@ struct comp_flags {
     unsigned extra_stats_wanted     : 1;
     unsigned external_defn_found    : 1;
     unsigned scanning_comment       : 1;
-    unsigned initializing_data      : 1;
 
+    unsigned initializing_data      : 1;
     unsigned dump_prototypes        : 1;    /* keep typedefs in prototypes*/
     unsigned non_zero_data          : 1;
     unsigned quiet_mode             : 1;
     unsigned useful_side_effect     : 1;
     unsigned keep_comments          : 1;    /* wcpp - output comments */
     unsigned cpp_line_wanted        : 1;    /* wcpp - emit #line    */
+    unsigned cpp_ignore_line        : 1;    /* wcpp - ignore #line */
+
     unsigned generate_prototypes    : 1;    /* generate prototypes  */
     unsigned no_conmsg              : 1;    /* don't write wng &err to console */
-
     unsigned bss_segment_used       : 1;
     unsigned zu_switch_used         : 1;
     unsigned extended_defines       : 1;
     unsigned errfile_written        : 1;
     unsigned main_has_parms         : 1;    /* on if "main" has parm(s) */
     unsigned pcode_generated        : 1;    /* on if pcode generated */
+
     unsigned register_conventions   : 1;    /* on for -3r, off for -3s */
     unsigned pgm_used_8087          : 1;    /* on => 8087 ins. generated */
-
     unsigned emit_library_with_main : 1;    /* on => put LIB name in obj */
     unsigned strings_in_code_segment: 1;    /* on => put strings in CODE */
     unsigned ok_to_use_precompiled_hdr: 1;  /* on => ok to use PCH */
     unsigned strict_ANSI            : 1;    /* on => strict ANSI C (-zA)*/
     unsigned expand_macros          : 1;    /* on => expand macros in WCPP*/
     unsigned exception_filter_expr  : 1;    /* on => parsing _except(expr)*/
+
     unsigned exception_handler      : 1;    /* on => inside _except block*/
     unsigned comments_wanted        : 1;    /* on => comments wanted     */
-
     unsigned wide_char_string       : 1;    /* on => T_STRING is L"xxx"  */
     unsigned banner_printed         : 1;    /* on => banner printed      */
     unsigned undefine_all_macros    : 1;    /* on => -u all macros       */
     unsigned emit_browser_info      : 1;    /* -db emit broswer info */
     unsigned cppi_segment_used      : 1;    /* C++ initializer segment */
     unsigned rescan_buffer_done     : 1;    /* ## re-scan buffer used up */
+
     unsigned cpp_output             : 1;    /* WCC doing CPP output      */
     unsigned cpp_output_to_file     : 1;    /* WCC doing CPP output to?.i*/
 
@@ -642,59 +640,61 @@ struct comp_flags {
     unsigned cpp_output_requested   : 1;    /* CPP output requested      */
     unsigned warnings_cause_bad_exit: 1;    /* warnings=>non-zero exit   */
     unsigned save_restore_segregs   : 1;    /* save/restore segregs      */
+
     unsigned has_winmain            : 1;    /* WinMain defined           */
     unsigned make_enums_an_int      : 1;    /* force all enums to be int */
     unsigned original_enum_setting  : 1;    /* reset value if pragma used*/
-
     unsigned zc_switch_used         : 1;    /* -zc switch specified   */
     unsigned use_unicode            : 1;    /* use unicode for L"abc" */
     unsigned op_switch_used         : 1;    /* -op force floats to mem */
     unsigned no_debug_type_names    : 1;    /* -d2~ switch specified  */
     unsigned asciiout_used          : 1;    /* (asciiout specified  */
+
     unsigned noxedit_used           : 1;    /* (noxedit specified  */
     unsigned in_pcode_func          : 1;    /* generating Pcode */
     unsigned addr_of_auto_taken     : 1;    /*=>can't opt tail recursion*/
-
     unsigned pcode_was_generated    : 1;    /* some funcs were pcoded */
     unsigned continued_string       : 1;    /* continuing big string */
     unsigned sg_switch_used         : 1;    /* /sg switch used */
     unsigned bm_switch_used         : 1;    /* /bm switch used */
     unsigned bd_switch_used         : 1;    /* /bd switch used */
+
     unsigned bw_switch_used         : 1;    /* /bw switch used */
     unsigned zm_switch_used         : 1;    /* /zm switch used */
     unsigned has_libmain            : 1;    /* LibMain defined */
-
     unsigned ep_switch_used         : 1;    /* emit prolog hooks */
     unsigned ee_switch_used         : 1;    /* emit epilog hooks */
     unsigned dump_types_with_names  : 1;    /* -d3 information */
     unsigned ec_switch_used         : 1;    /* emit coverage hooks */
     unsigned jis_to_unicode         : 1;    /* convert JIS to UNICODE */
+
     unsigned using_overlays         : 1;    /* user doing overlays */
     unsigned unique_functions       : 1;    /* func addrs are unique */
     unsigned st_switch_used         : 1;    /* touch stack through esp */
-
     unsigned make_precompiled_header: 1;    /* make precompiled header */
     unsigned emit_dependencies      : 1;    /* include file dependencies*/
     unsigned multiple_code_segments : 1;    /* more than 1 code seg */
     unsigned returns_promoted       : 1;    /* return char/short as int */
     unsigned pending_dead_code      : 1;    /* aborts func in an expr */
+
     unsigned use_precompiled_header : 1;    /* use precompiled header */
     unsigned doing_macro_expansion  : 1;    /* doing macro expansion */
     unsigned no_pch_warnings        : 1;    /* disable PCH warnings */
-
     unsigned align_structs_on_qwords: 1;    /* for ALPHA */
     unsigned axp_align_emu          : 1;    /* for ALPHA */
     unsigned no_check_inits         : 1;    /* ease init  type checking*/
     unsigned no_check_qualifiers    : 1;    /* ease qualifier mismatch */
     unsigned curdir_inc             : 1;    /* check current dir for include files */
+
     unsigned use_stdcall_at_number  : 1;    /* add @nn thing */
     unsigned rent                   : 1;    /* make re-entrant r/w split thind  */
     unsigned unaligned_segs         : 1;    /* don't align segments */
     unsigned trigraph_alert         : 1;    /* trigraph char alert */
-
     unsigned generate_auto_depend   : 1;    /* Generate make auto depend file */
     unsigned c99_extensions         : 1;    /* C99 extensions enabled */
     unsigned use_long_double        : 1;    /* Make CC send long double types to code gen */
+
+    unsigned track_includes         : 1;    /* report opens of include files */
 };
 
 struct global_comp_flags {  // things that live across compiles
@@ -702,7 +702,7 @@ struct global_comp_flags {  // things that live across compiles
     unsigned cc_first_use           : 1;    /* first time thru           */
 };
 
-#if (_OS == _QNX) || (_OS == _LINUX)
+#if defined( __UNIX__ )
     #define errout  stderr
 #else
     #define errout  stdout

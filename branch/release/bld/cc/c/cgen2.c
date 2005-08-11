@@ -41,7 +41,7 @@
 #include <malloc.h>
 
 extern  void    InitExpressCode(int,int);
-    extern      void    GenNewProc(cg_sym_handle);
+extern  void    GenNewProc(cg_sym_handle);
 extern  TREEPTR GenExpressCode(TREEPTR,int,TREEPTR);
 extern  void    EmptyQueue(void);
 extern  int     StartWCG();
@@ -52,8 +52,7 @@ local void      FreeLocalVars( SYM_HANDLE sym_list );
 static void     FreeTrySymBackInfo( void );
 static void     FreeTryTableBackHandles( void );
 static void     FreeTrySymBackInfo( void );
-extern int      PtrType( TYPEPTR typ, int flags );
-local int       CodePtrType( int flags );
+local int       CodePtrType( type_modifiers flags );
 local int       DoFuncDefn( SYM_HANDLE funcsym_handle );
 static void     CallTryFini( void );
 local void      EmitSyms( void );
@@ -61,8 +60,8 @@ local void      Emit1String( STR_HANDLE str_handle );
 local void      EmitLiteral( STR_HANDLE strlit );
 local void      EmitCS_Strings( void );
 local void      FreeStrings( void );
-local void      DoAutoDecl( SYM_HANDLE sym_handle );
-local void      DoParmDecl( SYMPTR sym, SYM_HANDLE sym_handle );
+local void      CDoAutoDecl( SYM_HANDLE sym_handle );
+local void      CDoParmDecl( SYMPTR sym, SYM_HANDLE sym_handle );
 local void      ParmReverse( SYM_HANDLE sym_handle );
 #ifdef __SEH__
 static void     GenerateTryBlock( TREEPTR tree );
@@ -297,7 +296,7 @@ static void EndFunction( OPNODE *node )
         dtype = CGenType( sym.sym_type );
         name = CGTempName( sym.info.return_var, dtype );
         name = CGUnary( O_POINTS, name, dtype );
-        if( CompFlags. returns_promoted ) {
+        if( CompFlags.returns_promoted ) {
             dtype = FEParmType( NULL, NULL, dtype );
         }
         CGReturn( name, dtype );
@@ -329,7 +328,7 @@ static void ReturnExpression( OPNODE *node, cg_name expr )
 
 static cg_type DataPointerType( OPNODE *node )
 {
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
     cg_type     dtype;
 
     if( Far16Pointer( node->flags ) ) {
@@ -495,7 +494,7 @@ static void TryUnwind( int scope_index )
 }
 #endif
 
-#if _MACHINE == _ALPHA
+#if _CPU == _AXP
 local void GenVaStart( cg_name op1, cg_name offset )
 {
     cg_name     name;
@@ -508,13 +507,31 @@ local void GenVaStart( cg_name op1, cg_name offset )
     name = CGAssign( name, offset, T_INTEGER );
     CGDone( name );
 }
-#elif _MACHINE == _PPC
+#elif _CPU == _PPC
 local void GenVaStart( cg_name op1, cg_name offset )
 {
     cg_name     name;
 
     offset = offset;
     name = CGUnary( O_VA_START, op1, T_POINTER );
+    CGDone( name );
+}
+#elif _CPU == _MIPS
+/* Similar to Alpha, except we point va_list.__base to the first
+ * vararg and va_list.__offset initially to zero. Strictly speaking
+ * we don't need va_list.__offset.
+ */
+local void GenVaStart( cg_name op1, cg_name offset )
+{
+    cg_name     name;
+    cg_name     baseptr;
+
+    baseptr = CGVarargsBasePtr( T_POINTER );
+    name = CGBinary( O_PLUS, baseptr, offset, T_POINTER );
+    name = CGLVAssign( op1, name, T_POINTER );
+    name = CGBinary( O_PLUS, name, CGInteger( TARGET_POINTER, T_INTEGER ),
+                                        T_POINTER );
+    name = CGAssign( name, CGInteger( 0, T_INTEGER ), T_INTEGER );
     CGDone( name );
 }
 #endif
@@ -562,7 +579,7 @@ static cg_name PushSymAddr( OPNODE *node )
     if( sym.flags & SYM_FUNCTION ){
         dtype = CodePtrType( sym.attrib );
     }else{
-         dtype = CGenType( typ );
+        dtype = CGenType( typ );
     }
     if( sym.flags & SYM_FUNC_RETURN_VAR ) {
         name = CGTempName( sym.info.return_var, dtype );
@@ -856,7 +873,7 @@ local void EmitNodes( TREEPTR tree )
             break;
         case OPR_NEWBLOCK:              // start of new block { vars; }
             DBBegBlock();
-            DoAutoDecl( node->sym_handle );
+            CDoAutoDecl( node->sym_handle );
             break;
         case OPR_ENDBLOCK:              // end of new block { vars; }
             DBEndBlock();
@@ -1133,7 +1150,7 @@ local void EmitNodes( TREEPTR tree )
             PushCGName( TryAbnormalTermination() );
             break;
 #endif
-#if _MACHINE == _ALPHA  || _MACHINE == _PPC
+#if (_CPU == _AXP)  || (_CPU == _PPC) || (_CPU == _MIPS)
         case OPR_VASTART:
             op2 = PopCGName();          // - get offset of parm
             op1 = PopCGName();          // - get address of va_list
@@ -1204,7 +1221,16 @@ local TREEPTR GenOptimizedCode( TREEPTR tree )
         SrcLineNum = tree->srclinenum;
         if( SrcLineNum != SrcLineCount ) {
             if( Saved_CurFunc == 0 ) {      /* 24-nov-91 */
-                DBSrcCue( SrcFno, SrcLineNum, 1 );
+                FNAMEPTR    flist;
+
+                flist = FileIndexToFName( SrcFno );
+                if( flist->index_db == -1 ) {
+                    char *fullpath;
+
+                    fullpath = FNameFullPath( flist );
+                    flist->index_db = DBSrcFile( fullpath );
+                }
+                DBSrcCue( flist->index_db, SrcLineNum, 1 );
             }
         }
         SrcLineCount = SrcLineNum;      /* for error msgs 14-jul-89 */
@@ -1331,7 +1357,7 @@ void DoCompile()
     if( ! setjmp( env ) ) {
         Environment = &env;
         if( BEDLLLoad( NULL ) ) {
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
             BEMemInit(); // cg has a strange static var that doesn't get reset
 #endif
             if( ! CompFlags.zu_switch_used )  TargetSwitches &= ~ FLOATING_SS;
@@ -1353,7 +1379,7 @@ void DoCompile()
                 if( cgi_info.version.target != II_TARG_370 ) WrongCodeGen();
 #elif _CPU == 8086
                 if( cgi_info.version.target != II_TARG_8086 ) WrongCodeGen();
-#elif _CPU == 0000
+#elif _CPU == _AXP
                 if( cgi_info.version.target != II_TARG_AXP ) WrongCodeGen();
 #else
 #error "Undefined _CPU type"
@@ -1371,7 +1397,6 @@ void DoCompile()
                 EmitSyms();
                 EmitCS_Strings();
                 SrcLineCount = 0;
-                FListSrcQue();
                 EmitDataQuads();
                 FreeDataQuads();
                 #ifdef __SEH__
@@ -1486,7 +1511,7 @@ local int DoFuncDefn( SYM_HANDLE funcsym_handle )
     CurFunc = &CurFuncSym;
     SymGet( CurFunc, funcsym_handle );
     CurFuncHandle = funcsym_handle;
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
     if( ! CompFlags.zu_switch_used ) {
         if( (CurFunc->attrib & FLAG_INTERRUPT) == FLAG_INTERRUPT ){
             /* interrupt function */
@@ -1542,13 +1567,13 @@ local int DoFuncDefn( SYM_HANDLE funcsym_handle )
 
                 sym = SymGetPtr( sym_handle );
                 if( sym->sym_type->decl_type == TYPE_DOT_DOT_DOT ) break;
-                DoParmDecl( sym, sym_handle );
+                CDoParmDecl( sym, sym_handle );
                 sym_handle = sym->handle;
             }
         }
     }
     CGLastParm();
-    DoAutoDecl( CurFunc->u.func.locals );
+    CDoAutoDecl( CurFunc->u.func.locals );
 #ifdef __SEH__
     if( FuncNodePtr->func.flags & FUNC_USES_SEH ) {
         CGAutoDecl( TrySymHandle, TryRefno );
@@ -1558,7 +1583,7 @@ local int DoFuncDefn( SYM_HANDLE funcsym_handle )
     return( parms_reversed );
 }
 
-local void DoParmDecl( SYMPTR sym, SYM_HANDLE sym_handle )
+local void CDoParmDecl( SYMPTR sym, SYM_HANDLE sym_handle )
 {
     TYPEPTR typ;
     int     dtype;
@@ -1588,10 +1613,10 @@ local void ParmReverse( SYM_HANDLE sym_handle ) /* 22-jan-90 */
         ParmReverse( sym->handle );
         sym = SymGetPtr( sym_handle );
     }
-    DoParmDecl( sym, sym_handle );
+    CDoParmDecl( sym, sym_handle );
 }
 
-local void DoAutoDecl( SYM_HANDLE sym_handle )
+local void CDoAutoDecl( SYM_HANDLE sym_handle )
 {
     TYPEPTR             typ;
     cg_type             dtype;
@@ -1811,9 +1836,9 @@ int CGenType( TYPEPTR typ )
 }
 
 
-local int CodePtrType( int flags )
+local int CodePtrType( type_modifiers flags )
 {
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
     int         dtype;
 
     if( flags & FLAG_FAR ) {
@@ -1830,7 +1855,7 @@ local int CodePtrType( int flags )
 }
 
 
-extern int PtrType( TYPEPTR typ, int flags )
+extern int PtrType( TYPEPTR typ, type_modifiers flags )
 {
     int         dtype;
 
@@ -1838,7 +1863,7 @@ extern int PtrType( TYPEPTR typ, int flags )
     if( typ->decl_type == TYPE_FUNCTION ) {
         dtype = CodePtrType( flags );
     } else {
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
         if( flags & FLAG_FAR ) {
             dtype = T_LONG_POINTER;
         } else if( flags & FLAG_HUGE ) {
@@ -1858,7 +1883,7 @@ extern int PtrType( TYPEPTR typ, int flags )
 
 local int StringSegment( STR_HANDLE strlit )
 {
-#if _MACHINE == _PC
+#if ( _CPU == 8086 ) || ( _CPU == 386 )
     if( strlit->flags & FLAG_FAR )
         return( FarStringSegment );
 #endif

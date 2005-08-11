@@ -1,16 +1,17 @@
 # --------------------------------------------------------------------
 
-[ INCLUDE <LANG_BLD>/master.ctl ]
+[ INCLUDE <OWROOT>/bat/master.ctl ]
 [ LOG <DEVDIR>/<LOGFNAME>.<LOGEXT> ]
 
 set FULLBUILD=1
 
 cdsay .
 
-echo Languages Build <1>
+echo Languages Build: <1> <2> <3>
 
-[ BLOCK <BUILD_PLATFORM> linux386 ]
+[ BLOCK <BUILDMODE> bootstrap ]
 #================================
+echo Bootstrapping compiler using GNU tools...
 [ INCLUDE <DEVDIR>/langlnx.ctl ]
 
 [ BLOCK . . ]
@@ -18,17 +19,24 @@ echo Languages Build <1>
 #        First of all build prerequisite utilities used in the build
 #
 [ INCLUDE <DEVDIR>/builder/lang.ctl ]
-[ INCLUDE <DEVDIR>/pmake/lang.ctl ]
-[ INCLUDE <DEVDIR>/yacc/lang.ctl ]
-[ INCLUDE <DEVDIR>/re2c/lang.ctl ]
-[ INCLUDE <DEVDIR>/whpcvt/lang.ctl ]
-[ INCLUDE <DEVDIR>/helpcomp/lang.ctl ]
-[ INCLUDE <DEVDIR>/bmp2eps/lang.ctl ]
-[ INCLUDE <DEVDIR>/ssl/lang.ctl ]
-[ INCLUDE <DEVDIR>/posix/prereq.ctl ]
+[ INCLUDE <DEVDIR>/pmake/prereq.ctl ]
+[ INCLUDE <DEVDIR>/cc/wcl/prereq.ctl ]
+[ INCLUDE <DEVDIR>/w32loadr/prereq.ctl ]
+[ INCLUDE <DEVDIR>/yacc/prereq.ctl ]
+[ INCLUDE <DEVDIR>/re2c/prereq.ctl ]
+[ INCLUDE <DEVDIR>/whpcvt/prereq.ctl ]
+[ INCLUDE <DEVDIR>/helpcomp/prereq.ctl ]
+[ INCLUDE <DEVDIR>/hcdos/prereq.ctl ]
+[ INCLUDE <DEVDIR>/bmp2eps/prereq.ctl ]
+[ INCLUDE <DEVDIR>/ssl/prereq.ctl ]
 [ INCLUDE <DEVDIR>/wstub/lang.ctl ]
 [ INCLUDE <DEVDIR>/vi/prereq.ctl ]
-[ INCLUDE <DEVDIR>/cc/wcl/prereq.ctl ]
+#        Prebuild new WLIB for build process
+[ INCLUDE <DEVDIR>/nwlib/prereq.ctl ]
+#        Prebuild POSIX tools for build process
+[ INCLUDE <DEVDIR>/posix/prereq.ctl ]
+#        Prebuild wres.lib and new WRC with OS/2 support for build process
+[ INCLUDE <DEVDIR>/sdk/rc/prereq.ctl ]
 #
 #        Prebuild newest WASM version for build process
 [ INCLUDE <DEVDIR>/wasm/prereq.ctl ]
@@ -46,23 +54,24 @@ echo Languages Build <1>
 #
 #        RC builds resource file libraries for everybody
 [ INCLUDE <DEVDIR>/fmedit/lang.ctl ]
-#        BWPI needs to be done before BSDK
+#        WPI needs to be done before SDK
 [ INCLUDE <DEVDIR>/wpi/lang.ctl ]
-#        BSDK must be done after BDISASM ?
+#        SDK must be done after DISASM?
 [ INCLUDE <DEVDIR>/sdk/lang.ctl ]
-#        Librarys for different Programs as next
+#        Librariess for different program are next
 [ INCLUDE <DEVDIR>/aui/lang.ctl ]
-#        BWPI must be done before BSDK and hui, dui and lui
+#        WPI must be done before SDK and UI libs
 [ INCLUDE <DEVDIR>/gui/lang.ctl ]
 [ INCLUDE <DEVDIR>/wclass/lang.ctl ]
 [ INCLUDE <DEVDIR>/ncurses/lang.ctl ]
+#        UI can be deferred until VI is to be built. W.Briscoe 2004-11-25
 [ INCLUDE <DEVDIR>/ui/lang.ctl ]
 #        OWL/ORL must be done early so that clients are up-to-date
 [ INCLUDE <DEVDIR>/owl/lang.ctl ]
-#        BAS must be done after BOWL but before BCFE
+#        AS must be done after OWL but before CFE
 [ INCLUDE <DEVDIR>/as/lang.ctl ]
 [ INCLUDE <DEVDIR>/orl/lang.ctl ]
-#        BDWARF must be done early so that DWARF library users are up-to-date
+#        DWARF must be done early so that DWARF library users are up-to-date
 [ INCLUDE <DEVDIR>/dwarf/lang.ctl ]
 #
 #        Now build Open Watcom libraries
@@ -81,30 +90,31 @@ echo Languages Build <1>
 #        graphics library must be made after C library
 [ INCLUDE <DEVDIR>/graphlib/lang.ctl ]
 [ INCLUDE <DEVDIR>/nwlib/lang.ctl ]
-#        BRCSDLL must be before BVI and BVIPER
+#        RCSDLL must be before VI and VIPER
 [ INCLUDE <DEVDIR>/rcsdll/lang.ctl ]
 #
-#       Then build the compilers
+#       Now build the compilers
 #
-#       BW32LDR must be done before EXE's that use the loader
+#       W32LDR must be done before EXEs that use the loader
 [ INCLUDE <DEVDIR>/w32loadr/lang.ctl ]
 #
 #        Starting with the code generators
 #
-#        BWOMP must be done before BWASM and F77, now it is not necessary
+#        WOMP must be done before WASM and F77, now it is not necessary
 #[ INCLUDE <DEVDIR>/womp/lang.ctl ]
-#        BWASM must be done early so that inline assembler users are up-to-date
-#        now it is not necessary, it can be anywhere
+#        WASM must be done early so that inline assembler users are uptodate
+#        (no longer necessary, can be anywhere)
 [ INCLUDE <DEVDIR>/wasm/lang.ctl ]
 [ INCLUDE <DEVDIR>/cg/lang.ctl ]
-#        c front ends must be built after code generator
+#        C front ends must be built after code generator
 [ INCLUDE <DEVDIR>/cc/lang.ctl ]
 [ INCLUDE <DEVDIR>/cc/wcl/lang.ctl ]
 [ INCLUDE <DEVDIR>/plusplus/lang.ctl ]
 [ INCLUDE <DEVDIR>/fe_misc/lang.ctl ]
 #        FORTRAN 77 compilers must be built after code generators
-#        flib & flib286 get built with f77
 [ INCLUDE <DEVDIR>/f77/lang.ctl ]
+#        FORTRAN 77 libraries
+[ INCLUDE <DEVDIR>/f77/f77lib/lang.ctl ]
 [ INCLUDE <DEVDIR>/f77/samples/lang.ctl ]
 [ INCLUDE <DEVDIR>/wl/lang.ctl ]
 #
@@ -153,17 +163,17 @@ echo Languages Build <1>
 [ INCLUDE <DEVDIR>/trmem/lang.ctl ]
 #[ INCLUDE <DEVDIR>/version/lang.ctl ]
 [ INCLUDE <DEVDIR>/dmpobj/lang.ctl ]
+[ INCLUDE <DEVDIR>/exedump/lang.ctl ]
 [ INCLUDE <DEVDIR>/wpack/lang.ctl ]
 [ INCLUDE <DEVDIR>/cvpack/lang.ctl ]
 [ INCLUDE <DEVDIR>/wic/lang.ctl ]
 [ INCLUDE <DEVDIR>/redist/lang.ctl ]
 [ INCLUDE <DOC_ROOT>/lang.ctl ]
-
-# deal with the project which contains this file last --- the BAT directory
-# BATDIR Builder Control file
-# ===========================
-[ INCLUDE <LANG_BLD>/wproj.ctl ]
-
-# Do CDSAY to see end time
+#
+#        Do CDSAY to see end time
+#
 cdsay .
-
+#
+#        Clean build tools, must be last item (self destructs)
+#
+[ INCLUDE <DEVDIR>/builder/clean.ctl ]

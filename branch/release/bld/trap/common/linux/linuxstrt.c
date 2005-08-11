@@ -34,7 +34,7 @@
 #include "trpimp.h"
 #include "trpqimp.h"
 
-_WCRTLINK char **_WCNEAR environ;  /*  pointer to environment table        */
+char                            **dbg_environ;  /* pointer to parent's environment table */
 const trap_callbacks            *Client;
 extern const trap_requests      ImpInterface;
 
@@ -42,13 +42,15 @@ const trap_requests *TrapLoad( trap_callbacks *client )
 {
     Client = client;
     if( Client->len <= offsetof(trap_callbacks,signal) ) return( NULL );
-    environ = *Client->environ;
+    dbg_environ = *Client->environ;
     return( &ImpInterface );
 }
 
 const trap_requests ImpInterface = { TrapInit, TrapRequest, TrapFini } ;
 
-void __near *_nmalloc( unsigned size )
+#if !defined( BUILTIN_TRAP_FILE )
+
+void *_nmalloc( unsigned size )
 {
     return( malloc( size ) );
 }
@@ -58,7 +60,7 @@ void *malloc( unsigned size )
     return( Client->malloc( size ) );
 }
 
-void __near *_nrealloc( void __near *ptr, unsigned size )
+void *_nrealloc( void *ptr, unsigned size )
 {
     return( realloc( ptr, size ) );
 }
@@ -68,7 +70,7 @@ void *realloc( void *ptr, unsigned size )
     return( Client->realloc( ptr, size ) );
 }
 
-void _nfree( void __near *ptr )
+void _nfree( void *ptr )
 {
     free( ptr );
 }
@@ -82,6 +84,8 @@ char *getenv( const char *name )
 {
     return( Client->getenv( name ) );
 }
+
+#endif
 
 #if 0 /* redefining signal is not yet necessary */
 void    (*signal( int __sig, void (*__func)(int) ))(int)

@@ -21,22 +21,28 @@ treetest.$(exe) &
 wordcnt.$(exe)
 
 !ifdef test1
-cflags = -op-d2
+test_cflags = -ot-op-d1
 !else ifdef test2
-cflags = -ot-op-d1-xds
+test_cflags = -ot-op-d1-xds
 !else ifdef test3
-cflags = -op-d2-xds
+test_cflags = -op-d2-xds
 !else
-cflags = -ot-op-d1
+test_cflags = -op-d2
 !endif
 
-cflags += -ei -zq -i.. -w0 -d__OS2__
+test_cflags += -ei -zq -i.. -w0 -d__OS2__
+
+test_cflags_i86 = -ml
+
+stack_386=opt stack=32k
+stack_i86=opt stack=24k
+stack_axp=opt stack=32k
 
 .obj.$(exe):
-    $(linker) @ex.lnk FILE $[@
+    $(linker) @ex.lnk FILE $[@ op verbose
     
 .cpp.obj:
-    $(wpp_$(arch)) $[@ $(cflags)
+    $(wpp_$(arch)) $[@ $(test_cflags) $(test_cflags_$(arch))
     
 test : .symbolic ex.lnk $(exes)
     if exist *.dat del *.dat
@@ -88,7 +94,7 @@ test : .symbolic ex.lnk $(exes)
 ex.lnk : makefile
     %create $^@
     @%append $^@ $(lnk_$(arch))
-    @%append $^@ OPTION quiet, stack=32k
+    @%append $^@ $(stack_$(arch))
     @%append $^@ $(ldebug_$(arch))
     @%append $^@ LIBRARY ..\base.lib, ..\io.lib
     

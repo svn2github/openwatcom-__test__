@@ -11,7 +11,6 @@
 :set symbol="exeextn" value="nlm".
 :set symbol="libvarname" value="lib".
 :set symbol="tmpvarname" value="tmp".
-:set symbol="currdir" value="default".
 .*
 .im dosfiles
 .*
@@ -56,6 +55,7 @@ is any of the following:
 .note DOSSEG
 .note ELIMINATE
 .note EXIT=symbol_name
+.note [NO]FARCALLS
 .note HELP=help_file
 .note IMPFILE[=imp_file]
 .note IMPLIB[=imp_lib]
@@ -242,6 +242,5 @@ The &lnkname can generate all types of NLMs by utilising the numerical value
 of the module type.
 .*
 .im wlmemlay
-.im wlmem
 .*
 .helppref

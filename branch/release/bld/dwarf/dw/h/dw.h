@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Public DWARF Writer library interface.
 *
 ****************************************************************************/
 
@@ -37,7 +36,6 @@
 
 #include "dwcnf.h"
 
-#pragma pack(1)
 /*
     Types
 */
@@ -180,6 +178,7 @@ typedef enum dw_sectnum{
     DW_DEBUG_LOC,
     DW_DEBUG_ABBREV,
     DW_DEBUG_MACINFO,
+    DW_DEBUG_STR,
     DW_DEBUG_REF,
     DW_DEBUG_MAX
 }dw_sectnum;
@@ -560,5 +559,4 @@ dw_handle DWENTRY DWRefPCH(
     dw_client                   cli,
     uint_32                     ref );
 
-#pragma pack()
 #endif

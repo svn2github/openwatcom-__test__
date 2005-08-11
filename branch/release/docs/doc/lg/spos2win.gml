@@ -71,6 +71,7 @@ is any of the following:
 .note DOSSEG
 .do end
 .note ELIMINATE
+.note [NO]FARCALLS
 .note HEAPSIZE=n
 .note IMPFILE[=imp_file]
 .note IMPLIB[=imp_lib]
@@ -361,12 +362,7 @@ memory utilization.
 To create a Dynamic Link Library, you must place the "DLL" keyword
 following the system name in the "SYSTEM" directive.
 .millust begin
-.if '&exeformat' eq 'win' .do begin
-system &syst_drctv._dll
-.do end
-.el .do begin
-system &syst_drctv dll
-.do end
+&sys_dr_dll.
 .millust end
 .pc
 In addition, you must specify which functions in the Dynamic Link
@@ -420,7 +416,6 @@ Library.
 .do end
 .*
 .im wlmemlay
-.im wlmem
 .*
 .if '&exeformat' ne 'win nt' and '&exeformat' ne 'win vxd' .do begin
 .im ms2wlink

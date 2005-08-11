@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Type handle support for DWARF DIP.
 *
 ****************************************************************************/
 
@@ -40,9 +39,6 @@
 #include "dfloc.h"
 #include "dfclean.h"
 
-/*
-    Stuff dealing with type handles.
-*/
 typedef struct {
     dr_handle curr;
     int       skip;
@@ -136,6 +132,7 @@ typedef struct{
     int_32           low;
     uint_32          count;
     imp_image_handle *ii;
+    imp_type_handle  *it;
     location_context *lc;
     uint_32          num_elts;
     int              dim;
@@ -159,6 +156,7 @@ static void GetArraySize( imp_image_handle *ii,
     uint_32       base_stride;
 
     df.ii = ii;
+    df.it = it;
     df.lc = lc;
     df.count = 1;
     df.dim = 0;
@@ -191,6 +189,7 @@ static void GetArraySubSize( imp_image_handle *ii,
     uint_32         base_stride;
 
     df.ii = ii;
+    df.it = it;
     df.lc = lc;
     df.count = 1;
     df.dim = 0;
@@ -227,7 +226,7 @@ static void InitTypeHandle( imp_image_handle *ii,
     dr_array_stat   stat;
     uint_32         base_stride;
 
-    if( it->state == DF_NOT ){
+    if( it->state == DF_NOT ) {
         DRSetDebug( ii->dwarf->handle ); /* must do at each call into dwarf */
         DRGetTypeInfo( it->type, &it->typeinfo );
         it->state = DF_SET;
@@ -491,7 +490,6 @@ dip_status      DIPENTRY DIPImpTypeBase( imp_image_handle *ii,
                         imp_type_handle *it, imp_type_handle *base,
                         location_context *lc, location_list *ll )
 {
-    dip_status ret;
     dr_handle  btype;
     /*
         Given an implementation type handle, fill in 'base' with the
@@ -512,14 +510,12 @@ dip_status      DIPENTRY DIPImpTypeBase( imp_image_handle *ii,
         }
     }
     btype =  DRSkipTypeChain( base->type ); /* skip modifiers and typedefs */
-    base->type = DRGetTypeAT( btype );    /* get base type */
-    if( base->type != NULL ){
-        base->state = DF_NOT;
-        ret = DS_OK;
-    }else{
-       ret = DS_FAIL;
+    base->type = DRGetTypeAT( btype );      /* get base type */
+    if( base->type == NULL ) {
+        base->type = DR_HANDLE_VOID;        /* no type means 'void' */
     }
-    return( ret );
+    base->state = DF_NOT;
+    return( DS_OK );
 }
 
 typedef struct {
@@ -630,10 +626,15 @@ static int ArraySubRange( dr_handle tsub, int index, void *_df ) {
 
     index = index;
     DRGetSubrangeInfo( tsub, &info );
-    if( info.low.val_class == DR_VAL_NOT ){
-        return( FALSE );
+    /* DWARF 2.0 specifies lower bound defaults for C/C++ (0) and FORTRAN (1) */
+    if( info.low.val_class == DR_VAL_NOT ) {
+        if( df->ii->mod_map[df->it->imx].lang == DR_LANG_FORTRAN )
+            low = 1;
+        else
+            low = 0;
+    } else {
+        GetDrVal( df, &info.low, &low );
     }
-    GetDrVal( df, &info.low, &low );
     if( info.count.val_class == DR_VAL_NOT ){
         if( info.high.val_class == DR_VAL_NOT ){
             return( FALSE );
@@ -1387,4 +1388,3 @@ dip_status DIPENTRY DIPImpTypeFreeAll( imp_image_handle *ii )
     ii=ii;
     return(DS_OK);
 }
-

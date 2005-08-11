@@ -141,12 +141,18 @@ static void SetHeaders( ElfHdr *hdr )
 {
     memcpy( hdr->eh.e_ident, ELF_SIGNATURE, ELF_SIGNATURE_LEN );
     hdr->eh.e_ident[EI_CLASS] = ELFCLASS32;
+#ifdef __BIG_ENDIAN__
+    hdr->eh.e_ident[EI_DATA] = ELFDATA2MSB;
+#else
     hdr->eh.e_ident[EI_DATA] = ELFDATA2LSB;
+#endif
     hdr->eh.e_ident[EI_VERSION] = EV_CURRENT;
     memset( &hdr->eh.e_ident[EI_PAD], 0, EI_NIDENT - EI_PAD );
     hdr->eh.e_type = ET_EXEC;
     if( LinkState & HAVE_PPC_CODE ) {
         hdr->eh.e_machine = EM_PPC;
+    } else if( LinkState & HAVE_MIPS_CODE ) {
+        hdr->eh.e_machine = EM_MIPS;
     } else {
         hdr->eh.e_machine = EM_386;
     }
@@ -374,9 +380,7 @@ extern void FiniELFLoadFile( void )
     hdr.eh.e_shoff = hdr.curr_off;
     WriteLoad( hdr.sh, hdr.sh_size );
     hdr.curr_off += hdr.sh_size;
-    if( INJECT_DEBUG ) {                // Trailer for debug info
-        DwarfWriteTrailer(hdr.curr_off);
-    } else {
+    if( !INJECT_DEBUG ) {
         WriteDBI();
     }
     SeekLoad( 0 );

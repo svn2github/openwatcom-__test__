@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  ui library definitions
 *
 ****************************************************************************/
 
@@ -53,6 +52,7 @@
 #define         EV_ENTER                0x10D
 #define         EV_CTRL_ENTER           0x00A
 #define         EV_CTRL_RETURN          0x00A
+#define         EV_CTRL_BACKSPACE       0x07F
 #define         EV_ESCAPE               0x11B
 /*
  * This next one isn't all that useful on AT-class machines, I grant you.
@@ -115,6 +115,9 @@ enum {
         EV_ALT_I,
         EV_ALT_O,
         EV_ALT_P,
+        EV_ALT_LEFT_BRACKET,
+        EV_ALT_RIGHT_BRACKET,
+        EV_ALT_ENTER,
         EV_ALT_A                        = 0x11e,
         EV_ALT_S,
         EV_ALT_D,
@@ -124,6 +127,10 @@ enum {
         EV_ALT_J,
         EV_ALT_K,
         EV_ALT_L,
+        EV_ALT_SEMI_COLON,
+        EV_ALT_QUOTE,
+        EV_ALT_BACKQUOTE,
+        EV_ALT_BACKSLASH                = 0x12b,
         EV_ALT_Z                        = 0x12c,
         EV_ALT_X,
         EV_ALT_C,
@@ -131,6 +138,9 @@ enum {
         EV_ALT_B,
         EV_ALT_N,
         EV_ALT_M,
+        EV_ALT_COMMA,
+        EV_ALT_PERIOD,
+        EV_ALT_SLASH,
         EV_ALT_SPACE,
         EV_HOME                         = 0x147,
         EV_CURSOR_UP,
@@ -329,6 +339,54 @@ enum    {
         ATTR_LAST
 };
 
+/* line drawing and graphics characters */
+enum {
+        /* single line box drawing */
+        UI_LLCORNER = 1,
+        UI_LRCORNER,
+        UI_ULCORNER,
+        UI_URCORNER,
+        UI_HLINE,
+        UI_VLINE,
+        UI_TTEE,
+        UI_RTEE,
+        UI_LTEE,
+
+        /* double line box drawing */
+        UI_DLLCORNER,
+        UI_DLRCORNER,
+        UI_DULCORNER,
+        UI_DURCORNER,
+        UI_DHLINE,
+        UI_DVLINE,
+
+        /* triangles */
+        UI_DPOINT,
+        UI_LPOINT,
+        UI_RPOINT,
+        UI_UPOINT,
+
+        /* arrows */
+        UI_DARROW,
+        UI_UDARROW,
+
+        /* boxes */
+        UI_DBLOCK,
+        UI_LBLOCK,
+        UI_RBLOCK,
+        UI_UBLOCK,
+        UI_CKBOARD,
+        UI_BOARD,
+        UI_BLOCK,
+
+        /* misc */
+        UI_SQUARE,
+        UI_ROOT,
+        UI_EQUIVALENT = 31
+        /* we use 31 of them: don't add any more!
+           they have to fit in the C0 ASCII range */
+};
+
 #ifdef __GUI__
 /*
         ORD needs to be an unsigned int for the WINDOWS scaling system
@@ -359,7 +417,7 @@ typedef         unsigned char           ATTR;
 #define         iseditchar( ev )        ( ( ev >= EV_FIRST_EDIT_CHAR ) \
                                        && ( ev <= EV_LAST_EDIT_CHAR ) )
 
-#if defined(__AXP__) || defined(__NT__)
+#if defined(__NT__)
     typedef struct pixel {
             unsigned short  ch;
             unsigned short  attr;
@@ -375,7 +433,7 @@ typedef         unsigned char           ATTR;
     typedef PIXEL *LPPIXEL;
     #define __FAR
     #undef HAVE_FAR
-#elif defined(__UNIX__) && defined(__386__)
+#elif defined(__UNIX__)
     typedef struct pixel {
             char            ch;
             ATTR            attr;
@@ -383,23 +441,6 @@ typedef         unsigned char           ATTR;
     typedef PIXEL *LPPIXEL;
     #define __FAR
     #undef HAVE_FAR
-#elif defined(__UNIX__) && defined(__PPC__)
-    typedef struct pixel {
-            char            ch;
-            ATTR            attr;
-    } PIXEL;
-    typedef PIXEL *LPPIXEL;
-    #define __FAR
-    #undef HAVE_FAR
-#elif defined( UNIX )
-    typedef struct pixel {
-            unsigned char   ch;
-            ATTR            attr;
-    } PIXEL;
-
-    typedef PIXEL far *LPPIXEL;
-    #define __FAR far
-    #define HAVE_FAR
 #elif defined(__386__) || defined(M_I86)
     typedef struct pixel {
             char            ch;
@@ -520,9 +561,9 @@ enum {
         M_NEC_HIRES,
         M_FMR
 
-#if defined(  __UNIX__ ) || defined( UNIX )
+#if defined( __UNIX__ )
         ,M_TERMINFO_MONO
-#endif /* __UNIX */
+#endif
 };
 
 #ifdef __cplusplus
@@ -661,6 +702,8 @@ extern          void            uiforceevflush( void );
 extern          int             uiisdbcs(); // bool
 extern          int             uionnec();      // bool
 extern          int             uicharlen( int ); // returns 2 if dbcs lead byte
+extern          void            UIMemOpen( void );
+extern          void            UIMemClose( void );
 
 #ifdef __cplusplus
 }
