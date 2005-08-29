@@ -24,12 +24,9 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  CStrSave modul function prototype
 *
 ****************************************************************************/
 
 
-extern  void    Wait8087() {
-/**************************/
-}
+extern  char    *CStrSave(char *);

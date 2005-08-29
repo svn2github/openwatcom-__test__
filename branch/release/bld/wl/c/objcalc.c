@@ -259,6 +259,7 @@ static void SortClasses( section *sec )
                     if( MatchClass->FixedAddr) {     // and copy any flags or address from it
                         currcl->flags |= CLASS_FIXED;
                         currcl->BaseAddr = MatchClass->Base;
+                        FmtData.base = 0;  // Otherwise PE will use default and blow up
                     }
                     if( MatchClass->NoEmit ) {
                         currcl->flags |= CLASS_NOEMIT;
@@ -582,7 +583,7 @@ extern void CalcAddresses( void )
         CalcGrpAddr( AbsGroups );
     } else if ( FmtData.type & ( MK_PE | MK_OS2_FLAT | MK_QNX_FLAT | MK_ELF ) ) {
         if( FmtData.output_raw || FmtData.output_hex ) {
-            flat = FmtData.base;
+            flat = 0;
         } else if( FmtData.type & MK_PE ) {
             flat = GetPEHeaderSize();
         } else if( FmtData.type & MK_ELF ) {
@@ -592,16 +593,17 @@ extern void CalcAddresses( void )
         }
         for( grp = Groups; grp != NULL; grp = grp->next_group ) {
             size = grp->totalsize;
-            if( grp->grp_addr.off > flat ) {
+            if( grp->grp_addr.off > flat + FmtData.base) {
                // ORDER CLNAME name OFFSET option sets grp_addr,
                //   retrieve this information here and wrap into linear address
-               flat = grp->grp_addr.off;
+               flat = grp->grp_addr.off - FmtData.base;
                grp->grp_addr.off = 0;
             }
             grp->linear = flat;
-            if( ( FmtData.type & MK_SPLIT_DATA ) && ( grp == DataGroup )
-                && ( StackSegPtr != NULL ) && ( FmtData.dgroupsplitseg != NULL ) ) {
-                size -= StackSize;
+            if(( grp == DataGroup ) && ( FmtData.dgroupsplitseg != NULL )) {
+                if( StackSegPtr != NULL ) {
+                    size -= StackSize;
+                }
             }
             flat = ROUND_UP( flat + size, FmtData.objalign );
         }
@@ -718,12 +720,13 @@ typedef struct  {
     unsigned_32 grp_addr;
     unsigned_32 end_addr;
     group_entry *currgrp;
+    group_entry *lastgrp;  // used only for copy classes
     bool        first_time;
 } grpaddrinfo;
 
 
 static bool FindEndAddr( void *_seg, void *_info )
-/************************************************/
+/**************************************************/
 {
     seg_leader  *seg  = _seg;
     grpaddrinfo *info = _info;
@@ -752,7 +755,9 @@ static bool FindEndAddr( void *_seg, void *_info )
 }
 
 static bool FindInitEndAddr( void *_seg, void *_info )
-/************************************************/
+/******************************************************/
+// Only use initialized data segments.  Copy doesn't need uninitialized segments
+// This is really only advantageous if uninitialized segments are at the end
 {
     seg_leader  *seg  = _seg;
     grpaddrinfo *info = _info;
@@ -780,6 +785,22 @@ static bool FindInitEndAddr( void *_seg, void *_info )
     return( FALSE );
 }
 
+static bool FindCopyGroups( void *_seg, void *_info )
+/************************************************/
+{
+    // This is called by the outer level iteration looking for classes
+    //  that have more than one group in them
+    seg_leader * seg = _seg;
+    grpaddrinfo *info = _info;
+
+    if( info->lastgrp != seg->group ) {   // Only interate new groups
+        info->lastgrp = seg->group;
+        // Check each initialized segment in group
+        Ring2Lookup( seg->group->leaders, FindInitEndAddr, info);
+    }
+    return FALSE;
+}
+
 static void CalcGrpAddr( group_entry *currgrp )
 /*********************************************/
 /* Find lowest segment within group (the group's address)
@@ -794,24 +815,16 @@ static void CalcGrpAddr( group_entry *currgrp )
     while( currgrp != NULL ) {
         info.currgrp = currgrp;
         info.first_time = TRUE;
-        if( currgrp->leaders->class->flags & CLASS_COPY ) {
-            // For copy classes function uses only initialized data and gets info from source class
-            currgrp->grp_addr = currgrp->leaders->seg_addr; // Get address of real segment (there's only one)
-            Ring2Lookup( currgrp->leaders->class->DupClass->segs->group->leaders, FindInitEndAddr, &info );
-        }
-        else {
-            Ring2Lookup( currgrp->leaders, FindEndAddr, &info );
-        }
-        if( ( FmtData.type & MK_REAL_MODE )
-            && ( info.end_addr - info.grp_addr > 64 * 1024L ) ) {
-            LnkMsg( ERR+MSG_GROUP_TOO_BIG, "sl", currgrp->sym->name,
-                    info.end_addr - info.grp_addr - 64 * 1024L );
-            info.grp_addr = info.end_addr - 64 * 1024L - 1;
-        }
-        currgrp->totalsize = info.end_addr - info.grp_addr;
         seg = currgrp->leaders;
         class = seg->class;
         if( class->flags & CLASS_COPY ) {
+            currgrp->grp_addr = seg->seg_addr; // Get address of real segment (there's only one)
+            // For copy classes must check eash segment to see if it is in a new group
+            // this could be the case with FAR_DATA class in large model
+            info.lastgrp = NULL; // so it will use the first group
+            RingLookup( class->DupClass->segs, FindCopyGroups, &info );
+            currgrp->size = info.end_addr - info.grp_addr;
+            currgrp->totalsize = currgrp->size;
             // for copy classes put it in class size, also, so map file can find it.
             seg->size = currgrp->totalsize;
             // Now must recompute addresses for all segments in all classes beyond this
@@ -829,6 +842,16 @@ static void CalcGrpAddr( group_entry *currgrp )
                     RingWalk( class->segs, AllocSeg );
                 }
             }
+        }
+        else {
+            Ring2Lookup( seg, FindEndAddr, &info );
+            if( ( FmtData.type & MK_REAL_MODE )
+                && ( info.end_addr - info.grp_addr > 64 * 1024L ) ) {
+                LnkMsg( ERR+MSG_GROUP_TOO_BIG, "sl", currgrp->sym->name,
+                        info.end_addr - info.grp_addr - 64 * 1024L );
+                info.grp_addr = info.end_addr - 64 * 1024L - 1;
+            }
+            currgrp->totalsize = info.end_addr - info.grp_addr;
         }
         currgrp = currgrp->next_group;
     }
