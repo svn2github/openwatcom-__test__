@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  prototypes for routines used in exception filter ( Windows NT )
 *
 ****************************************************************************/
 
@@ -49,14 +48,13 @@ extern void     _ClearFPE(void);
 
     extern unsigned long _GetFPCR(void);
     extern void          _SetFPCR(unsigned long);
-#else
+#elif defined( _M_IX86 )
     unsigned int sw;
     #define FMT_STRING wsprintf
 
     extern DWORD GetFromFS(DWORD off);
     extern void  PutToFS(DWORD value, DWORD off);
-
-    #pragma aux (__outside_CLIB) sig_func;
+    extern void  *GetFromSS( DWORD *sp );
 
     #pragma aux GetFromFS = \
             "mov        eax,fs:[eax]" \
@@ -65,4 +63,9 @@ extern void     _ClearFPE(void);
     #pragma aux PutToFS = \
             "mov        fs:[edx], eax" \
             parm[eax] [edx];
+
+    #pragma aux GetFromSS = \
+            "mov eax,ss:[eax]" \
+            parm [eax] value [eax]
+
 #endif

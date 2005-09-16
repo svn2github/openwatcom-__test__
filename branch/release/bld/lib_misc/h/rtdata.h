@@ -77,8 +77,8 @@ typedef struct __stream_link {
 extern __stream_link        *__OpenStreams;
 extern __stream_link        *__ClosedStreams;
 extern      char            * _WCNEAR __env_mask;  /* ptr to char array of flags */
-extern      void            (_WCI86FAR *__FPE_handler)();
-extern      void            (*__FPE_handler_exit)();
+extern      void            (_WCI86FAR *__FPE_handler)( int );
+extern      void            (*__FPE_handler_exit)( void );
 #if !defined(__NETWARE__)
     extern  int             _cbyte;
     extern  int             _cbyte2;
@@ -119,7 +119,7 @@ extern unsigned char        _real87;    /* 8087 coprocessor hardware present */
 #define _RWD_env_mask           __env_mask
 #define _RWD_abort              __abort
 #define _RWD_sigtab             __SIGNALTABLE
-#define _RWD_FPE_hl_exit        __FPE_handler_exit
+#define _RWD_FPE_handler_exit   __FPE_handler_exit
 #define _RWD_FPE_handler        __FPE_handler
 #define _RWD_fmode              _fmode
 #if !defined(__NETWARE__)

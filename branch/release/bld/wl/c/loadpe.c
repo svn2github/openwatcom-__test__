@@ -704,8 +704,6 @@ static void WriteDescription( pe_header *header, pe_object *object )
     object->flags = PE_OBJ_INIT_DATA | PE_OBJ_READABLE;
     object->physical_size = ROUND_UP( desc_len, header->file_align );
     WriteLoad( FmtData.u.os2.description, desc_len );
-    header->table[PE_TBL_DESCRIPTION].size = desc_len;
-    header->table[PE_TBL_DESCRIPTION].rva = object->rva;
     header->image_size += ROUND_UP( desc_len, header->object_align );
 }
 
@@ -954,7 +952,8 @@ static void SetMiscTableEntries( pe_header *hdr )
         hdr->table[PE_TBL_THREAD].size = sym->p.seg->length;
     }
     leader = SetLeaderTable( CoffPDataSegName, &hdr->table[PE_TBL_EXCEPTION] );
-    if( leader != NULL ) {
+    /* The .pdata section may end up being empty if the symbols got optimized out */
+    if( leader != NULL && leader->size ) {
         numpdatas = leader->size / sizeof(procedure_descriptor);
         _ChkAlloc( sortarray, numpdatas * sizeof(virt_mem *) );
         temp = sortarray;
