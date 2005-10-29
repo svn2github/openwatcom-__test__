@@ -81,7 +81,11 @@ dis_handler_return SPARCCall( dis_handle *h, void *d, dis_dec_ins *ins )
 
     code.full = _SparcIns( ins->opcode );
     ins->op[0].type  = DO_RELATIVE;
-    ins->op[0].value = ( SEX( code.call.disp, 29 ) + 1) * sizeof( ins->opcode );
+    // BartoszP 16.10.2005
+    // SPARC Architecture Manual says:
+    // CALL saves self address not next instruction into the %o7 register
+    //ins->op[0].value = ( SEX( code.call.disp, 29 ) + 1) * sizeof( ins->opcode );
+    ins->op[0].value = ( SEX( code.call.disp, 29 ) ) * sizeof( ins->opcode );
     ins->num_ops     = 1;
     return( DHR_DONE );
 }
@@ -167,6 +171,43 @@ static const dis_ref_type floatRefTypes[] = {
     DRT_SPARC_DFLOAT,
 };
 
+dis_handler_return SPARCFPop2( dis_handle *h, void *d, dis_dec_ins *ins )
+{
+    sparc_ins   code;
+
+    code.full = _SparcIns( ins->opcode );
+    if( code.op3opf.opcode_3 == 0x35 ) {
+        // fcmp 
+        ins->op[ 0 ].type = DO_REG;
+        ins->op[ 0 ].base = _SparcFReg( code.op3opf.rs1 );
+        ins->op[ 1 ].type = DO_REG;
+        ins->op[ 1 ].base = _SparcFReg( code.op3opf.rs2 );
+    } else {
+        ins->op[ 0 ].type = DO_REG;
+        ins->op[ 0 ].base = _SparcFReg( code.op3opf.rs2 );
+        ins->op[ 1 ].type = DO_REG;
+        ins->op[ 1 ].base = _SparcFReg( code.op3opf.rd );
+    }
+    ins->num_ops = 2;
+    return( DHR_DONE );
+}
+
+dis_handler_return SPARCFPop3( dis_handle *h, void *d, dis_dec_ins *ins )
+{
+    sparc_ins   code;
+
+    code.full = _SparcIns( ins->opcode );
+    ins->op[ 0 ].type = DO_REG;
+    ins->op[ 0 ].base = _SparcFReg( code.op3opf.rs1 );
+    ins->op[ 1 ].type = DO_REG;
+    ins->op[ 1 ].base = _SparcFReg( code.op3opf.rs2 );
+    ins->op[ 2 ].type = DO_REG;
+    ins->op[ 2 ].base = _SparcFReg( code.op3opf.rd );
+    ins->num_ops = 3;
+    return( DHR_DONE );
+}
+
+
 dis_handler_return SPARCMemF( dis_handle *h, void *d, dis_dec_ins *ins )
 {
     sparc_ins   code;
@@ -225,15 +266,15 @@ dis_handler_return SPARCMemC( dis_handle *h, void *d, dis_dec_ins *ins )
 static unsigned SPARCInsHook( dis_handle *h, void *d, dis_dec_ins *ins,
         dis_format_flags flags, char *name )
 {
-    const char  *new;
+    const char  *new_op_name;
 
     if( !(flags & DFF_PSEUDO) ) return( 0 );
-    new = NULL;
+    new_op_name = NULL;
     switch( ins->type ) {
     case DI_SPARC_sethi:
         if( ins->op[ 1 ].base == DR_SPARC_r0 &&
             ins->op[ 0 ].value == 0 ) {
-            new = "nop";
+            new_op_name = "nop";
             ins->num_ops = 0;
         }
         break;
@@ -242,34 +283,49 @@ static unsigned SPARCInsHook( dis_handle *h, void *d, dis_dec_ins *ins,
             ins->op[ 0 ].value == 8 &&
             ins->op[ 1 ].base == DR_SPARC_r0 ) {
             // jmpl %i7+8, %g0 -> ret
-            new = "ret";
+            new_op_name = "ret";
             ins->num_ops = 0;
         } else if( ins->op[ 0 ].base == DR_SPARC_r15 &&
             ins->op[ 0 ].value == 8 &&
             ins->op[ 1 ].base == DR_SPARC_r0 ) {
             // jmpl %o7+8, %g0 -> retl
-            new = "retl";
+            new_op_name = "retl";
             ins->num_ops = 0;
         }
         break;
     case DI_SPARC_subcc:
         if( ins->op[ 2 ].base == DR_SPARC_r0 ) {
-            new = "cmp";
+            new_op_name = "cmp";
             ins->num_ops = 2;
         }
         break;
     case DI_SPARC_or:
         if( ins->op[ 0 ].base == DR_SPARC_r0 ) {
-            new = "mov";
+            new_op_name = "mov";
             ins->num_ops = 2;
             ins->op[ 0 ] = ins->op[ 1 ];
             ins->op[ 1 ] = ins->op[ 2 ];
+            if( ins->op[ 0 ].base == DR_SPARC_r0
+                 || ( ins->op[ 0 ].type == DO_IMMED
+                     && ins->op[ 0 ].value == 0 )  ) {
+                new_op_name = "clr";
+                ins->num_ops = 1;
+                ins->op[ 0 ] = ins->op[ 1 ];
+            }
+        } else {
+            if( ins->op[ 1 ].base == DR_SPARC_r0
+                 || ( ins->op[ 1 ].type == DO_IMMED
+                     && ins->op[ 1 ].value == 0 )  ) {
+                new_op_name = "mov";
+                ins->num_ops = 2;
+                ins->op[ 1 ] = ins->op[ 2 ];
+            }
         }
         break;
     case DI_SPARC_orcc:
         if( ins->op[ 0 ].base == DR_SPARC_r0 &&
             ins->op[ 2 ].base == DR_SPARC_r0 ) {
-            new = "tst";
+            new_op_name = "tst";
             ins->num_ops = 1;
             ins->op[ 0 ] = ins->op[ 1 ];
         }
@@ -285,8 +341,8 @@ static unsigned SPARCInsHook( dis_handle *h, void *d, dis_dec_ins *ins,
     default:
         break;
     }
-    if( name != NULL && new != NULL ) {
-        strcpy( name, new );
+    if( name != NULL && new_op_name != NULL ) {
+        strcpy( name, new_op_name );
         return( strlen( name ) );
     }
     return( 0 );
