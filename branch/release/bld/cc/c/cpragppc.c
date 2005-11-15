@@ -32,12 +32,11 @@
 #include "cvars.h"
 #include "cgswitch.h"
 #include "pragdefn.h"
+#include "pdefn2.h"
 #include "asinline.h"
 #include "asmstmt.h"
+#include <ctype.h>
 
-local   void    AsmSysAddCodeByte( unsigned char );
-
-static  hw_reg_set      StackParms[] = { HW_D( HW_EMPTY ) };
 static  hw_reg_set      AsmRegsSaved = HW_D( HW_FULL );
 static  int             AsmFuncNum;
 
@@ -193,7 +192,55 @@ local void FreeAsmFixups( void )
 hw_reg_set PragRegName( char *str )
 /*********************************/
 {
-    return( StackParms[ 0 ] );
+    int         index;
+    char        *p;
+    hw_reg_set  name;
+
+    if( *str == '\0' ) {
+        HW_CAsgn( name, HW_EMPTY );
+        return( name );
+    }
+    if( *str == '_' ) {
+        ++str;
+        if( *str == '_' ) {
+            ++str;
+        }
+    }
+    // search alias name
+    p = Registers;
+    index = *(p++);
+    while( *p != '\0' ) {
+        if( strcmp( p, str ) == 0 )
+            return( RegBits[ index ] );
+        while( *(p++) != '\0' )
+            ;
+        index = *(p++);
+    }
+    // decode regular register name
+    if( *str == 'r' || *str == 'R' )
+        ++str;
+    // decode regular register index
+    if( isdigit( *str ) ) {
+        index = atoi( str );
+        if( str[ 1 ] == '\0' ) {
+            //  0....9
+            if(( index > 0 )
+              || ( index == 0 ) && ( str[ 0 ] == '0' )) {
+                return( RegBits[ index ] );
+            }
+        } else if( str[ 2 ] == '\0' ) {
+            // 10....31
+            if(( index > 9 ) && ( index < 32 )) {
+                return( RegBits[ index ] );
+            }
+        }
+    }
+    if( *(str - 1) == 'r' && *(str - 1) == 'R' ) {
+        --str;
+    }
+    CErr2p( ERR_BAD_REGISTER_NAME, str );
+    HW_CAsgn( name, HW_EMPTY );
+    return( name );
 }
 
 static byte_seq_reloc *GetFixups( void )
@@ -233,23 +280,23 @@ local int GetByteSeq( void )
     uses_auto = 0;
     for(;;) {
         if( CurToken == T_STRING ) {    /* 06-sep-91 */
-            AsmSysParseLine( Buffer );
+            AsmLine( Buffer );
             NextToken();
             if( CurToken == T_COMMA ) {
                 NextToken();
             }
         } else if( CurToken == T_CONSTANT ) {
-            AsmSysAddCodeByte( Constant );
+            AsmCodeBuffer[AsmCodeAddress++] = Constant;
             NextToken();
         } else {
             break;
         }
-        if( AsmSysGetCodeAddr() > MAXIMUM_BYTESEQ ) {
+        if( AsmCodeAddress > MAXIMUM_BYTESEQ ) {
             if( ! too_many_bytes ) {
                 CErr1( ERR_TOO_MANY_BYTES_IN_PRAGMA );
                 too_many_bytes = 1;
             }
-            AsmSysSetCodeAddr( 0 ); // reset index to we don't overrun buffer
+            AsmCodeAddress = 0; // reset index to we don't overrun buffer
         }
     }
     if( too_many_bytes ) {
@@ -258,7 +305,7 @@ local int GetByteSeq( void )
         risc_byte_seq *seq;
         uint_32       len;
 
-        len = AsmSysGetCodeAddr();
+        len = AsmCodeAddress;
         seq = (risc_byte_seq *) CMemAlloc( sizeof( risc_byte_seq ) + len );
         seq->relocs = GetFixups();
         seq->length = len;
@@ -285,30 +332,6 @@ void AsmSysFini( void )
     AsmFini();
 }
 
-uint_32 AsmSysGetCodeAddr( void )
-/*******************************/
-{
-    return( AsmCodeAddress );
-}
-
-void AsmSysSetCodeAddr( uint_32 len )
-/***********************************/
-{
-    AsmCodeAddress = len;
-}
-
-local void AsmSysAddCodeByte( unsigned char byte )
-/************************************************/
-{
-    AsmCodeBuffer[AsmCodeAddress++] = byte;
-}
-
-void AsmSysParseLine( char *line )
-/********************************/
-{
-    AsmLine( line );
-}
-
 void AsmSysMakeInlineAsmFunc( int too_many_bytes )
 /************************************************/
 {
@@ -319,7 +342,7 @@ void AsmSysMakeInlineAsmFunc( int too_many_bytes )
     auto char           name[8];
 
     uses_auto = 0;
-    code_length = AsmSysGetCodeAddr();
+    code_length = AsmCodeAddress;
     if( code_length != 0 ) {
         sprintf( name, "F.%d", AsmFuncNum );
         ++AsmFuncNum;

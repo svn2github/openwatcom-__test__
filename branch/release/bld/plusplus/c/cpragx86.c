@@ -905,24 +905,6 @@ void AsmSysCopyCode( void )
     }
 }
 
-void AsmSysParseLine( char *line )
-/********************************/
-{
-    AsmLine( line );
-}
-
-void AsmSysSetCodeBuffer( void *buff )
-/************************************/
-{
-    CodeBuffer = buff;
-}
-
-uint_32 AsmSysAddress( void )
-/***************************/
-{
-    return Address;
-}
-
 boolean AsmSysInsertFixups( VBUF *code )
 /**************************************/
 {
@@ -975,7 +957,7 @@ void AsmSysDone( void )
 void AsmSysInit( void )
 /*********************/
 {
-    Address = 0;
+    AsmCodeAddress = 0;
     asm_CPU = GetAsmCPUInfo();
 }
 
@@ -1138,10 +1120,10 @@ static int GetByteSeq(
         /* reserve at least ASM_BLOCK bytes in the buffer */
         VbufReqd( &code_buffer, ( (i+ASM_BLOCK) + (ASM_BLOCK-1) ) & ~(ASM_BLOCK-1) );
         if( CurToken == T_STRING ) {
-            Address = i;
-            CodeBuffer = code_buffer.buf;
+            AsmCodeAddress = i;
+            AsmCodeBuffer = code_buffer.buf;
             AsmLine( Buffer );
-            i = Address;
+            i = AsmCodeAddress;
             NextToken();
             if( CurToken == T_COMMA )  NextToken();
         } else if( CurToken == T_CONSTANT ) {
@@ -1215,26 +1197,34 @@ static int GetByteSeq(
 hw_reg_set PragRegName(         // GET REGISTER NAME
     char *str )                 // - register
 {
-    register int i;
+    register int index;
     register char *p;
     hw_reg_set      name;
 
-    if( *str == '_' ) {
-        ++str;
+    if( *str == '\0' ) {
+        HW_CAsgn( name, HW_EMPTY );
+        return( name );
     }
     if( *str == '_' ) {
         ++str;
+        if( *str == '_' ) {
+            ++str;
+        }
     }
-    i = 0;
+    index = 0;
     p = Registers;
     while( *p != '\0' ) {
-        if( stricmp( p, str ) == 0 ) return( RegBits[ i ] );
-        i++;
-        while( *p++ != '\0' );
+        if( stricmp( p, str ) == 0 )
+            return( RegBits[ index ] );
+        index++;
+        while( *p++ != '\0' ) {
+            ;
+        }
     }
     if( strcmp( str, "8087" ) == 0 ) {
         HW_CAsgn( name, HW_FLTS );
     } else {
+        CErr2p( ERR_BAD_REGISTER_NAME, str );
         HW_CAsgn( name, HW_EMPTY );
     }
     return( name );

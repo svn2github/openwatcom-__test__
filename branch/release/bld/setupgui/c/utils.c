@@ -1867,6 +1867,11 @@ extern char *GetInstallName()
     char        **argv;
 
     if( name[0] == '\0' ) {
+        if( GetVariableByName( "InstallerName" ) != NO_VAR ) {
+            strlcpy( name, GetVariableStrVal( "InstallerName" ), sizeof( name ) );
+            return( name );
+        }
+
         GUIGetArgs( &argv, &argc );
         _splitpath( argv[0], NULL, NULL, name, NULL );
         strupr( name );

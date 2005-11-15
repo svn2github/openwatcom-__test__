@@ -24,15 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  auxiliary information processing
 *
 ****************************************************************************/
 
-
-//
-// WF77AUX  : auxiliary information processing
-//
 
 #include "ftnstd.h"
 #include "global.h"
@@ -43,7 +38,8 @@
 #include "progsw.h"
 #include "fio.h"
 #include "sdfile.h"
-#if ( _CPU == 8086 || _CPU == 386 )
+#include "fmemmgr.h"
+#if _INTEL_CPU
   #include "asminlin.h"
 #elif ( _CPU == _AXP || _CPU == _PPC )
   #include "asinline.h"
@@ -56,8 +52,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-extern  void            *FMemAlloc(int);
-extern  void            FMemFree(void *);
 extern  int             KwLookUp(char **,int,char *,int,int);
 extern  int             MkHexConst(char *,char *,int);
 extern  void            Error(int,...);
@@ -198,12 +192,8 @@ static  char            _wresppc[] = { "wresppc" };
 #define MAXIMUM_BYTESEQ 127
 
 #if ( _CPU == 8086 || _CPU == 386 )
-  #define ASM_CODE_BUFF_TYPE    char*
 #elif _CPU == _AXP || _CPU == _PPC
   #define AsmSymFini    AsmFini
-  #define CodeBuffer    AsmCodeBuffer
-  #define Address       AsmCodeAddress
-  #define ASM_CODE_BUFF_TYPE    uint_32*
 #else
   #error Unknown Target
 #endif
@@ -1386,11 +1376,11 @@ static  void    GetByteSeq( void ) {
             if( *(TokEnd - sizeof( char )) != '"' )
                 Suicide();
             *(char *)(TokEnd - sizeof( char )) = NULLCHAR;
-            Address = seq_len;
-            CodeBuffer = (ASM_CODE_BUFF_TYPE)&buff[0];
+            AsmCodeAddress = seq_len;
+            AsmCodeBuffer = buff;
             AsmLine( &TokStart[1] );
-            if( Address <= MAXIMUM_BYTESEQ ) {
-                seq_len = Address;
+            if( AsmCodeAddress <= MAXIMUM_BYTESEQ ) {
+                seq_len = AsmCodeAddress;
             } else {
                 Error( PR_BYTE_SEQ_LIMIT );
                 Suicide();
