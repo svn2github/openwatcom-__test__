@@ -24,11 +24,13 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  error message processing routines
 *
 ****************************************************************************/
 
+#include <stdarg.h>
+#include "ftnstd.h"
 
-#define INT_XDEBUG      0x0001
-#define INT_XDUMP       0x0002
+extern  void    (* __BldErrMsg)(uint,char *,va_list);
+extern  void    (* __ErrorInit)(char *);
+extern  void    (* __ErrorFini)(void);

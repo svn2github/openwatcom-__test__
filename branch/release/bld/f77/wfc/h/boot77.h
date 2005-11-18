@@ -24,52 +24,16 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Mainline for WATFOR-77 
 *
 ****************************************************************************/
 
-
-//
-// PAGELIM   : check that the pages of output limit not exceeded
-//
-
-#include "ftnstd.h"
-#include "errcod.h"
-#include "rundat.h"
-#include "bglobal.h"
-
-extern  bool            IsCarriage();
-extern  void            RTErr(int errcode,...);
-
-
-void    CheckPageLimit() {
-//========================
-
-    char        *ptr;
-
-    if( PageLimit != 0 ) {
-        if( IsCarriage() ) {
-            ptr = IOCB->fileinfo->buffer;
-            if( *ptr == '1' ) {
-                LinesOut = 0;
-                PagesOut++;
-            } else if( *ptr == '0' ) {
-                LinesOut += 2;
-            } else if( *ptr == '-' ) {
-                LinesOut += 3;
-            } else if( *ptr != '+' ) {
-                LinesOut++;
-            }
-        } else {
-            LinesOut++;
-        }
-        if( LinesOut > LinesPerPage ) {
-            LinesOut -= LinesPerPage;
-            PagesOut++;
-        }
-        if( PagesOut >= PageLimit ) {
-            RTErr( KO_PAGES_OUT );
-        }
-    }
-}
+extern  void    InitCompMain();
+extern  void    FiniCompMain();
+extern  int     CompMain( char *parm );
+extern  void    Compile( char *buffer );
+extern  void    ShowUsage();
+extern  char    *SkipBlanks( char *ptr );
+extern  void    InitCompile();
+extern  void    FiniCompile();
+extern  void    ProcOpts( char **opt_array );
