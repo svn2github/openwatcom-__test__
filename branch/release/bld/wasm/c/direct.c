@@ -354,6 +354,27 @@ void IdxInit( void )
     extdefidx   = 0;
 }
 
+static int SetAssumeCSCurrSeg( void )
+/*************************************/
+{
+    assume_info     *info;
+
+    info = &(AssumeTable[ ASSUME_CS ]);
+    if( CurrSeg == NULL ) {
+        info->symbol = NULL;
+        info->flat = FALSE;
+        info->error = TRUE;
+    } else {
+        if( CurrSeg->seg->e.seginfo->group != NULL )
+            info->symbol = GetGrp( &CurrSeg->seg->sym );
+        else
+            info->symbol = &CurrSeg->seg->sym;
+        info->flat = FALSE;
+        info->error = FALSE;
+    }
+    return( NOT_ERROR );
+}
+
 void push( void **stack, void *elt )
 /**********************************/
 {
@@ -1309,6 +1330,33 @@ int GrpDef( int i )
     return( NOT_ERROR );
 }
 
+static int SetUse32( void )
+/*************************/
+{
+    if( CurrSeg == NULL ) {
+        Use32 = ModuleInfo.defUse32;
+    } else {
+        Globals.code_seg = SEGISCODE( CurrSeg );
+        Use32 = CurrSeg->seg->e.seginfo->segrec->d.segdef.use_32;
+        if( Use32 && ( ( Code->info.cpu & P_CPU_MASK ) < P_386 ) ) {
+            AsmError( WRONG_CPU_FOR_32BIT_SEGMENT );
+            return( ERROR );
+        }
+    }
+    return( NOT_ERROR );
+}
+
+int SetUse32Def( bool flag )
+/**************************/
+{
+    if( ( CurrSeg == NULL )               // outside any segments
+        && ( !ModuleInfo.init             // model not defined
+            || ModuleInfo.cmdline ) ) {   // model defined on cmdline by -m?
+        ModuleInfo.defUse32 = flag;
+    }
+    return( SetUse32() );
+}
+
 int  SetCurrSeg( int i )
 /**********************/
 {
@@ -2041,33 +2089,6 @@ void ModuleInit( void )
     *ModuleInfo.name = 0;
 }
 
-static int SetUse32( void )
-/*************************/
-{
-    if( CurrSeg == NULL ) {
-        Use32 = ModuleInfo.defUse32;
-    } else {
-        Globals.code_seg = SEGISCODE( CurrSeg );
-        Use32 = CurrSeg->seg->e.seginfo->segrec->d.segdef.use_32;
-        if( Use32 && ( ( Code->info.cpu & P_CPU_MASK ) < P_386 ) ) {
-            AsmError( WRONG_CPU_FOR_32BIT_SEGMENT );
-            return( ERROR );
-        }
-    }
-    return( NOT_ERROR );
-}
-
-int SetUse32Def( bool flag )
-/**************************/
-{
-    if( ( CurrSeg == NULL )               // outside any segments
-        && ( !ModuleInfo.init             // model not defined
-            || ModuleInfo.cmdline ) ) {   // model defined on cmdline by -m?
-        ModuleInfo.defUse32 = flag;
-    }
-    return( SetUse32() );
-}
-
 static void get_module_name( void )
 /*********************************/
 {
@@ -2269,27 +2290,6 @@ static void ModelAssumeInit( void )
             break;
         }
     }
-}
-
-static int SetAssumeCSCurrSeg( void )
-/*************************************/
-{
-    assume_info     *info;
-
-    info = &(AssumeTable[ ASSUME_CS ]);
-    if( CurrSeg == NULL ) {
-        info->symbol = NULL;
-        info->flat = FALSE;
-        info->error = TRUE;
-    } else {
-        if( CurrSeg->seg->e.seginfo->group != NULL )
-            info->symbol = GetGrp( &CurrSeg->seg->sym );
-        else
-            info->symbol = &CurrSeg->seg->sym;
-        info->flat = FALSE;
-        info->error = FALSE;
-    }
-    return( NOT_ERROR );
 }
 
 int SetAssume( int i )
@@ -2776,7 +2776,7 @@ int LocalDef( int i )
             return( ERROR );
 
         if( sym->state != SYM_UNDEFINED ) {
-            AsmError( SYMBOL_ALREADY_DEFINED );
+            AsmErr( SYMBOL_PREVIOUSLY_DEFINED, sym->name );
             return( ERROR );
         } else {
             sym->state = SYM_INTERNAL;
@@ -3004,7 +3004,7 @@ parms:
             return( MT_ERROR );
 
         if( sym->state != SYM_UNDEFINED ) {
-            AsmError( SYMBOL_ALREADY_DEFINED );
+            AsmErr( SYMBOL_PREVIOUSLY_DEFINED, sym->name );
             return( MT_ERROR );
         } else {
             sym->state = SYM_INTERNAL;
@@ -3077,7 +3077,7 @@ int ProcDef( int i )
 
         if( sym != NULL ) {
             if( sym->state != SYM_UNDEFINED ) {
-                AsmError( PROC_ALREADY_DEFINED );
+                AsmErr( SYMBOL_PREVIOUSLY_DEFINED, sym->name );
                 return( ERROR );
             }
         }
@@ -3131,7 +3131,7 @@ int ProcEnd( int i )
 /******************/
 {
     if( CurrProc == NULL ) {
-        AsmError( NO_PROC_IS_CURRENTLY_DEFINED );
+        AsmError( BLOCK_NESTING_ERROR );
         return( ERROR );
     } else if( i < 0 ) {
         AsmError( PROC_MUST_HAVE_A_NAME );

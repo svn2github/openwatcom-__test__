@@ -68,6 +68,116 @@ namespace std {
     return( first );
   }
 
+  // find_end( FwdIterator, FwdIterator, FwdIterator, FwdIterator)
+  // *************************************************************
+  template< class ForwardIterator1, class ForwardIterator2 >
+  ForwardIterator1 find_end( ForwardIterator1 first1,
+                             ForwardIterator1 last1,
+                             ForwardIterator2 first2,
+                             ForwardIterator2 last2 )
+  {
+    ForwardIterator1 a;
+    ForwardIterator2 b;
+    ForwardIterator1 ans = last1;
+    while( first1 != last1 ) {
+      //find first item that matches
+      while( ! ( *first1 == *first2 ) ){
+        ++first1;
+        if( first1 == last1 ) return( ans );
+      }
+      //see if other items match
+      a = first1;
+      b = first2;
+      do{
+        ++a;
+        ++b;
+        if( b == last2 ){
+          ans = first1;
+          break;
+        }
+        if( a == last1 ) return( ans );
+      }while( *a == *b );
+      ++first1;
+    }
+    return( ans );
+  }
+
+  // find_end( FwdIterator, FwdIterator, FwdIterator, FwdIterator, BinaryPred )
+  // **************************************************************************
+  template< class ForwardIterator1,
+            class ForwardIterator2,
+            class BinaryPredictate >
+  ForwardIterator1 find_end( ForwardIterator1 first1,
+                             ForwardIterator1 last1,
+                             ForwardIterator2 first2,
+                             ForwardIterator2 last2,
+                             BinaryPredictate pred )
+  {
+    ForwardIterator1 a;
+    ForwardIterator2 b;
+    ForwardIterator1 ans = last1;
+    while( first1 != last1 ) {
+      //find first item that matches
+      while( ! ( pred( *first1, *first2 ) ) ){
+        ++first1;
+        if( first1 == last1 ) return( ans );
+      }
+      //see if other items match
+      a = first1;
+      b = first2;
+      do{
+        ++a;
+        ++b;
+        if( b == last2 ){
+          ans = first1;
+          break;
+        }
+        if( a == last1 ) return( ans );
+      }while( pred( *a, *b ) );
+      ++first1;
+    }
+    return( ans );
+  }
+
+  // find_first_of( Fwd1, Fwd1, Fwd2, Fwd2 )
+  // ***************************************
+  template< class ForwardIterator1, class ForwardIterator2 >
+  ForwardIterator1 find_first_of( ForwardIterator1 first1,
+                                  ForwardIterator1 last1,
+                                  ForwardIterator2 first2,
+                                  ForwardIterator2 last2)
+  {
+    ForwardIterator2 i;
+    while( first1 != last1 ) {
+      for( i = first2; i != last2; ++i ){
+        if( *first1 == *i ) return first1;
+      }
+      ++first1;
+    }
+    return( last1 );
+  }
+
+  // find_first_of( Fwd1, Fwd1, Fwd2, Fwd2, Pred )
+  // *********************************************
+  template< class ForwardIterator1,
+            class ForwardIterator2, 
+            class BinaryPredictate >
+  ForwardIterator1 find_first_of( ForwardIterator1 first1,
+                                  ForwardIterator1 last1,
+                                  ForwardIterator2 first2,
+                                  ForwardIterator2 last2,
+                                  BinaryPredictate pred )
+  {
+    ForwardIterator2 i;
+    while( first1 != last1 ) {
+      for( i = first2; i != last2; ++i ){
+        if( pred( *first1, *i ) ) return first1;
+      }
+      ++first1;
+    }
+    return( last1 );
+  }
+
 :: Temporarly removed to avoid warnings due to possible compiler bug.
 #ifdef _NEVER
   // count( InputIterator, InputIterator, const Type & )
@@ -346,6 +456,90 @@ namespace std {
       ++first;
       ++i;
     }
+  }
+
+  // remove_copy( FwdIterator, FwdIterator, OutputIterator, Type const & )
+  // *********************************************************************
+  template< class ForwardIterator, class OutputIterator, class Type >
+  OutputIterator remove_copy( ForwardIterator first, ForwardIterator last,
+                               OutputIterator out, Type const & value)
+  {
+    while( first != last){
+      if( *first == value ){
+        ++first;
+      }else{
+        *out = *first;
+        ++first;
+        ++out;
+      }
+    }
+    return( out );
+  }
+
+  // remove_copy_if( FwdIterator, FwdIterator, OutputIterator, Predictate )
+  // **********************************************************************
+  template< class ForwardIterator, class OutputIterator, class Predictate >
+  ForwardIterator remove_copy_if( ForwardIterator first, ForwardIterator last,
+                                  OutputIterator out, Predictate pred )
+  {
+    while( first != last){
+      if( pred( *first ) != false ){
+        ++first;
+      }else{
+        *out = *first;
+        ++first;
+        ++out;
+      }
+    }
+    return( out );
+  }
+
+  // remove( ForwardIterator, ForwardIterator, Type const & )
+  // ********************************************************
+  template< class ForwardIterator, class Type >
+  ForwardIterator remove( ForwardIterator first, ForwardIterator last,
+                          Type const & value)
+  {
+    ForwardIterator out = first;
+    bool copy = false;
+    while( first != last){
+      if( *first == value ){
+        ++first;
+        copy = true;
+      }else{
+        if( copy ){
+            //avoid unecessary copies
+            *out = *first;
+        }
+        ++first;
+        ++out;
+      }
+    }
+    return( out );
+  }
+
+  // remove_if( ForwardIterator, ForwardIterator, Predictate )
+  // *********************************************************
+  template< class ForwardIterator, class Predictate >
+  ForwardIterator remove_if( ForwardIterator first, ForwardIterator last,
+                             Predictate pred )
+  {
+    ForwardIterator out = first;
+    bool copy = false;
+    while( first != last){
+      if( pred( *first ) != false ){
+        ++first;
+        copy = true;
+      }else{
+        if( copy ){
+            //avoid unecessary copies
+            *out = *first;
+        }
+        ++first;
+        ++out;
+      }
+    }
+    return( out );
   }
 
   // reverse( Bidirectional, Bidirectional )
