@@ -30,33 +30,14 @@
 ****************************************************************************/
 
 
-//
-// host configuration
-//
+/*  size of data types on target machine */
 
-/*
-    _CHARSET: indicates the host compiler's character set
-        _ASCII  for ASCII (default if not defined)
-        _EBCDIC for EBCDIC
-*/
-#define _ASCII  0
-#define _EBCDIC 1
+#ifndef _TARGET_INCLUDED
+#define _TARGET_INCLUDED
+#include "target32.h"
+#include "targdef.h"
 
-//
-// target configuration
-//
+// target
+#define _CPU            386
 
-/*
-    _CPU: indicates the architecture that we are generating code for
-
-        8086    16-bit 8086/80186/80286/80386 code
-        386     32-bit 386 code
-        370     IBM 370 code
-        _AXP    DEC Alpha
-        _PPC    IBM/Motorola PowerPC
-*/
-#define _AXP    1
-#define _PPC    2
-
-// macros for architecture classes
-#define _INTEL_CPU      ( _CPU == 8086 || _CPU == 386 )
+#endif

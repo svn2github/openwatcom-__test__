@@ -478,6 +478,21 @@ static void pushPrag( PRAG_STACK **h, unsigned value )
     StackPush( h, stack_entry );
 }
 
+static boolean popPrag( PRAG_STACK **h, unsigned *pvalue )
+{
+    PRAG_STACK *pack_entry;
+
+    pack_entry = StackPop( h );
+    if( pack_entry != NULL ) {
+        if( pvalue != NULL ) {
+            *pvalue = pack_entry->value;
+        }
+        StackPush( &FreePrags, pack_entry );
+        return( TRUE );
+    }
+    return( FALSE );
+}
+
 // forms: (1) #pragma enum int
 //        (2) #pragma enum minimum
 //        (3) #pragma enum original
@@ -1029,52 +1044,24 @@ void CPragma()                  // PROCESS A PRAGMA
 }
 
 
-void PragInitDefaultInfo(
-    void )
-{
-    DefaultInfo._class = 0;
-    DefaultInfo.code = NULL;
-    DefaultInfo.parms = DefaultParms;
-    HW_CAsgn( DefaultInfo.returns, HW_EMPTY );
-    HW_CAsgn( DefaultInfo.streturn, HW_EMPTY );
-    HW_CAsgn( DefaultInfo.save, HW_FULL );
-    DefaultInfo.use = 0;
-    DefaultInfo.objname = NULL;
-}
-
-
 void PragInit(
     void )
 {
-    DefaultInfo.use = 2;
+    WatcallInfo.use = 2;
 
-    CdeclInfo = DefaultInfo;
-    PascalInfo = DefaultInfo;
-    FortranInfo = DefaultInfo;
-    SyscallInfo = DefaultInfo;
-    OptlinkInfo = DefaultInfo;
-    StdcallInfo = DefaultInfo;
+    CdeclInfo    = WatcallInfo;
+    PascalInfo   = WatcallInfo;
+    FortranInfo  = WatcallInfo;
+    SyscallInfo  = WatcallInfo;
+    OptlinkInfo  = WatcallInfo;
+    StdcallInfo  = WatcallInfo;
+    FastcallInfo = WatcallInfo;
 
-    FastcallInfo.use = 2;
+    DefaultInfo = *DftCallConv;
 
     CompInfo.init_priority = INIT_PRIORITY_PROGRAM;
 }
 
-
-static boolean popPrag( PRAG_STACK **h, unsigned *pvalue )
-{
-    PRAG_STACK *pack_entry;
-
-    pack_entry = StackPop( h );
-    if( pack_entry != NULL ) {
-        if( pvalue != NULL ) {
-            *pvalue = pack_entry->value;
-        }
-        StackPush( &FreePrags, pack_entry );
-        return( TRUE );
-    }
-    return( FALSE );
-}
 
 typedef struct magic_word {
     char        *name;
@@ -1091,6 +1078,7 @@ static MAGIC_WORD magicWords[] = {
     { "fastcall",   M_FASTCALL},
     { "syscall",    M_SYSCALL },
     { "system",     M_SYSCALL },
+    { "watcall",    M_WATCALL },
     { NULL,         M_UNKNOWN },
 };
 
@@ -1179,6 +1167,9 @@ static boolean setAuxInfo(          // SET CURRENT INFO. STRUCTURE
     case M_FASTCALL:
         CurrInfo = &FastcallInfo;
         break;
+    case M_WATCALL:
+        CurrInfo = &WatcallInfo;
+        break;
     default:
         if( create_new ) {
             CreateAux( Buffer );
@@ -1211,6 +1202,8 @@ boolean PragmaName( void *pragma, char **id )
         *id = retrieveName( M_STDCALL );
     } else if( pragma == &FastcallInfo ) {
         *id = retrieveName( M_FASTCALL );
+    } else if( pragma == &WatcallInfo ) {
+        *id = retrieveName( M_WATCALL );
     }
     if( *id != NULL ) {
         return( TRUE );
@@ -1262,6 +1255,9 @@ void PragCurrAlias(             // LOCATE ALIAS FOR PRAGMA
     case M_FASTCALL:
         CurrAlias = &FastcallInfo;
         break;
+    case M_WATCALL:
+        CurrAlias = &WatcallInfo;
+        break;
     default:
         search = AuxLookup( Buffer );
         if( search != NULL ) {
@@ -1279,7 +1275,7 @@ static void copyParms(           // COPY PARMS PORTION
         /* new parms have already been allocated */
         return;
     }
-    if( CurrInfo->parms != DefaultParms ) {
+    if( !IsAuxParmsBuiltIn( CurrInfo->parms ) ) {
         CurrInfo->parms = AuxParmDup( CurrInfo->parms );
     }
 }
@@ -1422,13 +1418,13 @@ int PragSet(                    // GET ENDING PRAGMA DELIMITER
     int retn;                   // - delimiter
 
     switch( CurToken ) {
-      case  T_LEFT_BRACKET :
+    case  T_LEFT_BRACKET :
         retn = T_RIGHT_BRACKET;
         break;
-      case T_LEFT_BRACE :
+    case T_LEFT_BRACE :
         retn = T_RIGHT_BRACE;
         break;
-      default :
+    default :
         retn = T_NULL;
         break;
     }
@@ -1446,14 +1442,12 @@ hw_reg_set PragRegList(         // GET PRAGMA REGISTER SET
     int close;                  // - ending delimiter
 
     HW_CAsgn( res, HW_EMPTY );
-    HW_CAsgn( reg, HW_EMPTY );
     close = PragSet();
     if( close != T_NULL ) {
         PPState = PPS_EOL;
         NextToken();
-        for(;;) {
+        for( ; CurToken != close; ) {
             reg = PragRegName( Buffer );
-            if( HW_CEqual( reg, HW_EMPTY ) ) break;
             HW_TurnOn( res, reg );
             NextToken();
         }
@@ -1488,7 +1482,7 @@ void PragManyRegSets(           // GET PRAGMA REGISTER SETS
     i *= sizeof( hw_reg_set );
     sets = (hw_reg_set *)CMemAlloc( i );
     memcpy( sets, buff, i );
-    if( CurrInfo->parms != DefaultParms ) {
+    if( !IsAuxParmsBuiltIn( CurrInfo->parms ) ) {
         CMemFree( CurrInfo->parms );
     }
     CurrInfo->parms = sets;
@@ -1520,7 +1514,7 @@ boolean ReverseParms( void *pragma )
 {
     AUX_INFO *aux = pragma;
 
-    if( aux->_class & REVERSE_PARMS ) {
+    if( aux->cclass & REVERSE_PARMS ) {
         return( TRUE );
     }
     return( FALSE );

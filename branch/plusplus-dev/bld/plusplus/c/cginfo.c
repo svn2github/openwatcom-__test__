@@ -24,13 +24,16 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Callback functions invoked from cg - communicate
+*               auxiliary information to the backend.
 *
 ****************************************************************************/
 
 
 #include "plusplus.h"
+
+#include "compcfg.h"
+#include "tgtenv.h"
 
 #include <process.h>
 #include <limits.h>
@@ -64,7 +67,6 @@
 #include "cginmisc.h"
 #include "pragdefn.h"
 #include "specfuns.h"
-#include "compcfg.h"
 #include "autodept.h"
 
 #if _CPU == 386
@@ -342,7 +344,7 @@ fe_attr FEAttr(                 // GET SYMBOL ATTRIBUTES
         if( SymIsInitialized( sym ) ) {
             attr |= FE_STATIC;
             /* only set FE_GLOBAL if it's not an in-class
-	     * initialization of a const static member */
+         * initialization of a const static member */
             if( ! ( sym->flag & SF_IN_CLASS_INIT ) ) {
                 attr |= FE_GLOBAL;
             }
@@ -552,13 +554,13 @@ static AUX_INFO *IntrinsicAuxLookup(
         if( CgTypeSize( type ) != 4 )  return( inf );
     }
     inf = &InlineInfo;
-    inf->_class = (DefaultInfo._class & FAR) | MODIFY_EXACT;
+    inf->cclass = (DefaultInfo.cclass & FAR) | MODIFY_EXACT;
     inf->code = ifunc->code;
     inf->parms = ifunc->parms;
     inf->returns = ifunc->returns;
     if( !HW_CEqual( inf->returns, HW_AX )
      && !HW_CEqual( inf->returns, HW_EMPTY ) ) {
-        inf->_class |= SPECIAL_RETURN;
+        inf->cclass |= SPECIAL_RETURN;
     }
     HW_CAsgn( inf->streturn, HW_EMPTY );
     inf->save = ifunc->save;
@@ -598,7 +600,7 @@ static AUX_INFO *getLangInfo(   // GET LANGUAGE INFO. FOR SYMBOL
             }
             #if _CPU == 386
                 if(( mod_flags & TF1_FAR16 ) || ( inf->flags & AUX_FLAG_FAR16 )) {
-                    if( inf->_class & REVERSE_PARMS ) {
+                    if( inf->cclass & REVERSE_PARMS ) {
                         inf = &Far16PascalInfo;
                     } else {
                         inf = &Far16CdeclInfo;
@@ -683,6 +685,7 @@ static char *GetNamePattern(           // MANGLE SYMBOL NAME
               || LinkageIsCpp( sym ) ) {
                 patbuff = allowStrictReplacement( patbuff );
             } else {
+                patbuff = VarNamePattern( inf );
                 if( patbuff == NULL )
                     patbuff = TS_DATA_MANGLE ;
                 return( patbuff );
@@ -757,7 +760,7 @@ static call_class getCallClass( // GET CLASS OF CALL
     call_class value;           // - call class
 
     inf = getLangInfo( sym );
-    value = inf->_class;
+    value = inf->cclass;
     if( sym != NULL ) {
         if( SymIsFunction( sym ) ) {
             #if _CPU == _AXP
@@ -886,7 +889,7 @@ static time_t *getFileDepTimeStamp( SRCFILE h )
 {
     static time_t            stamp;
 
-#if COMP_CFG_COFF == 0
+#if ( ( _CPU == 8086 ) || ( _CPU == 386 ) ) && ( COMP_CFG_COFF == 0 )
     stamp = _timet2dos( SrcFileTimeStamp( h ) );
 #else
     stamp = SrcFileTimeStamp( h );
@@ -1514,7 +1517,7 @@ void *FEAuxInfo(                // REQUEST AUXILLIARY INFORMATION
 boolean IsPragmaAborts(         // TEST IF FUNCTION NEVER RETURNS
     SYMBOL sym )                // - function symbol
 {
-    return(( getLangInfo( sym )->_class & SUICIDAL ) != 0 );
+    return(( getLangInfo( sym )->cclass & SUICIDAL ) != 0 );
 }
 
 

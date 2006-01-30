@@ -24,16 +24,11 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Handle processing of declarations within classes.
 *
 ****************************************************************************/
 
 
-/*
-CLASS.C : handles processing of declarations within classes
-
-*/
 #include "plusplus.h"
 
 #include <malloc.h>
@@ -783,20 +778,35 @@ TYPE ClassPreDefined( char *name, TOKEN_LOCN *locn )
 {
     TYPE class_type;
     PTREE id;
-    SCOPE save_scope;
+    SYMBOL_NAME sym_name;
+    SYMBOL_NAME std_sym_name;
+    SYMBOL std_sym;
     auto CLASS_DATA data;
 
-    save_scope = GetCurrScope();
-    SetCurrScope(GetFileScope());
+    id = NULL;
     ClassPush( &data );
     ClassInitState( TF1_NULL, CLINIT_NULL, NULL );
-    id = PTreeId( name );
-    id->sym_name = ScopeYYMember( GetCurrScope(), name );
-    id = PTreeSetLocn( id, locn );
+    std_sym_name = ScopeYYMember( GetFileScope(),
+                                  CppSpecialName( SPECIAL_STD ) );
+    std_sym = ( std_sym_name != NULL ) ? std_sym_name->name_type : NULL;
+    if( ( std_sym != NULL ) && ( std_sym->id == SC_NAMESPACE ) ) {
+        sym_name = ScopeYYMember( std_sym->u.ns->scope, name );
+        if( sym_name != NULL ) {
+            id = PTreeId( name );
+            id = PTreeSetLocn( id, locn );
+            id = PTreeBinary( CO_COLON_COLON,
+                              PTreeId( std_sym_name->name ), id );
+            id = PTreeSetLocn( id, locn );
+            id->sym_name = sym_name;
+        }
+    }
+    if( id == NULL ) {
+        id = PTreeId( name );
+        id = PTreeSetLocn( id, locn );
+    }
     ClassName( id, CLASS_DECLARATION );
     class_type = data.type;
     ClassPop( &data );
-    SetCurrScope(save_scope);
     return( class_type );
 }
 
@@ -1801,11 +1811,6 @@ boolean ClassIsDefaultCtor( SYMBOL sym, TYPE class_type )
     return TypeHasNumArgs( sym->sym_type, 0 );
 }
 
-static boolean isDefaultAssign( SYMBOL sym, TYPE class_type, unsigned *arg_info )
-{
-    return( isDefaultCopy( sym, class_type, arg_info ) );
-}
-
 static boolean isDefaultCopy( SYMBOL sym, TYPE class_type, unsigned *arg_info )
 {
     arg_list *args;
@@ -1837,6 +1842,11 @@ static boolean isDefaultCopy( SYMBOL sym, TYPE class_type, unsigned *arg_info )
         return( TRUE );
     }
     return( FALSE );
+}
+
+static boolean isDefaultAssign( SYMBOL sym, TYPE class_type, unsigned *arg_info )
+{
+    return( isDefaultCopy( sym, class_type, arg_info ) );
 }
 
 boolean ClassIsDefaultCopy( SYMBOL sym, TYPE class_type )

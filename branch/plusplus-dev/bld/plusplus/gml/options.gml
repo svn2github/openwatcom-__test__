@@ -32,7 +32,7 @@
 :cmt                                            between options can be simulated
 
 :cmt    where:
-:cmt        <arch>:     i86, 386, axp, any, dbg, qnx
+:cmt        <arch>:     i86, 386, axp, any, dbg, qnx, ppc, linux, sparc
 
 :cmt    Translations are required for the :jtitle. and :jusage. tags
 :cmt    if there is no text associated with the tag.
@@ -280,6 +280,55 @@
 :special. scanDefine <name>[=text]
 :usage. same as #define name [text] before compilation
 :jusage. コンパイル前の #define name [text] と同じ
+
+:option. ecc
+:target. i86 386
+:enumerate. intel_call_conv
+:usage. set default calling convention to __cdecl
+:jusage.
+
+:option. ecd
+:target. i86 386
+:enumerate. intel_call_conv
+:usage. set default calling convention to __stdcall
+:jusage.
+
+:option. ecf
+:target. i86 386
+:enumerate. intel_call_conv
+:usage. set default calling convention to __fastcall
+:jusage.
+
+:option. eco
+:target. dbg
+:ntarget. axp qnx ppc linux sparc
+:enumerate. intel_call_conv
+:usage. set default calling convention to _Optlink
+:jusage.
+
+:option. ecp
+:target. i86 386
+:enumerate. intel_call_conv
+:usage. set default calling convention to __pascal
+:jusage.
+
+:option. ecr
+:target. i86 386
+:enumerate. intel_call_conv
+:usage. set default calling convention to __fortran
+:jusage.
+
+:option. ecs
+:target. i86 386
+:enumerate. intel_call_conv
+:usage. set default calling convention to _Syscall
+:jusage.
+
+:option. ecw
+:target. i86 386
+:enumerate. intel_call_conv
+:usage. set default calling convention to __watcall (default)
+:jusage.
 
 :option. ee
 :target. any
@@ -866,6 +915,11 @@
 :internal.
 :usage. set preprocessor delimiter to something other than '#'
 :jusage. プリプロセッサの区切り記号を'#'以外の何かに設定します
+
+:option. q
+:target. any
+:usage. operate quietly (display only error messages)
+:jusage. 無メッセージモードで動作します(エラーメッセージのみ表示されます)
 
 :option. r
 :target. i86 386

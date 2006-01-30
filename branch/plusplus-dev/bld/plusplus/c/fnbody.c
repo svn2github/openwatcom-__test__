@@ -954,8 +954,19 @@ static void parseReturnStmt( SYMBOL func )
                     return_operand = return_sym;
                 }
             } else {
-                PTreeErrorExpr( expr, ERR_NOT_EXPECTING_RETURN_VALUE );
-                PTreeFreeSubtrees( expr );
+                if( return_sym == NULL ) {
+                    // see C++98 6.6.3 (3)
+                    expr = AnalyseStmtExpr( expr );
+                    if( ( expr->type != NULL ) && VoidType( expr->type ) ) {
+                        emitCodeExpr( expr );
+                        expr = NULL;
+                    }
+                }
+
+                if( expr != NULL ) {
+                    PTreeErrorExpr( expr, ERR_NOT_EXPECTING_RETURN_VALUE );
+                    PTreeFreeSubtrees( expr );
+                }
             }
         }
     }
