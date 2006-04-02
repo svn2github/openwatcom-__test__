@@ -48,6 +48,7 @@ sound.exe
 
 # DOSCALL commands (DOS, Win, Win386, Win32, OS/2, Pharlap-16)
 FN_DOSCALL = creatnew.exe &
+btowc.exe &
 d_close.exe &
 d_creat.exe &
 d_open.exe &
@@ -108,6 +109,7 @@ mbputcha.exe &
 mbrlen.exe &
 mbrtowc.exe &
 mbsbtype.exe &
+mbsinit.exe &
 mbsnbcat.exe &
 mbsnbcmp.exe &
 mbsnbcnt.exe &
@@ -128,7 +130,9 @@ strinc.exe &
 strspnp.exe &
 tempnam.exe &
 wcrtomb.exe &
+wcrtom_s.exe &
 wcsrtomb.exe &
+wcsrto_s.exe &
 wctob.exe &
 dgetdriv.exe &
 dgetdskf.exe &
@@ -273,13 +277,20 @@ strdate.exe &
 stricoll.exe &
 strspnp.exe &
 strtime.exe &
+towctrns.exe &
 vsnprint.exe &
 vsprintf.exe &
-wctype.exe
+wctype.exe &
+wctrans.exe
 
 # Macros (available everywhere!)
 FN_MACRO = alloca.exe &
 assert.exe &
+fpclassf.exe &
+isfinite.exe &
+isinf.exe &
+isnan.exe &
+isnormal &
 mk_fp.exe &
 offsetof.exe &
 setjmp.exe &
@@ -288,6 +299,7 @@ va_end.exe &
 va_start.exe &
 mbsnbcnt.exe &
 mbsnbcnt.exe &
+signbit.exe &
 strdec.exe &
 strdec.exe &
 strinc.exe &
@@ -334,6 +346,8 @@ imaxdiv.exe &
 labs.exe &
 ldexp.exe &
 ldiv.exe &
+llabs.exe &
+lldiv.exe &
 lltoa.exe &
 log.exe &
 log10.exe &
@@ -373,6 +387,7 @@ fileleng.exe &
 fileno.exe &
 flushall.exe &
 fopen.exe &
+fopen_s.exe &
 fprintf.exe &
 fputc.exe &
 fputchar.exe &
@@ -380,11 +395,14 @@ fputs.exe &
 fread.exe &
 free.exe &
 freopen.exe &
+freop_s.exe &
 fscanf.exe &
+fscanf_s.exe &
 fseek.exe &
 fsetpos.exe &
 fstat.exe &
 ftell.exe &
+fwide.exe &
 fwrite.exe &
 getc.exe &
 getch.exe &
@@ -408,13 +426,17 @@ rename.exe &
 rewind.exe &
 rmdir.exe &
 scanf.exe &
+scanf_s.exe &
 sopen.exe &
 sprintf.exe &
 sscanf.exe &
+sscanf_s.exe &
 stat.exe &
 tell.exe &
 tmpfile.exe &
+tmpfl_s.exe &
 tmpnam.exe &
+tmpnm_s.exe &
 umask.exe &
 ungetc.exe &
 ungetch.exe &
@@ -424,28 +446,37 @@ vcprintf.exe &
 vcscanf.exe &
 vfprintf.exe &
 vfscanf.exe &
+vfscnf_s.exe &
 vprintf.exe &
 vscanf.exe &
-vsscanf.exe &
+vscanf_s.exe &
+vsscnf_s.exe &
 write.exe
 
 # String Functions (all + NetWare)
 FN_STRING = &
 strcase.exe &
 strcat.exe &
+strcat_s.exe &
+stncat_s.exe &
 strchr.exe &
 strcmp.exe &
 strcmpi.exe &
 strcoll.exe &
 strcpy.exe &
+strcpy_s.exe &
+stncpy_s.exe &
 strcspn.exe &
 strdup.exe &
 strerror.exe &
+strerr_s.exe &
+streln_s.exe &
 strftime.exe &
 stricmp.exe &
 strlcat.exe &
 strlcpy.exe &
 strlen.exe &
+strnln_s.exe &
 strlwr.exe &
 strncase.exe &
 strncat.exe &
@@ -463,6 +494,7 @@ strtoimx.exe &
 strtoumx.exe &
 strtod.exe &
 strtok.exe &
+strtok_s.exe &
 strtol.exe &
 strtoll.exe &
 strtoul.exe &
@@ -485,10 +517,14 @@ _msize.exe &
 _splitpa.exe &
 _vbprint.exe &
 abort.exe &
+abrt_hnd.exe &
 access.exe &
 asctime.exe &
+asctim_s.exe &
 atexit.exe &
+basename.exe &
 bsearch.exe &
+bsrch_s.exe &
 calloc.exe &
 cgets.exe &
 chdir.exe &
@@ -504,12 +540,17 @@ cputs.exe &
 creat.exe &
 cscanf.exe &
 ctime.exe &
+ctime_s.exe &
+dirname.exe &
 exit.exe &
 ffs.exe &
 getcmd.exe &
 getenv.exe &
+getenv_s.exe &
 getosfha.exe &
 gmtime.exe &
+gmtime_s.exe &
+ign_hnd.exe &
 isalnum.exe &
 isalpha.exe &
 isascii.exe &
@@ -530,6 +571,7 @@ kbhit.exe &
 lfind.exe &
 localeco.exe &
 localtim.exe &
+lcltim_s.exe &
 lock.exe &
 longjmp.exe &
 lsearch.exe &
@@ -537,8 +579,10 @@ memccpy.exe &
 memchr.exe &
 memcmp.exe &
 memcpy.exe &
+memcpy_s.exe &
 memicmp.exe &
 memmove.exe &
+memmov_s.exe &
 memset.exe &
 main.exe &
 malloc.exe &
@@ -553,8 +597,10 @@ outp.exe &
 outpw.exe &
 perror.exe &
 qsort.exe &
+qsort_s.exe &
 realloc.exe &
 segread.exe &
+set_chnd.exe &
 setbuf.exe &
 setlocal.exe &
 setmode.exe &
@@ -571,7 +617,9 @@ tzset.exe &
 utime.exe &
 utoa.exe &
 wcstombs.exe &
+wcstom_s.exe &
 wctomb.exe &
+wctomb_s.exe &
 _atouni.exe &
 _bgetcmd.exe &
 _cmdname.exe &

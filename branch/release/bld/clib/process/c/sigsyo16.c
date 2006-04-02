@@ -36,19 +36,14 @@
 #include <dos.h>
 #define INCL_DOSSIGNALS
 #include <wos2.h>
-
-extern  void    __null_int23_exit( void );
-extern  void    (*__int23_exit)( void );
-extern  void    _WCI86FAR __sigfpe_handler( int );
-extern  void    (_WCI86FAR *__FPE_handler)( int );
+#include "rtdata.h"
+#include "sigfunc.h"
+#include "_int23.h"
 
 static PFNSIGHANDLER handler = 0;
 static USHORT        action;
-static void (_WCI86FAR *__old_FPE_handler)( int ) = NULL;
 
-//#pragma off(unreferenced);
 static void _WCFAR pascal break_handler( USHORT sigarg, USHORT signum )
-//#pragma on(unreferenced);
 {
     if( __int23_exit != __null_int23_exit ) {
         raise( SIGINT );
@@ -72,6 +67,8 @@ void __grab_int23( void )
     DosSetSigHandler( (PFNSIGHANDLER)break_handler, &handler, &action, 2, SIG_CTRLC );
     __int23_exit = restore_handler;
 }
+
+static FPEhandler   *__old_FPE_handler = NULL;
 
 void __restore_FPE_handler( void )
 {

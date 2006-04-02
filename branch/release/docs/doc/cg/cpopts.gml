@@ -360,6 +360,11 @@ do not recover from undefined symbol errors
 alternate error message formatting
 :optref refid='SWew'.
 .do end
+.if &e'&$SWq eq 1 .do begin
+.note q
+operate quietly
+:optref refid='SWq'.
+.do end
 .if &e'&$SWt eq 1 .do begin
 .note t=<num>
 set tab stop multiplier
@@ -611,11 +616,11 @@ set default calling convention to __stdcall
 set default calling convention to __fastcall
 :optref refid='SWecf'.
 .do end
-.if &e'&$SWeco eq 1 .do begin
-.note eco
-set default calling convention to _Optlink
-:optref refid='SWeco'.
-.do end
+:CMT. .if &e'&$SWeco eq 1 .do begin
+:CMT. .note eco
+:CMT. set default calling convention to _Optlink
+:CMT. :optref refid='SWeco'.
+:CMT. .do end
 .if &e'&$SWecp eq 1 .do begin
 .note ecp
 set default calling convention to __pascal
@@ -2294,11 +2299,11 @@ A default filename extension must be preceded by a period (".").
 .if &e'&$SWpil eq 1 .do begin
 :OPT refid='SWpil' name='pil'.
 .ix 'options' 'pil'
-If you are using preprocessed source file than it can contain #line 
-directives which specify position in original source code file.
-If you want to use reference to compiled source file rather then to original
-file then you can use this option and compiler "forget" all references
-to original source code. It can be useful for debugging.
+By default, #line directives embedded in source files are processed and
+will be used as a basis for file name and line number information in error
+messages, __FILE__ and __LINE__ symbols, etc. The "pil" option causes the
+preprocessor to ignore #line directives and refer to actual file names and
+line numbers.
 .do end
 .*
 .if &e'&$SWp eq 1 .do begin
@@ -2437,6 +2442,12 @@ void bar( S *p ) {
 (C++ only)
 This option causes the C++ compiler to generate equivalent but less
 verbose diagnostic messages.
+.do end
+.*
+.if &e'&$SWq eq 1 .do begin
+:OPT refid='SWq' name='q'.
+.ix 'options' 'q'
+This option is equivalent to the "zq" option :optref refid='SWzq'..
 .do end
 .*
 .if &e'&$SWt eq 1 .do begin
@@ -3322,11 +3333,11 @@ set default calling convention to __stdcall
 set default calling convention to __fastcall
 .do end
 .*
-.if &e'&$SWeco eq 1 .do begin
-:OPT refid='SWeco' name='eco'.
-.ix 'options' 'eco'
-set default calling convention to _Optlink
-.do end
+:CMT. .if &e'&$SWeco eq 1 .do begin
+:CMT. :OPT refid='SWeco' name='eco'.
+:CMT. .ix 'options' 'eco'
+:CMT. set default calling convention to _Optlink
+:CMT. .do end
 .*
 .if &e'&$SWecp eq 1 .do begin
 :OPT refid='SWecp' name='ecp'.

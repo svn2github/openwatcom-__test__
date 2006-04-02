@@ -39,21 +39,12 @@
 #include "errcod.h"
 #include "opr.h"
 #include "global.h"
+#include "recog.h"
+#include "ferror.h"
+#include "insert.h"
+#include "utility.h"
 
-extern  bool            RecNextOpr(byte);
-extern  bool            RecComma(void);
-extern  bool            RecNOpn(void);
-extern  bool            RecFBr(void);
-extern  bool            RecColon(void);
-extern  bool            RecCloseParen(void);
-extern  void            AdvanceITPtr(void);
-extern  void            ChkType(int);
-extern  void            Error(int,...);
-extern  void            Extension(int,...);
-extern  void            ClassErr(int,sym_id);
-extern  void            OpndErr(int);
 extern  bool            OptimalChSize(uint);
-extern  bool            ClassIs(unsigned_16);
 
 
 static  bool    CheckColon() {
@@ -70,11 +61,11 @@ static  bool    CheckColon() {
 void    SetDefinedStatus() {
 //==========================
 
-    switch( CITNode->opn & OPN_WHAT ) {
-    case OPN_NNL:
-    case OPN_ASS:
-    case OPN_NWL:
-    case OPN_ARR:
+    switch( CITNode->opn.us & USOPN_WHAT ) {
+    case USOPN_NNL:
+    case USOPN_ASS:
+    case USOPN_NWL:
+    case USOPN_ARR:
         if( ClassIs( SY_VARIABLE ) ) {
             CITNode->sym_ptr->ns.xflags |= SY_DEFINED;
         }
@@ -122,7 +113,7 @@ void    DetSubList() {
     itnode      *save_cit;
     uint        ch_size;
 
-    if( CITNode->opn & OPN_FLD ) {
+    if( CITNode->opn.us & USOPN_FLD ) {
         no_subs = _DimCount( CITNode->sym_ptr->fd.dim_ext->dim_flags );
     } else {
         no_subs = _DimCount( CITNode->sym_ptr->ns.si.va.dim_ext->dim_flags );
@@ -141,8 +132,8 @@ void    DetSubList() {
                 Error( SV_INV_SSCR );
             }
             SubStrArgs( cit );
-            cit->opn &= ~OPN_WHAT;
-            cit->opn |= OPN_ASS;
+            cit->opn.us &= ~USOPN_WHAT;
+            cit->opn.us |= USOPN_ASS;
             Detach( cit );
             return;
         }
@@ -158,10 +149,10 @@ void    DetSubList() {
         Error( SV_INV_SSCR );
     }
     // we must make sure the array isn't substrung before we can set OPN_SS1
-    if( !( cit->opn & OPN_FLD ) && ( cit->sym_ptr->ns.typ == TY_CHAR ) ) {
+    if( !( cit->opn.us & USOPN_FLD ) && ( cit->sym_ptr->ns.typ == TY_CHAR ) ) {
         ch_size = cit->sym_ptr->ns.xt.size;
         if( ch_size > 0 ) {
-            cit->opn |= OPN_SS1;
+            cit->opn.us |= USOPN_SS1;
             cit->value.st.ss_size = ch_size;
         }
     }
@@ -191,8 +182,8 @@ static  void    SubStrArgs( itnode *cit ) {
     }
     count = 1;
     for(;;) {
-        if( CITNode->opn & OPN_SS1 ) {
-            cit->opn |= OPN_SS1;
+        if( CITNode->opn.us & USOPN_SS1 ) {
+            cit->opn.us |= USOPN_SS1;
             cit->value.st.ss_size = CITNode->value.st.ss_size;
         }
         CkScrStr();
@@ -206,11 +197,11 @@ static  void    SubStrArgs( itnode *cit ) {
 static  void    CkScrStr() {
 //==========================
 
-    byte        opn;
+    USOPN        opn;
 
     ChkType( TY_INTEGER );
-    opn = CITNode->opn;
-    if( (opn & OPN_WHAT) != OPN_ARR ) return;
+    opn = CITNode->opn.us;
+    if( (opn & USOPN_WHAT) != USOPN_ARR ) return;
     ClassErr( SV_NO_LIST, CITNode->sym_ptr );
 }
 

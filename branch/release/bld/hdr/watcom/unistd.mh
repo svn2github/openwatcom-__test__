@@ -96,10 +96,10 @@
 
 :include posix.sp
 
-extern int   optind;        /*  index of current option being scanned */
-extern char *optarg;        /*  points to optional argument */
-extern int   opterr;        /*  print|don't print error message */
-extern int   optopt;        /*  offending letter when error detected */
+_WCRTLINKD extern int   optind;        /*  index of current option being scanned */
+_WCRTLINKD extern char *optarg;        /*  points to optional argument */
+_WCRTLINKD extern int   opterr;        /*  print|don't print error message */
+_WCRTLINKD extern int   optopt;        /*  offending letter when error detected */
 
 /* Symbolic constants for confstr */
 
@@ -114,12 +114,12 @@ extern int   optopt;        /*  offending letter when error detected */
 
 :segment QNX
 #if defined(_POSIX_SOURCE) || defined(_QNX_SOURCE) || !defined(NO_EXT_KEYS)
-_WCRTLINK extern void    _exit( int __status );
+_WCRTLINK extern void   _exit( int __status );
 #endif
 :endsegment
 :segment LINUX
 #if defined(_POSIX_SOURCE) || defined(_LINUX_SOURCE) || !defined(NO_EXT_KEYS)
-_WCRTLINK extern void    _exit( int __status );
+_WCRTLINK extern void   _exit( int __status );
 #endif
 :endsegment
 
@@ -196,7 +196,7 @@ _WCRTLINK extern char   *ttyname( int __fildes );
 :segment QNX
 _WCRTLINK extern int    mkdir( const char *__path, mode_t __mode );
 _WCRTLINK extern int    mknod( const char *__path, mode_t __mode, int __dev );
-_WCRTLINK extern int    mount( const char *__special, const char * __dir, int __rwflag );
+_WCRTLINK extern int    mount( const char *__special, const char *__dir, int __rwflag );
 _WCRTLINK extern int    tcsetct( int __fildes, pid_t pid );
 _WCRTLINK extern int    umount( const char *__special );
 :endsegment
@@ -226,7 +226,7 @@ _WCRTLINK extern nid_t  getnid( void );
 _WCRTLINK extern int    lock( int __fildes, long __offset, long __nbytes );
 _WCRTLINK extern void   qnx_display_msg( const char *__text );
 _WCRTLINK extern void   qnx_display_hex( unsigned __value );
-_WCRTLINK extern char   *qnx_fullpath( char * __fullpath, const char * __path );
+_WCRTLINK extern char   *qnx_fullpath( char *__fullpath, const char *__path );
 
 struct _psinfo2; /* for C++ */
 
@@ -241,15 +241,15 @@ _WCRTLINK extern int    unlock( int __fildes, long __offset, long __nbytes );
 :segment QNX | LINUX
 :include posix.sp
 _WCRTLINK extern int    getopt( int __argc, char * const __argv[], const char *__optstring );
-_WCRTLINK extern char   *basename( const char * __fname );
+_WCRTLINK extern char   *basename( char *__fname );
 _WCRTLINK extern size_t confstr( int, char*, size_t );
 _WCRTLINK extern int    fnmatch( const char *__pattern, const char *__string, int __flag );
 _WCRTLINK extern off_t  ltrunc( int __fildes, off_t __offset, int __origin );
-_WCRTLINK extern int    putenv(const char * estring);
+_WCRTLINK extern int    putenv( const char *__estring );
 
 /* Globals used and set by getopt() */
-_WCRTLINK extern char   *optarg;
-_WCRTLINK extern int    optind, opterr, optopt;
+_WCRTLINKD extern char   *optarg;
+_WCRTLINKD extern int    optind, opterr, optopt;
 #endif
 
 :endsegment
@@ -279,8 +279,8 @@ _WCRTLINK extern int    getopt( int __argc, char * const __argv[], const char *_
 _WCRTLINK extern unsigned int sleep( unsigned int __seconds );
 
 /* Globals used and set by getopt() */
-_WCRTLINK extern char   *optarg;
-_WCRTLINK extern int    optind, opterr, optopt;
+_WCRTLINKD extern char   *optarg;
+_WCRTLINKD extern int    optind, opterr, optopt;
 :endsegment
 
 :include cplusepi.sp

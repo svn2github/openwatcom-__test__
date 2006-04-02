@@ -3,7 +3,7 @@ sw_c_common = -w4-zl
 !else
 sw_c_common = -we-w4-zl
 !endif
-sw_a_common = -zq
+sw_a_common = -we
 !ifdef __UNIX__
 sw_c_common += -fo=.obj
 sw_a_common += -fo=.obj
@@ -44,6 +44,9 @@ sw_c_mps =
 !ifdef profile
 sw_c_386 += -d1-hd-etp
 !endif
+
+# Include system headers in dependency lists
+sw_c_common += -D_ENABLE_AUTODEPEND
 
 !ifeq release 0
 sw_c_common += -D__RUNTIME_HANDLE_CHECKS__

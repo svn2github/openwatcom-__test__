@@ -28,7 +28,7 @@
  */
 
 #ifdef __NT__
-    typedef void *      _HFILE;
+    typedef void        *_HFILE;
 #else
     typedef int         _HFILE;
 #endif

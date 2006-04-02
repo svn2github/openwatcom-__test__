@@ -21,17 +21,23 @@
  #include <sys/types.h>
 #endif
 
-#if defined(__OS2__) || defined(__NT__)
+#if defined(__OS2__) || defined(__NT__) || defined(__WATCOM_LFN__)
 #define NAME_MAX        255             /* maximum filename for HPFS or NTFS */
 #else
 #define NAME_MAX        12              /* 8 chars + '.' +  3 chars */
 #endif
 
 struct _wdirent {
-    char               d_dta[21];       /* disk transfer area */
+    char               d_dta[10];       /* disk transfer area */
+    unsigned short int d_ctime;         /* file's creation time */
+    unsigned short int d_cdate;         /* file's creation date */
+    unsigned short int d_atime;         /* file's last access time */
+    unsigned short int d_adate;         /* file's last access date */
+    unsigned short     d_lfnax;         /* DOS LFN search handle */
+    unsigned char      d_lfnsup;        /* DOS LFN support status */
     char               d_attr;          /* file's attribute */
-    unsigned short int d_time;          /* file's time */
-    unsigned short int d_date;          /* file's date */
+    unsigned short int d_time;          /* file's modification time */
+    unsigned short int d_date;          /* file's modification date */
     long               d_size;          /* file's size */
     wchar_t            d_name[NAME_MAX+1];/* file's name */
 :segment DOS
@@ -40,11 +46,17 @@ struct _wdirent {
     ino_t              d_ino;           /* serial number (not used) */
 :endsegment
     char               d_first;         /* flag for 1st time */
-    wchar_t *          d_openpath;      /* path specified to _wopendir */
+    wchar_t            *d_openpath;      /* path specified to _wopendir */
 };
 
 struct dirent {
-    char               d_dta[21];       /* disk transfer area */
+    char               d_dta[10];       /* disk transfer area */
+    unsigned short int d_ctime;         /* file's creation time */
+    unsigned short int d_cdate;         /* file's creation date */
+    unsigned short int d_atime;         /* file's last access time */
+    unsigned short int d_adate;         /* file's last access date */
+    unsigned short     d_lfnax;         /* DOS LFN search handle */
+    unsigned char      d_lfnsup;        /* DOS LFN support status */
     char               d_attr;          /* file's attribute */
     unsigned short int d_time;          /* file's time */
     unsigned short int d_date;          /* file's date */
@@ -56,7 +68,7 @@ struct dirent {
     ino_t              d_ino;           /* serial number (not used) */
 :endsegment
     char               d_first;         /* flag for 1st time */
-    char *             d_openpath;      /* path specified to opendir */
+    char               *d_openpath;      /* path specified to opendir */
 };
 typedef struct dirent   DIR;
 
@@ -74,9 +86,9 @@ typedef struct dirent   DIR;
 
 _WCRTLINK extern int              chdir( const char *__path );
 _WCRTLINK extern int              closedir( struct dirent * );
-_WCRTLINK extern char *           getcwd( char *__buf, size_t __size );
-_WCRTLINK extern char *           _getcwd( char *__buf, size_t __size );
-_WCRTLINK extern char *           _getdcwd( int __drive, char *__buffer,
+_WCRTLINK extern char             *getcwd( char *__buf, size_t __size );
+_WCRTLINK extern char             *_getcwd( char *__buf, size_t __size );
+_WCRTLINK extern char             *_getdcwd( int __drive, char *__buffer,
                                             size_t __maxlen );
 _WCRTLINK extern unsigned         _getdrive( void );
 _WCRTLINK extern unsigned         _getdiskfree( unsigned __drive,
@@ -84,19 +96,20 @@ _WCRTLINK extern unsigned         _getdiskfree( unsigned __drive,
                                                 *__diskspace);
 _WCRTLINK extern int              mkdir( const char *__path );
 _WCRTLINK extern int              _mkdir( const char *__path );
-_WCRTLINK extern struct dirent *  opendir( const char * );
-_WCRTLINK extern struct dirent *  readdir( struct dirent * );
+_WCRTLINK extern struct dirent    *opendir( const char * );
+_WCRTLINK extern struct dirent    *readdir( struct dirent * );
 _WCRTLINK extern void             rewinddir( struct dirent * );
 _WCRTLINK extern int              rmdir( const char *__path );
+_WCRTLINK extern int              _rmdir( const char *__path );
 
 _WCRTLINK extern int              _wchdir( const wchar_t *__path );
 _WCRTLINK extern int              _wclosedir( struct _wdirent * );
-_WCRTLINK extern wchar_t *        _wgetcwd( wchar_t *__buf, size_t __size );
-_WCRTLINK extern wchar_t *        _wgetdcwd( int __drive, wchar_t *__buffer,
+_WCRTLINK extern wchar_t          *_wgetcwd( wchar_t *__buf, size_t __size );
+_WCRTLINK extern wchar_t          *_wgetdcwd( int __drive, wchar_t *__buffer,
                                              size_t __maxlen );
 _WCRTLINK extern int              _wmkdir( const wchar_t *__path );
-_WCRTLINK extern struct _wdirent *_wopendir( const wchar_t * );
-_WCRTLINK extern struct _wdirent *_wreaddir( struct _wdirent * );
+_WCRTLINK extern struct _wdirent  *_wopendir( const wchar_t * );
+_WCRTLINK extern struct _wdirent  *_wreaddir( struct _wdirent * );
 _WCRTLINK extern void             _wrewinddir( struct _wdirent * );
 _WCRTLINK extern int              _wrmdir( const wchar_t *__path );
 

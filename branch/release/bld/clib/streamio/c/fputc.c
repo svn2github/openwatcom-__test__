@@ -36,14 +36,13 @@
 #include "fileacc.h"
 #include "rtdata.h"
 #include "seterrno.h"
+#include "orient.h"
 #ifdef __WIDECHAR__
     #include <mbstring.h>
     #include <wchar.h>
 #endif
-
-
-extern void __ioalloc( FILE * );
-extern int  __flush( FILE * );
+#include "flush.h"
+#include "streamio.h"
 
 
 #ifndef __WIDECHAR__
@@ -56,16 +55,7 @@ _WCRTLINK int fputc( int c, FILE *fp )
     _AccessFile( fp );
 
     /*** Deal with stream orientation ***/
-    #ifndef __NETWARE__
-        if( _FP_ORIENTATION(fp) != _BYTE_ORIENTED ) {
-            if( _FP_ORIENTATION(fp) == _NOT_ORIENTED ) {
-                _FP_ORIENTATION(fp) = _BYTE_ORIENTED;
-            } else {
-                _ReleaseFile( fp );
-                return( EOF );              /* error return */
-            }
-        }
-    #endif
+    ORIENT_STREAM(fp,EOF);
 
     if( !(fp->_flag & _WRITE) ) {
         __set_errno( EBADF );
@@ -79,33 +69,33 @@ _WCRTLINK int fputc( int c, FILE *fp )
     flags = _IONBF;
     if( c == '\n' ) {
         flags = _IONBF | _IOLBF;
-        #if !defined(__UNIX__)
-            if( !(fp->_flag & _BINARY) ) {
-                fp->_flag |= _DIRTY;
-                *(char*)fp->_ptr = '\r';   /* '\n' -> '\r''\n' */
-                fp->_ptr++;
-                fp->_cnt++;
-                if( fp->_cnt == fp->_bufsize ) {
-                    if( __flush( fp ) ) {
-                        _ReleaseFile( fp );
-                        return( EOF );
-                    }
+#ifndef __UNIX__
+        if( !(fp->_flag & _BINARY) ) {
+            fp->_flag |= _DIRTY;
+            *(char*)fp->_ptr = '\r';   /* '\n' -> '\r''\n' */
+            fp->_ptr++;
+            fp->_cnt++;
+            if( fp->_cnt == fp->_bufsize ) {
+                if( __flush( fp ) ) {
+                    _ReleaseFile( fp );
+                    return( EOF );
                 }
             }
-        #endif
+        }
+#endif
     }
     fp->_flag |= _DIRTY;
-    *(char*)fp->_ptr = c;
+    *(char *)fp->_ptr = c;
     fp->_ptr++;
     fp->_cnt++;
-    if( (fp->_flag & flags)  ||  (fp->_cnt == fp->_bufsize) ) {
+    if( (fp->_flag & flags) || (fp->_cnt == fp->_bufsize) ) {
         if( __flush( fp ) ) {
             _ReleaseFile( fp );
             return( EOF );
         }
     }
     _ReleaseFile( fp );
-    return( (UCHAR_TYPE) c );
+    return( (UCHAR_TYPE)c );
 }
 
 
@@ -117,7 +107,7 @@ static int __write_wide_char( FILE *fp, wchar_t wc )
 {
     if( fp->_flag & _BINARY ) {
         /*** Dump the wide character ***/
-        return( fwrite( &wc, sizeof(wchar_t), 1, fp ) );
+        return( fwrite( &wc, sizeof( wchar_t ), 1, fp ) );
     } else {
         char            mbc[MB_CUR_MAX];
         int             rc;
@@ -140,16 +130,7 @@ _WCRTLINK wint_t fputwc( wint_t c, FILE *fp )
     _AccessFile( fp );
 
     /*** Deal with stream orientation ***/
-    #ifndef __NETWARE__
-        if( _FP_ORIENTATION(fp) != _WIDE_ORIENTED ) {
-            if( _FP_ORIENTATION(fp) == _NOT_ORIENTED ) {
-                _FP_ORIENTATION(fp) = _WIDE_ORIENTED;
-            } else {
-                _ReleaseFile( fp );
-                return( WEOF );             /* error return */
-            }
-        }
-    #endif
+    ORIENT_STREAM(fp,WEOF);
 
     /*** Write the character ***/
     if( !__write_wide_char( fp, c ) ) {

@@ -31,11 +31,7 @@
 
 #define ENUM_HANDLE     ENUMPTR
 
-#if defined( __386__ )
-    typedef char * SYM_NAMEPTR;
-#else
-    typedef char __FAR * SYM_NAMEPTR;
-#endif
+typedef char    *SYM_NAMEPTR;
 
 #include "cg.h"
 #include "cgaux.h"
@@ -51,15 +47,17 @@ typedef dbg_type        dbug_type;
 typedef signed_64       int64;
 typedef unsigned_64     uint64;
 
+typedef void            *SYM_HANDLE;
+typedef SYM_HANDLE      sym_handle;
+
 #define L       I64LO32
 #define H       I64HI32
 
-/* CONST, VOLATILE can appear in typ->decl_flags and leaf->leaf_flags.
-*  NEAR, FAR, HUGE can appear in typ->decl_flags, leaf->leaf_flags,
+/* CONST, VOLATILE can appear in typ->u.p.decl_flags and leaf->leaf_flags.
+*  NEAR, FAR, HUGE can appear in typ->u.p.decl_flags, leaf->leaf_flags,
 *                               and sym->attrib.
 *  CDECL,PASCAL,FORTRAN,SYSCALL,STDCALL,OPTLINK,FASTCALL,WATCOM
-*                       can appear in typ->decl_flags and sym->attrib.
-*  LVALUE, CONSTANT, VOID will only appear in leaf->leaf_flags.
+*                       can appear in typ->u.p.decl_flags and sym->attrib.
 *
 * freed by CFOLD
 */
@@ -147,9 +145,9 @@ typedef enum string_flags {     // string literal flags
     STRLIT_WIDE         = 0x80, // must not conflict with FLAG_MEM_MODEL
 } string_flags;
 
-typedef unsigned short SYM_HANDLE;
 typedef struct string_literal *STR_HANDLE;
 
+#define SYM_INVALID     ((SYM_HANDLE)~0)    // invalid symbol; never a real sym
 
 struct parm_list {
     struct  parm_list       *next_parm;
@@ -161,7 +159,8 @@ struct array_info {
     int             refno;
     bool            unspecified_dim;    // or flexible array member?
 };
-typedef enum BASED_KIND{
+
+typedef enum BASED_KIND {
     BASED_NONE,
     BASED_VOID,          //__based( void )       segment:>offset base op
     BASED_SELFSEG,       //__based( (__segment) __self ) use seg of self
@@ -171,10 +170,11 @@ typedef enum BASED_KIND{
     BASED_SEGNAME,       //__based( __segname( "name" )   use seg of segname
 } BASED_KIND;
 
+/* matches CompTable[] in ccheck.c */
 /* matches CTypenames[] table in cdump.c */
-/* matches CGDataType[] table in cgen2.c */
+/* matches CGDataType[] table in cgen.c */
 /* matches AddResult[],SubResult[],IntResult[],ShiftResult[],BinResult[],
-           CnvTable[] tables in cmath2.c */
+           CnvTable[] tables in cmath.c */
 /* matches AsmDataType[] table in cpragx86.c */
 /* matches CTypeSizes[] table in ctype.c */
 typedef enum DATA_TYPE {
@@ -191,7 +191,12 @@ typedef enum DATA_TYPE {
     TYPE_ULONG64,
     TYPE_FLOAT,
     TYPE_DOUBLE,
-    TYPE_POINTER,
+    TYPE_LONG_DOUBLE,
+    TYPE_FIMAGINARY,
+    TYPE_DIMAGINARY,
+    TYPE_LDIMAGINARY,
+    TYPE_BOOL,
+    TYPE_POINTER,           /* types up to here are scalars */
     TYPE_ARRAY,
     TYPE_STRUCT,
     TYPE_UNION,
@@ -204,14 +209,9 @@ typedef enum DATA_TYPE {
     TYPE_DOT_DOT_DOT,       /* for the ... in prototypes */
     TYPE_PLAIN_CHAR,        /* char */
     TYPE_WCHAR,             /* L'c' - a wide character constant */
-    TYPE_LONG_DOUBLE,
     TYPE_FCOMPLEX,
     TYPE_DCOMPLEX,
     TYPE_LDCOMPLEX,
-    TYPE_FIMAGINARY,
-    TYPE_DIMAGINARY,
-    TYPE_LDIMAGINARY,
-    TYPE_BOOL,
 
     TYPE_LAST_ENTRY,        /* make sure this is always last */
 } DATA_TYPE;
@@ -231,6 +231,7 @@ enum type_state {
 //
     TF2_DUMMY_TYPEDEF     = 0x04,   // gone now dummy typedef to record modifiers
     TF2_TYPE_PLAIN_CHAR   = 0x10,   // indicates plain char
+    TF2_TYPE_SEGMENT      = 0x20,   // indicates __segment type
 };
 
 typedef struct type_definition {
@@ -251,17 +252,20 @@ typedef struct type_definition {
             short int       segment;    /* TYPE_POINTER */
             SYM_HANDLE      based_sym;  /* var with seg of based ptr*/
             BASED_KIND      based_kind; /* kind of base variable    */
-            type_modifiers  decl_flags; /* only symbols and ptr have attributes */
+            type_modifiers  decl_flags; /* only symbols, fn and ptr have attribs */
         } p;
         union {
             struct tag_entry *tag;      /* STRUCT, UNION, ENUM */
             int             tag_index;  /* for pre-compiled header */
         };
         SYM_HANDLE          typedefn;   /* TYPE_TYPEDEF */
-        union {
-            struct type_definition **parms;/* TYPE_FUNCTION */
-            int         parm_index;     /* for pre-compiled header */
-        };
+        struct {
+            union {
+                struct type_definition **parms;/* TYPE_FUNCTION */
+                int         parm_index; /* for pre-compiled header */
+            };
+            type_modifiers  decl_flags; /* only symbols, fn and ptr have attribs */
+        } fn;
         struct {                        /* TYPE_FIELD or TYPE_UFIELD */
             unsigned char field_width;  /* # of bits */
             unsigned char field_start;  /* # of bits to << by */
@@ -325,25 +329,24 @@ extern  XREFPTR NewXref( XREFPTR );
 
 struct sym_hash_entry {   /* SYMBOL TABLE structure */
     union {
-        struct sym_hash_entry __FAR *next_sym;
+        struct sym_hash_entry   *next_sym;
         int     hash_index;         /* for pre-compiled header */
     };
     union {
         TYPEPTR     sym_type;
         int         sym_type_index; /* for pre-compiled header */
     };
-#if defined(  __386__ )
     SYM_HANDLE      handle;
+#if defined(  __386__ )
     char            level;
 #else
-    unsigned        handle;
     unsigned        level;
 #endif
     char            name[1];
 };
 
-typedef struct sym_hash_entry __FAR *SYM_HASHPTR;
-typedef struct expr_node            *TREEPTR;
+typedef struct sym_hash_entry   *SYM_HASHPTR;
+typedef struct expr_node        *TREEPTR;
 
 typedef struct symtab_entry {           /* SYMBOL TABLE structure */
     char                *name;
@@ -377,6 +380,8 @@ typedef struct symtab_entry {           /* SYMBOL TABLE structure */
         struct textsegment  *seginfo;       /* 26-oct-91 */
         int                 seginfo_index;  /* for pre-compiled header */
     };
+    dw_handle       dwarf_handle;           /* used for browsing info; could be
+                                             * perhaps stored in 'info' union. */
     type_modifiers  attrib;   /* LANG_CDECL, _PASCAL, _FORTRAN */
     sym_flags       flags;
     unsigned char   level;
@@ -519,6 +524,7 @@ typedef enum {
     DECL_STATE_NOTYPE  = 0x01,
     DECL_STATE_ISPARM  = 0x02,
     DECL_STATE_NOSTWRN = 0x04,
+    DECL_STATE_FORLOOP = 0x08,
 } decl_state;
 
 #include <stddef.h>
@@ -604,7 +610,6 @@ struct comp_flags {
     unsigned extended_defines       : 1;
     unsigned errfile_written        : 1;
     unsigned main_has_parms         : 1;    /* on if "main" has parm(s) */
-    unsigned pcode_generated        : 1;    /* on if pcode generated */
 
     unsigned register_conventions   : 1;    /* on for -3r, off for -3s */
     unsigned pgm_used_8087          : 1;    /* on => 8087 ins. generated */
@@ -621,7 +626,6 @@ struct comp_flags {
     unsigned banner_printed         : 1;    /* on => banner printed      */
     unsigned undefine_all_macros    : 1;    /* on => -u all macros       */
     unsigned emit_browser_info      : 1;    /* -db emit broswer info */
-    unsigned cppi_segment_used      : 1;    /* C++ initializer segment */
     unsigned rescan_buffer_done     : 1;    /* ## re-scan buffer used up */
 
     unsigned cpp_output             : 1;    /* WCC doing CPP output      */
@@ -651,11 +655,7 @@ struct comp_flags {
     unsigned no_debug_type_names    : 1;    /* -d2~ switch specified  */
     unsigned asciiout_used          : 1;    /* (asciiout specified  */
 
-    unsigned noxedit_used           : 1;    /* (noxedit specified  */
-    unsigned in_pcode_func          : 1;    /* generating Pcode */
     unsigned addr_of_auto_taken     : 1;    /*=>can't opt tail recursion*/
-    unsigned pcode_was_generated    : 1;    /* some funcs were pcoded */
-    unsigned continued_string       : 1;    /* continuing big string */
     unsigned sg_switch_used         : 1;    /* /sg switch used */
     unsigned bm_switch_used         : 1;    /* /bm switch used */
     unsigned bd_switch_used         : 1;    /* /bd switch used */
@@ -681,9 +681,8 @@ struct comp_flags {
     unsigned use_precompiled_header : 1;    /* use precompiled header */
     unsigned doing_macro_expansion  : 1;    /* doing macro expansion */
     unsigned no_pch_warnings        : 1;    /* disable PCH warnings */
-    unsigned align_structs_on_qwords: 1;    /* for ALPHA */
-    unsigned axp_align_emu          : 1;    /* for ALPHA */
-    unsigned no_check_inits         : 1;    /* ease init  type checking*/
+    unsigned align_structs_on_qwords: 1;    /* for Alpha */
+    unsigned no_check_inits         : 1;    /* ease init  type checking */
     unsigned no_check_qualifiers    : 1;    /* ease qualifier mismatch */
     unsigned curdir_inc             : 1;    /* check current dir for include files */
 
@@ -699,7 +698,7 @@ struct comp_flags {
 };
 
 struct global_comp_flags {  // things that live across compiles
-    unsigned cc_reuse               : 1;    /* in a resuable version batch, dll*/
+    unsigned cc_reuse               : 1;    /* in a reusable version batch, dll*/
     unsigned cc_first_use           : 1;    /* first time thru           */
 };
 
@@ -723,15 +722,12 @@ enum {
     TS_LINUX
 };
 
-/*
-   return values from CompatibleType
-*/
 /* values for ESCChar routine */
 #define RTN_SAVE_NEXT_CHAR      0
 #define RTN_NEXT_BUF_CHAR       1
 
 typedef struct call_list {
-    struct call_list   *next;
+    struct call_list    *next;
     TREEPTR             callnode;
     unsigned            source_fno;     // OPR_STMT
     int                 srclinenum;     // OPR_STMT, and OPR_NOP for callnode

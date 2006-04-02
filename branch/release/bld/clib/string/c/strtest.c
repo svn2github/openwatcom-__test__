@@ -34,7 +34,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <malloc.h>     // for malloc RSIZE_MAX buffer
 
 #ifdef __SW_BW
     #include <wdefwin.h>
@@ -63,7 +65,8 @@ int  Test_vsscanf( char *buf, char *format, ... );
 void Test_vsprintf( char *buf, char *format, ... );
 int  Test_vsnprintf( char *buf, char *format, ... );
 
-#if !defined(__AXP__)
+
+#ifdef __X86__
 void TestCompareF( void );
 void TestCaseF( void );
 void TestMoveF( void );
@@ -75,62 +78,6 @@ void TestTokenF( void );
 
 char ProgramName[128];                          /* executable filename */
 int NumErrors = 0;                              /* number of errors */
-
-
-
-/****
-***** Program entry point.
-****/
-
-int main( int argc, char *argv[] )
-{
-    #ifdef __SW_BW
-        FILE *my_stdout;
-        my_stdout = freopen( "tmp.log", "a", stdout );
-        if( my_stdout == NULL ) {
-            fprintf( stderr, "Unable to redirect stdout\n" );
-            exit( -1 );
-        }
-    #endif
-    /*** Initialize ***/
-    strcpy( ProgramName, strlwr(argv[0]) );     /* store filename */
-
-    /*** Test various functions ***/
-    TestCompare();                              /* compare stuff */
-    TestMove();                                 /* moving data about */
-    TestCase();                                 /* upper/lowercase stuff */
-    TestSearch();                               /* searching stuff */
-    TestSubstring();                            /* substring stuff */
-    TestToken();                                /* tokenizing stuff */
-    TestLocale();                               /* locale stuff */
-    TestError();                                /* error string stuff */
-    TestFormatted();                            /* formatted I/O stuff */
-    TestBounded();                              /* bounded string stuff */
-    #if !defined(__AXP__)
-        TestCompareF();
-        TestMoveF();
-        TestCaseF();
-        TestSearchF();
-        TestSubstringF();
-        TestTokenF();
-    #endif
-
-    /*** Print a pass/fail message and quit ***/
-    if( NumErrors!=0 ) {
-        printf( "%s: FAILURE (%d errors).\n", ProgramName, NumErrors );
-        return( EXIT_FAILURE );
-    }
-    printf( "Tests completed (%s).\n", strlwr( argv[0] ) );
-    #ifdef __SW_BW
-    {
-        fprintf( stderr, "Tests completed (%s).\n", strlwr( argv[0] ) );
-        fclose( my_stdout );
-        _dwShutDown();
-    }
-    #endif
-    return( 0 );
-}
-
 
 
 /****
@@ -179,7 +126,7 @@ void TestCompare( void )
 }
 
 
-#if !defined(__AXP__)
+#ifdef __X86__
 void TestCompareF( void )
 {
     char            bufA[80] = "FoO baR gOoBeR bLaH";
@@ -314,7 +261,7 @@ void TestBounded( void )
 }
 
 
-#if !defined(__AXP__)
+#ifdef __X86__
 void TestMoveF( void )
 {
     char            bufA[80] = "FoO baR gOoBeR bLaH";
@@ -400,7 +347,7 @@ void TestCase( void )
 }
 
 
-#if !defined(__AXP__)
+#ifdef __X86__
 void TestCaseF( void )
 {
     char            bufA[80] = "FoO baR gOoBeR bLaH";
@@ -461,7 +408,7 @@ void TestSearch( void )
 }
 
 
-#if !defined(__AXP__)
+#ifdef __X86__
 void TestSearchF( void )
 {
     char            buf[] = "The quick brown fox jumped over the lazy dogs.";
@@ -531,7 +478,7 @@ void TestSubstring( void )
 }
 
 
-#if !defined(__AXP__)
+#ifdef __X86__
 void TestSubstringF( void )
 {
     char            buf[] = "The quick brown fox jumped over the lazy dogs.";
@@ -598,7 +545,7 @@ void TestToken( void )
 }
 
 
-#if !defined(__AXP__)
+#ifdef __X86__
 void TestTokenF( void )
 {
     char            buf[] = "Find!all;the.tokens,";
@@ -756,4 +703,56 @@ void Test_vsprintf( char *buf, char *format, ... )
     status = vsprintf( buf, format, args );     /* print some stuff */
     VERIFY( status > 0 );
     va_end( args );
+}
+
+
+/****
+***** Program entry point.
+****/
+
+int main( int argc, char *argv[] )
+{
+#ifdef __SW_BW
+    FILE *my_stdout;
+    my_stdout = freopen( "tmp.log", "a", stdout );
+    if( my_stdout == NULL ) {
+        fprintf( stderr, "Unable to redirect stdout\n" );
+        exit( -1 );
+    }
+#endif
+    /*** Initialize ***/
+    strcpy( ProgramName, strlwr( argv[0] ) );   /* store filename */
+
+    /*** Test various functions ***/
+    TestCompare();                              /* compare stuff */
+    TestMove();                                 /* moving data about */
+    TestCase();                                 /* upper/lowercase stuff */
+    TestSearch();                               /* searching stuff */
+    TestSubstring();                            /* substring stuff */
+    TestToken();                                /* tokenizing stuff */
+    TestLocale();                               /* locale stuff */
+    TestError();                                /* error string stuff */
+    TestFormatted();                            /* formatted I/O stuff */
+    TestBounded();                              /* bounded string stuff */
+#ifdef __X86__
+    TestCompareF();
+    TestMoveF();
+    TestCaseF();
+    TestSearchF();
+    TestSubstringF();
+    TestTokenF();
+#endif
+
+    /*** Print a pass/fail message and quit ***/
+    if( NumErrors != 0 ) {
+        printf( "%s: FAILURE (%d errors).\n", ProgramName, NumErrors );
+        return( EXIT_FAILURE );
+    }
+    printf( "Tests completed (%s).\n", strlwr( argv[0] ) );
+#ifdef __SW_BW
+    fprintf( stderr, "Tests completed (%s).\n", strlwr( argv[0] ) );
+    fclose( my_stdout );
+    _dwShutDown();
+#endif
+    return( 0 );
 }

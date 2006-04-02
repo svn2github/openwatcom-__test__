@@ -75,19 +75,68 @@ using std::log2;
 
 :include pshpackl.sp
 
+_WCRTLINK extern const double   *__get_HugeValue_ptr( void );
 #if defined(__FUNCTION_DATA_ACCESS)
- #define _HugeValue (*__get_HugeValue_ptr())
+ #define _HugeValue             (*__get_HugeValue_ptr())
 #elif defined(__SW_BR) || defined(_RTDLL)
-  #define _HugeValue _HugeValue_br
+  #define _HugeValue            _HugeValue_br
 #endif
-_WCRTLINK extern const double _WCDATA _HugeValue;
-#define HUGE_VAL _HugeValue
+_WCRTLINKD extern const double _WCDATA   _HugeValue;
+#define HUGE_VAL                _HugeValue
+
+:: Always enable C99 stuff
+::#if __STDC_VERSION__ >= 199901L
+
+/* Internal library helper routines */
+_WMRTLINK extern int _FSClass( float __x );
+_WMRTLINK extern int _FDClass( double __x );
+_WMRTLINK extern int _FLClass( long double __x );
+_WMRTLINK extern int _FSSign( float __x );
+_WMRTLINK extern int _FDSign( double __x );
+_WMRTLINK extern int _FLSign( long double __x );
+
+/* Floating-point classification macros */
+:: NB: The following values *must* match ld_classification in xfloat.h!
+#define FP_ZERO         0
+#define FP_SUBNORMAL    1
+#define FP_NORMAL       2
+#define FP_NAN          3
+#define FP_INFINITE     4
+
+#define fpclassify(x)                               \
+    ((sizeof(x) == sizeof(float)) ? _FSClass(x) :   \
+    (sizeof(x) == sizeof(double)) ? _FDClass(x) :   \
+                                    _FLClass(x))
+
+#define isfinite(x)     (fpclassify(x) <= FP_NORMAL)
+#define isinf(x)        (fpclassify(x) == FP_INFINITE)
+#define isnan(x)        (fpclassify(x) == FP_NAN)
+#define isnormal(x)     (fpclassify(x) == FP_NORMAL)
+
+#define signbit(x)                                  \
+    ((sizeof(x) == sizeof(float)) ? _FSSign(x) :    \
+    (sizeof(x) == sizeof(double)) ? _FDSign(x) :    \
+                                    _FLSign(x))
+
+:: The following externs are also defined in float.h
+/* Floating-point Infinity and NaN constants */
+_WMRTLINKD extern const float       __f_infinity;
+_WMRTLINKD extern const float       __f_posqnan;
+
+#define INFINITY   __f_infinity
+#define NAN        __f_posqnan
+
+::#endif
 
 :segment CNAME
 namespace std {
 :endsegment
 _WMRTLINK extern double ceil( double __x );
 _WMRTLINK extern double floor( double __x );
+#if defined(_M_IX86) && 0
+#pragma aux ceil  parm nomemory modify nomemory;
+#pragma aux floor parm nomemory modify nomemory;
+#endif
 _WMRTLINK extern double frexp( double __value, int *__exp );
 _WMRTLINK extern double ldexp( double __x, int __exp );
 _WMRTLINK extern double modf( double __value, double *__iptr );

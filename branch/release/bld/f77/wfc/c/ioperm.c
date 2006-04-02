@@ -36,17 +36,14 @@
 
 #include "ftnstd.h"
 #include "errcod.h"
-#include "iodefn.h"
-#include "prdefn.h"
+#include "iodefs.h"
 #include "global.h"
+#include "ferror.h"
+#include "insert.h"
 
 #define NO      0
 #define YES     1
 
-extern  void            Error(int code,...);
-extern  void            Extension(int code,...);
-extern  void            OpndErr(int errcod);
-extern  void            StmtPtrErr(int errcod,void *);
 extern  uint            IOIndex();
 
 extern  char            *IOKeywords[];
@@ -90,15 +87,15 @@ static  const byte __FAR        PermTable[] = {
 };
 
 
-bool    Already( int kw ) {
-//=========================
+bool    Already( IOKW kw ) {
+//==========================
 
     return( ( ( IOData >> ( kw - 1 ) ) & 1 ) != 0 );
 }
 
 
-static  byte    ExtnTest( int kw ) {
-//==================================
+static  byte    ExtnTest( IOKW kw ) {
+//===================================
 
     return( PermTable[ TABLE_ENTRY * ( kw - 1 ) + 8 ] );
 }
@@ -111,8 +108,19 @@ byte    PermTest( int kw ) {
 }
 
 
-bool    Permission( int kw ) {
-//============================
+void    KWRememb( IOKW kw ) {
+//===========================
+
+    unsigned_32 i;
+
+    i = 1;
+    i = i << ( kw - 1 );
+    IOData |= i;
+}
+
+
+bool    Permission( IOKW kw ) {
+//=============================
 
     bool        perm;
 
@@ -126,29 +134,18 @@ bool    Permission( int kw ) {
         if( perm ) {
             KWRememb( kw );
             if( ExtnTest( kw ) == YES ) {
-                Extension( IL_SPECIFIER_NOT_STANDARD, IOKeywords[ kw - 1 ] );
+                Extension( IL_SPECIFIER_NOT_STANDARD, IOKeywords[ kw ] );
             }
         } else {
-            StmtPtrErr( IL_BAD_LIST, IOKeywords[ kw - 1 ] );
+            StmtPtrErr( IL_BAD_LIST, IOKeywords[ kw ] );
         }
     }
     return( perm );
 }
 
 
-void    KWRememb( int kw ) {
-//==========================
-
-    unsigned_32 i;
-
-    i = 1;
-    i = i << ( kw - 1 );
-    IOData |= i;
-}
-
-
-void    CheckList() {
-//===================
+void    CheckList( void ) {
+//=========================
 
     bool        have_unit;
 

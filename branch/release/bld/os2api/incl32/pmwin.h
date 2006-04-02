@@ -15,6 +15,7 @@
     #define INCL_WINCURSORS
     #define INCL_WINDDE
     #define INCL_WINDIALOGS
+    #define INCL_WINDESKTOP
     #define INCL_WINENTRYFIELDS
     #define INCL_WINERRORS
     #define INCL_WINFRAMECTLS
@@ -32,6 +33,7 @@
     #define INCL_WINPROGRAMLIST
     #define INCL_WINRECTANGLES
     #define INCL_WINSCROLLBARS
+    #define INCL_WINSEI
     #define INCL_WINSHELLDATA
     #define INCL_WINSTATICS
     #define INCL_WINSTDDLGS
@@ -39,7 +41,9 @@
     #define INCL_WINSYS
     #define INCL_WINTIMER
     #define INCL_WINTRACKRECT
+    #define INCL_WINTYPES
     #define INCL_WINWINDOWMGR
+    #define INCL_WINTHUNKAPI
 #else
   #ifdef RC_INVOKED
     #define INCL_WINACCELERATORS
@@ -369,7 +373,7 @@ typedef struct _FONTMETRICS {
     PANOSE panose;
 } FONTMETRICS, *PFONTMETRICS;
 
-#if defined(INCL_WINATOM)
+#ifdef INCL_WINATOM
 
 #define MAKEINTATOM(a)  ((PCH)MAKEULONG(a,0xffff))
 
@@ -388,7 +392,7 @@ HATOMTBL APIENTRY WinQuerySystemAtomTable(VOID);
 
 #endif
 
-#if defined(INCL_WINBUTTONS)
+#ifdef INCL_WINBUTTONS
 
 #define BS_PUSHBUTTON          0
 #define BS_CHECKBOX            1
@@ -450,7 +454,7 @@ typedef struct _USERBUTTON {
 
 #endif
 
-#if defined(INCL_WINCLIPBOARD)
+#ifdef INCL_WINCLIPBOARD
 
 #define CF_TEXT         1
 #define CF_BITMAP       2
@@ -505,7 +509,7 @@ BOOL   APIENTRY WinShowCursor(HWND,BOOL);
 
 #endif
 
-#if defined(INCL_WINCURSORS)
+#ifdef INCL_WINCURSORS
 
 typedef struct _CURSORINFO {
     HWND  hwnd;
@@ -629,7 +633,6 @@ BOOL    APIENTRY WinInvalidateRect(HWND,PRECTL,BOOL);
 BOOL    APIENTRY WinInvalidateRegion(HWND,HRGN,BOOL);
 BOOL    APIENTRY WinInvertRect(HPS,PRECTL);
 BOOL    APIENTRY WinIsChild(HWND,HWND);
-BOOL    APIENTRY WinIsThreadActive(HAB);
 BOOL    APIENTRY WinIsWindow(HAB,HWND);
 BOOL    APIENTRY WinIsWindowEnabled(HWND);
 BOOL    APIENTRY WinIsWindowShowing(HWND);
@@ -651,7 +654,6 @@ LONG    APIENTRY WinQueryWindowTextLength(HWND);
 BOOL    APIENTRY WinRegisterClass(HAB,PCSZ,PFNWP,ULONG,ULONG);
 BOOL    APIENTRY WinReleasePS(HPS);
 LONG    APIENTRY WinScrollWindow(HWND,LONG,LONG,PRECTL,PRECTL,HRGN,PRECTL,ULONG);
-MRESULT APIENTRY WinSendMsg(HWND,ULONG,MPARAM,MPARAM);
 BOOL    APIENTRY WinSetActiveWindow(HWND,HWND);
 BOOL    APIENTRY WinSetMultWindowPos(HAB,PSWP,ULONG);
 BOOL    APIENTRY WinSetOwner(HWND,HWND);
@@ -666,7 +668,7 @@ HWND    APIENTRY WinWindowFromID(HWND,ULONG);
 
 #endif
 
-#if defined(INCL_WINWINDOWMGR)
+#ifdef INCL_WINWINDOWMGR
 
 #define QCRGN_ERROR          0
 #define QCRGN_OK             1
@@ -732,6 +734,7 @@ BOOL    APIENTRY WinEndEnumWindows(HENUM);
 LONG    APIENTRY WinExcludeUpdateRegion(HPS,HWND);
 HWND    APIENTRY WinGetNextWindow(HENUM);
 HPS     APIENTRY WinGetScreenPS(HWND);
+BOOL    APIENTRY WinIsThreadActive(HAB);
 BOOL    APIENTRY WinLockVisRegions(HWND,BOOL);
 BOOL    APIENTRY WinLockWindowUpdate(HWND,HWND);
 BOOL    APIENTRY WinMapWindowPoints(HWND,HWND,PPOINTL,LONG);
@@ -829,6 +832,22 @@ HWND    APIENTRY WinWindowFromPoint(HWND,PPOINTL,BOOL);
 #define WM_HELPTOP              0x0FFF
 #define WM_USER                 0x1000
 
+#define RUM_IN    1
+#define RUM_OUT   2
+#define RUM_INOUT 3
+
+#define SMD_DELAYED      0x0001
+#define SMD_IMMEDIATE    0x0002
+#define SSM_SYNCHRONOUS  0x0001
+#define SSM_ASYNCHRONOUS 0x0002
+#define SSM_MIXED        0x0003
+
+#ifdef INCL_WINTYPES
+  #include <pmtypes.h>
+#endif
+
+#define COMMANDMSG(pmsg) ((PCMDMSG)((PBYTE)pmsg + sizeof(MPARAM)))
+
 typedef LHANDLE HMQ, *PHMQ;
 
 typedef struct _QMSG {
@@ -841,16 +860,38 @@ typedef struct _QMSG {
     ULONG  reserved;
 } QMSG, *PQMSG;
 
+typedef struct _COMMANDMSG {
+    USHORT cmd;
+    USHORT unused;
+    USHORT source;
+    USHORT fMouse;
+} CMDMSG, *PCMDMSG;
+
+typedef struct _MQINFO {
+    ULONG cb;
+    PID   pid;
+    TID   tid;
+    ULONG cmsgs;
+    PVOID pReserved;
+} MQINFO, *PMQINFO;
+
+BOOL    APIENTRY WinCancelShutdown(HMQ,BOOL);
 HMQ     APIENTRY WinCreateMsgQueue(HAB,LONG);
 BOOL    APIENTRY WinDestroyMsgQueue(HMQ);
 MRESULT APIENTRY WinDispatchMsg(HAB,PQMSG);
 BOOL    APIENTRY WinGetMsg(HAB,PQMSG,HWND,ULONG,ULONG);
 BOOL    APIENTRY WinPeekMsg(HAB,PQMSG,HWND,ULONG,ULONG,ULONG);
 BOOL    APIENTRY WinPostMsg(HWND,ULONG,MPARAM,MPARAM);
+BOOL    APIENTRY WinQueryQueueInfo(HMQ,PMQINFO,ULONG);
+BOOL    APIENTRY WinRegisterUserDatatype(HAB,LONG,LONG,PLONG);
+BOOL    APIENTRY WinRegisterUserMsg(HAB,ULONG,LONG,LONG,LONG,LONG,LONG);
+MRESULT APIENTRY WinSendMsg(HWND,ULONG,MPARAM,MPARAM);
+BOOL    APIENTRY WinSetMsgMode(HAB,PCSZ,LONG);
+BOOL    APIENTRY WinSetSynchroMode(HAB,LONG);
 
 #endif
 
-#if defined(INCL_WINMESSAGEMGR)
+#ifdef INCL_WINMESSAGEMGR
 
 #define CVR_ALIGNLEFT   0x0001
 #define CVR_ALIGNBOTTOM 0x0002
@@ -890,6 +931,12 @@ BOOL    APIENTRY WinPostMsg(HWND,ULONG,MPARAM,MPARAM);
 #define QS_SENDMSG     0x0400
 #define QS_MSGINPUT    0x0800
 
+#define SMIM_ALL         0x0EFF
+#define SMI_NOINTEREST   0x0001
+#define SMI_INTEREST     0x0002
+#define SMI_RESET        0x0004
+#define SMI_AUTODISPATCH 0x0008
+
 typedef struct _WNDPARAMS {
     ULONG fsStatus;
     ULONG cchText;
@@ -901,7 +948,6 @@ typedef struct _WNDPARAMS {
 } WNDPARAMS, *PWNDPARAMS;
 
 BOOL    APIENTRY WinBroadcastMsg(HWND,ULONG,MPARAM,MPARAM,ULONG);
-BOOL    APIENTRY WinCancelShutdown(HMQ,BOOL);
 BOOL    APIENTRY WinInSendMsg(HAB);
 APIRET  APIENTRY WinRequestMutexSem(HMTX,ULONG);
 APIRET  APIENTRY WinWaitEventSem(HEV,ULONG);
@@ -909,12 +955,14 @@ BOOL    APIENTRY WinWaitMsg(HAB,ULONG,ULONG);
 APIRET  APIENTRY WinWaitMuxWaitSem(HMUX,ULONG,PULONG);
 BOOL    APIENTRY WinPostQueueMsg(HMQ,ULONG,MPARAM,MPARAM);
 BOOL    APIENTRY WinQueryMsgPos(HAB,PPOINTL);
-BOOL    APIENTRY WinQueryMsgTime(HAB);
+ULONG   APIENTRY WinQueryMsgTime(HAB);
 ULONG   APIENTRY WinQueryQueueStatus(HWND);
+BOOL    APIENTRY WinSetClassMsgInterest(HAB,PCSZ,ULONG,LONG);
+BOOL    APIENTRY WinSetMsgInterest(HWND,ULONG,LONG);
 
 #endif
 
-#if defined(INCL_WINACCELERATORS)
+#ifdef INCL_WINACCELERATORS
 
 #define AF_CHAR       0x0001
 #define AF_VIRTUALKEY 0x0002
@@ -942,7 +990,7 @@ ULONG  APIENTRY WinCopyAccelTable(HACCEL,PACCELTABLE,ULONG);
 
 #endif
 
-#if defined(INCL_WINDDE)
+#ifdef INCL_WINDDE
 
 #define DDE_FACK         0x0001
 #define DDE_FBUSY        0x0002
@@ -1107,7 +1155,7 @@ BOOL    APIENTRY WinSetDlgItemText(HWND,ULONG,PCSZ);
 
 #endif
 
-#if defined(INCL_WINDIALOGS)
+#ifdef INCL_WINDIALOGS
 
 #pragma pack(2)
 
@@ -1151,7 +1199,7 @@ LONG    APIENTRY WinSubstituteStrings(HWND,PCSZ,LONG,PCSZ);
 
 #endif
 
-#if defined(INCL_WINENTRYFIELDS)
+#ifdef INCL_WINENTRYFIELDS
 
 #define ES_LEFT       0x00000000
 #define ES_CENTER     0x00000001
@@ -1231,7 +1279,7 @@ typedef struct _ENTRYFDATA {
 
 #endif
 
-#if defined(INCL_WINERRORS)
+#ifdef INCL_WINERRORS
 
 #include <pmerr.h>
 
@@ -1249,7 +1297,14 @@ ERRORID  APIENTRY WinGetLastError(HAB);
 
 #endif
 
-#if defined(INCL_WINFRAMECTLS)
+#ifdef INCL_WINSEI
+  #ifndef SEI_PMWINP
+    #define SEI_PMWIN
+    #include <pmsei.h>
+  #endif
+#endif
+
+#ifdef INCL_WINFRAMECTLS
 
 #define TBM_SETHILITE   0x01e3
 #define TBM_QUERYHILITE 0x01e4
@@ -1414,13 +1469,11 @@ BOOL   APIENTRY WinSaveWindowPos(HSAVEWP,PSWP,ULONG);
 
 #endif
 
-#if defined(INCL_WINHELP)
-
-#include <pmhelp.h>
-
+#ifdef INCL_WINHELP
+  #include <pmhelp.h>
 #endif
 
-#if defined(INCL_WINHOOKS)
+#ifdef INCL_WINHOOKS
 
 #define HK_SENDMSG          0
 #define HK_INPUT            1
@@ -1491,7 +1544,7 @@ BOOL   APIENTRY WinUnlockSystem(HAB,PSZ);
 ULONG APIENTRY WinQueryVisibleRegion(HWND,HRGN);
 BOOL  APIENTRY WinSetVisibleRegionNotify(HWND,BOOL);
 
-#if defined(INCL_WININPUT)
+#ifdef INCL_WININPUT
 
 #define VK_BUTTON1   0x01
 #define VK_BUTTON2   0x02
@@ -1680,7 +1733,7 @@ BOOL   APIENTRY WinSetKeyboardStateTable(HWND,PBYTE,BOOL);
 
 #endif
 
-#if defined(INCL_WINLISTBOXES)
+#ifdef INCL_WINLISTBOXES
 
 #define LN_SELECT    1
 #define LN_SETFOCUS  2
@@ -1750,7 +1803,7 @@ typedef struct _LBOXINFO {
 
 #endif
 
-#if defined(INCL_WINMLE)
+#ifdef INCL_WINMLE
 
 #define MLS_WORDWRAP     0x00000001
 #define MLS_BORDER       0x00000002
@@ -1823,10 +1876,10 @@ typedef struct _LBOXINFO {
 #define MLN_UNDOOVERFLOW          0x000d
 #define MLN_CLPBDFAIL             0x000f
 
-#define MLFFMTRECT_LIMITHORZ    0x1L
-#define MLFFMTRECT_LIMITVERT    0x2L
-#define MLFFMTRECT_MATCHWINDOW  0x4L
-#define MLFFMTRECT_FORMATRECT   0x7L
+#define MLFFMTRECT_LIMITHORZ    0x1
+#define MLFFMTRECT_LIMITVERT    0x2
+#define MLFFMTRECT_MATCHWINDOW  0x4
+#define MLFFMTRECT_FORMATRECT   0x7
 
 #define MLFIE_CFTEXT            0x0
 #define MLFIE_NOTRANS           0x1
@@ -1841,6 +1894,25 @@ typedef struct _LBOXINFO {
 #define MLFQS_MAXSEL    2
 #define MLFQS_ANCHORSEL 3
 #define MLFQS_CURSORSEL 4
+
+#define MLFEFR_RESIZE    0x01
+#define MLFEFR_TABSTOP   0x02
+#define MLFEFR_FONT      0x04
+#define MLFEFR_TEXT      0x08
+#define MLFEFR_WORDWRAP  0x10
+#define MLFETL_TEXTBYTES 0x20
+
+#define MLFMARGIN_LEFT   0x1
+#define MLFMARGIN_BOTTOM 0x2
+#define MLFMARGIN_RIGHT  0x3
+#define MLFMARGIN_TOP    0x4
+
+#define MLFCLPBD_TOOMUCHTEXT    0x1
+#define MLFCLPBD_ERROR          0x2
+
+#define MLFSEARCH_CASESENSITIVE 0x1
+#define MLFSEARCH_SELECTMATCH   0x2
+#define MLFSEARCH_CHANGEALL     0x4
 
 typedef LONG  IPT;
 typedef PLONG PIPT;
@@ -1890,7 +1962,7 @@ typedef struct _SEARCH {
 
 #endif
 
-#if defined(INCL_WINMENUS)
+#ifdef INCL_WINMENUS
 
 #define MIT_END             (-1)
 #define MIT_NONE            (-1)
@@ -2011,7 +2083,7 @@ BOOL   APIENTRY WinPopupMenu(HWND,HWND,HWND,LONG,LONG,LONG,ULONG);
 
 #endif
 
-#if defined(INCL_WINPOINTERS)
+#ifdef INCL_WINPOINTERS
 
 #define SPTR_ARROW            1
 #define SPTR_TEXT             2
@@ -2143,7 +2215,7 @@ typedef struct _PRFPROFILE {
 
 #endif
 
-#if defined(INCL_WINPROGRAMLIST)
+#ifdef INCL_WINPROGRAMLIST
 
 #define PROG_DEFAULT              (PROGCATEGORY)0
 #define PROG_FULLSCREEN           (PROGCATEGORY)1
@@ -2175,6 +2247,9 @@ typedef struct _PRFPROFILE {
 #define PROG_DOS_MODE             (PROGCATEGORY)23
 #define PROG_RESERVED             (PROGCATEGORY)255
 
+#define MAXPATHL 128
+#define SGH_ROOT (HPROGRAM)-1
+
 #define SHE_VISIBLE     0
 #define SHE_INVISIBLE   1
 #define SHE_RESERVED    255
@@ -2189,6 +2264,10 @@ typedef struct _PRFPROFILE {
 #define SAF_BACKGROUND       0x0010
 
 typedef ULONG PROGCATEGORY, *PPROGCATEGORY;
+
+typedef struct _HPROGARRAY {
+    HPROGRAM ahprog[1];
+} HPROGARRAY, *PHPROGARRAY;
 
 typedef struct _PROGTYPE {
     PROGCATEGORY progc;
@@ -2207,30 +2286,45 @@ typedef struct _PROGDETAILS {
     SWP       swpInitial;
 } PROGDETAILS, *PPROGDETAILS;
 
-HAPP APIENTRY WinStartApp(HWND,PPROGDETAILS,PCSZ,PVOID,ULONG);
-BOOL APIENTRY WinTerminateApp(HAPP);
+typedef struct _PROGTITLE {
+    HPROGRAM hprog;
+    PROGTYPE progt;
+    PSZ      pszTitle;
+} PROGTITLE, *PPROGTITLE;
+
+HPROGRAM     APIENTRY PrfAddProgram(HINI,PPROGDETAILS,HPROGRAM);
+BOOL         APIENTRY PrfChangeProgram(HINI,HPROGRAM,PPROGDETAILS);
+HPROGRAM     APIENTRY PrfCreateGroup(HINI,PCSZ,UCHAR);
+BOOL         APIENTRY PrfDestroyGroup(HINI,HPROGRAM);
+ULONG        APIENTRY PrfQueryDefinition(HINI,HPROGRAM,PPROGDETAILS,ULONG);
+PROGCATEGORY APIENTRY PrfQueryProgramCategory(HINI,PCSZ);
+ULONG        APIENTRY PrfQueryProgramHandle(HINI,PCSZ,PHPROGARRAY,ULONG,PULONG);
+ULONG        APIENTRY PrfQueryProgramTitles(HINI,HPROGRAM,PPROGTITLE,ULONG,PULONG);
+BOOL         APIENTRY PrfRemoveProgram(HINI,HPROGRAM);
+HAPP         APIENTRY WinStartApp(HWND,PPROGDETAILS,PCSZ,PVOID,ULONG);
+BOOL         APIENTRY WinTerminateApp(HAPP);
 
 #endif
 
-#if defined(INCL_WINRECTANGLES)
+#ifdef INCL_WINRECTANGLES
 
-BOOL    APIENTRY WinCopyRect(HAB hab, PRECTL prclDst, PRECTL prclSrc);
-BOOL    APIENTRY WinEqualRect(HAB hab, PRECTL prcl1, PRECTL prcl2);
-BOOL    APIENTRY WinInflateRect(HAB hab, PRECTL prcl, LONG cx, LONG cy);
-BOOL    APIENTRY WinIntersectRect(HAB hab, PRECTL pcrlDst, PRECTL pcrlSrc1, PRECTL pcrlSrc2);
-BOOL    APIENTRY WinIsRectEmpty(HAB hab, PRECTL prclprc);
-BOOL    APIENTRY WinMakePoints(HAB hab, PPOINTL pwpt, ULONG cwpt);
-BOOL    APIENTRY WinMakeRect(HAB hab, PRECTL pwrc);
-BOOL    APIENTRY WinOffsetRect(HAB hab, PRECTL prcl, LONG cx, LONG cy);
-BOOL    APIENTRY WinPtInRect(HAB hab, PRECTL prcl, PPOINTL pptl);
-BOOL    APIENTRY WinUnionRect(HAB hab, PRECTL prclDst, PRECTL prclSrc1, PRECTL prclSrc2);
-BOOL    APIENTRY WinSetRect(HAB hab, PRECTL prcl, LONG xLeft, LONG yBottom, LONG xRight, LONG yTop);
-BOOL    APIENTRY WinSetRectEmpty(HAB hab, PRECTL prcl);
-BOOL    APIENTRY WinSubtractRect(HAB hab, PRECTL prclDst, PRECTL prclSrc1, PRECTL prclSrc2);
+BOOL APIENTRY WinCopyRect(HAB hab, PRECTL prclDst, PRECTL prclSrc);
+BOOL APIENTRY WinEqualRect(HAB hab, PRECTL prcl1, PRECTL prcl2);
+BOOL APIENTRY WinInflateRect(HAB hab, PRECTL prcl, LONG cx, LONG cy);
+BOOL APIENTRY WinIntersectRect(HAB hab, PRECTL pcrlDst, PRECTL pcrlSrc1, PRECTL pcrlSrc2);
+BOOL APIENTRY WinIsRectEmpty(HAB hab, PRECTL prclprc);
+BOOL APIENTRY WinMakePoints(HAB hab, PPOINTL pwpt, ULONG cwpt);
+BOOL APIENTRY WinMakeRect(HAB hab, PRECTL pwrc);
+BOOL APIENTRY WinOffsetRect(HAB hab, PRECTL prcl, LONG cx, LONG cy);
+BOOL APIENTRY WinPtInRect(HAB hab, PRECTL prcl, PPOINTL pptl);
+BOOL APIENTRY WinUnionRect(HAB hab, PRECTL prclDst, PRECTL prclSrc1, PRECTL prclSrc2);
+BOOL APIENTRY WinSetRect(HAB hab, PRECTL prcl, LONG xLeft, LONG yBottom, LONG xRight, LONG yTop);
+BOOL APIENTRY WinSetRectEmpty(HAB hab, PRECTL prcl);
+BOOL APIENTRY WinSubtractRect(HAB hab, PRECTL prclDst, PRECTL prclSrc1, PRECTL prclSrc2);
 
 #endif
 
-#if defined(INCL_WINSCROLLBARS)
+#ifdef INCL_WINSCROLLBARS
 
 #define SBS_HORZ      0x0000
 #define SBS_VERT      0x0001
@@ -2272,27 +2366,24 @@ typedef struct _SBCDATA {
 
 #endif
 
-#if defined(INCL_WINSHELLDATA)
+#ifdef INCL_WINSHELLDATA
 
 #define PL_ALTERED 0x008E
 
-BOOL   APIENTRY PrfCloseProfile(HINI hini);
-HINI   APIENTRY PrfOpenProfile(HAB hab, PCSZ pszFileName);
-BOOL   APIENTRY PrfQueryProfile(HAB hab, PPRFPROFILE pprfproProfile);
-BOOL   APIENTRY PrfQueryProfileData(HINI hini, PCSZ pszApp, PCSZ pszKey,
-                   PVOID pBuffer, PULONG pulBufferMax);
-LONG   APIENTRY PrfQueryProfileInt(HINI hini, PCSZ pszApp, PCSZ pszKey, LONG lDefault);
-BOOL   APIENTRY PrfQueryProfileSize(HINI hini, PCSZ pszApp, PCSZ pszKey, PULONG pulDataLen);
-ULONG  APIENTRY PrfQueryProfileString(HINI hini, PCSZ pszApp, PCSZ pszKey, PCSZ pszDefault,
-                   PVOID pBuffer, ULONG ulBufferMax);
-BOOL   APIENTRY PrfReset(HAB hab, PPRFPROFILE pPrfProfile);
-BOOL   APIENTRY PrfWriteProfileData(HINI hini, PCSZ pszApp, PCSZ pszKey,
-                   PVOID pData, ULONG ulDataLen);
-BOOL   APIENTRY  PrfWriteProfileString(HINI hini, PCSZ pszApp, PCSZ pszKey, PCSZ pszData);
+BOOL  APIENTRY PrfCloseProfile(HINI);
+HINI  APIENTRY PrfOpenProfile(HAB,PCSZ);
+BOOL  APIENTRY PrfQueryProfile(HAB,PPRFPROFILE);
+BOOL  APIENTRY PrfQueryProfileData(HINI,PCSZ,PCSZ,PVOID,PULONG);
+LONG  APIENTRY PrfQueryProfileInt(HINI,PCSZ,PCSZ,LONG);
+BOOL  APIENTRY PrfQueryProfileSize(HINI,PCSZ,PCSZ,PULONG);
+ULONG APIENTRY PrfQueryProfileString(HINI,PCSZ,PCSZ,PCSZ,PVOID,ULONG);
+BOOL  APIENTRY PrfReset(HAB,PPRFPROFILE);
+BOOL  APIENTRY PrfWriteProfileData(HINI,PCSZ,PCSZ,PVOID,ULONG);
+BOOL  APIENTRY PrfWriteProfileString(HINI,PCSZ,PCSZ,PCSZ);
 
 #endif
 
-#if defined(INCL_WINSTATICS)
+#ifdef INCL_WINSTATICS
 
 #define SS_TEXT          0x0001
 #define SS_GROUPBOX      0x0002
@@ -2343,7 +2434,7 @@ ULONG   APIENTRY WinRemoveSwitchEntry(HSWITCH);
 
 #endif
 
-#if defined(INCL_WINSWITCHLIST)
+#ifdef INCL_WINSWITCHLIST
 
 typedef struct _SWENTRY {
     HSWITCH hswitch;
@@ -2367,7 +2458,7 @@ ULONG   APIENTRY WinSwitchToProgram(HSWITCH);
 
 #endif
 
-#if defined(INCL_WINSYS)
+#ifdef INCL_WINSYS
 
 #define SV_SWAPBUTTON           0
 #define SV_DBLCLKTIME           1
@@ -2592,16 +2683,102 @@ ULONG   APIENTRY WinSwitchToProgram(HSWITCH);
 
 #define SYSCLR_CSYSCOLORS 41
 
+#define CCT_STATIC         1
+#define CCT_STATICTEXT     2
+#define CCT_GROUPBOX       3
+#define CCT_PUSHBUTTON     4
+#define CCT_CHECKBOX       5
+#define CCT_RADIOBUTTON    6
+#define CCT_ENTRYFIELD     7
+#define CCT_LISTBOX        8
+#define CCT_COMBOBOX       9
+#define CCT_SCROLLBAR      10
+#define CCT_FRAME          11
+#define CCT_MENU           12
+#define CCT_TITLEBAR       13
+#define CCT_SPINBUTTON     14
+#define CCT_SLIDER         15
+#define CCT_CIRCULARSLIDER 16
+#define CCT_VALUESET       17
+#define CCT_MLE            18
+#define CCT_CONTAINER      19
+#define CCT_NOTEBOOK       20
+#define CCT_MAXTYPE        20
+
+#define CCI_FOREGROUND                  1
+#define CCI_FOREGROUNDREADONLY          2
+#define CCI_BACKGROUND                  3
+#define CCI_BACKGROUNDDIALOG            4
+#define CCI_DISABLEDFOREGROUND          5
+#define CCI_DISABLEDFOREGROUNDREADONLY  6
+#define CCI_DISABLEDBACKGROUND          7
+#define CCI_DISABLEDBACKGROUNDDIALOG    8
+#define CCI_HIGHLIGHTFOREGROUND         9
+#define CCI_HIGHLIGHTBACKGROUND         10
+#define CCI_HIGHLIGHTBACKGROUNDDIALOG   11
+#define CCI_INACTIVEFOREGROUND          12
+#define CCI_INACTIVEFOREGROUNDDIALOG    13
+#define CCI_INACTIVEBACKGROUND          14
+#define CCI_INACTIVEBACKGROUNDTEXT      15
+#define CCI_ACTIVEFOREGROUND            16
+#define CCI_ACTIVEFOREGROUNDDIALOG      17
+#define CCI_ACTIVEBACKGROUND            18
+#define CCI_ACTIVEBACKGROUNDTEXT        19
+#define CCI_PAGEBACKGROUND              20
+#define CCI_PAGEFOREGROUND              21
+#define CCI_FIELDBACKGROUND             22
+#define CCI_BORDER                      23
+#define CCI_BORDERLIGHT                 24
+#define CCI_BORDERDARK                  25
+#define CCI_BORDER2                     26
+#define CCI_BORDER2LIGHT                27
+#define CCI_BORDER2DARK                 28
+#define CCI_BORDERDEFAULT               29
+#define CCI_BUTTONBACKGROUND            30
+#define CCI_BUTTONFOREGROUND            31
+#define CCI_BUTTONBORDERLIGHT           32
+#define CCI_BUTTONBORDERDARK            33
+#define CCI_ARROW                       34
+#define CCI_DISABLEDARROW               35
+#define CCI_ARROWBORDERLIGHT            36
+#define CCI_ARROWBORDERDARK             37
+#define CCI_CHECKLIGHT                  38
+#define CCI_CHECKMIDDLE                 39
+#define CCI_CHECKDARK                   40
+#define CCI_ICONFOREGROUND              41
+#define CCI_ICONBACKGROUND              42
+#define CCI_ICONBACKGROUNDDESKTOP       43
+#define CCI_ICONHILITEFOREGROUND        44
+#define CCI_ICONHILITEBACKGROUND        45
+#define CCI_MAJORTABFOREGROUND          46
+#define CCI_MAJORTABBACKGROUND          47
+#define CCI_MINORTABFOREGROUND          48
+#define CCI_MINORTABBACKGROUND          49
+
+#define CCI_MAXINDEX                    49
+
+#define CCF_GLOBAL      0x0000
+#define CCF_APPLICATION 0x0001
+#define CCF_COUNTCOLORS 0x0010
+#define CCF_ALLCOLORS   0x0020
+
+#define CCV_NOTFOUND (-125)
+#define CCV_IGNORE   (-126)
+#define CCV_DEFAULT  (-127)
+
+#define WM_CTLCOLORCHANGE 0x0129
+#define WM_QUERYCTLTYPE   0x0130
+
 typedef struct _PARAM {
     ULONG id;
     ULONG cb;
     BYTE  ab[1];
-} PARAM, *PPARAM;
+} PARAM, *PPARAM, *NPPARAM;
 
 typedef struct _PRESPARAMS {
     ULONG cb;
     PARAM aparam[1];
-} PRESPARAMS, *PPRESPARAMS;
+} PRESPARAMS, *PPRESPARAMS, *NPPRESPARAMS;
 
 ULONG  APIENTRY WinQueryPresParam(HWND,ULONG,ULONG,PULONG,ULONG,PVOID,ULONG);
 LONG   APIENTRY WinQuerySysColor(HWND,LONG,LONG);
@@ -2613,7 +2790,7 @@ BOOL   APIENTRY WinSetSysValue(HWND,LONG,LONG);
 
 #endif
 
-#if defined(INCL_WINTIMER)
+#ifdef INCL_WINTIMER
 
 #define TID_CURSOR      0xffff
 #define TID_SCROLL      0xfffe
@@ -2626,7 +2803,7 @@ BOOL   APIENTRY WinStopTimer(HAB,HWND,ULONG);
 
 #endif
 
-#if defined(INCL_WINTRACKRECT)
+#ifdef INCL_WINTRACKRECT
 
 #define TF_LEFT              0x0001
 #define TF_TOP               0x0002
@@ -2659,8 +2836,16 @@ BOOL   APIENTRY WinTrackRect(HWND,HPS,PTRACKINFO);
 
 #endif
 
-#if defined(INCL_WINCOUNTRY)
+#ifdef INCL_WINCOUNTRY
 
+#define WCS_ERROR 0
+#define WCS_EQ    1
+#define WCS_LT    2
+#define WCS_GT    3
+
+ULONG  APIENTRY WinCompareStrings(HAB,ULONG,ULONG,PCSZ,PCSZ,ULONG);
+UCHAR  APIENTRY WinCpTranslateChar(HAB,ULONG,UCHAR,ULONG);
+BOOL   APIENTRY WinCpTranslateString(HAB,ULONG,PCSZ,ULONG,ULONG,PCSZ);
 PCSZ   APIENTRY WinNextChar(HAB,ULONG,ULONG,PCSZ);
 PCSZ   APIENTRY WinPrevChar(HAB,ULONG,ULONG,PCSZ,PCSZ);
 ULONG  APIENTRY WinQueryCp(HMQ);
@@ -2677,7 +2862,7 @@ LONG  APIENTRY WinRealizePalette(HWND,HPS,PULONG);
 
 #endif
 
-#if defined(INCL_WINLOAD)
+#ifdef INCL_WINLOAD
 
 BOOL  APIENTRY WinDeleteLibrary(HAB,HLIB);
 BOOL  APIENTRY WinDeleteProcedure(HAB,PFNWP);
@@ -2686,3 +2871,38 @@ PFNWP APIENTRY WinLoadProcedure(HAB,HLIB,PCSZ);
 
 #endif
 
+#ifdef INCL_WINDESKTOP
+
+#define SDT_DESTROY         0x01
+#define SDT_NOBKGND         0x02
+#define SDT_TILE            0x04
+#define SDT_SCALE           0x08
+#define SDT_PATTERN         0x10
+#define SDT_CENTER          0x20
+#define SDT_RETAIN          0x40
+#define SDT_LOADFILE        0x80
+
+typedef struct _DESKTOP {
+    ULONG   cbSize;
+    HBITMAP hbm;
+    LONG    x;
+    LONG    y;
+    ULONG   fl;
+    LONG    lTileCount;
+    CHAR    szFile[260];
+} DESKTOP, *PDESKTOP;
+
+HBITMAP APIENTRY WinSetDesktopBkgnd(HWND,PDESKTOP);
+BOOL    APIENTRY WinQueryDesktopBkgnd(HWND,PDESKTOP);
+
+#endif
+
+#ifdef INCL_WINTHUNKAPI
+
+BOOL APIENTRY WinSetClassThunkProc(PCSZ,PFN);
+PFN  APIENTRY WinQueryClassThunkProc(PCSZ);
+BOOL APIENTRY WinSetWindowThunkProc(HWND,PFN);
+PFN  APIENTRY WinQueryWindowThunkProc(HWND);
+LONG APIENTRY WinQueryWindowModel(HWND);
+
+#endif

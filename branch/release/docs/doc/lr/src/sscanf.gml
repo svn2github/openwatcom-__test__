@@ -17,6 +17,9 @@ int _usscanf( const wchar_t *in_string,
 .ixfunc2 '&String' &ufunc
 .do end
 .funcend
+.*
+.safealt
+.*
 .desc begin
 The &func function scans input from the character string
 .arg in_string
@@ -25,18 +28,11 @@ under control of the argument
 Following the format string is the list of addresses of items to
 receive values.
 .pp
-.if '&machsys' eq 'FOX' .do begin
-The
-.arg format
-string is described below.
-.do end
-.el .do begin
 The
 .arg format
 string is described under the description of the
 .kw scanf
 function.
-.do end
 .if &'length(&wfunc.) ne 0 .do begin
 .np
 The &wfunc function is identical to &func except that it accepts a
@@ -56,24 +52,26 @@ and the input string
 consists of 16-bit Unicode characters.
 .do end
 .desc end
+.*
 .return begin
 The &func function returns
 .kw EOF
-when the scanning is terminated by reaching the end of the input
-string.
+if the end of the input string was reached before any input conversion.
 Otherwise, the number of input arguments for which values were
 successfully scanned and stored is returned.
 .return end
+.*
 .see begin
 .im seevscnf sscanf
 .see end
+.*
 .exmp begin
 #include <stdio.h>
 
 /* Scan a date in the form "Saturday April 18 1987" */
 .exmp break
-void main()
-  {
+void main( void )
+{
     int day, year;
     char weekday[10], month[10];
 .exmp break
@@ -82,14 +80,10 @@ void main()
              weekday, month, &day, &year );
     printf( "%s %s %d %d\n",
              weekday, month, day, year );
-  }
+}
 .exmp output
 Friday August 14 1987
 .exmp end
-.if '&machsys' eq 'FOX' .do begin
-.im scanfs
-.do end
-.el .do begin
-.class ANSI
-.do end
+.*
+.class ISO C90
 .system

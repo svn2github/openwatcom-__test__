@@ -193,6 +193,9 @@ extern "C" {
 #define CD_LBSELSUB      1
 #define CD_LBSELADD      2
 #define DN_DEFAULTPRN	1
+#if (_WIN32_WINNT >= 0x0500)
+#define OPENFILENAME_SIZE_VERSION_400  76
+#endif /* (_WIN32_WINNT >= 0x0500) */
 
 #ifndef SNDMSG
 #ifdef __cplusplus
@@ -336,6 +339,11 @@ typedef struct tagOFNA {
 	DWORD lCustData;
 	LPOFNHOOKPROC lpfnHook;
 	LPCSTR lpTemplateName;
+#if (_WIN32_WINNT >= 0x0500)
+	void * pvReserved;
+	DWORD dwReserved;
+	DWORD FlagsEx;
+#endif /* (_WIN32_WINNT >= 0x0500) */
 } OPENFILENAMEA,*LPOPENFILENAMEA;
 typedef struct tagOFNW {
 	DWORD lStructSize;
@@ -358,6 +366,11 @@ typedef struct tagOFNW {
 	DWORD lCustData;
 	LPOFNHOOKPROC lpfnHook;
 	LPCWSTR lpTemplateName;
+#if (_WIN32_WINNT >= 0x0500)
+	void * pvReserved;
+	DWORD dwReserved;
+	DWORD FlagsEx;
+#endif /* (_WIN32_WINNT >= 0x0500) */
 } OPENFILENAMEW,*LPOPENFILENAMEW;
 typedef struct _OFNOTIFYA {
 	NMHDR hdr;

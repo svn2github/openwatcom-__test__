@@ -45,15 +45,19 @@
 #error LDBL_MAX_10_EXP has changed from 308
 #endif
 
+/* We must use more than DBL_DIG/LDBL_DIG, otherwise we lose precision! */
+#define DBL_CVT_DIGITS      20
+#define LDBL_CVT_DIGITS     23
+
 // this manufactures a value from macros defined in float.h
 #define __local_glue( __x, __y ) __x ## __y
 #define local_glue( __x, __y ) __local_glue( __x, __y )
 #define ONE_TO_DBL_MAX_10_EXP local_glue( 1e, DBL_MAX_10_EXP )
 #define ONE_TO_DBL_MIN_10_EXP 1e307
 
-char _WCNEAR *Fmt8Digits( unsigned long value, char *p );
 
 #if defined( __386__ )
+ char _WCNEAR *Fmt8Digits( unsigned long value, char *p );
  #pragma aux    Fmt8Digits = \
                 "       push    ecx"\
                 "       push    edx"\
@@ -98,6 +102,7 @@ char _WCNEAR *Fmt8Digits( unsigned long value, char *p );
                 "       mov     [ebx],al"\
                 parm caller [eax] [ebx] value [ebx];
 #elif defined( M_I86 )
+ char _WCNEAR *Fmt8Digits( unsigned long value, char *p );
  #pragma aux    Fmt8Digits = \
                 "       push    cx"\
                 "       call    fmt8"\
@@ -498,6 +503,8 @@ static void DoEFormat( CVT_INFO *cvt, char *p, int nsig, int xexp, char *buf )
 #define STK_BUF_SIZE    64              // size of stack buffer required
                                         // if long double and NO_TRUNC is on.
 
+/* NB: Just like _EFG_Format(), the following assumes ASCII character  encoding */
+
 _WMRTLINK void __LDcvt( long_double *pld, CVT_INFO *cvt, char *buf )
 {
     int         i;
@@ -545,10 +552,17 @@ _WMRTLINK void __LDcvt( long_double *pld, CVT_INFO *cvt, char *buf )
         break;
     case __NAN:
         buf[0] = 'n'; buf[1] = 'a'; buf[2] = 'n'; buf[3] = '\0';
-        cvt->n1 = 3;
-        goto end_cvt;
+        goto nan_inf;
     case __INFINITY:
         buf[0] = 'i'; buf[1] = 'n'; buf[2] = 'f'; buf[3] = '\0';
+nan_inf:
+        if( cvt->flags & IN_CAPS ) {
+            unsigned long _WCUNALIGNED  *text;
+
+            /* Uppercase entire four-char ASCII string in one go */
+            text = (unsigned long *)buf;
+            *text &= ~0x20202020;
+        }
         cvt->n1 = 3;
         goto end_cvt;
     case __NONZERO:
@@ -624,10 +638,10 @@ _WMRTLINK void __LDcvt( long_double *pld, CVT_INFO *cvt, char *buf )
         n = cvt->ndigits + 3 + NDIG / 2;
     }
 
-    maxsize = DBL_DIG;
+    maxsize = DBL_CVT_DIGITS;
 #ifdef _LONG_DOUBLE_
     if( cvt->flags & LONG_DOUBLE ) {        // number is long double
-        maxsize = LDBL_DIG;
+        maxsize = LDBL_CVT_DIGITS;
     }
 #endif
     if( cvt->flags & NO_TRUNC ) {
@@ -703,10 +717,10 @@ _WMRTLINK void __LDcvt( long_double *pld, CVT_INFO *cvt, char *buf )
             nsig = n;
         }
 
-        maxsize = DBL_DIG;
+        maxsize = DBL_CVT_DIGITS;
 #ifdef _LONG_DOUBLE_
         if( cvt->flags & LONG_DOUBLE ) {    // number is long double
-            maxsize = LDBL_DIG;
+            maxsize = LDBL_CVT_DIGITS;
         }
 #endif
         if( cvt->flags & NO_TRUNC ) {

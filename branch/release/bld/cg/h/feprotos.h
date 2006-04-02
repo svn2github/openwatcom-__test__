@@ -33,17 +33,17 @@
 #ifndef _FEPROTOS_H_INCLUDED
 #define _FEPROTOS_H_INCLUDED
 
+#include "cgapi.h"
+
 // always want the prototypes
-#define CGCALLBACKDEF( a, b, c )        extern b a c;
+#define CGCALLBACKDEF( a, b, c )        extern b _CGCALLBACKAPI a c;
 #include "cgfertns.h"
 #undef  CGCALLBACKDEF
 
 #ifdef _CGDLL
 
-#include "cgdll.h"
-
 typedef struct fe_interface {
-    #define CGCALLBACKDEF( a, b, c ) b (*a) c;
+    #define CGCALLBACKDEF( a, b, c ) b _CGCALLBACKAPI (*a) c;
     #include "cgfertns.h"
     #undef  CGCALLBACKDEF
 } fe_interface;

@@ -39,13 +39,10 @@
 #include "fcgbls.h"
 #include "fcodes.h"
 #include "opn.h"
+#include "emitobj.h"
+#include "types.h"
 
-extern  void            EmitOp(unsigned_16);
-extern  void            SetOpn(itnode *,byte);
-extern  void            OutPtr(void *);
-extern  sym_id          STConst(void *,int,int);
-extern  int             TypeSize(int);
-extern  void            GenType(itnode *);
+extern  sym_id          STConst(void *,TYPE,uint);
 
 
 void    PushOpn( itnode *itptr ) {
@@ -55,30 +52,28 @@ void    PushOpn( itnode *itptr ) {
 // Also called for target of character assignment.
 
     unsigned_16 flags;
-    int         size;
-    byte        typ;
-    byte        what;
-    byte        where;
+    TYPE        typ;
+    USOPN       what;
+    USOPN       where;
 
-    where = itptr->opn & OPN_WHERE;
-    if( ( itptr->opn != OPN_PHI ) && ( where != OPN_SAFE ) ) {
+    where = itptr->opn.us & USOPN_WHERE;
+    if( ( itptr->opn.ds != DSOPN_PHI ) && ( where != USOPN_SAFE ) ) {
         typ = itptr->typ;
-        size = itptr->size;
         flags = itptr->flags;
-        what = itptr->opn & OPN_WHAT;
+        what = itptr->opn.us & USOPN_WHAT;
         if( where != 0 ) {
-            EmitOp( PUSH );
+            EmitOp( FC_PUSH );
             SymRef( itptr );
-        } else if( itptr->opn & OPN_FLD ) {
+        } else if( itptr->opn.us & USOPN_FLD ) {
             PushConst( itptr->value.intstar4 );
         } else if( ( flags & SY_CLASS ) == SY_SUBPROGRAM ) {
             // 1. it's a statement function
             // 2. it's a subprogram passed as an argument
-            EmitOp( PUSH );
+            EmitOp( FC_PUSH );
             SymRef( itptr );
-        } else if( what == OPN_CON ) {
+        } else if( what == USOPN_CON ) {
             if( typ == TY_CHAR ) {
-                EmitOp( PUSH_LIT );
+                EmitOp( FC_PUSH_LIT );
                 if( itptr->sym_ptr->lt.flags & LT_SCB_TMP_REFERENCE ) {
                     itptr->sym_ptr->lt.flags |= LT_SCB_REQUIRED;
                 } else {
@@ -87,14 +82,14 @@ void    PushOpn( itnode *itptr ) {
                     itptr->sym_ptr->lt.flags |= LT_SCB_TMP_REFERENCE;
                 }
             } else {
-                EmitOp( PUSH_CONST );
+                EmitOp( FC_PUSH_CONST );
             }
             SymRef( itptr );
         } else {
-            EmitOp( PUSH );
+            EmitOp( FC_PUSH );
             SymRef( itptr );
         }
-        SetOpn( itptr, OPN_SAFE );
+        SetOpn( itptr, USOPN_SAFE );
     }
 }
 
@@ -103,7 +98,7 @@ void    PushOpn( itnode *itptr ) {
 void    PushSym( sym_id sym ) {
 //=============================
 
-    EmitOp( PUSH );
+    EmitOp( FC_PUSH );
     OutPtr( sym );
 }
 
@@ -122,7 +117,7 @@ void    PushConst( intstar4 val ) {
 
 // Push an integer constant.
 
-    EmitOp( PUSH_CONST );
+    EmitOp( FC_PUSH_CONST );
     OutPtr( STConst( &val, TY_INTEGER, TypeSize( TY_INTEGER ) ) );
 }
 
@@ -130,6 +125,6 @@ void    PushConst( intstar4 val ) {
 void    GParenExpr() {
 //====================
 
-    EmitOp( DONE_PAREN_EXPR );
+    EmitOp( FC_DONE_PAREN_EXPR );
     GenType( CITNode );
 }

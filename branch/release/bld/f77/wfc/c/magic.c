@@ -66,28 +66,20 @@ sym_id  NewMagSym( int class ) {
 }
 
 
-sym_id  FindTempIndex( uint tmp_index, byte typ ) {
+sym_id  FindTempIndex( uint tmp_index, TYPE typ ) {
 //=================================================
 
 // Find a temporary with an offset the same as the given index.
 
     sym_id      ml;
 
-#if _CPU != 370
     typ = typ;
-#endif
     ml = MList;
     for(;;) {
         if( ml == NULL ) break;
-        if( ( _MgcClass( ml ) == MAGIC_TEMP ) &&
-            ( ml->ns.si.ms.tmp_info.tmp_index == tmp_index )
-#if _CPU == 370
-         && ( ( typ != TY_COMPLEX ) || ( ml->ns.typ == TY_COMPLEX ) ) &&
-            ( ( typ != TY_DCOMPLEX ) || ( ml->ns.typ == TY_DCOMPLEX ) ) &&
-            ( ( typ == TY_COMPLEX ) || ( ml->ns.typ != TY_COMPLEX ) ) &&
-            ( ( typ == TY_DCOMPLEX ) || ( ml->ns.typ != TY_DCOMPLEX ) )
-#endif
-            ) return( ml );
+        if(( _MgcClass( ml ) == MAGIC_TEMP ) &&
+            ( ml->ns.si.ms.tmp_info.tmp_index == tmp_index ))
+            return( ml );
         ml = ml->ns.link;
     }
     ml = NewMagSym( MAGIC_TEMP );
@@ -96,7 +88,7 @@ sym_id  FindTempIndex( uint tmp_index, byte typ ) {
 }
 
 
-sym_id  TmpVar( int typ, int size ) {
+sym_id  TmpVar( TYPE typ, uint size ) {
 //===================================
 
 // Allocate a temporary and set the type.
@@ -114,7 +106,7 @@ sym_id  TmpVar( int typ, int size ) {
 }
 
 
-sym_id  TmpAlloc( int size ) {
+sym_id  TmpAlloc( uint size ) {
 //============================
 
 // Allocate a temporary and set the type to TY_NO_TYPE.
@@ -133,7 +125,7 @@ void    GSaveTemps() {
 }
 
 
-sym_id  StaticAlloc( int size, byte typ ) {
+sym_id  StaticAlloc( uint size, TYPE typ ) {
 //=========================================
 
 // Allocate a static compiler variable.

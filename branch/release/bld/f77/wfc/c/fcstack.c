@@ -38,6 +38,8 @@
 #include "ecflags.h"
 #include "cpopt.h"
 #include "fltcnv.h"
+#include "emitobj.h"
+#include "fctypes.h"
 
 //=================== Back End Code Generation Routines ====================
 
@@ -53,15 +55,13 @@ extern  cg_type         CGType(cg_name);
 
 //=========================================================================
 
-extern  cg_type         F772CGType(sym_id);
-extern  pointer         GetPtr(void);
 extern  pointer         ConstBack(sym_id);
 extern  void            CnvS2S(float *,char *);
 extern  void            CnvD2S(double *,char *);
 extern  void            CnvX2S(extended *,char *);
 extern  cg_name         StructRef(cg_name,int);
 extern  segment_id      GetGlobalSeg(unsigned_32);
-extern  bool            TypeCmplx(int);
+extern  bool            TypeCmplx(TYPE);
 extern  intstar4        GetComBlkSize(sym_id);
 extern  seg_offset      GetComOffset(unsigned_32);
 extern  cg_name         SCBPointer(cg_name);
@@ -70,11 +70,6 @@ extern  void            PushCmplxConst(sym_id);
 extern  void            PushComplex(sym_id);
 extern  void            Cmplx2Scalar();
 extern  cg_type         CmplxBaseType(cg_type);
-extern  bool            TypePointer(cg_type);
-extern  unsigned_16     GetU16(void);
-extern  cg_type         GetType(unsigned_16);
-extern  cg_type         GetType1(unsigned_16);
-extern  cg_type         GetType2(unsigned_16);
 extern  cg_name         VarAltSCB(sym_id);
 extern  cg_name         SubAltSCB(sym_id);
 extern  bool            SCBRequired(sym_id);

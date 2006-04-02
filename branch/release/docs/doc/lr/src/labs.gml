@@ -2,22 +2,26 @@
 #include <stdlib.h>
 long int labs( long int j );
 .funcend
+.*
 .desc begin
 The &func function returns the absolute value
 of its long-integer argument
 .arg j.
 .desc end
+.*
 .return begin
 The &func function returns the absolute value of its argument.
 .return end
+.*
 .see begin
-.seelist labs abs imaxabs fabs
+.seelist labs abs llabs imaxabs fabs
 .see end
+.*
 .exmp begin
 #include <stdio.h>
 #include <stdlib.h>
 
-void main()
+void main( void )
 {
     long x, y;
 .exmp break
@@ -28,5 +32,6 @@ void main()
 .exmp output
 labs(-50000) = 50000
 .exmp end
-.class ANSI
+.*
+.class ISO C90
 .system

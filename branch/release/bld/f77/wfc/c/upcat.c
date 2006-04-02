@@ -39,24 +39,20 @@
 #include "opn.h"
 #include "errcod.h"
 #include "global.h"
-#include "ifnames.h"
+#include "iflookup.h"
+#include "recog.h"
+#include "emitobj.h"
+#include "insert.h"
+#include "utility.h"
 
 extern  void            BackTrack(void);
-extern  void            PushOpn(itnode *);
 extern  void            AddConst(itnode *);
 extern  void            ConstCat(int);
 extern  sym_id          GStartCat(int,int);
 extern  void            GStopCat(int,sym_id);
-extern  void            AdvanceITPtr(void);
-extern  bool            ReqNOpn(void);
-extern  void            FreeOneNode(itnode *);
-extern  void            FreeITNodes(itnode *);
 extern  void            GCatArg(itnode *);
 extern  void            MoveDown(void);
 extern  void            KillOpnOpr(void);
-extern  void            OpndErr(int);
-extern  void            TypeTypeErr(int,uint,uint);
-extern  void            TypeErr(int,uint);
 
 
 void            CatOpn() {
@@ -72,7 +68,7 @@ void            CatOpn() {
 static  void    GenCatOpn() {
 //===========================
 
-    if( CITNode->opn != OPN_CON ) {
+    if( CITNode->opn.us != USOPN_CON ) {
         ChkConstCatOpn( CITNode->link );
         PushOpn( CITNode );
     }
@@ -93,7 +89,7 @@ static  void    FoldCatSequence( itnode *cit ) {
     num = 0;
     size = 0;
     for(;;) {
-        if( CITNode->opn != OPN_CON ) break;
+        if( CITNode->opn.us != USOPN_CON ) break;
         num++;
         if( CITNode->typ != TY_CHAR ) {
             TypeErr( MD_ILL_OPR, CITNode->typ );
@@ -118,7 +114,7 @@ static  void    FoldCatSequence( itnode *cit ) {
 static  void    ChkConstCatOpn( itnode *cat_opn ) {
 //=================================================
 
-    if( cat_opn->opn == OPN_CON ) {
+    if( cat_opn->opn.us == USOPN_CON ) {
         FoldCatSequence( cat_opn );
         if( !AError ) {
             PushOpn( cat_opn );
@@ -146,7 +142,7 @@ void            FiniCat() {
 
     // Make sure we don't PushOpn() a constant expression
     // in case it's for a PARAMETER constant
-    if( CITNode->opn == OPN_CON ) {
+    if( CITNode->opn.us == USOPN_CON ) {
         FoldCatSequence( CITNode );
         if( AError ) return;
     } else {
@@ -185,7 +181,7 @@ static  int     ScanCat( int *size_ptr ) {
     cat_size = 0;
     num_cats = 0;
     for(;;) {
-        if( CITNode->opn == OPN_PHI ) {
+        if( CITNode->opn.ds == DSOPN_PHI ) {
             // no operand (A = B // // C)
             TypeErr( SX_WRONG_TYPE, TY_CHAR );
         } else if( CITNode->typ != TY_CHAR ) {
@@ -277,7 +273,7 @@ static  itnode  *findMatch( bool *ok_to_axe, bool *all_const_opns ) {
     }
     for(;;) {
         if( all_const_opns != NULL ) {
-            if( (cit->opn != OPN_PHI) && (cit->opn != OPN_CON) ) {
+            if( (cit->opn.ds != DSOPN_PHI) && (cit->opn.us != USOPN_CON) ) {
                 *all_const_opns = FALSE;
             }
         }
@@ -403,7 +399,7 @@ void            CatArgs( int num ) {
     for(;;) {
         // Don't call CatArg() if no operand or not of type character.
         // This covers the case where invalid operands are specified.
-        if( ( itptr->opn != OPN_PHI ) && ( itptr->typ == TY_CHAR ) ) {
+        if( ( itptr->opn.ds != DSOPN_PHI ) && ( itptr->typ == TY_CHAR ) ) {
             GCatArg( itptr );
         }
         if( --count <= 0 ) break;

@@ -53,10 +53,13 @@
 .   .   .sr wfunc=&*
 .   .do end
 .do end
-.el .if &'pos('wcs',&*) eq 1 .do begin
+.el .if &'pos('wc',&*) eq 1 .do begin
 .   .sr wfunc=&*
 .do end
 .el .if &'pos('wmem',&*) eq 1 .do begin
+.   .sr wfunc=&*
+.do end
+.el .if &'pos('wasc',&*) eq 1 .do begin
 .   .sr wfunc=&*
 .do end
 .el .if &'pos('_mb',&*) eq 1 .do begin
@@ -453,7 +456,19 @@ Prototype in
 .do end
 .el .do begin
 .   &function. is &*
-.   .sr *cls=&'strip(&*1,'T',',')
+.   .if &*1 eq ISO OR &*1 eq TR .do begin
+.   .   .sr *cls=&'strip(&*,'T',',')
+.   .   .if |&*| eq |ISO C90| .do begin
+.   .   .   .sr *wcls='ISO C95'
+.   .   .do end
+.   .   .el .do begin
+.   .   .   .sr *wcls=&'strip(&*,'T',',')
+.   .   .do end
+.   .do end
+.   .el .do begin
+.   .   .sr *cls=&'strip(&*1,'T',',')
+.   .   .sr *wcls=&'strip(&*1,'T',',')
+.   .do end
 .   .if &'length(&_func.) ne 0 .do begin
 .   .   .ct , &_func. is not &*cls
 .   .do end
@@ -465,7 +480,9 @@ Prototype in
 .   .   .   .ct , &wfunc. is not &*cls
 .   .   .do end
 .   .   .el .do begin
-.   .   .   .ct , &wfunc. is &*cls
+.   .   .   .if '&wfunc.' ne '&funcn.' .do begin
+.   .   .   .   .ct , &wfunc. is &*wcls
+.   .   .   .do end
 .   .   .do end
 .   .do end
 .   .if &'length(&mfunc.) ne 0 .do begin
@@ -665,3 +682,213 @@ command
 .ix 'QNX command' '&*'
 .dm qnxcmd end
 .*
+.*       describe functions for c library  2006-03-16
+.*  new version with explicit type and classification
+.*  if omitted, default classification is WATCOM
+.*   .functinit
+.*   .funct     norm              classification
+.*   .funct_    _norm                  "
+.*   .funct_f   farnorm                "
+.*   .funct_m   multibytenorm          "
+.*   .funct_fm  farmultibytenorm       "
+.*   .funct_w   widenorm               "
+.*   .funct_fw  farwidewnorm           "
+.*   .funct_u   unicodenorm            "
+.*
+.*   .functm    doublemathfunc         "
+.*   .functm_f  floatmathfunc          "
+.*   .functm_l  longdoublemathfunc     "
+.*
+.*   .functgen
+.*
+.*   .functend
+.*   .classt
+.*
+.*  .functinit
+.*      init set symbols must be first call of functxxx macros
+.*
+.dm functinit begin
+.sr function=''
+.sr func=''
+.sr _func=''
+.sr ffunc=''
+.sr fwfunc=''
+.sr wfunc=''
+.sr mfunc=''
+.sr fmfunc=''
+.sr ufunc=''
+.*
+.sr mathfunc=''
+.sr fmathfunc=''
+.sr lmathfunc=''
+.*
+.sr fncttl=''
+.se __fnx=0
+.se __cltxt=''
+.dm functinit end
+.*
+.*
+.*  functii internal macro for funct_xxx
+.*
+.dm functii begin
+.se *fnd=&'vecpos(&*1,fnclst)
+.if &*fnd. eq 0 .me
+.if &__sysl(&*fnd.) eq 0 .ty ***WARNING*** &* not in library
+.if |&fncttl.| eq || .do begin
+.   .sr fncttl=&*1
+.do end
+.el .do begin
+.   .sr fncttl=&fncttl., &*1
+.do end
+.se __fnx=&__fnx.+1
+.se $$fnc(&__fnx.)=&*1
+.if /&*2./ eq // .se __cl=WATCOM
+.el .se __cl=&*2. &*3.
+.if &__fnx. eq 1 .se __cltxt=&*1 is &__cl.
+.el .se __cltxt=&__cltxt., &*1 is &__cl.
+.dm functii end
+.*
+.*  macros for the different function types
+.*
+.dm funct  begin
+.sr func=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm funct  end
+.*
+.dm funct_  begin
+.sr _func=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm funct_  end
+.*
+.dm funct_f begin
+.sr ffunc=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm funct_f end
+.*
+.dm funct_m begin
+.sr mfunc=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm funct_m end
+.*
+.dm funct_w begin
+.sr wfunc=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm funct_w end
+.*
+.dm funct_fm begin
+.sr fmfunc=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm funct_fm end
+.*
+.dm funct_fw begin
+.sr fwfunc=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm funct_fw end
+.*
+.dm funct_u begin
+.sr ufunc=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm funct_u end
+.*
+.dm functm begin
+.sr mathfunc=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm functm end
+.*
+.dm functm_f begin
+.sr fmathfunc=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm functm_f end
+.*
+.dm functm_l begin
+.sr lmathfunc=&*1
+.if '&function' eq '' .sr function=&*1.
+.functii &*
+.dm functm_l end
+.*
+.*  .functgen
+.*     generate title and start of code (declaration)
+.*
+.dm functgen begin
+.sr funcn=&function.
+.topsect &fncttl.
+.cp 5
+.newcode Synopsis:
+.dm functgen end
+.*
+.*
+.*  final processing for functions
+.*
+.dm functend begin
+.endcode
+.se *i=1
+.pe &__fnx.
+.   .funix &$$fnc(&*i.);.se *i=&*i.+1
+.if &'length(&_func.) ne 0 .do begin
+.   :set symbol="_func" value=";.sf4 &_func.;.esf ".
+.do end
+.if &'length(&ffunc.) ne 0 .do begin
+.   :set symbol="ffunc" value=";.sf4 &ffunc.;.esf ".
+.do end
+.if &'length(&wfunc.) ne 0 .do begin
+.   :set symbol="wfunc" value=";.sf4 &wfunc.;.esf ".
+.do end
+.if &'length(&fwfunc.) ne 0 .do begin
+.   :set symbol="fwfunc" value=";.sf4 &fwfunc.;.esf ".
+.do end
+.if &'length(&mfunc.) ne 0 .do begin
+.   :set symbol="mfunc" value=";.sf4 &mfunc.;.esf ".
+.do end
+.if &'length(&fmfunc.) ne 0 .do begin
+.   :set symbol="fmfunc" value=";.sf4 &fmfunc.;.esf ".
+.do end
+.if &'length(&ufunc.) ne 0 .do begin
+.   :set symbol="ufunc" value=";.sf4 &ufunc.;.esf ".
+.do end
+.if &'length(&mathfunc.) ne 0 .do begin
+.   :set symbol="mathfunc" value=";.sf4 &mathfunc.;.esf ".
+.do end
+.if &'length(&fmathfunc.) ne 0 .do begin
+.   :set symbol="fmathfunc" value=";.sf4 &fmathfunc.;.esf ".
+.do end
+.if &'length(&lmathfunc.) ne 0 .do begin
+.   :set symbol="lmathfunc" value=";.sf4 &lmathfunc.;.esf ".
+.do end
+:set symbol="func" value=";.sf4 &function.;.esf ".
+.dm functend end
+.*
+.*  classt
+.*    output classifications for the defined functions
+.*
+.dm classt begin
+.in 0
+.sr __class=&*1
+.if &e'&dohelp eq 0 .do begin
+:DL &NTEphi..:DT.Classification::DD.
+.do end
+.el .do begin
+:ZDL &NTEphi..:ZDT.Classification::ZDD.
+.do end
+:set symbol="*extr" value=0.
+&__cltxt.
+.if &e'&dohelp eq 0 .do begin
+:eDL.
+.do end
+.el .do begin
+:ZeDL.
+.do end
+.in &INDlvl
+.dm classt end
+.*
+:cmt. include 'Safer C Library' related macros
+:INCLUDE file='safecmac'.

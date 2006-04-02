@@ -2,7 +2,7 @@
 // FILE: iterator (Iterator utilities)
 //
 :keep CPP_HDR
-:include crwat.sp
+:include crwatcnt.sp
 //
 // Description: This header is part of the C++ standard library. It
 //              defines a number of helper templates that are useful
@@ -123,6 +123,7 @@ namespace std {
     );
   }
 
+:: Commented out due to compiler bug.
 #ifdef _NEVER
   // distance( Iterator, Iterator )
   // ******************************
@@ -174,7 +175,7 @@ namespace std {
   template< class RandomAccess >
   inline
   typename iterator_traits< RandomAccess >::difference_type
-    distanace( RandomAccess first, RandomAccess last, random_access_iterator_tag )
+    distance( RandomAccess first, RandomAccess last, random_access_iterator_tag )
   {
     return( last - first );
   }

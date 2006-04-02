@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  printf -- CLIB formatted output
+* Description:  Implementation of printf() - formatted output.
 *
 ****************************************************************************/
 
@@ -36,9 +36,10 @@
 #include "rtdata.h"
 #include "fileacc.h"
 #include "printf.h"
-
-extern  void    __ioalloc( FILE * );
-extern  int     __flush( FILE * );
+#include "fprtf.h"
+#include "orient.h"
+#include "flush.h"
+#include "streamio.h"
 
 
 /*
@@ -47,12 +48,12 @@ extern  int     __flush( FILE * );
 static slib_callback_t file_putc; // setup calling convention
 static void __SLIB_CALLBACK file_putc( SPECS __SLIB *specs, int op_char )
 {
-    __F_NAME(fputc,fputwc)( op_char, (FILE *) specs->_o._dest );
-    specs->_o._output_count++;
+    __F_NAME(fputc,fputwc)( op_char, (FILE *)specs->_dest );
+    specs->_output_count++;
 }
 
 
-_WCRTLINK int __F_NAME(__fprtf,__fwprtf)( FILE *fp, const CHAR_TYPE *format, va_list arg )
+int __F_NAME(__fprtf,__fwprtf)( FILE *fp, const CHAR_TYPE *format, va_list arg )
 {
     int             not_buffered;
     int             amount_written;
@@ -63,30 +64,10 @@ _WCRTLINK int __F_NAME(__fprtf,__fwprtf)( FILE *fp, const CHAR_TYPE *format, va_
     _AccessFile( fp );
 
     /*** Deal with stream orientation ***/
-#ifndef __NETWARE__
-  #ifdef __WIDECHAR__
-    if( _FP_ORIENTATION(fp) != _WIDE_ORIENTED ) {
-        if( _FP_ORIENTATION(fp) == _NOT_ORIENTED ) {
-            _FP_ORIENTATION(fp) = _WIDE_ORIENTED;
-        } else {
-            _ReleaseFile( fp );
-            return( 0 );                /* error return */
-        }
-    }
-  #else
-    if( _FP_ORIENTATION(fp) != _BYTE_ORIENTED ) {
-        if( _FP_ORIENTATION(fp) == _NOT_ORIENTED ) {
-            _FP_ORIENTATION(fp) = _BYTE_ORIENTED;
-        } else {
-            _ReleaseFile( fp );
-            return( 0 );                /* error return */
-        }
-    }
-  #endif
-#endif
+    ORIENT_STREAM(fp,0);
 
-    oflag = fp->_flag & (_SFERR|_EOF);                  /* 06-sep-91 */
-    fp->_flag &= ~(_SFERR|_EOF);
+    oflag = fp->_flag & (_SFERR | _EOF);                  /* 06-sep-91 */
+    fp->_flag &= ~(_SFERR | _EOF);
 
     if( _FP_BASE(fp) == NULL ) {
         __ioalloc( fp );        /* allocate buffer */

@@ -47,20 +47,11 @@ extern      void    __restore_int23( void );
 extern      void    __grab_int_ctrl_break( void );
 extern      void    __restore_int_ctrl_break( void );
 #endif
-
-extern  void    __terminate( void );
 #endif
-
-#if defined( __DOS__ )
-extern      void    __grab_FPE_handler( void );
-extern      void    __restore_FPE_handler( void );
-#endif
-
-extern  void    (*__abort)( void );
 
 #define __SIGLAST       SIGIOVFL
 
-static sig_func _HUGEDATA SignalTable[] = {
+static __sig_func _HUGEDATA SignalTable[] = {
     SIG_IGN,        /* unused  */
     SIG_DFL,        /* SIGABRT */
     SIG_DFL,        /* SIGFPE  */
@@ -104,7 +95,7 @@ unsigned int win87em_get_sw( void );
 
 _WCRTLINK void _WCI86FAR __sigfpe_handler( int fpe_type )
 {
-    sig_func     func;
+    __sig_func  func;
     
   #if defined( __WINDOWS__ )
     unsigned int  sw;
@@ -128,20 +119,20 @@ _WCRTLINK void _WCI86FAR __sigfpe_handler( int fpe_type )
     func = SignalTable[ SIGFPE ];
     if( func != SIG_IGN  &&  func != SIG_DFL  &&  func != SIG_ERR ) {
         SignalTable[ SIGFPE ] = SIG_DFL;      /* 09-nov-87 FWC */
-        (*(sigfpe_func)func)( SIGFPE, fpe_type );        /* so we can pass 2'nd parm */
+        (*(__sigfpe_func)func)( SIGFPE, fpe_type );        /* so we can pass 2'nd parm */
     }
 }
 #endif
 
-_WCRTLINK sig_func signal( int sig, sig_func func )
+_WCRTLINK __sig_func signal( int sig, __sig_func func )
 {
-    sig_func prev_func;
+    __sig_func  prev_func;
     
     if(( sig < 1 ) || ( sig > __SIGLAST )) {
         __set_errno( EINVAL );
         return( SIG_ERR );
     }
-    __abort = __sigabort;           /* change the abort rtn address */
+    _RWD_abort = __sigabort;           /* change the abort rtn address */
 #if !defined( __WINDOWS_386__ ) && !defined( __NETWARE__ )
     if( sig == SIGINT ) {
         if( func == SIG_DFL ) {
@@ -173,7 +164,7 @@ _WCRTLINK sig_func signal( int sig, sig_func func )
 
 _WCRTLINK int raise( int sig )
 {
-    sig_func func;
+    __sig_func  func;
     
     func = _RWD_sigtab[ sig ];
     switch( sig ) {

@@ -37,57 +37,50 @@
 #include "wdglb.h"
 #include "wdfunc.h"
 
+
 extern struct int_entry_pnt     *Entry_pnts = NULL;
 
 /*
- * Dump the tables
+ * Read a resident/nonresident name and ordinal
  */
-void Dmp_ne_tbls( void )
-/**********************/
+static unsigned_8 read_res_nonres_nam( char *name, unsigned_16 *ordinal )
+/***********************************************************************/
 {
-    prs_ent_tab( New_exe_off + Os2_head.entry_off, Os2_head.entry_size );
-    Banner( "Resident Names Table" );
-    dmp_res_nonres_tab( New_exe_off + Os2_head.resident_off );
-    dmp_mod_ref_tab( New_exe_off + Os2_head.module_off, Os2_head.modrefs );
-    if( Os2_head.import_off != Os2_head.entry_off )
-        dmp_import_tab( New_exe_off + Os2_head.import_off );
-    dmp_entry_tab();
-    Wdputslc( "\n" );
-    Banner( "Nonresident Names Table" );
-    dmp_res_nonres_tab( Os2_head.nonres_off );
-    Dmp_relocs();
+    unsigned_8              string_len;
+
+    Wread( &string_len, sizeof( string_len ) );
+    if( string_len ) {
+        Wread( name, string_len );
+        Wread( ordinal, sizeof( unsigned_16 ) );
+    }
+    name[ string_len ] = '\0';
+    return( string_len );
 }
 
 /*
- * Dump the tables
+ * Dump a resident/nonresident name
  */
-void Dmp_le_lx_tbls( void )
-/*************************/
+static unsigned_8 dmp_res_nonres_nam( void )
+/******************************************/
 {
-    unsigned_32     size;
+    char                    resident[256];
+    unsigned_16             entry_index;
+    unsigned_8              len;
 
-    Banner( "Resident Names Table" );
-    dmp_res_nonres_tab( New_exe_off + Os2_386_head.resname_off );
-    Dmp_fixpage_tab( New_exe_off + Os2_386_head.fixpage_off,
-                    Os2_386_head.fixrec_off - Os2_386_head.fixpage_off );
-    Dmp_fixrec_tab( New_exe_off + Os2_386_head.fixrec_off );
-    size = Os2_386_head.impproc_off - Os2_386_head.impmod_off;
-    if( size > 1 ) {
+    len = read_res_nonres_nam( resident, &entry_index );
+    if( len ) {
+        if( Form == FORM_NE ) {
+            Wdputs( resident );
+            Dmp_ordinal( entry_index );
+        } else {
+            Wdputs( "ordinal " );
+            Puthex( entry_index, 4 );
+            Wdputs( ": " );
+            Wdputs( resident );
+        }
         Wdputslc( "\n" );
-        Banner( "Import Module Name Table" );
-        dmp_imp_tab( New_exe_off + Os2_386_head.impmod_off, size );
     }
-    size = Os2_386_head.fixup_size + Os2_386_head.fixpage_off
-                    - Os2_386_head.impproc_off;
-    if( size > 1 ) {
-        Wdputslc( "\n" );
-        Banner( "Import Procedure Name Table" );
-        dmp_imp_tab( New_exe_off + Os2_386_head.impproc_off, size );
-    }
-    dmp_ent_tab( New_exe_off + Os2_386_head.entry_off );
-    Wdputslc( "\n" );
-    Banner( "Nonresident Names Table" );
-    dmp_res_nonres_tab( Os2_386_head.nonres_off );
+    return( len );
 }
 
 /*
@@ -96,44 +89,10 @@ void Dmp_le_lx_tbls( void )
 static void dmp_res_nonres_tab( unsigned_32 res_nam_tab )
 /*******************************************************/
 {
-    unsigned_8                      string_len;
-
     if( res_nam_tab <= New_exe_off ) return;
     Wlseek( res_nam_tab );
-    for( ;; ) {
-        Wread( &string_len, sizeof( unsigned_8 ) );
-        if( string_len == 0 ) {
-            return;
-        }
-        dmp_res_nonres_nam( string_len );
-    }
-}
-
-/*
- * Dump a resident/nonresident name
- */
-static void dmp_res_nonres_nam( unsigned_16 string_len )
-/******************************************************/
-{
-    char *                          resident;
-    unsigned_16                     entry_index;
-
-    resident = alloca( string_len + 2 );
-    if( resident == NULL ) {
-        Wdputslc( "Error! Dynamic memory exausted.\n" );
-        longjmp( Se_env, 1 );
-    }
-    Wread( resident, string_len );
-    Wread( &entry_index, sizeof( unsigned_16 ) );
-    resident[ string_len ] = '\0';
-    Wdputs( resident );
-    if( Form == FORM_NE ) {
-        Dmp_ordinal( entry_index );
-    } else {
-        Wdputs( "   ordinal = " );
-        Puthex( entry_index, 4 );
-    }
-    Wdputslc( "\n" );
+    while( dmp_res_nonres_nam() )
+        ;
 }
 
 /*
@@ -142,9 +101,9 @@ static void dmp_res_nonres_nam( unsigned_16 string_len )
 static void dmp_imp_tab( unsigned_32 proc_off, unsigned_32 size_proc )
 /********************************************************************/
 {
-    unsigned_8                      string_len;
-    unsigned_16                     size;
-    char *                          imp_nam;
+    unsigned_8              string_len;
+    unsigned_16             size;
+    char                    *imp_nam;
 
     Wlseek( proc_off );
     for( size = 0; size < size_proc; size += string_len + 1 ) {
@@ -230,41 +189,8 @@ static void dmp_import_tab( unsigned_32 imp_nam_tab )
 /*
  * Dump the Entry Table
  */
-static void dmp_ent_tab( unsigned_32 ent_tab )
-/********************************************/
-{
-    flat_bundle_prefix      ent_bund_pfx;
-
-    Wlseek( ent_tab );
-    Wread( &ent_bund_pfx, sizeof( flat_bundle_prefix ) );
-    if( !ent_bund_pfx.b32_cnt ) {
-        return;
-    }
-    Wdputslc( "\n" );
-    Banner( "Entry Point Table" );
-    for( ; ent_bund_pfx.b32_cnt != 0; ) {
-        Wdputs( "number of entries in bundle = " );
-        Puthex( ent_bund_pfx.b32_cnt, 2 );
-        Wdputslc( "\ntype = " );
-        Puthex( ent_bund_pfx.b32_type, 2 );
-        if( ent_bund_pfx.b32_type != FLT_BNDL_EMPTY ) {
-            Wdputslc( "\nobject number = " );
-            Puthex( ent_bund_pfx.b32_obj, 4 );
-        }
-        Wdputslc( "\n" );
-        for( ; ent_bund_pfx.b32_cnt != 0; ent_bund_pfx.b32_cnt-- ) {
-            dmp_ent_type( ent_bund_pfx.b32_type );
-        }
-        Wread( &ent_bund_pfx, sizeof( flat_bundle_prefix ) );
-    }
-    Wdputslc( "\n" );
-}
-
-/*
- * Dump the Entry Table
- */
-static void dmp_ent_type( unsigned_8 type )
-/*****************************************/
+static void dmp_ent_type( unsigned_8 type, unsigned ordinal )
+/***********************************************************/
 {
     flat_bundle_entry32     ent_bund32;
     flat_bundle_entry16     ent_bund16;
@@ -276,17 +202,24 @@ static void dmp_ent_type( unsigned_8 type )
         break;
     case FLT_BNDL_ENTRY16:
         Wread( &ent_bund16, sizeof( flat_bundle_entry16 ) );
-        Wdputslc( "\nflags = " );
+        Wdputslc( "\nordinal = " );
+        Puthex( ordinal, 4 );
+        Wdputs( "   flags = " );
         Puthex( ent_bund16.e32_flags, 2 );
         Wdputs( "   offset = " );
         Puthex( ent_bund16.e32_offset, 4 );
         if( ent_bund16.e32_flags & ENTRY_EXPORTED ) {
             Wdputs( "  EXPORTED" );
         }
+        if( ent_bund16.e32_flags & ENTRY_SHARED ) {
+            Wdputs( "  SHARED DATA" );
+        }
         break;
     case FLT_BNDL_GATE16:
         Wread( &gate_bund, sizeof( flat_bundle_gate16 ) );
-        Wdputslc( "\nflags = " );
+        Wdputslc( "\nordinal = " );
+        Puthex( ordinal, 4 );
+        Wdputs( "   flags = " );
         Puthex( gate_bund.e32_flags, 2 );
         Wdputs( "   offset = " );
         Puthex( gate_bund.offset, 4 );
@@ -295,20 +228,30 @@ static void dmp_ent_type( unsigned_8 type )
         if( gate_bund.e32_flags & ENTRY_EXPORTED ) {
             Wdputs( "  EXPORTED" );
         }
+        if( gate_bund.e32_flags & ENTRY_SHARED ) {
+            Wdputs( "  SHARED DATA" );
+        }
         break;
     case FLT_BNDL_ENTRY32:
         Wread( &ent_bund32, sizeof( flat_bundle_entry32 ) );
-        Wdputslc( "\nflags = " );
+        Wdputslc( "\nordinal = " );
+        Puthex( ordinal, 4 );
+        Wdputs( "   flags = " );
         Puthex( ent_bund32.e32_flags, 2 );
         Wdputs( "   offset = " );
         Puthex( ent_bund32.e32_offset, 8 );
         if( ent_bund32.e32_flags & ENTRY_EXPORTED ) {
             Wdputs( "  EXPORTED" );
         }
+        if( ent_bund32.e32_flags & ENTRY_SHARED ) {
+            Wdputs( "  SHARED DATA" );
+        }
         break;
     case FLT_BNDL_ENTRYFWD:
         Wread( &ent_bund_fwd, sizeof( flat_bundle_entryfwd ) );
-        Wdputslc( "\nflags = " );
+        Wdputslc( "\nordinal = " );
+        Puthex( ordinal, 4 );
+        Wdputs( "   flags = " );
         Puthex( ent_bund_fwd.e32_flags, 2 );
         Wdputs( "   module ordinal = " );
         Puthex( ent_bund_fwd.modord, 4 );
@@ -317,8 +260,101 @@ static void dmp_ent_type( unsigned_8 type )
         if( ent_bund_fwd.e32_flags & ENTRY_EXPORTED ) {
             Wdputs( "  EXPORTED" );
         }
+        if( ent_bund_fwd.e32_flags & ENTRY_SHARED ) {
+            Wdputs( "  SHARED DATA" );
+        }
         break;
     }
+}
+
+/*
+ * Dump the Entry Table
+ */
+static void dmp_ent_tab( unsigned_32 ent_tab )
+/********************************************/
+{
+    flat_null_prefix        ent_bund_pfx;
+    unsigned                ordinal = 1;
+    unsigned_16             object;
+    unsigned                i;
+
+    Wlseek( ent_tab );
+    Wread( &ent_bund_pfx, sizeof( ent_bund_pfx ) );
+    if( !ent_bund_pfx.b32_cnt ) {
+        return;
+    }
+    Wdputslc( "\n" );
+    Banner( "Entry Point Table" );
+    for( ; ent_bund_pfx.b32_cnt != 0; ) {
+        Wdputs( "\nnumber of entries in bundle = " );
+        Puthex( ent_bund_pfx.b32_cnt, 2 );
+        Wdputslc( "\ntype = " );
+        Puthex( ent_bund_pfx.b32_type, 2 );
+        if( ent_bund_pfx.b32_type != FLT_BNDL_EMPTY ) {
+            Wread( &object, sizeof( object ) );
+            Wdputslc( "\nobject number = " );
+            Puthex( object, 4 );
+        }
+        Wdputslc( "\n" );
+        for( i = 0; i < ent_bund_pfx.b32_cnt; ++i ) {
+            dmp_ent_type( ent_bund_pfx.b32_type, ordinal++ );
+        }
+        Wdputslc( "\n" );
+        Wread( &ent_bund_pfx, sizeof( ent_bund_pfx ) );
+    }
+    Wdputslc( "\n" );
+}
+
+/*
+ * allocate a new int_entry_pnt structure
+ */
+static struct int_entry_pnt *new_ent_pnt( void )
+/**********************************************/
+{
+    struct int_entry_pnt    *new_ent;
+
+    new_ent = Wmalloc( sizeof( struct int_entry_pnt ) );
+    new_ent->next = Entry_pnts;
+    Entry_pnts = new_ent;
+    return( new_ent );
+}
+
+static void *dmp_fixed_seg_ent_pnts( unsigned_16 num_ent_pnts,
+        void *ent_pnts, unsigned_16 ent_pnt_index, unsigned_16 seg_num )
+/**********************************************************************/
+{
+    struct fixed_record             *fix_ent;
+    struct int_entry_pnt            *new;
+
+    fix_ent = ent_pnts;
+    for( ; num_ent_pnts != 0; num_ent_pnts-- ) {
+        new = new_ent_pnt();
+        new->ordinal = ent_pnt_index++;
+        new->seg_num = seg_num;
+        new->offset = fix_ent->entry;
+        new->ent_flag = fix_ent->info;
+        ++fix_ent;
+    }
+    return( fix_ent );
+}
+
+static void *dmp_movable_seg_ent_pnts( unsigned_16 num_ent_pnts,
+                        void *ent_pnts, unsigned_16 ent_pnt_index )
+/*****************************************************************/
+{
+    struct movable_record           *mov_ent;
+    struct int_entry_pnt            *new;
+
+    mov_ent = ent_pnts;
+    for( ; num_ent_pnts != 0; num_ent_pnts-- ) {
+        new = new_ent_pnt();
+        new->ordinal = ent_pnt_index++;
+        new->ent_flag = mov_ent->info;
+        new->seg_num = mov_ent->entrynum;
+        new->offset = mov_ent->entry;
+        ++mov_ent;
+    }
+    return( mov_ent );
 }
 
 /*
@@ -360,56 +396,26 @@ static void prs_ent_tab( unsigned_32 ent_tab, unsigned_16 ent_tab_len )
     free( init_ent_bund );
 }
 
-void *dmp_fixed_seg_ent_pnts( unsigned_16 num_ent_pnts,
-        void *ent_pnts, unsigned_16 ent_pnt_index, unsigned_16 seg_num )
-/**********************************************************************/
+static void dmp_an_ord( struct int_entry_pnt *find )
+/**************************************************/
 {
-    struct fixed_record             *fix_ent;
-    struct int_entry_pnt            *new;
+    unsigned_16     flag;
 
-    fix_ent = ent_pnts;
-    for( ; num_ent_pnts != 0; num_ent_pnts-- ) {
-        new = new_ent_pnt();
-        new->ordinal = ent_pnt_index++;
-        new->seg_num = seg_num;
-        new->offset = fix_ent->entry;
-        new->ent_flag = fix_ent->info;
-        ++fix_ent;
+    Wdputc( '.' );
+    Putdec( find->ordinal );
+    Wdputs( " seg " );
+    Puthex( find->seg_num, 4 );
+    Wdputs( " off " );
+    Puthex( find->offset, 4 );
+    Wdputs( " parm " );
+    flag = find->ent_flag;
+    Puthex( flag >> IOPL_WORD_SHIFT, 4 );
+    if( flag & ENTRY_EXPORTED ) {
+        Wdputs( " EXPORTED" );
     }
-    return( fix_ent );
-}
-
-void *dmp_movable_seg_ent_pnts( unsigned_16 num_ent_pnts,
-                        void *ent_pnts, unsigned_16 ent_pnt_index )
-/*****************************************************************/
-{
-    struct movable_record           *mov_ent;
-    struct int_entry_pnt            *new;
-
-    mov_ent = ent_pnts;
-    for( ; num_ent_pnts != 0; num_ent_pnts-- ) {
-        new = new_ent_pnt();
-        new->ordinal = ent_pnt_index++;
-        new->ent_flag = mov_ent->info;
-        new->seg_num = mov_ent->entrynum;
-        new->offset = mov_ent->entry;
-        ++mov_ent;
+    if( flag & ENTRY_SHARED ) {
+        Wdputs( "|SHAREDATA" );
     }
-    return( mov_ent );
-}
-
-/*
- * allocate a new int_entry_pnt structure
- */
-struct int_entry_pnt *new_ent_pnt( void )
-/***************************************/
-{
-    struct int_entry_pnt    *new_ent;
-
-    new_ent = Wmalloc( sizeof( struct int_entry_pnt ) );
-    new_ent->next = Entry_pnts;
-    Entry_pnts = new_ent;
-    return( new_ent );
 }
 
 /*
@@ -449,24 +455,156 @@ static void dmp_entry_tab( void )
     }
 }
 
-static void dmp_an_ord( struct int_entry_pnt *find )
-/**************************************************/
+/*
+ * Dump the tables
+ */
+void Dmp_ne_tbls( void )
+/**********************/
 {
-    unsigned_16     flag;
+    prs_ent_tab( New_exe_off + Os2_head.entry_off, Os2_head.entry_size );
+    Banner( "Resident Names Table" );
+    dmp_res_nonres_tab( New_exe_off + Os2_head.resident_off );
+    dmp_mod_ref_tab( New_exe_off + Os2_head.module_off, Os2_head.modrefs );
+    if( Os2_head.import_off != Os2_head.entry_off )
+        dmp_import_tab( New_exe_off + Os2_head.import_off );
+    dmp_entry_tab();
+    Wdputslc( "\n" );
+    Banner( "Nonresident Names Table" );
+    dmp_res_nonres_tab( Os2_head.nonres_off );
+    Dmp_relocs();
+}
 
-    Wdputc( '.' );
-    Putdec( find->ordinal );
-    Wdputs( " seg " );
-    Puthex( find->seg_num, 4 );
-    Wdputs( " off " );
-    Puthex( find->offset, 4 );
-    Wdputs( " parm " );
-    flag = find->ent_flag;
-    Puthex( flag >> IOPL_WORD_SHIFT, 4 );
-    if( flag & ENTRY_EXPORTED ) {
-        Wdputs( " EXPORTED" );
+/*
+ * Dump the tables
+ */
+void Dmp_le_lx_tbls( void )
+/*************************/
+{
+    unsigned_32     size;
+
+    Banner( "Resident Names Table" );
+    dmp_res_nonres_tab( New_exe_off + Os2_386_head.resname_off );
+    Dmp_fixpage_tab( New_exe_off + Os2_386_head.fixpage_off,
+                    Os2_386_head.fixrec_off - Os2_386_head.fixpage_off );
+    Dmp_fixrec_tab( New_exe_off + Os2_386_head.fixrec_off );
+    size = Os2_386_head.impproc_off - Os2_386_head.impmod_off;
+    if( size > 1 ) {
+        Wdputslc( "\n" );
+        Banner( "Import Module Name Table" );
+        dmp_imp_tab( New_exe_off + Os2_386_head.impmod_off, size );
     }
-    if( flag & ENTRY_SHARED ) {
-        Wdputs( "|SHAREDATA" );
+    size = Os2_386_head.fixup_size + Os2_386_head.fixpage_off
+                    - Os2_386_head.impproc_off;
+    if( size > 1 ) {
+        Wdputslc( "\n" );
+        Banner( "Import Procedure Name Table" );
+        dmp_imp_tab( New_exe_off + Os2_386_head.impproc_off, size );
     }
+    dmp_ent_tab( New_exe_off + Os2_386_head.entry_off );
+    Wdputslc( "\n" );
+    Banner( "Nonresident Names Table" );
+    dmp_res_nonres_tab( Os2_386_head.nonres_off );
+}
+
+static void dump_exports( void )
+/******************************/
+{
+    unsigned_8      string_len;
+    char            name[256];
+    unsigned_16     ordinal;
+
+    while( (string_len = read_res_nonres_nam( name, &ordinal )) != 0 ) {
+        Wdputs( "    " );
+        Wdputs( name );
+        while( string_len++ < 43 ) {
+            Wdputc( ' ' );
+        }
+        Wdputs( " @" );
+        Putdec( ordinal );
+        Wdputslc( "\n" );
+    }
+}
+
+/*
+ * Dump the NE/LE/LX exports table
+ */
+bool Dmp_os2_exports( void )
+/**************************/
+{
+    unsigned_32     res_nam_tab;
+    char            name[256];
+    unsigned_16     ordinal;
+
+    /* Check executable format; handle stubless modules */
+    Wread( &Dos_head, sizeof( Dos_head ) );
+    if( Dos_head.signature == DOS_SIGNATURE ) {
+        if( Dos_head.reloc_offset != OS2_EXE_HEADER_FOLLOWS ) {
+            return( 0 );
+        }
+        Wlseek( OS2_NE_OFFSET );
+        Wread( &New_exe_off, sizeof( New_exe_off ) );
+    } else if( Dos_head.signature == OSF_FLAT_LX_SIGNATURE
+      || Dos_head.signature == OSF_FLAT_SIGNATURE
+      || Dos_head.signature == OS2_SIGNATURE_WORD ) {
+        New_exe_off = 0;
+    }
+
+    /* Read appropriate header */
+    Wlseek( New_exe_off );
+    Wread( &Os2_386_head, sizeof( Os2_386_head ) );
+    if( Os2_386_head.signature == OS2_SIGNATURE_WORD ) {
+        Form = FORM_NE;
+        Wlseek( New_exe_off );
+        Wread( &Os2_head, sizeof( Os2_head ) );
+    } else {
+        if( Os2_386_head.signature == OSF_FLAT_SIGNATURE ) {
+            Form = FORM_LE;
+        } else if( Os2_386_head.signature == OSF_FLAT_LX_SIGNATURE ) {
+            Form = FORM_LX;
+        } else {
+            return( 0 );
+        }
+    }
+
+    if( Form == FORM_NE ) {
+        res_nam_tab = New_exe_off + Os2_head.resident_off;
+    } else {
+        res_nam_tab = New_exe_off + Os2_386_head.resname_off;
+    }
+    if( res_nam_tab == 0 ) return( 0 );
+
+    /* Read and print module name */
+    Wlseek( res_nam_tab );
+    if( read_res_nonres_nam( name, &ordinal ) == 0 ) {
+        return( 0 );
+    }
+    Wdputs( "LIBRARY " );
+    Wdputs( name );
+    Wdputslc( "\n" );
+    Wdputslc( "EXPORTS\n" );
+
+    /* Print exports in resident table */
+    dump_exports();
+
+    /* Seek to non-resident table */
+    if( Form == FORM_NE ) {
+        res_nam_tab = Os2_head.nonres_off;
+    } else {
+        res_nam_tab = Os2_386_head.nonres_off;
+    }
+    if( res_nam_tab == 0 ) return( 1 );
+    Wlseek( res_nam_tab );
+
+    /* See if there is comment */
+    if( read_res_nonres_nam( name, &ordinal ) == 0 ) {
+        return( 1 );
+    }
+    if( ordinal != 0 ) {
+        Wlseek( res_nam_tab );  /* No comment, seek back */
+    }
+
+    /* Print exports in non-resident table */
+    dump_exports();
+
+    return( 1 );
 }

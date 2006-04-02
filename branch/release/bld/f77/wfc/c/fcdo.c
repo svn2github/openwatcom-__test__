@@ -39,7 +39,8 @@
 #include "cg.h"
 #include "tmpdefs.h"
 #include "symbol.h"
-#include "fcodes.h"
+#include "emitobj.h"
+#include "fctypes.h"
 
 //=================== Back End Code Generation Routines ====================
 
@@ -54,15 +55,10 @@ extern  cg_name         CGTrash(cg_name);
 
 //=========================================================================
 
-extern  signed_32       GetConst32(void);
-extern  pointer         GetPtr(void);
-extern  unsigned_16     GetU16(void);
 extern  cg_name         GetTypedValue(void);
 extern  cg_name         SymValue(sym_id);
 extern  cg_name         SymAddr(sym_id);
 extern  label_handle    GetLabel(label_id);
-extern  cg_type         F772CGType(sym_id);
-extern  cg_type         GetType(int);
 
 
 void    FCDoBegin() {

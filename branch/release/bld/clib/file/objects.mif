@@ -26,6 +26,7 @@
 !inject statwnt.obj                      nt nta ntp
 !inject tempnam.obj  d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject tmpnm.obj    d16 d32             nt nta ntp nvc nvl o16 o32 q16 q32 w16 w32 osi l32 lpc lmp
+!inject tmpnm_s.obj  d16 d32             nt nta ntp nvc nvl o16 o32 q16 q32 w16 w32 osi l32 lpc lmp
 !inject u64findf.obj d16 d32             nt nta ntp         o16 o32         w16 w32
 !inject u64findn.obj d16 d32             nt nta ntp         o16 o32         w16 w32
 !inject u64stat.obj  d16 d32                                o16 o32         w16 w32
@@ -52,15 +53,24 @@
 !inject utimewnt.obj                     nt nta ntp
 !inject utempnam.obj d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject utmpnm.obj   d16 d32             nt nta ntp         o16 o32         w16 w32
+!inject utmpnm_s.obj d16 d32             nt nta ntp         o16 o32         w16 w32
 !inject uutim.obj    d16 d32                                                w16 w32
 !inject uutimos2.obj                                        o16 o32
 !inject uutimwnt.obj                     nt nta ntp
 
 !include ../../../../objlist.mif
 
+stat_opts    =-I"$(clib_dir)/handleio/h"
+statos2_opts =-I"$(clib_dir)/handleio/h"
+statwnt_opts =-I"$(clib_dir)/handleio/h"
+64stawnt_opts=-I"$(clib_dir)/handleio/h"
+ustat_opts   =-I"$(clib_dir)/handleio/h"
+ustatos2_opts=-I"$(clib_dir)/handleio/h"
+ustatwnt_opts=-I"$(clib_dir)/handleio/h"
+u64stwnt_opts=-I"$(clib_dir)/handleio/h"
+
 stat_postopts   =-os
 statos2_postopts=-os
 statwnt_postopts=-os
 utmpnm_postopts =-os
 uremove_postopts=-os
-

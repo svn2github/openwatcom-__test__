@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Emit DWARF symbol information.
 *
 ****************************************************************************/
 
@@ -70,17 +69,17 @@ extern  void            OutLabel(label_handle);
 extern  void            DoBigBckPtr(back_handle,offset);
 extern  name            *DeAlias(name*);
 extern  seg_id          SetOP(seg_id);
-extern  seg_id          AskCodeSeg();
+extern  seg_id          AskCodeSeg(void);
 extern  segment_id      AskSegID(pointer,cg_class);
 extern  sym_handle      AskForLblSym(label_handle);
-extern  offset          AskLocation();
+extern  offset          AskLocation(void);
 extern  void            SetLocation(offset);
-extern  offset          AskMaxSize();
+extern  offset          AskMaxSize(void);
 extern  void            SetBigLocation( long_offset loc );
-extern  long_offset     AskBigLocation();
-extern  long_offset     AskBigMaxSize();
+extern  long_offset     AskBigLocation(void);
+extern  long_offset     AskBigMaxSize(void);
 extern  offset          AskAddress(label_handle);
-extern  bool            NeedBaseSet();
+extern  bool            NeedBaseSet(void);
 extern  void            DataInt(short_offset);
 extern  void            DataLong( long );
 extern  void            DataBytes(unsigned_32,byte*);
@@ -94,7 +93,6 @@ extern uint             DFStkReg( void );
 extern uint             DFDisplayReg( void );
 extern void             DFFEPtrRef( sym_handle sym );
 extern char             GetMemModel( void );
-extern  bool            NeedBaseSet();
 extern  name            *DeAlias(name*);
 extern  name            *AllocUserTemp(pointer,type_class_def);
 extern  type_length     NewBase(name*);
@@ -427,6 +425,13 @@ static  void    FiniLineSegBck( void ){
 
 extern  void    DFSymRange( sym_handle sym, offset size ){
 /*********************************************************/
+    // I don't see what this is good for. The aranges for any
+    // comdat symbols will be taken care of by DFSegRange().
+    // Running this code may produce overlapping aranges that
+    // confuse the hell out of the debugger. However, not running
+    // this may cause debug information to be missing... call it
+    // a FIXME
+
     bck_info    *bck;
 
     if( !_IsModel( DBG_LOCALS | DBG_TYPES ) )return;
@@ -480,7 +485,14 @@ extern  void    DFBegCCU( seg_id code, dw_sym_handle dbg_pch ){
             OutLabel( bck->lbl );
             Pc_Low = bck;
             Pc_High = MakeLabel();
-            cu.flags = TRUE;
+            // Emitting DW_AT_low_pc and DW_AT_high_pc is valid *only* if the
+            // compilation unit's code is in a single contiguous block (see
+            // DWARF 2, section 3.1).
+            // I don't know how to find out at the time of this call if there's
+            // only one code segment or not, hence these attributes are always
+            // disabled. The low/high pc attribs should probably be handled by
+            // the linker.
+            cu.flags = FALSE;
             cu.segment_size = 0;
         }else{
             cu.flags = FALSE;

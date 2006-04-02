@@ -49,7 +49,6 @@ _DATA   segment byte 'DATA' PUBLIC
 _DATA   ends
 
 _TEXT   segment byte '_OVLCODE' PUBLIC
-        assume  CS:_TEXT
 
 XNAME   public, OVLSETRTN
 XNAME   public, CHPOVLLDR
@@ -64,8 +63,8 @@ XNAME   extrn,  OVLLOAD,     :near
         extrn   __OVLISRET__ :byte
 
 XPROC   CHPOVLLDR, near
-        mov     CS:__SaveRegs__+0,AX; save registers
-        mov     CS:__SaveRegs__+2,BX; ...
+        mov     __SaveRegs__+0,AX   ; save registers
+        mov     __SaveRegs__+2,BX   ; ...
         pop     BX                  ; remove return address offset
         mov     AX,CS:[BX]          ; get overlay to load
         pushf                       ; save flags
@@ -75,8 +74,8 @@ XNAME   call,   OVLSETRTN           ; change the next return address.
         popf                        ; restore flags
         add     BX,2                ; skip the overlay number
         push    BX                  ; restore return offset
-        mov     BX,CS:__SaveRegs__+2; restore registers
-        mov     AX,CS:__SaveRegs__+0; ...
+        mov     BX,__SaveRegs__+2   ; restore registers
+        mov     AX,__SaveRegs__+0   ; ...
         ret                         ; return
 XENDP   CHPOVLLDR
 
@@ -99,16 +98,16 @@ XPROC   OVLSETRTN, near
         mov     BP,SP                       ; get pointer to stack
         push    BX                          ; save BX
         push    AX                          ; save AX
-        mov     BX,CS:__BankStack__         ; get location of bank stack
-        add     CS:__BankStack__,ENTRY_SIZE ; push new entry
-        mov     CS:0[BX],AX                 ; save overlay number
-        mov     AX,6[BP]                    ; get return offset
-        mov     CS:2[BX],AX                 ; save return offset
-        mov     word ptr 6[BP],offset OvlReturn; patch in offset of OvlReturn
+        mov     BX,__BankStack__            ; get location of bank stack
+        add     __BankStack__,ENTRY_SIZE    ; push new entry
+        mov     CS:[BX],AX                  ; save overlay number
+        mov     AX,[BP+6]                   ; get return offset
+        mov     CS:[BX+2],AX                ; save return offset
+        mov     word ptr [BP+6],offset OvlReturn; patch in offset of OvlReturn
 ifndef OVL_SMALL
-        mov     AX,8[BP]                    ; get return segment
-        mov     CS:4[BX],AX                 ; save return segment
-        mov     8[BP],CS                    ; patch in segment of OvlReturn
+        mov     AX,[BP+8]                   ; get return segment
+        mov     CS:[BX+4],AX                ; save return segment
+        mov     [BP+8],CS                   ; patch in segment of OvlReturn
 endif
         pop     AX                          ; restore AX
         pop     BX                          ; restore BX
@@ -128,7 +127,7 @@ XNAME   call,   OVLLOAD                     ; - load the overlay.
 
         pop     AX                          ; - restore AX
 nope:                                       ; endif
-        mov     CS:__BankStack__,BX         ; store bank stack pointer
+        mov     __BankStack__,BX            ; store bank stack pointer
         ret
 PopEntry endp
 
@@ -139,44 +138,44 @@ else
 OvlReturn proc far
 endif
         ;       stash where I'm returning to
-        mov     CS:__SaveRegs__+0,BX        ; save BX
+        mov     __SaveRegs__+0,BX           ; save BX
         pushf                               ; save flags
-        mov     BX,CS:__BankStack__         ; get location of bank stack
+        mov     BX,__BankStack__            ; get location of bank stack
         sub     BX,ENTRY_SIZE               ; pop top entry
         push    AX                          ; save AX
 ifdef OVL_SMALL
-        mov     CS:__OVLCAUSE__+2,CS        ; stash return segment
+        mov     __OVLCAUSE__+2,CS           ; stash return segment
 else
-        mov     AX,CS:4[BX]                 ; stash return segment
-        mov     CS:__OVLCAUSE__+2,AX        ; ...
+        mov     AX,CS:[BX+4]                ; stash return segment
+        mov     __OVLCAUSE__+2,AX           ; ...
 endif
-        mov     AX,CS:2[BX]                 ; stash return offset
-        mov     CS:__OVLCAUSE__,AX          ; ...
-        mov     byte ptr CS:__OVLISRET__,1  ; indicate it's a return
+        mov     AX,CS:[BX+2]                ; stash return offset
+        mov     __OVLCAUSE__,AX             ; ...
+        mov     byte ptr __OVLISRET__,1     ; indicate it's a return
         pop     AX                          ; restore AX
         call    PopEntry                    ; reload overlay if required
         popf                                ; restore flags
 ifndef OVL_SMALL
-        push    CS:4[BX]                    ; push return segment
+        push    CS:[BX+4]                   ; push return segment
 endif
-        push    CS:2[BX]                    ; push return offset
-        mov     BX,CS:__SaveRegs__+0        ; restore registers
+        push    CS:[BX+2]                   ; push return offset
+        mov     BX,__SaveRegs__+0           ; restore registers
         ret
 OvlReturn endp
 
 ;; The following routines are used for C setjmp/longjmp support
 
 RetBankStack proc far
-        mov     AX,CS:__BankStack__
+        mov     AX,__BankStack__
         ret
 RetBankStack endp
 
 
 PurgeBankStack proc far
         push    BX
-lup:    cmp     AX,CS:__BankStack__
+lup:    cmp     AX,__BankStack__
         je      done
-        mov     BX,CS:__BankStack__         ; get location of bank stack
+        mov     BX,__BankStack__            ; get location of bank stack
         sub     BX,ENTRY_SIZE               ; pop top entry
         call    PopEntry
         jmp     lup
@@ -184,19 +183,22 @@ done:   pop     BX
         ret
 PurgeBankStack endp
 
+assume  DS:DGROUP
 
 XPROC   OVLPARINIT, near
         push    DS
         mov     AX,seg DGROUP
         mov     DS,AX
-        mov     word ptr DS:__get_ovl_stack,offset RetBankStack
-        mov     word ptr DS:__restore_ovl_stack,offset PurgeBankStack
-        mov     word ptr DS:__get_ovl_stack+2,CS
-        mov     word ptr DS:__restore_ovl_stack+2,CS
+        mov     word ptr __get_ovl_stack,offset RetBankStack
+        mov     word ptr __restore_ovl_stack,offset PurgeBankStack
+        mov     word ptr __get_ovl_stack+2,CS
+        mov     word ptr __restore_ovl_stack+2,CS
         mov     AL,1                ; signal that || overlay support is in.
         pop     DS
         ret
 XENDP   OVLPARINIT
+
+assume  DS:nothing
 
 ;; The following routine is used for debugger support
 
@@ -213,12 +215,12 @@ XPROC   CheckRetAddr, near
         cmp     word ptr [bx], offset OvlReturn ; is it the overlay return
         jne     not_ret             ; ... code offset?
         mov     dx,cs               ; is it the overlay return segment?
-        cmp     dx,2[bx]            ; ...
+        cmp     dx,[bx+2]           ; ...
         jne     not_ret             ; ...
         ; The address given is the overlay manager return code
         ; the section id has the number of levels down the overlay stack
         ; that the real address is to be found
-        mov     ax,4[bx]            ; get levels down
+        mov     ax,[bx+4]           ; get levels down
         inc     ax                  ; add one
 ifdef OVL_SMALL
         shl     ax,1                ; multiply by four
@@ -229,19 +231,19 @@ else
         shl     ax,1                ; ...
         add     ax,dx               ; ...
 endif
-        mov     si,CS:__BankStack__ ; get current bank stack
+        mov     si,__BankStack__    ; get current bank stack
         sub     si,ax               ; adjust to proper level
         xor     ax,ax               ; assume at bottom of bank stack
         cmp     si,offset __BankBeg__ ; are we at the bottom of the stack?
         je      bottom              ; if not then
         mov     ax,cs:[si-ENTRY_SIZE] ; - get true (previous)section number
 bottom:                             ; endif
-        mov     4[bx],ax            ; save section number
-        mov     ax,cs:2[si]         ; get true offset
-        mov     0[bx],ax            ; and save it
+        mov     [bx+4],ax           ; save section number
+        mov     ax,cs:[si+2]        ; get true offset
+        mov     [bx],ax             ; and save it
 ifndef OVL_SMALL
-        mov     ax,cs:4[si]         ; get true segment
-        mov     2[bx],ax            ; and save it
+        mov     ax,cs:[si+4]        ; get true segment
+        mov     [bx+2],ax           ; and save it
 endif
         mov     ax,1                ; return TRUE
 not_ret:pop     si                  ; restore registers

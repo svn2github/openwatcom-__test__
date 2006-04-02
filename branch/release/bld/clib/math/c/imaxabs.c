@@ -32,7 +32,9 @@
 #include "variety.h"
 #include <inttypes.h>
 
+
 _WCRTLINK intmax_t imaxabs( intmax_t j )
+/**************************************/
 {
     if( j < 0 )
         j = - j;

@@ -10,13 +10,15 @@ set PROJDIR=<CWD>
 #==================
     echo rm -f -r <PROJDIR>/<OBJDIR>
     rm -f -r <PROJDIR>/<OBJDIR>
+    echo rm -f wlsystem.lnk
+    rm -f wlsystem.lnk
 
 [ BLOCK <1> boot ]
 #=================
     echo Building the wlib bootstrap
+    wsplice -k Pwlsystem specs.sp wlsystem.lnk
     mkdir <PROJDIR>/<OBJDIR>
     cdsay <PROJDIR>/<OBJDIR>
-    cp -f ../linux386/whoami.h .
     wmake -h -f ../bootmake
-    <CPCMD> wlink <DEVDIR>/build/bin/wlink
+    <CPCMD> wl.exe <DEVDIR>/build/bin/wlink
     cdsay <PROJDIR>

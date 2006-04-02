@@ -33,7 +33,9 @@
 #define global
 #include "cvars.h"
 
-void InitGlobalVars( void ){
+
+void InitGlobalVars( void )
+{
     PCH_Start               = NULL; // start of precompiled memory block
     PCH_End                 = NULL; // end of precompiled memory block
     PCH_Macros              = NULL; // macros loaded from pre-compiled header
@@ -79,13 +81,9 @@ void InitGlobalVars( void ){
     GblSymCount             = 0;    /* total # of global symbols */
     LclSymCount             = 0;    /* total # of local and temporary symbols */
     FuncCount               = 0;    /* total # of functions defined in module */
-    ReclaimCount            = 0;    /* total # of reclaimed leaves */
-    AllocCount              = 0;    /* total # of allocs */
-    FreeCount               = 0;    /* total # of frees */
     SizeOfCount             = 0;    /* # of nested sizeof() expressions  */
     SymLevel                = 0;    /* current lex level (# of nested {) */
     HashValue               = 0;    /* hash value for identifier */
-    KwHashValue             = 0;    /* hash value for keyword */
     MacHashValue            = 0;    /* hash value for macro name */
     SavedId                 = NULL; /* saved id when doing look ahead */
     SavedHash               = 0;    /* hash value for saved id */
@@ -119,9 +117,7 @@ void InitGlobalVars( void ){
     SymMIN                  = 0;    /* builtin symbol for 'min(a,b)' */
     SymMAX                  = 0;    /* builtin symbol for 'max(a,b)' */
     SymMEMCMP               = 0;    /* builtin symbol for 'memcmp' func */
-    SymMEMCPY               = 0;    /* builtin symbol for 'memcpy' func */
     SpecialSyms             = 0;    /* builtin symbols (thread linked) */
-    NextSymHandle           = 0;    /* next handle for a symbol */
     CharSymHandle           = 0;    /* sym handle for "char" typedef */
     Sym_CS                  = 0;    /* sym handle for __segname("_CODE") ie. CS */
     Sym_SS                  = 0;    /* sym handle for __segname("_STACK")ie. SS */
@@ -138,7 +134,6 @@ void InitGlobalVars( void ){
     MacroDepth              = 0;
     NextMacro               = NULL;
     HashTab                 = NULL;
-
 
     GenSwitches             = 0;    /* target independant switches for code generator */
     TargetSwitches          = 0;    /* target specific code generator switches */
@@ -186,6 +181,7 @@ void InitGlobalVars( void ){
     B_UInt32                = 0;
     B_Int64                 = 0;
     B_UInt64                = 0;
+    B_Bool                  = 0;
 
     OptSize                 = 0;    /* 100 => make pgm small as possible */
     MsgFlags                = NULL; /* Bit mask of disabled messages */

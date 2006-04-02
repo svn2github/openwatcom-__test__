@@ -53,10 +53,10 @@
 #define MYABS( a )      ((a) < 0 ? -(a) : (a) )
 
 #ifdef __FPI__
-volatile int sig_count = 0;
-double a = 1.0;
-double b = 3.0;
-double q;
+volatile int    sig_count = 0;
+double          a = 1.0;
+double          b = 3.0;
+double          q;
 
 void my_handler( int sig, int fpe ) {
     if( sig == SIGFPE ) {
@@ -88,42 +88,6 @@ int matherr( struct _exception *err )
 }
 #endif
 
-void test_integer_math( void )
-{
-    div_t div_result;
-    ldiv_t ldiv_result;
-    int num[20], ctr;
-
-    printf( "Testing integer functions...\n" );
-    VERIFY( abs( -1 ) == 1 );
-    VERIFY( abs( 0 ) == 0 );
-    VERIFY( abs( 1 ) == 1 );
-    VERIFY( labs( -999999L ) == 999999L );
-    VERIFY( labs( 0L ) == 0L );
-    VERIFY( labs( 999999L ) == 999999L );
-    div_result = div( 100, 100 );
-    VERIFY( div_result.quot == 1 && div_result.rem == 0 );
-    div_result = div( 0, 100 );
-    VERIFY( div_result.quot == 0 && div_result.rem == 0 );
-    div_result = div( 101, 100 );
-    VERIFY( div_result.quot == 1 && div_result.rem == 1 );
-    ldiv_result = ldiv( 100000L, 100000L );
-    VERIFY( ldiv_result.quot == 1L && ldiv_result.rem == 0L );
-    ldiv_result = ldiv( 0L, 100000L );
-    VERIFY( ldiv_result.quot == 0L && ldiv_result.rem == 0L );
-    ldiv_result = ldiv( 101000L, 100000L );
-    VERIFY( ldiv_result.quot == 1L && ldiv_result.rem == 1000L );
-    for( ctr = 0; ctr < 20; ++ctr ) {
-        num[ctr] = rand();
-        VERIFY( num[ctr] >= 0 );
-    }
-    srand( 1 );
-    for( ctr = 0; ctr < 20; ++ctr ) {
-        num[ctr] -= rand();
-        VERIFY( num[ctr] == 0 );
-    }
-}
-
 void test_complex_math( void )
 {
     struct complex c = { 5.0, -12.0 };
@@ -134,7 +98,6 @@ void test_complex_math( void )
 
 void test_trig( void )
 {
-    //double num;
     printf( "Testing trigonometric functions...\n" );
     VERIFY( CompDbl( sin( PI ), 0.0 ) );
     VERIFY( CompDbl( sin( 0.0 ), 0.0 ) );
@@ -199,14 +162,14 @@ void test_fp_and_80x87_math( void )
 {
     double      dnum;
     int         inum;
-    #ifdef __FPI__
+#ifdef __FPI__
     unsigned    fp_status, fp_control, fp_mask, origbits, bits;
-    #endif
+#endif
 
     printf( "Testing other floating point " );
-    #ifdef __FPI__
+#ifdef __FPI__
     printf( "and 80x87 specific " );
-    #endif
+#endif
     printf( "functions...\n" );
     VERIFY( CompDbl( j0( 2.387 ), 0.009288 ) );
     VERIFY( CompDbl( j1( 2.387 ), 0.522941 ) );
@@ -252,7 +215,7 @@ void test_fp_and_80x87_math( void )
     VERIFY( pow( 1.0, 123456789.0 ) == 1.0 );
     VERIFY( pow( 2.0, 16.0 ) == 65536.0 );
     VERIFY( CompDbl( pow( E, log(1234.0) ), 1234.0 ) );
-    #ifdef __FPI__
+#ifdef __FPI__
     VERIFY( sqrt( -1 ) == 1 );
     // Now my_matherrno should == DOMAIN after calling sqrt( -1 )
     // If not, matherr() fails
@@ -298,12 +261,51 @@ void test_fp_and_80x87_math( void )
     q = a / b;
     VERIFY( sig_count == 0 );
     signal( SIGFPE, SIG_DFL );
-    #endif
+#endif
+}
+
+void test_fp_classification( void )
+{
+#if __STDC_VERSION__ >= 199901L
+    printf( "Testing C99 floating-point classification functions...\n" );
+
+    VERIFY( fpclassify( 0.0 ) == FP_ZERO );
+    VERIFY( fpclassify( 0.0f ) == FP_ZERO );
+    VERIFY( fpclassify( 0.0L ) == FP_ZERO );
+    VERIFY( fpclassify( INFINITY ) == FP_INFINITE );
+    VERIFY( fpclassify( -INFINITY ) == FP_INFINITE );
+    VERIFY( fpclassify( NAN ) == FP_NAN );
+    VERIFY( fpclassify( 1.0f ) == FP_NORMAL );
+    VERIFY( fpclassify( 0.3L ) == FP_NORMAL );
+    VERIFY( fpclassify( 423.e34 ) == FP_NORMAL );
+    VERIFY( isfinite( 0.0 ) );
+    VERIFY( isfinite( 1.23f ) );
+    VERIFY( isfinite( 4.56L ) );
+    VERIFY( !isfinite( NAN ) );
+    VERIFY( !isfinite( INFINITY ) );
+    VERIFY( !isinf( NAN ) );
+    VERIFY( isinf( INFINITY ) );
+    VERIFY( !isinf( 0.0L ) );
+    VERIFY( !isinf( 3.0 ) );
+    VERIFY( isnan( NAN ) );
+    VERIFY( !isnan( INFINITY ) );
+    VERIFY( !isnan( 0.0 ) );
+    VERIFY( !isnan( 3.0f ) );
+    VERIFY( !isnormal( NAN ) );
+    VERIFY( !isnormal( INFINITY ) );
+    VERIFY( !isnormal( 0.0 ) );
+    VERIFY( isnormal( .4 ) );
+    VERIFY( isnormal( 3.0f ) );
+    VERIFY( signbit( -1.0 ) );
+    VERIFY( !signbit( 1.0L ) );
+    VERIFY( !signbit( NAN ) );
+    VERIFY( signbit( -INFINITY ) );
+#endif
 }
 
 int CompDbl( double n1, double n2 )
 {
-    double num;
+    double  num;
 
     if( MYABS( n1 ) < 0.000001 && MYABS( n2 ) < 0.000001 ) return( TRUE );
     if( n1 == 0.0 || n2 == 0.0 ) {
@@ -318,9 +320,9 @@ int CompDbl( double n1, double n2 )
 
 void main( void )
 {
-    test_integer_math();
     test_complex_math();
     test_trig();
+    test_fp_classification();
     test_fp_and_80x87_math();
     printf( "Tests completed.\n" );
 }

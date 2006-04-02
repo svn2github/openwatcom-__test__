@@ -37,26 +37,20 @@
 #include "ftnstd.h"
 #include "global.h"
 #include "fcodes.h"
-#include "parmtype.h"
-#include "prdefn.h"
-#include "iodefn.h"
+#include "rtconst.h"
+#include "types.h"
+#include "iodefs.h"
 #include "fcgbls.h"
 #include "stmtsw.h"
 #include "opn.h"
 #include "cpopt.h"
+#include "emitobj.h"
 
-extern  void            EmitOp(unsigned_16);
 extern  bool            NotFormatted(void);
 extern  uint            IOIndex(void);
-extern  void            PushOpn(itnode *);
-extern  void            OutPtr(pointer);
-extern  void            OutU16(unsigned_16);
-extern  obj_ptr         ObjTell(void);
-extern  obj_ptr         ObjSeek(obj_ptr);
-extern  sym_id          GTempString(int);
+extern  sym_id          GTempString(uint);
 extern  bool            AuxIOStmt(void);
 extern  void            GStmtAddr(sym_id);
-extern  void            GenType(itnode *);
 extern  bool            Already(int);
 
 
@@ -65,7 +59,7 @@ void    GSetIOCB() {
 
 // Generate a call to set the IOCB.
 
-    EmitOp( RT_SET_IOCB );
+    EmitOp( FC_SET_IOCB );
 }
 
 
@@ -75,15 +69,15 @@ void    GStartIO() {
 // Generate code to invoke the run-time routine.
 
     if( !AuxIOStmt() && NotFormatted() ) {
-        EmitOp( RT_SET_NOFMT );
+        EmitOp( FC_SET_NOFMT );
     }
-    EmitOp( RT_IO_STMTS + IOIndex() );
+    EmitOp( FC_IO_STMTS + IOIndex() );
     // PRINT, READ and WRITE i/o statements can check for END= and ERR=
     // statement labels when RT_ENDIO is generated; auxilliary i/o
     // statements don't generate RT_ENDIO so generate F-Code to check
     // for statement labels.
     if( AuxIOStmt() || Already( IO_NAMELIST ) ) {
-        EmitOp( CHK_IO_STMT_LABEL );
+        EmitOp( FC_CHK_IO_STMT_LABEL );
     }
 }
 
@@ -95,11 +89,25 @@ void    GIOStruct( sym_id sd ) {
 
     PushOpn( CITNode );
     if( StmtProc == PR_READ ) {
-        EmitOp( INPUT_STRUCT );
+        EmitOp( FC_INPUT_STRUCT );
     } else {
-        EmitOp( OUTPUT_STRUCT );
+        EmitOp( FC_OUTPUT_STRUCT );
     }
     OutPtr( sd ); // structure definition
+}
+
+
+static  void    GIORoutine( TYPE typ, uint size ) {
+//=================================================
+
+    FCODE   op_code;
+
+    op_code = ParmType( typ, size ) - PT_LOG_1;
+    if( StmtProc == PR_READ ) {
+        EmitOp( op_code + FC_INP_LOG1 );
+    } else {
+        EmitOp( op_code + FC_OUT_LOG1 );
+    }
 }
 
 
@@ -113,30 +121,18 @@ void    GIOItem() {
 }
 
 
-static  void    GIORoutine( uint typ, uint size ) {
-//=================================================
-
-    typ = ParmType( typ, size );
-    if( StmtProc == PR_READ ) {
-        EmitOp( typ - PT_LOG_1 + RT_INP_LOG1 );
-    } else {
-        EmitOp( typ - PT_LOG_1 + RT_OUT_LOG1 );
-    }
-}
-
-
 void    GIOArray() {
 //==================
 
 // Generate code to do array i/o.
 
     if( StmtProc == PR_READ ) {
-        EmitOp( INP_ARRAY );
+        EmitOp( FC_INP_ARRAY );
     } else {
-        EmitOp( PRT_ARRAY );
+        EmitOp( FC_PRT_ARRAY );
     }
     OutPtr( CITNode->sym_ptr );
-    if( CITNode->opn & OPN_FLD ) {
+    if( CITNode->opn.us & USOPN_FLD ) {
         OutPtr( CITNode->value.st.field_id );
     } else {
         OutPtr( NULL );
@@ -150,9 +146,9 @@ void    GIOStructArray() {
 // Generate code to do structured array i/o.
 
     if( StmtProc == PR_READ ) {
-        EmitOp( STRUCT_INP_ARRAY );
+        EmitOp( FC_STRUCT_INP_ARRAY );
     } else {
-        EmitOp( STRUCT_PRT_ARRAY );
+        EmitOp( FC_STRUCT_PRT_ARRAY );
     }
     OutPtr( CITNode->sym_ptr );
 }
@@ -165,27 +161,27 @@ void    GStopIO() {
 // This is done for only PRINT, WRITE and READ statements.
 
     if( !Already( IO_NAMELIST ) ) {
-        EmitOp( RT_ENDIO );
+        EmitOp( FC_ENDIO );
     }
 }
 
 
-void    GPassValue( uint rtn ) {
-//==============================
+void    GPassValue( FCODE rtn ) {
+//===============================
 
 // Pass the value of CITNode on the stack and emit fcode for routine.
 
     PushOpn( CITNode );
     EmitOp( rtn );
-    if( ( rtn == RT_SET_UNIT ) || ( rtn == RT_SET_REC ) ||
-        ( rtn == RT_SET_RECL ) || ( rtn == RT_SET_BLOCKSIZE ) ) {
+    if( ( rtn == FC_SET_UNIT ) || ( rtn == FC_SET_REC ) ||
+        ( rtn == FC_SET_RECL ) || ( rtn == FC_SET_BLOCKSIZE ) ) {
         GenType( CITNode );
     }
 }
 
 
-void    GSetNameList( uint routine ) {
-//====================================
+void    GSetNameList( FCODE routine ) {
+//=====================================
 
 // Pass the address of NAMELIST data for run-time routine.
 
@@ -194,8 +190,8 @@ void    GSetNameList( uint routine ) {
 }
 
 
-void    GPassAddr( uint routine ) {
-//=================================
+void    GPassAddr( FCODE routine ) {
+//==================================
 
 // Pass the address of CITNode on the stack and emit fcode for routine.
 
@@ -204,8 +200,8 @@ void    GPassAddr( uint routine ) {
 }
 
 
-void    GPassStmtNo( sym_id sn, uint routine ) {
-//==============================================
+void    GPassStmtNo( sym_id sn, FCODE routine ) {
+//===============================================
 
 // Pass the label for a statement number. For example,
 //        PRINT 10, ...
@@ -216,14 +212,14 @@ void    GPassStmtNo( sym_id sn, uint routine ) {
 }
 
 
-void    GPassLabel( label_id label, uint routine ) {
+void    GPassLabel( label_id label, RTCODE routine ) {
 //==================================================
 
 // Pass the label identifying encoded format string.
 // Called when using
 //        PRINT <constant character expression>, ...
 
-    EmitOp( PASS_LABEL );
+    EmitOp( FC_PASS_LABEL );
     OutU16( routine );
     OutU16( label );
 }
@@ -237,7 +233,7 @@ void    GFmtVarSet() {
 //        PRINT I, ...
 // 10     FORMAT( ... )
 
-    EmitOp( RT_FMT_ASSIGN );
+    EmitOp( FC_FMT_ASSIGN );
     OutPtr( CITNode->sym_ptr );
 }
 
@@ -259,7 +255,7 @@ void    GFmtArrSet() {
 // Called when using
 //        PRINT <character array>, ...
 
-    EmitOp( RT_FMT_ARR_SCAN );
+    EmitOp( FC_FMT_ARR_SCAN );
     OutPtr( CITNode->sym_ptr );
     ChkExtendFmt();
 }
@@ -273,7 +269,7 @@ void    GFmtExprSet() {
 //        PRINT <character expression>, ...
 
     PushOpn( CITNode );
-    EmitOp( RT_FMT_SCAN );
+    EmitOp( FC_FMT_SCAN );
     ChkExtendFmt();
 }
 
@@ -283,7 +279,7 @@ void    GArrIntlSet() {
 
 // Set internal file pointer to array.
 
-    EmitOp( ARR_SET_INTL );
+    EmitOp( FC_ARR_SET_INTL );
     OutPtr( CITNode->sym_ptr );
     OutPtr( GTempString( 0 ) );
 }
@@ -295,7 +291,7 @@ void    GIntlSet() {
 // Set internal file pointer to character variable.
 
     PushOpn( CITNode );
-    EmitOp( RT_SET_INTL );
+    EmitOp( FC_SET_INTL );
 }
 
 
@@ -308,7 +304,7 @@ void    GCheckEOF( label_id label ) {
     obj_ptr     curr_obj;
 
     curr_obj = ObjSeek( AtEndFCode );
-    EmitOp( SET_ATEND );
+    EmitOp( FC_SET_ATEND );
     OutU16( label );
     ObjSeek( curr_obj );
 }
@@ -322,6 +318,6 @@ void    GNullEofStmt() {
 // RT_SET_END F-Code.
 
     AtEndFCode = ObjTell();
-    EmitOp( NULL_FCODE );
-    EmitOp( NULL_FCODE );
+    EmitOp( FC_NULL_FCODE );
+    EmitOp( FC_NULL_FCODE );
 }

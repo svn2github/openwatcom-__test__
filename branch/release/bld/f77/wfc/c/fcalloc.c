@@ -35,11 +35,12 @@
 //
 
 #include "ftnstd.h"
-#include "fcodes.h"
+#include "rtconst.h"
 #include "symbol.h"
 #include "wf77cg.h"
 #include "wf77defs.h"
 #include "falloc.h"
+#include "emitobj.h"
 
 //=================== Back End Code Generation Routines ====================
 
@@ -61,9 +62,7 @@ extern  unsigned long   BETypeLength(cg_type);
 
 //=========================================================================
 
-extern  call_handle     InitCall(int);
-extern  void            *GetPtr(void);
-extern  unsigned_16     GetU16(void);
+extern  call_handle     InitCall(RTCODE);
 extern  cg_name         XPop(void);
 extern  cg_name         XPopValue(cg_type);
 extern  cg_name         StructRef(cg_name,int);

@@ -2,7 +2,7 @@
 *
 *                            Open Watcom Project
 *
-*    Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
+*  Copyright (c) 2004-2006 The Open Watcom Contributors. All Rights Reserved.
 *
 *  ========================================================================
 *
@@ -107,7 +107,7 @@ bool advance_test( )
   return( rc );
 }
 
-#ifdef _NEVER
+#ifdef NEVER
 bool distance_test( )
 {
   bool rc = true;

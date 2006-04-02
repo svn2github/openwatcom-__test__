@@ -1,8 +1,7 @@
 /***************************************************************************
- * As of Nov 25/94 this file contains 13 shift/reduce conflicts
- *      -3 involving Y_MINUS
- *      -5 involving Y_LANGUAGE
- *      -5 involving Y_CHARACTERISTICS
+ * OS/2 Resource Compiler Grammar
+ * Worked out with much blood, sweat & tears, no thanks to IBM's atrocious
+ * "documentation". Reverse engineering rules.
  ***************************************************************************/
 
 /*** error tokens ***/
@@ -189,6 +188,7 @@
 %type <token>           dialogtemplate
 %type <dataelem>        diag-data-elements
 %type <nameorord>       ctl-class-name
+%type <token>           dialog-or-frame
 %type <diagctrllist>    diag-control-section
 %type <diagctrllist>    diag-control-stmts
 %type <diagctrl>        diag-control-stmt
@@ -259,6 +259,7 @@ resource
     | string-table-resource
     | message-table-resource
     | pragma-statment
+    | codepage-statement
     ;
 
 normal-resource
@@ -302,9 +303,13 @@ type-id
 
 pragma-statment
     : Y_POUND_PRAGMA Y_CODEPAGE  Y_LPAREN constant-expression Y_RPAREN
-      {}
+        { SemOS2SetCodepage( $4.Value ); }
     ;
 
+codepage-statement
+    : Y_CODEPAGE constant-expression
+        { SemOS2SetCodepage( $2.Value ); }
+    ;
 
 keyword-name
     : Y_ACCELTABLE
@@ -537,7 +542,7 @@ user-defined-resource
     : Y_RESOURCE type-id comma-opt name-id user-defined-data
         {
             SemAddResourceFree( $4, $2,
-                    MEMFLAG_PURE | MEMFLAG_MOVEABLE | MEMFLAG_DISCARDABLE, $5 );
+                    MEMFLAG_PURE | MEMFLAG_MOVEABLE, $5 );
         }
     | Y_RESOURCE type-id comma-opt name-id resource-options user-defined-data
         {
@@ -718,6 +723,8 @@ help-items
         { $$ = SemOS2NewHelpTable( $1 ); }
     | help-items help-item
         { $$ = SemOS2AddHelpItem( $2, $1 ); }
+    | /* nothing */
+        { $$ = NULL; }
     ;
 
 help-item
@@ -750,6 +757,8 @@ help-subitems
         { $$ = SemOS2NewHelpSubTable( $1 ); }
     | help-subitems help-subitem
         { $$ = SemOS2AddHelpSubItem( $2, $1 ); }
+    | /* nothing */
+        { $$ = NULL; }
     ;
 
 help-subitem
@@ -847,12 +856,12 @@ acc-item-option
 menu-resource
     : Y_MENU name-id menu-section
         { SemOS2WriteMenu( $2, MEMFLAG_PURE | MEMFLAG_MOVEABLE | MEMFLAG_DISCARDABLE,
-                    $3, Y_MENU ); }
+                    $3, Y_MENU, SemOS2DefaultCodepage() ); }
     | Y_MENU name-id resource-options menu-section
         {
             SemOS2CheckResFlags( &($3), 0, MEMFLAG_MOVEABLE | MEMFLAG_DISCARDABLE,
                             MEMFLAG_PURE );
-            SemOS2WriteMenu( $2, $3.flags, $4, Y_MENU );
+            SemOS2WriteMenu( $2, $3.flags, $4, Y_MENU, $3.codePage );
         }
     ;
 
@@ -868,6 +877,8 @@ menu-items
         { $$ = SemOS2NewMenu( $1 ); }
     | menu-items menu-item
         { $$ = SemOS2AddMenuItem( $1, $2 ); }
+    | /* nothing */
+        { $$ = NULL; }
     ;
 
 menu-id
@@ -1093,10 +1104,6 @@ diag-control-section
         { $$ = $2; }
     | Y_LBRACE diag-control-stmts Y_RBRACE
         { $$ = $2; }
-    | Y_BEGIN Y_END
-        { $$ = NULL; }
-    | Y_LBRACE Y_RBRACE
-        { $$ = NULL; }
     ;
 
 diag-data-elements
@@ -1286,9 +1293,10 @@ icon-parms
         {
             $$.Size.x = $1;
             $$.Size.y = $3;
-            $$.Size.width = $5;         /* ignore style */
+            $$.Size.width = $5;
             $$.Size.height = $7;
-            $$.Style.Mask = 0;
+            $$.Style.Mask  = 0;         /* no style given */
+            $$.Style.Value = 0;
         }
     | size-x comma-opt size-y comma-opt size-w comma-opt size-h comma-opt cntl-style
         {
@@ -1323,24 +1331,31 @@ cntl-text
     : name-id
     ;
 
+dialog-or-frame
+    : Y_DIALOG
+        { $$ = Y_DIALOG; }
+    | Y_FRAME
+        { $$ = Y_FRAME; }
+    ;
+
 dialog-stmt
-    : Y_DIALOG cntl-text-options presparam-list
+    : dialog-or-frame cntl-text-options presparam-list
         {
             IntMask mask = {0};
-            $$ = SemOS2SetWindowData( $2, mask, $3, NULL );
+            $$ = SemOS2SetWindowData( $2, mask, $3, NULL, $1 );
         }
-    | Y_DIALOG cntl-text-options Y_COMMA frame-style presparam-list
+    | dialog-or-frame cntl-text-options Y_COMMA frame-style presparam-list
         {
-            $$ = SemOS2SetWindowData( $2, $4, $5, NULL );
+            $$ = SemOS2SetWindowData( $2, $4, $5, NULL, $1 );
         }
-    | Y_DIALOG cntl-text-options presparam-list diag-control-section
+    | dialog-or-frame cntl-text-options presparam-list diag-control-section
         {
             IntMask mask = {0};
-            $$ = SemOS2SetWindowData( $2, mask, $3, $4 );
+            $$ = SemOS2SetWindowData( $2, mask, $3, $4, $1 );
         }
-    | Y_DIALOG cntl-text-options Y_COMMA frame-style presparam-list diag-control-section
+    | dialog-or-frame cntl-text-options Y_COMMA frame-style presparam-list diag-control-section
         {
-            $$ = SemOS2SetWindowData( $2, $4, $5, $6 );
+            $$ = SemOS2SetWindowData( $2, $4, $5, $6, $1 );
         }
     ;
 

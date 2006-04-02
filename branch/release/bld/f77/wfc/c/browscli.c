@@ -43,11 +43,12 @@
 #include "ftnstd.h"
 #include "errcod.h"
 #include "fio.h"
-#include "bglobal.h"
+#include "cioconst.h"
 #include "omodes.h"
 #include "browscli.h"
 #include "brow2elf.h"
 #include "fmemmgr.h"
+#include "ferror.h"
 
 #define SWAP( x, y )    {x^=y^=x^=y;}
 
@@ -57,7 +58,6 @@ static char                     initial_section_type;
 static uint_32          SymHandles[ 20 ];
 
 extern  void            Suicide(void);
-extern  void            Error(int,...);
 extern  file_handle     SDOpen(char *,int);
 extern  void            SDClose(file_handle);
 extern  void            SDSeek(file_handle,int,int);

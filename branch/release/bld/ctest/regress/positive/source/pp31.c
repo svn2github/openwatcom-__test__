@@ -12,7 +12,19 @@ The above should expand to:
 int j[] = { 123, 45, 67, 89, 10, 11, 12, };
 */
 
-int main() {
+#define g(x,...) x##__VA_ARGS__
+#define h(x,y)   x##y
+
+/* 1.4 erroneously warned in myfunc because T_BAD_TOKEN got through */
+#define RETURN_ANY(r) return r
+void myfunc(void)
+{
+     RETURN_ANY();
+}
+
+int ap, ple, apple;
+
+int main( void ) {
     if( sizeof( j ) / sizeof( j[0] ) != 7 )
         fail(__LINE__);
 
@@ -24,6 +36,12 @@ int main() {
         fail(__LINE__);
     if( j[6] != 12 )
         fail(__LINE__);
+
+    /* Some of the following used to crash the compiler */
+    g(ap,ple) = apple;
+    g(ap,)    = ap;
+    g(,ple)   = ple;
+    g(,) h(,)
 
     _PASS;
 }

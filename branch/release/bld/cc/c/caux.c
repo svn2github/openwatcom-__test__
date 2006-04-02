@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Management of #pragma aux information.
 *
 ****************************************************************************/
 
@@ -33,12 +32,11 @@
 #include "cvars.h"
 #include "pragdefn.h"
 #include "pdefn2.h"
-extern  void    CMemFree();
 
 
 struct aux_entry *AuxLookup( char *name )
 {
-    struct aux_entry *ent;
+    struct aux_entry    *ent;
 
     for( ent = AuxList; ent; ent = ent->next ) {
         if( strcmp( ent->name, name ) == 0 ) break;
@@ -53,7 +51,7 @@ local void FreeInfo( struct aux_info *info )            /* 18-aug-90 */
         CMemFree( info->code );
         info->code = NULL;
     }
-    if( info->parms != NULL && info->parms != DefaultParms ) {
+    if( !IsAuxParmsBuiltIn( info->parms ) ) {
         CMemFree( info->parms );
         info->parms = NULL;
     }
@@ -72,7 +70,7 @@ local void FreeInfo( struct aux_info *info )            /* 18-aug-90 */
 }
 
 
-void PragmaFini()
+void PragmaFini( void )
 {
     struct aux_entry    *next;
     void                *junk;
@@ -85,7 +83,7 @@ void PragmaFini()
                 next->info->use--;
             } else {
                 FreeInfo( next->info );
-                if( next->info != &DefaultInfo ) {
+                if( !IsAuxInfoBuiltIn( next->info ) ) {
                     CMemFree( next->info );
                 }
             }
@@ -113,4 +111,3 @@ void PragmaFini()
         CMemFree( junk );
     }
 }
-

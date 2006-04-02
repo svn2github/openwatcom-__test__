@@ -28,15 +28,15 @@ to be scanned for the conversion;
 .bull
 an optional
 .us pointer-type
-specification: one of "N" or "F";
+specification: one of "N" or "W";
 .do end
 .bull
 an optional
 .us type length
-specification: one of "h", "l", "L" or "I64";
+specification: one of "hh", "h", "l", "ll", "j", "z", "t", "L" or "I64";
 .bull
 a character that specifies the type of conversion to be performed: one
-of the characters "cCdefginopsSux[".
+of the characters "cCdeEfFgGinopsSuxX[".
 .endbull
 .np
 As each format directive in the format string is processed, the
@@ -91,11 +91,14 @@ and order to the conversion specifiers in the format string
 A pointer-type specification is used to indicate the type of pointer
 used to locate the next argument to be scanned:
 .begnote $setptnt 5
-.note F
+.note W
 pointer is a far pointer
 .note N
 pointer is a near pointer
 .endnote
+.np
+The pointer-type specification is only effective on platforms that use
+a segmented memory model, although it is always recognized.
 .do end
 .np
 The pointer type defaults to that used for data in the memory model
@@ -103,6 +106,16 @@ for which the program has been compiled.
 .np
 A type length specifier affects the conversion as follows:
 .begbull
+.bull
+"hh" causes a "d", "i", "o", "u" or "x" (integer) conversion to
+assign the converted value to an object of type
+.id signed char
+or
+.id unsigned char.
+.bull
+"hh" causes an "n" (read length assignment) operation to assign the
+number of characters that have been read to an object of type
+.id signed char.
 .bull
 "h" causes a "d", "i", "o", "u" or "x" (integer) conversion to
 assign the converted value to an object of type
@@ -132,7 +145,7 @@ struct fixpt foo2 =
 .bull
 "h" causes an "n" (read length assignment) operation to assign the
 number of characters that have been read to an object of type
-.id unsigned short int.
+.id short int.
 
 .if &'length(&wfunc.) ne 0 .do begin
 .bull
@@ -163,7 +176,7 @@ or
 .bull
 "l" causes an "n" (read length assignment) operation to assign the
 number of characters that have been read to an object of type
-.id unsigned long int.
+.id long int.
 .bull
 "l" causes an "e", "f" or "g" (floating-point) conversion to assign
 the converted value to an object of type
@@ -187,15 +200,50 @@ be converted to a 16-bit Unicode character string; otherwise it will
 not be converted.
 .do end
 
-.if &version ge 110 .do begin
 .bull
-.ix '__int64'
-"L" causes a "d", "i", "o", "u" or "x" (integer) conversion to
+"ll" causes a "d", "i", "o", "u" or "x" (integer) conversion to
 assign the converted value to an object of type
-.id __int64
+.id long long
 or
-.id unsigned __int64
-(e.g., %Ld).
+.id unsigned long long
+(e.g., %lld).
+.bull
+"ll" causes an "n" (read length assignment) operation to assign the
+number of characters that have been read to an object of type
+.id long long int.
+.bull
+.ix 'intmax_t'
+.ix 'uintmax_t'
+"j" causes a "d", "i", "o", "u" or "x" (integer) conversion to
+assign the converted value to an object of type
+.id intmax_t
+or
+.id uintmax_t.
+.bull
+"j" causes an "n" (read length assignment) operation to assign the
+number of characters that have been read to an object of type
+.id intmax_t.
+.bull
+.ix 'size_t'
+"z" causes a "d", "i", "o", "u" or "x" (integer) conversion to
+assign the converted value to an object of type
+.id size_t
+or the corresponding signed integer type.
+.bull
+"z" causes an "n" (read length assignment) operation to assign the
+number of characters that have been read to an object of signed integer
+type corresponding to
+.id size_t.
+.bull
+.ix 'ptrdiff_t'
+"t" causes a "d", "i", "o", "u" or "x" (integer) conversion to
+assign the converted value to an object of type
+.id ptrdiff_t
+or the corresponding unsigned integer type.
+.bull
+"t" causes an "n" (read length assignment) operation to assign the
+number of characters that have been read to an object of type
+.id ptrdiff_t.
 .bull
 .ix '__int64'
 "I64" causes a "d", "i", "o", "u" or "x" (integer) conversion to
@@ -204,8 +252,6 @@ assign the converted value to an object of type
 or
 .id unsigned __int64
 (e.g., %I64d).
-The "L" specifier provides the same functionality.
-.do end
 .bull
 .ix 'long double'
 "L" causes an "e", "f" or "g" (floating-point) conversion to assign
@@ -348,7 +394,10 @@ character.
 A conversion type specifier of "%" is treated as a single ordinary
 character that matches a single "%" character in the input data.
 A conversion type specifier other than those listed above causes
-scanning to terminate the function to return.
+scanning to terminate and the function to return.
+.np
+Conversion type specifiers "E", "F", "G", "X" have meaning identical to
+their lowercase equivalents.
 .np
 The line
 .blkcode begin
@@ -383,15 +432,15 @@ The program
 .blkcode begin
 #include <stdio.h>
 
-void main()
-  {
+void main( void )
+{
     char string1[80], string2[80];
 
     scanf( "%[abcdefghijklmnopqrstuvwxyz"
            "ABCDEFGHIJKLMNOPQRSTUVWZ ]%*2s%[^\n]",
            string1, string2 );
     printf( "%s\n%s\n", string1, string2 );
-  }
+}
 .blkcode end
 .blktext begin
 with input
@@ -422,10 +471,11 @@ to
 .blktext end
 .oldtext end
 .if &farfnc eq 0 .do begin
-.class ANSI
+.class ISO C90
+The I64 modifier is an extension to ISO C.
 .do end
 .el .do begin
-.class ANSI
-The F and N modifiers are extensions to ANSI.
+.class ISO C90
+The N, W pointer size modifiers and the I64 modifier are extensions to ISO C.
 .do end
 .system

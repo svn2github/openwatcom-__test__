@@ -12,6 +12,9 @@ wchar_t  *_ugetenv( const wchar_t *name );
 .ixfunc2 '&Process' &ufunc
 .do end
 .funcend
+.*
+.safealt
+.*
 .desc begin
 The &func function searches the environment list for an entry matching
 the string pointed to by
@@ -26,12 +29,7 @@ as if they were in upper case.
 .do end
 .pp
 Entries can be added to the environment list
-.if '&machsys' eq 'PP' .do begin
-in the
-.mono environ.ini
-file.
-.do end
-.el .if '&machsys' eq 'QNX' .do begin
+.if '&machsys' eq 'QNX' .do begin
 with the
 .qnxcmd export
 or with the
@@ -50,9 +48,7 @@ or
 functions.
 .do end
 .ix environment
-.if '&machsys' eq 'PP' .do begin
-.do end
-.el .if '&machsys' eq 'QNX' .do begin
+.if '&machsys' eq 'QNX' .do begin
 All entries in the environment list can be displayed by using the
 .qnxcmd export
 with no arguments.
@@ -65,19 +61,14 @@ with no arguments.
 .pp
 To assign a string to a variable and place it in the environment list:
 .millust begin
-.if '&machsys' eq 'PP' .do begin
-    TZ=PST8PDT
-.do end
-.el .if '&machsys' eq 'QNX' .do begin
+.if '&machsys' eq 'QNX' .do begin
     % export INCLUDE=/usr/include
 .do end
 .el .do begin
     C>SET INCLUDE=C:\WATCOM\H
 .do end
 .millust end
-.if '&machsys' eq 'PP' .do begin
-.do end
-.el .if '&machsys' eq 'QNX' .do begin
+.if '&machsys' eq 'QNX' .do begin
 .pp
 To see what variables are in the environment list, and their current
 assignments:
@@ -133,27 +124,31 @@ accepts a Unicode string argument and returns a pointer to a Unicode
 string.
 .do end
 .desc end
+.*
 .return begin
 The &func function returns a pointer to the string assigned to the
 environment variable if found, and NULL if no match was found.
 Note: the value returned should be duplicated if you intend to
 modify the contents of the string.
 .return end
+.*
 .see begin
 .im seeenv getenv
 .see end
+.*
 .exmp begin
 #include <stdio.h>
 #include <stdlib.h>
 .exmp break
-void main()
-  {
+void main( void )
+{
     char *path;
 .exmp break
     path = getenv( "INCLUDE" );
     if( path != NULL )
-      printf( "INCLUDE=%s\n", path );
-  }
+        printf( "INCLUDE=%s\n", path );
+}
 .exmp end
+.*
 .class ANSI
 .system

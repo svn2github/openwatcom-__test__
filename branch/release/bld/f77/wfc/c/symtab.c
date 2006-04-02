@@ -36,20 +36,19 @@
 #include "stmtsw.h"
 #include "progsw.h"
 #include "opn.h"
+#include "insert.h"
 
 extern  sym_id          STName(char *,int);
 extern  sym_id          STCommon(char *,int);
 extern  void            VSTInit(void);
 extern  sym_id          STNameSearch(char *,int);
 extern  void            InitImplTab(void);
-extern  byte            ImplType(char);
-extern  unsigned_16     ImplSize(char);
-extern  void            NameExt(int,sym_id);
+extern  TYPE            ImplType(char);
+extern  uint            ImplSize(char);
 extern  sym_id          FieldLookup(sym_id,char *,uint,intstar4 *);
 extern  sym_id          STNameList(char *,uint);
 extern  sym_id          FindNameList(char *,uint);
-extern  void            StructErr(uint,sym_id);
-extern  uint            MapTypes(uint,int);
+extern  TYPE            MapTypes(TYPE,uint);
 
 #define PROG_LEN        5
 char    ProgName[ PROG_LEN+1 ] = { 'F','M','A','I','N',

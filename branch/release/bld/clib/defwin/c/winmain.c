@@ -34,6 +34,8 @@
 #include <stdio.h>
 #include "strdup.h"
 #include "win.h"
+#include "widechar.h"
+#include "initarg.h"
 #ifdef __NT__
     #include <ctype.h>
 #endif
@@ -74,13 +76,10 @@ _WCRTLINK void  __FiniDefaultWin() {}
 
 #endif
 
-_WCRTLINK extern int        ___Argc;    /* argument count */
-_WCRTLINK extern char **    ___Argv;    /* argument vector */
-
 /*
  * DefaultWinMain - main windows entry point
  */
-_WCRTLINK int PASCAL DefaultWinMain( HINSTANCE inst, HINSTANCE previnst,
+int PASCAL __export DefaultWinMain( HINSTANCE inst, HINSTANCE previnst,
         LPSTR cmd, int show, int (*pmain)( int, char ** ) )
 {
     int rc;

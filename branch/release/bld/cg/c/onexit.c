@@ -33,39 +33,42 @@
 #include <signal.h>
 #include "standard.h"
 #include "cg.h"
+#include "cgmisc.h"
 #include "coderep.h"
 #include "feprotos.h"
 
-extern void             GrabTimer();
-extern void             ReleTimer();
-extern void             ScratchObj(void);
+extern void             GrabTimer( void );
+extern void             ReleTimer( void );
+extern void             ScratchObj( void );
 
 static  bool volatile   BrkFlag;
 static  bool            OnExitFlag = TRUE;
 
-void SigIntFunc( int sig_num ) {
-/******************************/
 
+void SigIntFunc( int sig_num )
+/****************************/
+{
     sig_num = sig_num;
     BrkFlag = TRUE;
 }
 
 
-void BrkInit() {
-/**************/
-
+void BrkInit( void )
+/******************/
+{
     signal( SIGINT, SigIntFunc );
 }
 
 
-void BrkFini() {
-/**************/
+void BrkFini( void )
+/******************/
+{
 }
 
 
-void InitOnExit() {
-/*****************/
-
+void InitOnExit( void )
+/*********************/
+{
     if( OnExitFlag ) {
         BrkInit();
         GrabTimer();
@@ -76,9 +79,9 @@ void InitOnExit() {
 }
 
 
-bool TBreak() {
-/*************/
-
+bool TBreak( void )
+/*****************/
+{
     int         brk;
 
     InitOnExit();
@@ -88,15 +91,16 @@ bool TBreak() {
 }
 
 
-void CauseTBreak() {
-/******************/
+void CauseTBreak( void )
+/**********************/
+{
     BrkFlag = TRUE;
 }
 
 
-void FatalError( char * str ) {
-/*****************************/
-
+void FatalError( char * str )
+/***************************/
+{
      ReleTimer();
      BrkFini();
      ScratchObj();

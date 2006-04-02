@@ -3,9 +3,12 @@
 void qsort( void *base,
             size_t num,
             size_t width,
-            int (*compar)
-                 ( const void *, const void *) );
+            int (*compar) ( const void *,
+                            const void *) );
 .funcend
+.*
+.safealt
+.*
 .desc begin
 The &func function sorts an array of
 .arg num
@@ -32,7 +35,7 @@ by Jon Louis Bentley and M. Douglas McIlroy in the article
 The &func function returns no value.
 .return end
 .see begin
-.seelist qsort bsearch
+.seelist qsort qsort_s bsearch bsearch_s
 .see end
 .exmp begin
 #include <stdio.h>
@@ -42,19 +45,19 @@ The &func function returns no value.
 char *CharVect[] = { "last", "middle", "first" };
 .exmp break
 int compare( const void *op1, const void *op2 )
-  {
+{
     const char **p1 = (const char **) op1;
     const char **p2 = (const char **) op2;
     return( strcmp( *p1, *p2 ) );
-  }
+}
 .exmp break
 void main()
-  {
+{
     qsort( CharVect, sizeof(CharVect)/sizeof(char *),
           sizeof(char *), compare );
     printf( "%s %s %s\n",
             CharVect[0], CharVect[1], CharVect[2] );
-  }
+}
 .exmp output
 first last middle
 .exmp end

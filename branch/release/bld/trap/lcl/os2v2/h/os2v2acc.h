@@ -31,7 +31,6 @@
 
 void   WriteRegs( uDB_t * );
 void   ReadRegs( uDB_t * );
-void   RecordModHandle( ULONG value );
 void   WriteLinear( char *data, ULONG lin, USHORT size );
 void   ReadLinear( char *data, ULONG lin, USHORT size );
 USHORT WriteBuffer( char *data, USHORT segv, ULONG offv, USHORT size );
@@ -44,10 +43,8 @@ void   SetTaskDirectories( void );
 bool   DebugExecute( uDB_t *buff, ULONG cmd, bool );
 int    IsUnknownGDTSeg( USHORT seg );
 
-extern  void    LoadHelperDLL();
-extern  void    EndLoadHelperDLL();
-extern  char    NPXType();
-extern  char    CPUType();
+extern  void    LoadHelperDLL( void );
+extern  void    EndLoadHelperDLL( void );
 
 extern  void    BreakPoint( ULONG );
 #pragma aux     BreakPoint = 0xCC parm [eax] aborts;

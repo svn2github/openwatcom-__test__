@@ -51,6 +51,8 @@
 #include "rtdata.h"
 #include "initfini.h"
 #include "rtinit.h"
+#include "widechar.h"
+#include "initarg.h"
 
 DWORD __TlsIndex = NO_INDEX;
 
@@ -77,7 +79,7 @@ static void __NullAccIOBRtn(void) {}
 static void __NullAccHeapRtn(void) {}
 static void __NullAccTDListRtn(void) {}
 
-_WCRTLINK struct thread_data  *(*__GetThreadPtr)() = &__SingleThread;
+_WCRTLINKD struct thread_data  *(*__GetThreadPtr)() = &__SingleThread;
 void    (*_AccessFileH)(int)     = &__NullAccessRtn;
 void    (*_ReleaseFileH)(int)    = &__NullAccessRtn;
 void    (*_AccessIOB)(void)      = &__NullAccIOBRtn;
@@ -102,13 +104,6 @@ _WCRTLINK void  (*__sig_fini_rtn)(void) = __sig_null_rtn;
 extern  char            _end;
 
 extern  char            *_Envptr;
-
-_WCRTLINK extern char   *_LpCmdLine;    /* pointer to command line */
-_WCRTLINK extern char   *_LpPgmName;    /* pointer to program name */
-          extern char   *_LpDllName;    /* pointer to dll name */
-_WCRTLINK extern wchar_t *_LpwCmdLine;  /* pointer to wide command line */
-_WCRTLINK extern wchar_t *_LpwPgmName;  /* pointer to wide program name */
-          extern wchar_t *_LpwDllName;  /* pointer to wide dll name */
 
 int                     __Is_DLL;       /* TRUE => DLL, else not a DLL */
 static char             *_cmd_ptr;

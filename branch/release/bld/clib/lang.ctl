@@ -10,6 +10,7 @@ cdsay .
 [ BLOCK <1> build rel2 ]
 #=======================
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
+    cdsay <PROJDIR>
 
 [ BLOCK <1> rel2 cprel2 acprel2 ]
 #================================
@@ -31,10 +32,12 @@ cdsay .
     <CPCMD> startup/library/msdos.386/ms_r/binmode.obj      <RELROOT>/rel2/lib386/dos/binmode.obj
     <CPCMD> startup/library/msdos.386/ms_r/commode.obj      <RELROOT>/rel2/lib386/dos/commode.obj
     <CPCMD> startup/library/msdos.386/ms_r/cstrtx32.obj     <RELROOT>/rel2/lib386/dos/cstrtx3r.obj
+    <CPCMD> startup/library/msdos.386/ms_r/dllstart.obj     <RELROOT>/rel2/lib386/dos/dllstrtr.obj
     <CPCMD> startup/library/msdos.386/ms_s/cstrtx32.obj     <RELROOT>/rel2/lib386/dos/cstrtx3s.obj
     <CPCMD> startup/library/msdos.386/ms_s/adsstart.obj     <RELROOT>/rel2/lib386/dos/adsstart.obj
     <CPCMD> startup/library/msdos.386/ms_s/adiestrt.obj     <RELROOT>/rel2/lib386/dos/adiestrt.obj
     <CPCMD> startup/library/msdos.386/ms_s/adifstrt.obj     <RELROOT>/rel2/lib386/dos/adifstrt.obj
+    <CPCMD> startup/library/msdos.386/ms_s/dllstart.obj     <RELROOT>/rel2/lib386/dos/dllstrts.obj
 
   [ IFDEF (os_dos os_os2 "") <2*> ]
     <CPCMD> library/msdos.286/mc/clibc.lib                  <RELROOT>/rel2/lib286/os2/dospmc.lib
@@ -104,12 +107,6 @@ cdsay .
     <CPCMD> startup/library/nw_clib.386/ms_s/binmode.obj    <RELROOT>/rel2/lib386/netware/binmode.obj
     <CPCMD> startup/library/nw_clib.386/ms_sd/binmode.obj   <RELROOT>/rel2/lib386/netware/binmoded.obj
 
-  [ IFDEF (cpu_axp) <2*> ]
-    <CPCMD> library/winnt.axp/_s/clib.lib                   <RELROOT>/rel2/libaxp/nt/clib.lib
-
-    <CPCMD> startup/library/winnt.axp/_s/binmode.obj        <RELROOT>/rel2/libaxp/nt/binmode.obj
-    <CPCMD> startup/library/winnt.axp/_s/commode.obj        <RELROOT>/rel2/libaxp/nt/commode.obj
-
   [ IFDEF (os_qnx) <2*> ]
     <CPCMD> library/qnx.286/mc/clibc.lib                    <RELROOT>/rel2/lib286/qnx/clibc.lib
     <CPCMD> library/qnx.286/mh/clibh.lib                    <RELROOT>/rel2/lib286/qnx/clibh.lib
@@ -122,6 +119,17 @@ cdsay .
     <CPCMD> library/qnx.386/ms_r/clib3r.lib                 <RELROOT>/rel2/lib386/qnx/clib3r.lib
     <CPCMD> library/qnx.386/ms_s/clib3s.lib                 <RELROOT>/rel2/lib386/qnx/clib3s.lib
     <CPCMD> startup/library/qnx.386/ms_r/commode.obj        <RELROOT>/rel2/lib386/qnx/commode.obj
+  [ ENDIF]
+
+# Libraries not built by default
+
+    <CCCMD> library/winnt.axp/_s/clib.lib                   <RELROOT>/rel2/libaxp/nt/clib.lib
+    <CCCMD> startup/library/winnt.axp/_s/binmode.obj        <RELROOT>/rel2/libaxp/nt/binmode.obj
+    <CCCMD> startup/library/winnt.axp/_s/commode.obj        <RELROOT>/rel2/libaxp/nt/commode.obj
+
+    <CCCMD> library/osi.386/ms_r/clib3r.lib                 <RELROOT>/rel2/lib386/osi/clib3r.lib
+ 
+    <CCCMD> library/linux.mps/_s/clib.lib                   <RELROOT>/rel2/libmps/linux/clib.lib
 
 [ BLOCK <1> clibqa ]
 #===================

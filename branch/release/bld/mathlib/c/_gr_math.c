@@ -31,6 +31,7 @@
 
 #include "variety.h"
 #include <math.h>
+#include "grfuncs.h"
 
 
 _WMRTLINK void _WCI86FAR _GR_ceil( float _WCI86FAR *value )

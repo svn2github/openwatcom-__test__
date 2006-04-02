@@ -47,11 +47,13 @@
 #include "rtdata.h"
 #include "extfunc.h"
 #include "seterrno.h"
+#include "thrdreg.h"
+#include "widechar.h"
+#include "initarg.h"
 
 extern  void            __InitMultipleThread( void );
 
 extern  DWORD           __TlsIndex;
-extern  int             __Is_DLL;
 
 extern  void            (*__sig_init_rtn)(void);
 extern  void            (*__sig_fini_rtn)(void);
@@ -97,7 +99,7 @@ static DWORD WINAPI begin_thread_helper( thread_args *td )
 int __CBeginThreadEx(
     void *security,
     unsigned stack_size,
-    thread_fnex start_addr,
+    thread_fnex *start_addr,
     void *arglist,
     unsigned initflag,
     unsigned *thrdaddr )

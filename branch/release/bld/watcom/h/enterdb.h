@@ -86,17 +86,6 @@ extern "C" {
 
  */
 
-/*
-   This next set of lines is a temp fix until the 11.0 headers are
-   in universal usage.
-*/
-#ifndef _WCRTLINK
-    #include <errno.h>
-    #ifndef _WCRTLINK
-        #define _WCRTLINK
-    #endif
-#endif
-
 #define DEBUG_PRESENT_NAME __WD_Present
 #define DEBUG_BREAK_ON_CATCH_NAME __WD_Break_On_Catch
 #define DEBUG_BREAK_ON_THROW_NAME __WD_Break_On_Throw
@@ -105,9 +94,13 @@ extern "C" {
 #define DEBUG_BREAK_ON_CATCH_STR "__WD_Break_On_Catch"
 #define DEBUG_BREAK_ON_THROW_STR "__WD_Break_On_Throw"
 
-_WCRTLINK extern char volatile DEBUG_PRESENT_NAME;
-_WCRTLINK extern char volatile DEBUG_BREAK_ON_THROW_NAME;
-_WCRTLINK extern char volatile DEBUG_BREAK_ON_CATCH_NAME;
+#ifndef _WCRTLINKD
+# define _WCRTLINKD /* nothing */
+#endif
+
+_WCRTLINKD extern char volatile DEBUG_PRESENT_NAME;
+_WCRTLINKD extern char volatile DEBUG_BREAK_ON_THROW_NAME;
+_WCRTLINKD extern char volatile DEBUG_BREAK_ON_CATCH_NAME;
 
 #if defined( __WATCOMC__ )  &&  (defined(__386__) || defined(M_I86))
 
@@ -180,7 +173,8 @@ _WCRTLINK extern char volatile DEBUG_BREAK_ON_CATCH_NAME;
     }
 
 #ifdef __NT__
-    #define PassDebuggerAMessage OutputDebugString
+    // Why? #define PassDebuggerAMessage OutputDebugString
+    #define PassDebuggerAMessage CheckEnterDebuggerWithMessage
 #else
     #define PassDebuggerAMessage CheckEnterDebuggerWithMessage
 #endif

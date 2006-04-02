@@ -43,6 +43,31 @@ extern "C" {
 #define UNALIGNED
 #endif
 
+#ifndef DECLSPEC_ALIGN
+#ifdef __GNUC__
+#define DECLSPEC_ALIGN(x) __attribute__((aligned(x)))
+#else
+#define DECLSPEC_ALIGN(x)
+#endif
+#endif
+
+#ifndef DECLSPEC_SELECTANY
+#if (__GNUC__ >= 4)
+#define DECLSPEC_SELECTANY  __attribute__((selectany))
+#else
+#define DECLSPEC_SELECTANY
+#endif
+#endif
+
+#ifndef FORCEINLINE
+#if (__GNUC__ >= 3)
+#define FORCEINLINE __inline  __attribute__((always_inline))
+#else
+#define FORCEINLINE __inline
+#endif
+#endif
+
+
 #ifndef VOID
 #define VOID void
 #endif
@@ -186,7 +211,13 @@ typedef DWORD FLONG;
 #define CONTAINER_INHERIT_ACE	2
 #define NO_PROPAGATE_INHERIT_ACE	4
 #define INHERIT_ONLY_ACE	8
-#define VALID_INHERIT_FLAGS	16
+#define INHERITED_ACE	16
+#define VALID_INHERIT_FLAGS \
+	| OBJECT_INHERIT_ACE \
+	| CONTAINER_INHERIT_ACE \
+	| NO_PROPAGATE_INHERIT_ACE \
+	| INHERIT_ONLY_ACE \
+	| INHERITED_ACE
 #define SUCCESSFUL_ACCESS_ACE_FLAG	64
 #define FAILED_ACCESS_ACE_FLAG	128
 #define DELETE	0x00010000L
@@ -616,8 +647,8 @@ typedef DWORD FLONG;
 #define SUBLANG_NEPALI_INDIA	0x02
 #define SUBLANG_NORWEGIAN_BOKMAL	0x01
 #define SUBLANG_NORWEGIAN_NYNORSK	0x02
-#define SUBLANG_PORTUGUESE	0x01
-#define SUBLANG_PORTUGUESE_BRAZILIAN	0x02
+#define SUBLANG_PORTUGUESE_BRAZILIAN	0x01
+#define SUBLANG_PORTUGUESE	0x02
 #define SUBLANG_SERBIAN_LATIN	0x02
 #define SUBLANG_SERBIAN_CYRILLIC	0x03
 #define SUBLANG_SPANISH	0x01
@@ -3349,6 +3380,9 @@ typedef OSVERSIONINFOEXA OSVERSIONINFOEX,*POSVERSIONINFOEX,*LPOSVERSIONINFOEX;
 
 #if (_WIN32_WINNT >= 0x0500)
 ULONGLONG WINAPI VerSetConditionMask(ULONGLONG,DWORD,BYTE);
+#define VER_SET_CONDITION(ConditionMask, TypeBitMask, ComparisonType)  \
+	((ConditionMask) = VerSetConditionMask((ConditionMask), \
+	(TypeBitMask), (ComparisonType)))
 #endif
 
 PVOID GetCurrentFiber(void);

@@ -19,8 +19,7 @@
 /* type for holding FPU environment */
 :include pshpackl.sp
 #if defined(__386__)
-typedef struct
-{
+typedef struct {
     unsigned short control_word;
     unsigned short pad0;
     unsigned short status_word;
@@ -35,8 +34,7 @@ typedef struct
     unsigned short pad3;
 } fenv_t;
 #else
-typedef struct
-{
+typedef struct {
     unsigned short control_word;
     unsigned short status_word;
     unsigned short tag_word;
@@ -68,31 +66,31 @@ typedef unsigned short fexcept_t;
 #define FE_UPWARD     0x0800
 
 /* default FPU setup */
-_WCRTLINK extern const fenv_t __fenv_h_default_environment;
+_WCRTLINKD extern const fenv_t __fenv_h_default_environment;
 #define FE_DFL_ENV &__fenv_h_default_environment
 
 /* exception handling functions */
-_WCRTLINK extern void feclearexcept(int excepts);
-_WCRTLINK extern void fegetexceptflag(fexcept_t *flagp, int excepts);
-_WCRTLINK extern void feraiseexcept(int excepts);
-_WCRTLINK extern void fesetexceptflag(const fexcept_t *flagp, int excepts);
-_WCRTLINK extern int  fetestexcept(int excepts);
+_WCRTLINK extern int  feclearexcept( int __excepts );
+_WCRTLINK extern int  fegetexceptflag( fexcept_t *__flagp, int __excepts );
+_WCRTLINK extern int  feraiseexcept( int __excepts );
+_WCRTLINK extern int  fesetexceptflag( const fexcept_t *__flagp, int __excepts );
+_WCRTLINK extern int  fetestexcept( int __excepts );
 
 #ifndef NO_EXT_KEYS
 /* OW extensions */
-_WCRTLINK extern void __feenableexcept(int excepts);
-_WCRTLINK extern void __fedisableexcept(int excepts);
+_WCRTLINK extern void __feenableexcept( int __excepts );
+_WCRTLINK extern void __fedisableexcept( int __excepts );
 #endif
 
 /* rounding mode functions */
-_WCRTLINK extern int fegetround(void);
-_WCRTLINK extern int fesetround(int round);
+_WCRTLINK extern int  fegetround( void );
+_WCRTLINK extern int  fesetround( int __round );
 
 /* FPU environment functions */
-_WCRTLINK extern void fegetenv(fenv_t *envp);
-_WCRTLINK extern int feholdexcept(fenv_t *envp);
-_WCRTLINK extern void fesetenv(const fenv_t *envp);
-_WCRTLINK extern void feupdateenv(const fenv_t *envp);
+_WCRTLINK extern int  fegetenv( fenv_t *__envp );
+_WCRTLINK extern int  feholdexcept( fenv_t *__envp );
+_WCRTLINK extern int  fesetenv( const fenv_t *__envp );
+_WCRTLINK extern int  feupdateenv( const fenv_t *__envp );
 
 #endif
 #endif

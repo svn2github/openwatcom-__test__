@@ -38,16 +38,10 @@
 #include "global.h"
 #include "fcodes.h"
 #include "falloc.h"
+#include "emitobj.h"
 
-extern  void            OutPtr(void *);
-extern  void            OutU16(unsigned_16);
-extern  void            EmitOp(uint);
-extern  void            PushOpn(itnode *);
 extern  void            DimArray(sym_id);
 extern  void            LoadSCB(sym_id);
-extern  obj_ptr         ObjTell(void);
-extern  obj_ptr         ObjSeek(obj_ptr);
-extern  void            GenType(itnode *);
 
 static  unsigned_16     allocFlags;
 static  obj_ptr         flagsLabel;
@@ -57,7 +51,7 @@ void    GBegAllocate() {
 //======================
 
     allocFlags = ALLOC_NONE;
-    EmitOp( RT_ALLOCATE );
+    EmitOp( FC_ALLOCATE );
 }
 
 
@@ -66,7 +60,7 @@ void    GAllocate( sym_id sym ) {
 
     OutPtr( sym );
     DimArray( sym );
-    EmitOp( END_OF_SEQUENCE );
+    EmitOp( FC_END_OF_SEQUENCE );
 }
 
 
@@ -75,7 +69,7 @@ void    GAllocateString( sym_id sym ) {
 
     OutPtr( sym );
     LoadSCB( sym );
-    EmitOp( END_OF_SEQUENCE );
+    EmitOp( FC_END_OF_SEQUENCE );
 }
 
 
@@ -104,7 +98,7 @@ void    GBegDeAllocate() {
 //========================
 
     allocFlags = ALLOC_NONE;
-    EmitOp( RT_DEALLOCATE );
+    EmitOp( FC_DEALLOCATE );
 }
 
 
@@ -133,7 +127,7 @@ static void GAllocOpts( void ) {
 //==============================
 
     PushOpn( CITNode );
-    EmitOp( END_OF_SEQUENCE );
+    EmitOp( FC_END_OF_SEQUENCE );
 }
 
 
@@ -161,7 +155,7 @@ void    GAllocated() {
 // Generate code for ALLOCATED intrinsic function.
 
     PushOpn( CITNode );
-    EmitOp( ALLOCATED );
+    EmitOp( FC_ALLOCATED );
     if( CITNode->sym_ptr->ns.flags & SY_SUBSCRIPTED ) {
         OutU16( 0 );
     } else {
@@ -177,7 +171,7 @@ void            GSCBLength( sym_id sym ) {
 
     // push string length
     PushOpn( CITNode );
-    EmitOp( SET_SCB_LEN );
+    EmitOp( FC_SET_SCB_LEN );
     // general information
     OutPtr( sym );
     GenType( CITNode );

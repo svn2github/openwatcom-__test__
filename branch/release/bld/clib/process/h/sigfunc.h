@@ -24,15 +24,24 @@
 *
 *  ========================================================================
 *
-* Description:  typedef for external signal routines
+* Description:  typedef for external signal routines and
+*               prototypes for other signal internal function
 *
 ****************************************************************************/
 
 #include "extfunc.h"
 
-typedef void (*sig_func)( int );
-typedef void (*sigfpe_func)( int, int );
+typedef void (*__sigfpe_func)( int, int );
 #ifdef _M_IX86
-    #pragma aux (__outside_CLIB) sig_func;
-    #pragma aux (__outside_CLIB) sigfpe_func;
+    #pragma aux (__outside_CLIB) __sig_func;
+    #pragma aux (__outside_CLIB) __sigfpe_func;
 #endif
+
+#if defined( __NT__ ) || defined( __OS2_386__ )
+_WCRTLINK extern int __sigfpe_handler( int );
+#else
+_WCRTLINK extern void _WCI86FAR __sigfpe_handler( int );
+#endif
+extern  void    __sigabort( void );
+extern  void    __restore_FPE_handler( void );
+extern  void    __grab_FPE_handler( void );

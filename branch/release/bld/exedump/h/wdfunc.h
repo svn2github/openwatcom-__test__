@@ -47,7 +47,6 @@ extern bool Dmp_pe_tab( void );
  * novexe.c
  */
 extern bool Dmp_nlm_head( void );
-extern unsigned_32 dmp_nlm_head2( void );
 
 /*
  * pharexe.c
@@ -79,10 +78,10 @@ extern char *Getname( uint_32, readable_name *, size_t );
 extern uint_8 *DecodeULEB128( const uint_8 *, uint_32 * );
 extern uint_8 *DecodeLEB128( const uint_8 *, int_32 * );
 uint_8 *find_abbrev( uint_32 start, uint_32 code );
-extern void dump_abbrevs( const char *input, uint length );
+extern void dump_abbrevs( const uint_8 *input, uint length );
 extern void Dump_specific_section( uint, const char *, uint );
 extern void Dump_all_sections( void );
-extern void Dump_lines( const char *, uint );
+extern void Dump_lines( const uint_8 *, uint );
 extern uint Lookup_section_name( const char * );
 
 /*
@@ -111,7 +110,6 @@ extern void Dmp_exp_tab( void );
  */
 extern void Dmp_fixups( void );
 extern void Dmp_resources( void );
-extern res_name get_name( unsigned_32 );
 
 /*
  * wdseg.c
@@ -123,20 +121,14 @@ extern void Dmp_seg_tab( void );
  */
 extern void Dmp_ne_tbls( void );
 extern void Dmp_le_lx_tbls( void );
-extern void *dmp_fixed_seg_ent_pnts( unsigned_16, void *, unsigned_16, unsigned_16 );
-extern void *dmp_movable_seg_ent_pnts( unsigned_16, void *, unsigned_16 );
-extern struct int_entry_pnt *new_ent_pnt( void );
 extern void Dmp_ordinal( unsigned_16 );
+extern bool Dmp_os2_exports( void );
 
 /*
  * wdfix.c
  */
 extern void Dmp_fixrec_tab( unsigned_32 );
 extern void Dmp_fixpage_tab( unsigned_32, unsigned_32 );
-extern unsigned_32 internal_ref( unsigned_8, unsigned_8, unsigned_32 );
-extern unsigned_32 imp_ord_ref( unsigned_8, unsigned_32 );
-extern unsigned_32 imp_name_ref( unsigned_8, unsigned_32 );
-extern unsigned_32 int_ent_ref( unsigned_8, unsigned_32 );
 
 /*
  * wdata.c
@@ -158,7 +150,6 @@ extern void Putdecs( signed_16 );
 extern void Putdecl( unsigned_16, unsigned_16 );
 extern void Putdecbz( unsigned_16, unsigned_16);
 extern void Parse_option( void );
-extern char *get_file( bool );
 
 /*
  * dosexe.c
@@ -174,7 +165,7 @@ extern long WFileSize( void );
 extern void Wdputc( char );
 extern void Wdputs( char *);
 extern void Wdputslc( char *);
-extern void Dump_header( char *, char ** );
+extern void Dump_header( void *, char ** );
 extern void DumpFlags( unsigned_32, unsigned_32, char **, char * );
 extern void *Wmalloc( size_t );
 extern void Banner( char * );
@@ -184,7 +175,6 @@ extern void Banner( char * );
  */
 extern void Dmp_resrc_tab( void );
 extern void Dmp_resrc2_tab( void );
-extern char *get_resrc_nam( unsigned_16 );
 
 /*
  * coff.c
@@ -192,3 +182,13 @@ extern char *get_resrc_nam( unsigned_16 );
 extern bool Dmp_coff_head( void );
 extern bool Dmp_ar_head( void );
 extern char *Coff_obj_name( char * );
+
+/*
+ * dumpcv.c
+ */
+extern bool Dmp_cv_head( void );
+
+/*
+ * dumphll.c
+ */
+extern bool Dmp_hll_head( void );

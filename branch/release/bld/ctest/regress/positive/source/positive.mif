@@ -3,16 +3,13 @@
 #
 # pch01.$(exe) &    # All of the PCH tests are currently broken!
 # pch02.$(exe) &    # There are at least three distinct problems
-# pch03.$(exe) &    # - Count of SpecialSyms may not match and
-# pch04.$(exe) &    #   PCH will be endlessly regenerated if there
-# pch05.$(exe) &    #   are inlined assembly functions in header
-# pch06.$(exe) &    #   (pch01/02)
-# pch07.$(exe) &    # - Missing CR/LF at the end of precompiled
-# pch08.$(exe) &    #   header throws off the parser (pch03/04)
+# pch05.$(exe) &    # - Count of SpecialSyms may not match and
+# pch06.$(exe) &    #   PCH will be endlessly regenerated if there
+# pch07.$(exe) &    #   are inlined assembly functions in header
+# pch08.$(exe) &    #   (pch01/02)
 # pch09.$(exe) &    # - Expression trees aren't stored in PCH, any
 # pch10.$(exe) &    #   functions defined in headers will screw
 # pch11.$(exe) &    #   things up (pch05/06 and others)
-# init12.$(exe) &   # based pointer problem
 # opt11.$(exe) &    # volatile + post increment problem
 
 !ifdef %ctest_bad_br
@@ -27,6 +24,8 @@ opt_cmdln02 = /d+ /dXXX=0+1
 opt_cmdln03 = /dX /DXX /uXX /DXXX /uXXX /UXXX /dXXX /DXXXX /uXXXX /DXXXX /uXXXX
 opt_cmdln04 = /dCMDMAC -DCMD1= /DCMD2$#
 opt_cmdln05 = -dXN2=2 -dXS1="a-/ b"-dXN1=2 -dXS2#"a-/ b"
+opt_init21  = -za99
+opt_init22  = -za99
 opt_opt09 = -za
 opt_opt41 = -ot -ol+
 opt_pack04 = -wx
@@ -82,7 +81,9 @@ positive_tests = &
     asm06.$(exe) &
     asm07.$(exe) &
     asm08.$(exe) &
+    based01.$(exe) &
     based02.$(exe) &
+    based03.$(exe) &
     bf01.$(exe) &
     bf02.$(exe) &
     bf03.$(exe) &
@@ -118,6 +119,7 @@ positive_tests = &
     init09.$(exe) &
     init10.$(exe) &
     init11.$(exe) &
+    init12.$(exe) &
     init13.$(exe) &
     init14.$(exe) &
     init15.$(exe) &
@@ -126,6 +128,8 @@ positive_tests = &
     init18.$(exe) &
     init19.$(exe) &
     init20.$(exe) &
+    init21.$(exe) &
+    init22.$(exe) &
     inline01.$(exe) &
     inline04.$(exe) &
     intel01.$(exe) &
@@ -175,6 +179,8 @@ positive_tests = &
     pack05.$(exe) &
     parm01.$(exe) &
     parm02.$(exe) &
+    pch03.$(exe) &
+    pch04.$(exe) &
     pp01.$(exe) &
     pp02.$(exe) &
     pp03.$(exe) &

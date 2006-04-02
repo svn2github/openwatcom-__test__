@@ -39,17 +39,9 @@
 #include "opr.h"
 #include "opn.h"
 #include "astype.h"
-
-extern  void            AdvanceITPtr(void);
-extern  void            FreeOneNode(itnode *);
-extern  void            Error(int,...);
-extern  bool            RecOpenParen(void);
-extern  bool            RecCloseParen(void);
-extern  bool            RecComma(void);
-extern  bool            RecColon(void);
-extern  bool            RecTrmOpr(void);
-extern  bool            RecNOpr(void);
-extern  bool            RecName(void);
+#include "recog.h"
+#include "ferror.h"
+#include "utility.h"
 
 
 void    ScanExpr() {

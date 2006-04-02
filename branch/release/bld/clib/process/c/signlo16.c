@@ -42,13 +42,7 @@
 #include "sigtab.h"
 #include "sigfunc.h"
 #include "seterrno.h"
-
-extern  void    __terminate( void );
-extern  void    (*__abort)( void );
-extern  void    __null_int23_exit( void );
-extern  void    (*__int23_exit)( void );
-extern  void    __grab_FPE_handler( void );
-extern  void    __restore_FPE_handler( void );
+#include "_int23.h"
 
 
 static struct sigtab SignalTable[] = {
@@ -75,12 +69,12 @@ void __sigabort( void )
 
 _WCRTLINK void _WCI86FAR __sigfpe_handler( int fpe_type )
 {
-    sig_func func;
+    __sig_func  func;
 
     func = _RWD_sigtab[ SIGFPE ].func;
     if( func != SIG_IGN  &&  func != SIG_DFL  &&  func != SIG_ERR ) {
         _RWD_sigtab[ SIGFPE ].func = SIG_DFL;      /* 09-nov-87 FWC */
-        (*(sigfpe_func)func)( SIGFPE, fpe_type );        /* so we can pass 2'nd parm */
+        (*(__sigfpe_func)func)( SIGFPE, fpe_type );        /* so we can pass 2'nd parm */
     }
 }
 
@@ -116,15 +110,15 @@ static void restore_handler( void )
 }
 
 
-_WCRTLINK sig_func signal( int sig, sig_func func )
+_WCRTLINK __sig_func signal( int sig, __sig_func func )
 {
-    sig_func prev_func;
+    __sig_func  prev_func;
 
     if(( sig < 1 ) || ( sig > __SIGLAST )) {
         __set_errno( EINVAL );
         return( SIG_ERR );
     }
-    __abort = __sigabort;           /* change the abort rtn address */
+    _RWD_abort = __sigabort;           /* change the abort rtn address */
     if( _RWD_sigtab[ sig ].os_sig_code != 0 ) {
         if( func != SIG_DFL  &&  func != SIG_ERR ) {
             if( _RWD_sigtab[ sig ].os_func == NULL ) {
@@ -150,7 +144,7 @@ _WCRTLINK sig_func signal( int sig, sig_func func )
 
 _WCRTLINK int raise( int sig )
 {
-    sig_func func;
+    __sig_func  func;
 
     func = _RWD_sigtab[ sig ].func;
     switch( sig ) {
@@ -181,4 +175,3 @@ _WCRTLINK int raise( int sig )
     }
     return( 0 );
 }
-

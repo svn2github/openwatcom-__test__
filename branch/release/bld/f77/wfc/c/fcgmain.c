@@ -43,6 +43,7 @@
 #include "wf77segs.h"
 #include "wf77labe.h"
 #include "compcfg.h"
+#include "emitobj.h"
 
 #include <stdarg.h>
 
@@ -64,8 +65,6 @@ extern  void            DefTypes(void);
 extern  void            DefStructs(void);
 extern  void            FreeGlobalSegs(void);
 extern  void            InitStack(void);
-extern  void            InitFCode(void);
-extern  unsigned_16     GetFCode(void);
 extern  void            InitRtRtns(void);
 extern  void            FreeRtRtns(void);
 extern  void            InitInlinePragmas(void);
@@ -410,11 +409,12 @@ void    FCodeSequence() {
 
 // Interpret an F-Code sequence.
 
-    int f_code;
+    FCODE   f_code;
 
     for(;;) {
         f_code = GetFCode();
-        if( f_code == END_OF_SEQUENCE ) break;
+        if( f_code == FC_END_OF_SEQUENCE )
+            break;
         FCTablePtr[ f_code ]();
     }
 }

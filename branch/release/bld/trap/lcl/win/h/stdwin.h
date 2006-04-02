@@ -98,13 +98,12 @@ extern WORD                     DLLLoadCS;
 extern WORD                     DLLLoadIP;
 extern BOOL                     DLLLoadExpectingInt1;
 extern WORD                     CopySize;
-extern WORD                     NPXType;
+extern unsigned_8               FPUType;
 extern HWND                     DesktopWindow;
 extern HINSTANCE                Instance;
 extern HTASK                    DebuggerTask;
 extern HTASK                    DebugeeTask;
 extern HINSTANCE                DebugeeInstance;
-extern HANDLE                   TaskAtNotify;
 extern DWORD                    WindowsFlags;
 extern struct interrupt_struct  IntResult;
 extern struct fp_state          FPResult;
@@ -213,10 +212,6 @@ DWORD ReadMem( WORD sel, DWORD off, LPVOID buff, DWORD size );
 /* misc.asm */
 #pragma aux _CopyMemory parm [cx] [dx di] [ax] [si bx] value[ax];
 extern short _CopyMemory( WORD, DWORD, WORD, DWORD );
-extern void Read8087( void far * );
-extern void Write8087( void far * );
-extern void Read80387( void far * );
-extern void Write80387( void far * );
 
 /* notify.c */
 BOOL FAR PASCAL NotifyHandler( WORD id, DWORD data );

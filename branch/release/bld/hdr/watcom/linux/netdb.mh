@@ -33,26 +33,26 @@ struct hostent {
 };
 #define h_addr  h_addr_list[0]  /* for backward compatibility */
 
-_WCRTLINK extern int h_errno;
+_WCRTLINKD extern int h_errno;
 
 _WCRTLINK extern struct protoent *getprotoent( void );
 _WCRTLINK extern struct protoent *getprotobyname( const char *__name );
 _WCRTLINK extern struct protoent *getprotobynumber( int __proto );
-_WCRTLINK extern void setprotoent( int __stayopen );
-_WCRTLINK extern void endprotoent( void );
+_WCRTLINK extern void            setprotoent( int __stayopen );
+_WCRTLINK extern void            endprotoent( void );
 
-_WCRTLINK extern struct servent *getservent( void );
-_WCRTLINK extern struct servent *getservbyname( const char *__name, const char *__proto );
-_WCRTLINK extern struct servent *getservbyport( int __port, const char *__proto );
-_WCRTLINK extern void setservent( int __stayopen );
-_WCRTLINK extern void endservent( void );
+_WCRTLINK extern struct servent  *getservent( void );
+_WCRTLINK extern struct servent  *getservbyname( const char *__name, const char *__proto );
+_WCRTLINK extern struct servent  *getservbyport( int __port, const char *__proto );
+_WCRTLINK extern void            setservent( int __stayopen );
+_WCRTLINK extern void            endservent( void );
 
-_WCRTLINK extern struct hostent *gethostbyname( const char *__name );
-_WCRTLINK extern struct hostent *gethostbyaddr( const char *__addr, int __len, int __type );
-_WCRTLINK extern void sethostent( int __stayopen );
-_WCRTLINK extern void endhostent( void );
-_WCRTLINK extern void herror( const char *__s );
-_WCRTLINK extern const char * hstrerror( int __err );
+_WCRTLINK extern struct hostent  *gethostbyname( const char *__name );
+_WCRTLINK extern struct hostent  *gethostbyaddr( const char *__addr, int __len, int __type );
+_WCRTLINK extern void            sethostent( int __stayopen );
+_WCRTLINK extern void            endhostent( void );
+_WCRTLINK extern void            herror( const char *__s );
+_WCRTLINK extern const char      *hstrerror( int __err );
 
 :include poppack.sp
 :include cplusepi.sp

@@ -31,6 +31,7 @@
 
 #include "cvars.h"
 #include "cgswitch.h"
+#include "pragdefn.h"
 
 
 /*  return types from TypeCheck */
@@ -62,49 +63,47 @@ typedef enum {
 
 #define __  NO
 
-local  cmp_type const __FAR CompTable[TYPE_LAST_ENTRY][TYPE_LAST_ENTRY] = {
-/*               CH,UC,SH,US,IN,UI,LO,UL,DL,DU,FL,DB,PO,AR,ST,UN,FU,FI,VO,EN,TY,UF,DD,PC,WC,LD,FC,DC,LC,FI,FI,LI,B  */
-/* CHAR     */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* UCHAR    */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* SHORT    */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* USHORT   */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* INT      */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* UINT     */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* LONG     */ { AC,AC,AC,AC,AC,AC,OK,OK,OK,OK,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* ULONG    */ { AC,AC,AC,AC,AC,AC,OK,OK,OK,OK,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* LONG64   */ { AC,AC,AC,AC,AC,AC,OK,OK,OK,OK,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* ULONG64  */ { AC,AC,AC,AC,AC,AC,OK,OK,OK,OK,AC,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,AC,__,__,__,__,__,__,AC },
-/* FLOAT    */ { AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,OK,AC,__,__,__,__,__,AC,__,AC,__,AC,__,__,__,AC,AC,AC,AC,AC,AC,AC,AC },
-/* DOUBLE   */ { AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,OK,__,__,__,__,__,AC,__,AC,__,AC,__,__,__,AC,AC,AC,AC,AC,AC,AC,AC },
-/* POINTER  */ { PC,PC,PC,PC,PC,PC,PC,PC,PC,PC,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* ARRAY    */ { __,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* STRUCT   */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* UNION    */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* FUNCTION */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* FIELD    */ { OK,OK,OK,OK,OK,OK,OK,OK,OK,OK,AC,AC,__,__,__,__,__,OK,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__ },
-/* VOID     */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* ENUM     */ { OK,OK,OK,OK,OK,OK,OK,OK,OK,OK,AC,AC,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* TYPEDEF  */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* UFIELD   */ { OK,OK,OK,OK,OK,OK,OK,OK,OK,OK,AC,AC,__,__,__,__,__,OK,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__ },
-/* DOTDOTDOT*/ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* PLAIN CHAR*/{ __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* WCHAR    */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__ },
-/* LDOUBLE  */ { AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,AC,AC,AC,AC,AC,AC,AC },
-/* FCOMPLEX */ { __,__,__,__,__,__,__,__,__,__,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,OK,AC,AC,AC,AC,AC,__ },
-/* DCOMPLEX */ { __,__,__,__,__,__,__,__,__,__,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,OK,AC,AC,AC,AC,__ },
-/* LDCOMPLEX*/ { __,__,__,__,__,__,__,__,__,__,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,AC,OK,AC,AC,AC,__ },
-/* FIMAG    */ { __,__,__,__,__,__,__,__,__,__,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,AC,AC,OK,AC,AC,__ },
-/* DIMAG    */ { __,__,__,__,__,__,__,__,__,__,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,AC,AC,AC,OK,AC,__ },
-/* LDIMAG   */ { __,__,__,__,__,__,__,__,__,__,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,AC,AC,AC,AC,OK,__ },
-/* BOOL     */ { AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,__,__,__,__,__,__,OK },
+extern struct aux_info *GetLangInfo( type_modifiers flags );
+
+local  cmp_type const   CompTable[TYPE_LAST_ENTRY][TYPE_LAST_ENTRY] = {
+/*               CH,UC,SH,US,IN,UI,LO,UL,DL,DU,FL,DB,LD,FI,DI,LI,BL,PO,AR,ST,UN,FU,FI,VO,EN,TY,UF,DD,PC,WC,FC,DC,LC, */
+/* CHAR     */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* UCHAR    */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* SHORT    */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* USHORT   */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* INT      */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* UINT     */ { OK,OK,OK,OK,OK,OK,AC,AC,AC,AC,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* LONG     */ { AC,AC,AC,AC,AC,AC,OK,OK,OK,OK,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* ULONG    */ { AC,AC,AC,AC,AC,AC,OK,OK,OK,OK,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* LONG64   */ { AC,AC,AC,AC,AC,AC,OK,OK,OK,OK,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* ULONG64  */ { AC,AC,AC,AC,AC,AC,OK,OK,OK,OK,AC,AC,AC,__,__,__,AC,PC,__,__,__,__,OK,__,OK,__,OK,__,__,__,__,__,__, },
+/* FLOAT    */ { AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,OK,AC,AC,AC,AC,AC,AC,__,__,__,__,__,AC,__,AC,__,AC,__,__,__,AC,AC,AC, },
+/* DOUBLE   */ { AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,OK,AC,AC,AC,AC,AC,__,__,__,__,__,AC,__,AC,__,AC,__,__,__,AC,AC,AC, },
+/* LDOUBLE  */ { AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,OK,AC,AC,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,AC, },
+/* FIMAG    */ { __,__,__,__,__,__,__,__,__,__,AC,AC,AC,OK,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,AC, },
+/* DIMAG    */ { __,__,__,__,__,__,__,__,__,__,AC,AC,AC,AC,OK,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,AC, },
+/* LDIMAG   */ { __,__,__,__,__,__,__,__,__,__,AC,AC,AC,AC,AC,OK,__,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,AC, },
+/* BOOL     */ { AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,AC,OK,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__, },
+/* POINTER  */ { PC,PC,PC,PC,PC,PC,PC,PC,PC,PC,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__, },
+/* ARRAY    */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__,__,__, },
+/* STRUCT   */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__,__, },
+/* UNION    */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__,__, },
+/* FUNCTION */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__,__,__,__, },
+/* FIELD    */ { OK,OK,OK,OK,OK,OK,OK,OK,OK,OK,AC,AC,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,OK,__,__,__,__,__,__, },
+/* VOID     */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__, },
+/* ENUM     */ { OK,OK,OK,OK,OK,OK,OK,OK,OK,OK,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__,__, },
+/* TYPEDEF  */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,__,__,__,__, },
+/* UFIELD   */ { OK,OK,OK,OK,OK,OK,OK,OK,OK,OK,AC,AC,__,__,__,__,__,__,__,__,__,__,OK,__,__,__,OK,__,__,__,__,__,__, },
+/* DOTDOTDOT*/ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__, },
+/* PLAIN CHAR*/{ __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__, },
+/* WCHAR    */ { __,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__, },
+/* FCOMPLEX */ { __,__,__,__,__,__,__,__,__,__,AC,AC,AC,AC,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,__,OK,AC,AC, },
+/* DCOMPLEX */ { __,__,__,__,__,__,__,__,__,__,AC,AC,AC,AC,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,OK,AC, },
+/* LDCOMPLEX*/ { __,__,__,__,__,__,__,__,__,__,AC,AC,AC,AC,AC,AC,__,__,__,__,__,__,__,__,__,__,__,__,__,__,AC,AC,OK, },
 };
 
-static cmp_type CompatibleType( TYPEPTR typ1, TYPEPTR typ2, int assignment );
-static cmp_type DoCompatibleType( TYPEPTR typ1, TYPEPTR typ2, int top_level,
-                                  voidptr_cmp_type voidptr_cmp );
-
-local int TypeCheck( TYPEPTR typ1, TYPEPTR typ2 );
-local bool IsPointer( TYPEPTR typ );
+local   int     TypeCheck( TYPEPTR typ1, TYPEPTR typ2 );
+local   bool    IsPointer( TYPEPTR typ );
 
 
 static cmp_type InUnion( TYPEPTR typ1, TYPEPTR typ2, int reversed )
@@ -134,7 +133,7 @@ static int ChkParmPromotion( TYPEPTR *plist, int topLevelCheck )    /* 25-nov-94
     for( ;; ) {
         typ = *plist++;
         if( typ == NULL ) break;
-        while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
+        SKIP_TYPEDEFS( typ );
         switch( typ->decl_type ) {
         case TYPE_CHAR:
         case TYPE_UCHAR:
@@ -147,14 +146,14 @@ static int ChkParmPromotion( TYPEPTR *plist, int topLevelCheck )    /* 25-nov-94
             }
             break;
         case TYPE_USHORT:
-            #if TARGET_SHORT != TARGET_INT
-                if( CompFlags.strict_ANSI )  {
-                    if ( topLevelCheck ) {
-                        CErr2( ERR_PARM_TYPE_MISMATCH, parm_count );
-                    }
-                    return( TC_TYPE_MISMATCH );
+#if TARGET_SHORT != TARGET_INT
+            if( CompFlags.strict_ANSI )  {
+                if( topLevelCheck ) {
+                    CErr2( ERR_PARM_TYPE_MISMATCH, parm_count );
                 }
-            #endif
+                return( TC_TYPE_MISMATCH );
+            }
+#endif
             break;
         case TYPE_FLOAT:
             if ( topLevelCheck ) {
@@ -165,15 +164,15 @@ static int ChkParmPromotion( TYPEPTR *plist, int topLevelCheck )    /* 25-nov-94
             break;
         }
     }
-    return TC_OK;
+    return( TC_OK );
 }
 
 TYPEPTR  SkipTypeFluff( TYPEPTR typ )
 {
-    while( typ->decl_type == TYPE_TYPEDEF ) {
+    SKIP_TYPEDEFS( typ );
+    if( typ->decl_type == TYPE_ENUM ) {
         typ = typ->object;
     }
-    if( typ->decl_type == TYPE_ENUM ) typ = typ->object;
     return( typ );
 }
 
@@ -184,8 +183,8 @@ static cmp_type CompatibleStructs( TAGPTR tag1, TAGPTR tag2 )
     TYPEPTR     typ1;
     TYPEPTR     typ2;
 
-    if( tag1 == tag2 )  return( OK );
-    if( tag1->size != tag2->size )  return( NO );
+    if( tag1 == tag2 ) return( OK );
+    if( tag1->size != tag2->size ) return( NO );
     field1 = tag1->u.field_list;
     field2 = tag2->u.field_list;
     /* if either struct is undefined, let's be conservative */
@@ -194,10 +193,10 @@ static cmp_type CompatibleStructs( TAGPTR tag1, TAGPTR tag2 )
         if( field1 == NULL ) break;
         if( field2 == NULL ) break;
         typ1 = field1->field_type;
-        while( typ1->decl_type == TYPE_TYPEDEF ) typ1 = typ1->object;
+        SKIP_TYPEDEFS( typ1 );
         typ2 = field2->field_type;
-        while( typ2->decl_type == TYPE_TYPEDEF ) typ2 = typ2->object;
-        if( ! IdenticalType( typ1, typ2 ) ) {
+        SKIP_TYPEDEFS( typ2 );
+        if( !IdenticalType( typ1, typ2 ) ) {
             if( (typ1->decl_type == TYPE_STRUCT  &&
                  typ2->decl_type == TYPE_STRUCT )    ||
                 (typ1->decl_type == TYPE_UNION   &&
@@ -224,13 +223,13 @@ int ChkCompatibleFunction( TYPEPTR typ1, TYPEPTR typ2, int topLevelCheck )
     TYPEPTR     *plist2;
     int         parm_count;
 
-    plist1 = typ1->u.parms;
-    plist2 = typ2->u.parms;
+    plist1 = typ1->u.fn.parms;
+    plist2 = typ2->u.fn.parms;
     if( plist1 != plist2 ) {
         if( plist1 == NULL ) {
-            return ChkParmPromotion( plist2, topLevelCheck );
+            return( ChkParmPromotion( plist2, topLevelCheck ) );
         } else if( plist2 == NULL ) {
-            return ChkParmPromotion( plist1, topLevelCheck );
+            return( ChkParmPromotion( plist1, topLevelCheck ) );
         }
         parm_count = 1;
         for( ;; ) {
@@ -255,6 +254,21 @@ int ChkCompatibleFunction( TYPEPTR typ1, TYPEPTR typ2, int topLevelCheck )
         }
     }
     return( TC_OK );        /* indicate functions are compatible */
+}
+
+int ChkCompatibleLanguage( type_modifiers typ1, type_modifiers typ2 )
+{
+    typ1 &= FLAG_LANGUAGES;
+    typ2 &= FLAG_LANGUAGES;
+    if( typ1 == typ2 ) {
+        return( 1 );
+    } else if( typ1 == 0 ) {
+        return( DftCallConv == GetLangInfo( typ2 ) );
+    } else if( typ2 == 0 ) {
+        return( DftCallConv == GetLangInfo( typ1 ) );
+    } else  {
+        return( 0 );
+    }
 }
 
 #define PTR_FLAGS (FLAG_MEM_MODEL|QUAL_FLAGS)
@@ -328,9 +342,9 @@ static cmp_type DoCompatibleType( TYPEPTR typ1, TYPEPTR typ2, int top_level,
     }
     if( typ1->decl_type==typ2->decl_type ) {
         if( typ1->decl_type == TYPE_FUNCTION ) {
-            typ1_flags = typ1->type_flags;
-            typ2_flags = typ2->type_flags;
-            if( (typ1_flags & FLAG_LANGUAGES) != (typ2_flags & FLAG_LANGUAGES) ) {
+            typ1_flags = typ1->u.fn.decl_flags;
+            typ2_flags = typ2->u.fn.decl_flags;
+            if( !ChkCompatibleLanguage( typ1_flags, typ2_flags ) ) {
                 ret_val = NO;
             } else {
                 /* check to see if the two functions have identical parameters
@@ -378,12 +392,28 @@ static cmp_type DoCompatibleType( TYPEPTR typ1, TYPEPTR typ2, int top_level,
             ret_val = PM;
         }
     } else if( typ1->decl_type == TYPE_ARRAY ) {
-        if( !IdenticalType( typ1->object, typ2 ) ) {
+        TYPEPTR     typ = typ1->object;
+
+        if( !IdenticalType( typ, typ2 ) ) {
             ret_val = NO;
+            while( typ->decl_type == TYPE_ARRAY ) {
+                typ = typ->object;
+            }
+            if( IdenticalType( typ, typ2 ) ) {
+                ret_val = PM;
+            }
         }
     } else if( typ2->decl_type == TYPE_ARRAY ) {
-        if( !IdenticalType( typ2->object, typ1 ) ) {
+        TYPEPTR     typ = typ2->object;
+
+        if( !IdenticalType( typ, typ1 ) ) {
             ret_val = NO;
+            while( typ->decl_type == TYPE_ARRAY ) {
+                typ = typ->object;
+            }
+            if( IdenticalType( typ, typ1 ) ) {
+                ret_val = PM;
+            }
         }
     } else if( typ1->decl_type >= TYPE_LAST_ENTRY  ||
             typ2->decl_type >= TYPE_LAST_ENTRY ) {
@@ -533,7 +563,7 @@ static void CompareParms( TYPEPTR *master,
     parm_num = 1;
     while( typ != NULL  &&  *passed != 0 ) {
         SymLoc = filename;
-        while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
+        SKIP_TYPEDEFS( typ );
         //TODO is crap needed or has it been done
         if( typ->decl_type == TYPE_FUNCTION ) {
             typ = PtrNode( typ, FLAG_NONE, SEG_CODE );
@@ -605,7 +635,7 @@ static void CompareParms( TYPEPTR *master,
     if( typ != NULL || *passed != 0 ) {     /* should both be NULL now */
 #if _CPU == 386
         /* can allow wrong number of parms with -3s option; 06-dec-91 */
-        if( ! CompFlags.register_conventions ) {
+        if( !CompFlags.register_conventions ) {
             SymLoc = filename;
             CWarn1( WARN_PARM_COUNT_MISMATCH, ERR_PARM_COUNT_WARNING );
             SymLoc = NULL;
@@ -620,9 +650,10 @@ static void CompareParms( TYPEPTR *master,
 
 extern  call_list *CallNodeList;
 
+/* Check parameters of function that were called before a prototype was seen */
 extern void ChkCallParms( void )
 {
-    call_list  *nextcall;
+    call_list   *nextcall;
     TREEPTR     *actualparmlist;
 
     actualparmlist = (TREEPTR *)&ValueStack[0];
@@ -639,8 +670,9 @@ extern void ChkCallParms( void )
             callsite = callnode->left;      // point to OPR_FUNCNAME node
             SymGet( &sym, callsite->op.sym_handle );
             typ = sym.sym_type;
-            while( typ->decl_type == TYPE_TYPEDEF )  typ = typ->object;
-            if( typ->u.parms != NULL ) {
+            SKIP_TYPEDEFS( typ );
+            SetDiagSymbol( &sym, callsite->op.sym_handle );
+            if( typ->u.fn.parms != NULL ) {
                 unsigned    parm_count;
                 TREEPTR     parm;
 
@@ -663,12 +695,14 @@ extern void ChkCallParms( void )
                         actualparmlist[j] = tmp;
                     }
                 }
-                SetDiagSymbol( &sym, callsite->op.sym_handle );
-                CompareParms( typ->u.parms, actualparmlist,
+                CompareParms( typ->u.fn.parms, actualparmlist,
                                     nextcall->source_fno,
                                     nextcall->srclinenum );
-                SetDiagPop();
+            } else {
+                CWarn( WARN_NONPROTO_FUNC_CALLED,
+                        ERR_NONPROTO_FUNC_CALLED, SymName( &sym, callsite->op.sym_handle ) );
             }
+            SetDiagPop();
         }
         next = nextcall->next;
         CMemFree( nextcall  );
@@ -737,10 +771,10 @@ static bool IsPtrtoFunc( TYPEPTR typ )
 {
     int ret;
     ret = FALSE;
-    while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
+    SKIP_TYPEDEFS( typ );
     if( typ->decl_type == TYPE_POINTER ) {
         typ = typ->object;
-        while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
+        SKIP_TYPEDEFS( typ );
         if( typ->decl_type == TYPE_FUNCTION ) {
             ret = TRUE;
         }
@@ -750,7 +784,7 @@ static bool IsPtrtoFunc( TYPEPTR typ )
 
 static bool IsPointer( TYPEPTR typ )
 {
-    while( typ->decl_type == TYPE_TYPEDEF ) typ = typ->object;
+    SKIP_TYPEDEFS( typ );
     return( typ->decl_type == TYPE_POINTER );
 }
 
@@ -759,13 +793,13 @@ void ParmAsgnCheck( TYPEPTR typ1, TREEPTR opnd2, int parm_num )
 //TODO merge up with  ChkCalls
     TYPEPTR        typ2;
 
-    if( opnd2->op.opr == OPR_ERROR )  return;
+    if( opnd2->op.opr == OPR_ERROR ) return;
     typ2 = opnd2->expr_type;
 
     SetDiagType2( typ2, typ1 );
     switch( CompatibleType( typ1, typ2, 1 ) ) {
     case NO:
-        if ( parm_num == 0 ) {
+        if( parm_num == 0 ) {
             CErr1( ERR_TYPE_MISMATCH );
         } else {
             CErr2( ERR_PARM_TYPE_MISMATCH, parm_num );
@@ -790,7 +824,7 @@ void ParmAsgnCheck( TYPEPTR typ1, TREEPTR opnd2, int parm_num )
         }
         break;
     case PM:                                    /* 16-may-91 */
-        if ( parm_num == 0 ) {
+        if( parm_num == 0 ) {
             CWarn1( WARN_POINTER_TYPE_MISMATCH, ERR_POINTER_TYPE_MISMATCH );
         } else {
             CWarn2( WARN_POINTER_TYPE_MISMATCH,
@@ -798,7 +832,7 @@ void ParmAsgnCheck( TYPEPTR typ1, TREEPTR opnd2, int parm_num )
         }
         break;
     case PS:                                    /* 16-may-91 */
-        if ( parm_num == 0 ) {
+        if( parm_num == 0 ) {
             CWarn1( WARN_SIGN_MISMATCH, ERR_SIGN_MISMATCH );
         } else {
             CWarn2( WARN_SIGN_MISMATCH,
@@ -806,7 +840,7 @@ void ParmAsgnCheck( TYPEPTR typ1, TREEPTR opnd2, int parm_num )
         }
         break;
     case PW:
-        if ( parm_num == 0 ) {
+        if( parm_num == 0 ) {
             CWarn1( WARN_INCONSISTENT_INDIRECTION_LEVEL,
                     ERR_INCONSISTENT_INDIRECTION_LEVEL );
         } else {
@@ -818,7 +852,7 @@ void ParmAsgnCheck( TYPEPTR typ1, TREEPTR opnd2, int parm_num )
         if( IsPointer( typ1 ) && opnd2->op.opr == OPR_PUSHINT ) {
             if( opnd2->op.long_value != 0 ) {
                 CWarn1( WARN_NONPORTABLE_PTR_CONV,
-                        ERR_NONPORTABLE_PTR_CONV );
+                         ERR_NONPORTABLE_PTR_CONV );
             }
         } else {
             CWarn1( WARN_PCTYPE_MISMATCH, ERR_PCTYPE_MISMATCH );
@@ -827,7 +861,7 @@ void ParmAsgnCheck( TYPEPTR typ1, TREEPTR opnd2, int parm_num )
     case AC:
         /* CarlYoung 31-Oct-03 */
         {
-            unsigned long fsize_1 = 0, fsize_2 = 0;
+            unsigned long   fsize_1 = 0, fsize_2 = 0;
 
             if( TypeSizeEx( typ2, &fsize_2 ) > TypeSizeEx( typ1, &fsize_1 ) ) {
                 CWarn1( WARN_LOSE_PRECISION, ERR_LOSE_PRECISION );
@@ -869,7 +903,7 @@ void TernChk( TYPEPTR typ1, TYPEPTR typ2 )
         break;
     case PW:
         CWarn1( WARN_INCONSISTENT_INDIRECTION_LEVEL,
-                    ERR_INCONSISTENT_INDIRECTION_LEVEL );
+                 ERR_INCONSISTENT_INDIRECTION_LEVEL );
         break;
     case PC:
         CWarn1( WARN_PCTYPE_MISMATCH, ERR_PCTYPE_MISMATCH );
@@ -885,7 +919,7 @@ void ChkRetType( TREEPTR tree )
     TYPEPTR     ret_type;
     TYPEPTR     func_type;
 
-    if( tree->op.opr == OPR_ERROR )  return;
+    if( tree->op.opr == OPR_ERROR ) return;
     ret_type = TypeOf( tree );
     func_type = CurFunc->sym_type->object;
     if( func_type->decl_type == TYPE_VOID ) {
@@ -902,7 +936,7 @@ void ChkRetType( TREEPTR tree )
 
 int IdenticalType( TYPEPTR typ1, TYPEPTR typ2 )
 {
-    int rc;
+    int     rc;
 
     rc = TypeCheck( typ1, typ2 );
     return( rc == TC_OK  ||  rc == TC_TYPE2_HAS_MORE_INFO );
@@ -911,30 +945,30 @@ int IdenticalType( TYPEPTR typ1, TYPEPTR typ2 )
 
 int VerifyType( TYPEPTR new, TYPEPTR old, SYMPTR sym )
 {
-    int rc;
+    int     rc;
 
     rc = TypeCheck( new, old );
     switch( rc ) {
     case TC_OK:                     /* OK */
         break;
     case TC_TYPE_MISMATCH:          /* types didn't match */
-        while( new->decl_type == TYPE_TYPEDEF ) new = new->object;
-        while( old->decl_type == TYPE_TYPEDEF ) old = old->object;
+        SKIP_TYPEDEFS( new );
+        SKIP_TYPEDEFS( old );
         /*
             types won't match for:
 
             extern char a[];        char a[200];
             char a[200];            extern char a[];
         */
-        if(( new->decl_type == TYPE_ARRAY )                 &&
-           ( old->decl_type == TYPE_ARRAY )                 &&
-           ( IdenticalType( new->object, old->object ) ) ) {
-            if( TypeSize(new) != 0 ) {
-                if( TypeSize(old) == 0 ) {
+        if( (new->decl_type == TYPE_ARRAY)               &&
+          (old->decl_type == TYPE_ARRAY)                 &&
+          IdenticalType( new->object, old->object ) ) {
+            if( TypeSize( new ) != 0 ) {
+                if( TypeSize( old ) == 0 ) {
                     /* let it go but indicate that the new type holds */
                 }
             } else {
-                if( TypeSize(old) != 0 ) {
+                if( TypeSize( old ) != 0 ) {
                     /* let it go */
                     return( 1 );
                     break;
@@ -947,7 +981,7 @@ int VerifyType( TYPEPTR new, TYPEPTR old, SYMPTR sym )
         CErr1( ERR_PARM_COUNT_MISMATCH );
         break;
     case TC_TYPE2_HAS_MORE_INFO:    /* OK, new= void *, old= something *;*/
-        return( 1 );        /* indicate want old definition */
+        return( 1 );                /* indicate want old definition */
         break;
     default:        /* parm type mismatch */
         CErr2( ERR_PARM_TYPE_MISMATCH, rc - TC_PARM_TYPE_MISMATCH );

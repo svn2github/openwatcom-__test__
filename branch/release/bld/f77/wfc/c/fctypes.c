@@ -35,9 +35,11 @@
 //
 
 #include "ftnstd.h"
-#include "parmtype.h"
+#include "symtypes.h"
+#include "types.h"
 #include "wf77defs.h"
 #include "symbol.h"
+#include "fctypes.h"
 
 #define NUM_TYPES       12
 #define L1              T_UINT_1
@@ -71,40 +73,21 @@ static  byte            MapCGTypes[] = {
    0,   0,  0,   0,   0,   0,   0,   0,   0,   0,   0,   CH   // CH
 };
 
+#ifdef pick
+#undef pick
+#endif
+#define pick(id,type,dbgtype,cgtype) cgtype,
 
-cg_type MkCGType( int typ ) {
+static  cg_type         CGTypesMap[] = {
+#include "ptypdefn.h"
+};
+
+cg_type MkCGType( PTYPE typ ) {
 //===========================
 
-// Map FORTRAN type to CG-type.
+// Map FORTRAN parameter type to CG-type.
 
-    switch( typ ) {
-    case PT_LOG_1 :
-        return( T_UINT_1 );
-    case PT_LOG_4 :
-        return( T_UINT_4 );
-    case PT_INT_1 :
-        return( T_INT_1 );
-    case PT_INT_2 :
-        return( T_INT_2 );
-    case PT_INT_4 :
-        return( T_INT_4 );
-    case PT_REAL_4 :
-        return( T_SINGLE );
-    case PT_REAL_8 :
-        return( T_DOUBLE );
-    case PT_REAL_16 :
-        return( T_LONGDOUBLE );
-    case PT_CPLX_8 :
-        return( T_COMPLEX );
-    case PT_CPLX_16 :
-        return( T_DCOMPLEX );
-    case PT_CPLX_32 :
-        return( T_XCOMPLEX );
-    case PT_CHAR :
-        return( T_LOCAL_POINTER );
-    default : // PT_STRUCT
-        return( T_USER_DEFINED );
-    }
+    return( CGTypesMap[ typ] );
 }
 
 

@@ -37,7 +37,7 @@
 #include "asmalloc.h"
 #include "asmfixup.h"
 
-#ifdef _WASM_
+#if defined( _STANDALONE_ )
 
 #include "directiv.h"
 #include "queues.h"
@@ -48,14 +48,10 @@ extern int  AddFloatingPointEmulationFixup( const struct asm_ins ASMFAR *, bool 
 
 #endif
 
-#if __WATCOMC__ > 1230
-static int match_phase_3( int *i, enum operand_type determinant );
-#else
-static int match_phase_3( int *i, unsigned long determinant );
-#endif
+static int match_phase_3( int *i, OPNDTYPE determinant );
 
 static int output_3DNow( int i )
-/************************/
+/******************************/
 {
     const struct asm_ins ASMFAR *ins = &AsmOpTable[i];
 
@@ -64,6 +60,7 @@ static int output_3DNow( int i )
     }
     return( NOT_ERROR );
 }
+
 static int output( int i )
 /************************/
 /*
@@ -76,7 +73,7 @@ static int output( int i )
     struct asm_code             *rCode = Code;
     unsigned_8                  tmp;
 
-#ifdef _WASM_
+#if defined( _STANDALONE_ )
     /*
      * Output debug info - line numbers
      */
@@ -170,7 +167,7 @@ static int output( int i )
      */
     if( ins->token == T_FWAIT ) {
         if(( rCode->info.cpu&P_CPU_MASK ) < P_386 ) {
-#ifdef _WASM_
+#if defined( _STANDALONE_ )
             if(( Options.floating_point == DO_FP_EMULATION ) && ( !rCode->use32 )) {
                 AsmCodeByte( OP_NOP );
             }
@@ -180,7 +177,7 @@ static int output( int i )
         }
     } else if( ins->allowed_prefix == FWAIT ) {
         AsmCodeByte( OP_WAIT );
-#ifdef _WASM_
+#if defined( _STANDALONE_ )
     } else if(( Options.floating_point == DO_FP_EMULATION )
         && ( !rCode->use32 )
         && ( ins->allowed_prefix != NO_FWAIT )
@@ -195,7 +192,7 @@ static int output( int i )
         }
     }
 
-#ifdef _WASM_
+#if defined( _STANDALONE_ )
     /*
      * Output FP fixup if required
      */
@@ -327,12 +324,8 @@ static int output( int i )
     return( NOT_ERROR );
 }
 
-#if __WATCOMC__ > 1230
-static int output_data( enum operand_type determinant, int index )
-#else
-static int output_data( unsigned long determinant, int index )
-#endif
-/************************************************************/
+static int output_data( OPNDTYPE determinant, int index )
+/*******************************************************/
 /*
   output address displacement and immediate data;
 */
@@ -353,7 +346,7 @@ static int output_data( unsigned long determinant, int index )
         return( NOT_ERROR );
     }
 
-#ifdef _WASM_
+#if defined( _STANDALONE_ )
     store_fixup( index );
 #endif
 
@@ -405,7 +398,7 @@ static int output_data( unsigned long determinant, int index )
 }
 
 static int match_phase_2( int *i )
-/*
+/*********************************
 - a routine used by match_phase_1() to determine whether both operands match
   with that in the assembly instructions table;
 - call by match_phase_1() only;
@@ -431,23 +424,18 @@ static int match_phase_2( int *i )
 }
 
 int match_phase_1( void )
-/*
+/************************
 - this routine will look up the assembler opcode table and try to match
   the first operand in table with what we get;
 - if first operand match then it will call match_phase_2() to determine if the
   second operand also match; if not, it must be error;
 */
 {
-    int                 i;
-    int                 retcode;
-    signed char         temp_opsiz = 0;
-#if __WATCOMC__ > 1230
-    enum operand_type   cur_opnd;
-    enum operand_type   asm_op1;
-#else
-    unsigned long   cur_opnd;
-    unsigned long   asm_op1;
-#endif
+    int             i;
+    int             retcode;
+    signed char     temp_opsiz = 0;
+    OPNDTYPE        cur_opnd;
+    OPNDTYPE        asm_op1;
 
     // if nothing inside, no need to output anything
     if( Code->info.token == T_NULL ) {
@@ -629,12 +617,9 @@ int match_phase_1( void )
 }
 
 static int check_3rd_operand( int i )
+/***********************************/
 {
-#if __WATCOMC__ > 1230
-    enum operand_type   cur_opnd;
-#else
-    unsigned long   cur_opnd;
-#endif
+    OPNDTYPE    cur_opnd;
 
     cur_opnd = Code->info.opnd_type[OPND3];
     if( ( AsmOpTable[i].opnd_type_3rd == OP3_NONE )
@@ -652,6 +637,7 @@ static int check_3rd_operand( int i )
 }
 
 static int output_3rd_operand( int i )
+/************************************/
 {
     if( AsmOpTable[i].opnd_type_3rd == OP3_NONE ) {
         return( NOT_ERROR );
@@ -669,12 +655,8 @@ static int output_3rd_operand( int i )
     }
 }
 
-#if __WATCOMC__ > 1230
-static int match_phase_3( int *i, enum operand_type determinant )
-#else
-static int match_phase_3( int *i, unsigned long determinant )
-#endif
-/*
+static int match_phase_3( int *i, OPNDTYPE determinant )
+/*******************************************************
 - this routine will look up the assembler opcode table and try to match
   the second operand with what we get;
 - if second operand match then it will output code; if not, pass back to
@@ -682,16 +664,10 @@ static int match_phase_3( int *i, unsigned long determinant )
 - call by match_phase_2() only;
 */
 {
-#if __WATCOMC__ > 1230
-    enum operand_type   cur_opnd;
-    enum operand_type   last_opnd;
-    enum operand_type   asm_op2;
-#else
-    unsigned long   cur_opnd;
-    unsigned long   last_opnd;
-    unsigned long   asm_op2;
-#endif
-    unsigned            instruction;
+    OPNDTYPE    cur_opnd;
+    OPNDTYPE    last_opnd;
+    OPNDTYPE    asm_op2;
+    unsigned    instruction;
 
     instruction = AsmOpTable[*i].token;
 
@@ -747,12 +723,12 @@ static int match_phase_3( int *i, unsigned long determinant )
             break;
         case OP_I:
             if( cur_opnd & asm_op2 ) {
-#if defined(_WASM_)
+#if defined(_STANDALONE_)
                 long operand = Code->data[OPND2];
 #endif
                 if( last_opnd & OP_R8 ) {
                     // 8-bit register, so output 8-bit data
-#if defined(_WASM_)
+#if defined(_STANDALONE_)
                     if( Parse_Pass == PASS_1 && !InRange( operand, 1 ) ) {
                         AsmWarn( 1, IMMEDIATE_CONSTANT_TOO_LARGE );
                     }
@@ -764,7 +740,7 @@ static int match_phase_3( int *i, unsigned long determinant )
                     }
                 } else if( last_opnd & OP_R16 ) {
                     // 16-bit register, so output 16-bit data
-#if defined(_WASM_)
+#if defined(_STANDALONE_)
                     if( Parse_Pass == PASS_1 && !InRange( operand, 2 ) ) {
                         AsmWarn( 1, IMMEDIATE_CONSTANT_TOO_LARGE );
                     }
@@ -911,10 +887,10 @@ static int match_phase_3( int *i, unsigned long determinant )
     return( EMPTY );
 }
 
-#ifdef _WASM_
+#if defined( _STANDALONE_ )
 
 static void AddLinnumDataRef( void )
-/*******************************/
+/**********************************/
 /* store a reference for the current line at the current address */
 {
     struct linnum_data  *curr;

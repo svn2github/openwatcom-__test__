@@ -39,4 +39,4 @@
  * regarding open POSIX-level file handles is passed to the child process.
  */
  
-_WCRTLINK int           _fileinfo = 0;
+_WCRTLINKD int          _fileinfo = 0;

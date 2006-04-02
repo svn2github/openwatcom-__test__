@@ -5,7 +5,7 @@
 Usage: wccaxp [options] file [options]
 :elsesegment Tppc
 Usage: wccppc [options] file [options]
-:elsesegment Tmis
+:elsesegment Tmps
 Usage: wccmps [options] file [options]
 :elsesegment T386
 Usage: wcc386 [options] file [options]
@@ -47,7 +47,9 @@ Options:
 :segment Taxp
 -as           assume short integers are aligned
 :endsegment
+-bc           build target is a console application
 -bd           build target is a dynamic link library (DLL)
+-bg           build target is a GUI application
 -bm           build target is a multi-thread environment
 :segment T386 | Taxp
 -br           build with dll run-time library
@@ -69,7 +71,9 @@ Options:
 -ecc          set default calling convention to __cdecl
 -ecd          set default calling convention to __stdcall
 -ecf          set default calling convention to __fastcall
+:segment HIDDEN
 -eco          set default calling convention to _Optlink
+:endsegment
 -ecp          set default calling convention to __pascal
 -ecr          set default calling convention to __fortran
 -ecs          set default calling convention to _Syscall
@@ -190,6 +194,7 @@ Options:
   c           -> preserve comments
   l           -> insert #line directives
   w=<num>     -> wrap output lines at <num> columns. Zero means no wrap.
+-q            operate quietly
 :segment T386 | Ti86
 -r            save/restore segment registers across calls
 -ri           return chars and shorts as ints
@@ -262,7 +267,7 @@ Options:
 :segment Taxp
 -zps          always align structs on qword boundaries
 :endsegment
--zq           operate quietly
+-zq           operate quietly (equivalent to -q)
 :segment T386 | Ti86
 -zro          omit floating point rounding calls (non ANSI)
 :endsegment

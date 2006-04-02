@@ -1,5 +1,6 @@
 #                    d16 d32 dpm g16 g32 nt nta ntp nvc nvl o16 o32 q16 q32 w16 w32 osi l32 lpc lmp
 #==================================================================================================
+!inject btowc.obj    d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject dbcsnov.obj                                 nvc nvl
 !inject fmbccmp.obj  d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbccpy.obj  d16 d32             nt                 o16 o32         w16 w32 osi
@@ -43,19 +44,24 @@
 !inject fmbsrchr.obj d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbsrev.obj  d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbsrtow.obj d16 d32             nt                 o16 o32         w16 w32 osi
+!inject fmbsrt_s.obj d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbsset.obj  d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbsspn.obj  d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbsspnp.obj d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbsstr.obj  d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbstok.obj  d16 d32             nt                 o16 o32         w16 w32 osi
+!inject fmbsto_s.obj d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbstowc.obj d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbsupr.obj  d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbterm.obj  d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fmbtowc.obj  d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fwcrtomb.obj d16 d32             nt                 o16 o32         w16 w32 osi
+!inject fwcrto_s.obj d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fwcsrtom.obj d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fwcstomb.obj d16 d32             nt                 o16 o32         w16 w32 osi
+!inject fwcsto_s.obj d16 d32             nt                 o16 o32         w16 w32 osi
 !inject fwctomb.obj  d16 d32             nt                 o16 o32         w16 w32 osi
+!inject fwctom_s.obj d16 d32             nt                 o16 o32         w16 w32 osi
 !inject getmbcp.obj  d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject ismbbaln.obj d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject ismbbalp.obj d16 d32             nt nta ntp         o16 o32         w16 w32 osi
@@ -111,6 +117,7 @@
 !inject mbsdup.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbsicmp.obj  d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbsinc.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
+!inject mbsinit.obj  d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject _mbslen.obj  d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbslen.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbslwr.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
@@ -133,11 +140,13 @@
 !inject mbsrchr.obj  d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbsrev.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbsrtowc.obj d16 d32             nt nta ntp         o16 o32         w16 w32 osi
+!inject mbsrto_s.obj d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbsset.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbsspn.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbsspnp.obj  d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbsstr.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbstok.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
+!inject mbstow_s.obj d16 d32             nt nta ntp         o16 o32 q16 q32 w16 w32 osi l32 lpc lmp
 !inject mbstowcs.obj d16 d32             nt nta ntp         o16 o32 q16 q32 w16 w32 osi l32 lpc lmp
 !inject mbsupr.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject mbterm.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
@@ -147,10 +156,14 @@
 #inject utfqnx.obj                                                  q16 q32             l32 lpc lmp
 !inject wc2mbqnx.obj                                                q16 q32             l32 lpc lmp
 !inject wcrtomb.obj  d16 d32             nt nta ntp         o16 o32         w16 w32 osi
+!inject wcrtom_s.obj d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject wcsrtomb.obj d16 d32             nt nta ntp         o16 o32         w16 w32 osi
+!inject wcsrto_s.obj d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject wcstombs.obj d16 d32             nt nta ntp         o16 o32 q16 q32 w16 w32 osi l32 lpc lmp
+!inject wcstom_s.obj d16 d32             nt nta ntp         o16 o32 q16 q32 w16 w32 osi l32 lpc lmp
 !inject wctob.obj    d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject wctomb.obj   d16 d32             nt nta ntp         o16 o32         w16 w32 osi
+!inject wctomb_s.obj d16 d32             nt nta ntp         o16 o32         w16 w32 osi
 !inject wrlang.obj   d16 d32             nt nta ntp nvc nvl o16 o32 q16 q32 w16 w32 osi l32 lpc lmp
 
 !include ../../../../objlist.mif

@@ -1,12 +1,13 @@
-#pmake/50: build1 flat register 32bit inline os2 iX86 rtdll os_os2 cpu_386
+#pmake/50: build debug flat register 32bit inline os2 iX86 rtdll os_os2 cpu_386
 
 component  = mathlib
 processor  = 387
 model      = mf
-subdir     = mf_r
+subdir     = mf_rd
 system     = os2
 convention = register
-debug      = 1
+
+rtdll_release = 0
 
 !include $(rtdll_dir)/master.mif
 !include ../objs.mif

@@ -263,7 +263,7 @@ static int os_write( int handle, const void *buffer, unsigned len, unsigned *amt
 }
 
 #if defined(__WINDOWS_386__)
-  int __write( int handle, const void *buffer, unsigned len )
+  static int __write( int handle, const void *buffer, unsigned len )
 #else
   _WCRTLINK int write( int handle, const void *buffer, unsigned len )
 #endif
@@ -439,7 +439,7 @@ _WCRTLINK int write( int handle, const void *buffer, unsigned len )
             writeamt = len;
         }
         rc = __write( handle, buffer, writeamt );
-        if( rc < 0 )
+        if( rc == -1 )
             return( rc );
         total += (unsigned)rc;
         if( rc != writeamt )

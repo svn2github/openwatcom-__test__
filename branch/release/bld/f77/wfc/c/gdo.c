@@ -38,30 +38,19 @@
 
 #include "ftnstd.h"
 #include "fcodes.h"
-#include "parmtype.h"
 #include "global.h"
 #include "stmtsw.h"
 #include "opn.h"
 #include "cpopt.h"
+#include "recog.h"
+#include "emitobj.h"
+#include "types.h"
+#include "utility.h"
 
-extern  void            EatDoParm(void);
-extern  void            AdvanceITPtr(void);
-extern  bool            RecComma(void);
-extern  bool            ReqComma(void);
-extern  void            EmitOp(unsigned_16);
-extern  void            OutPtr(pointer);
-extern  void            OutU16(unsigned_16);
-extern  void            OutConst32(signed_32);
-extern  void            PushOpn(itnode *);
-extern  void            PushConst(signed_32);
-extern  sym_id          StaticAlloc(int,int);
-extern  void            GenType(itnode *);
-extern  void            DumpType(uint,uint);
-extern  uint            TypeSize(uint);
-extern  intstar4        ITIntValue(itnode *);
+extern  sym_id          StaticAlloc(uint,TYPE);
 
 
-void    GDoInit( int do_type ) {
+void    GDoInit( TYPE do_type ) {
 //==============================
 
 // Initialize a DO or implied-DO.
@@ -90,7 +79,7 @@ static intstar4 GetIntValue( itnode *node ) {
 }
 
 
-static bool NeedIncrement( intstar4 limit, intstar4 incr, int do_type ) {
+static bool NeedIncrement( intstar4 limit, intstar4 incr, TYPE do_type ) {
 //=======================================================================
 
     switch( do_type ) {
@@ -132,17 +121,17 @@ static bool NeedIncrement( intstar4 limit, intstar4 incr, int do_type ) {
 }
 
 
-static  void    DoLoop( int do_type ) {
+static  void    DoLoop( TYPE do_type ) {
 //=====================================
 
 // Generate code for DO statement or implied-DO.
 
     do_entry    *doptr;
-    int         do_size;
+    uint        do_size;
     intstar4    incr;
     intstar4    limit;
     sym_id      loop_ctrl;
-    int         e1_type;
+    TYPE        e1_type;
     uint        e1_size;
     itnode      *e2_node;
     itnode      *e3_node;
@@ -159,7 +148,7 @@ static  void    DoLoop( int do_type ) {
     AdvanceITPtr();
     if( ReqComma() ) {
         EatDoParm();                            // process e2
-        e2_const = CITNode->opn == OPN_CON;
+        e2_const = CITNode->opn.us == USOPN_CON;
         PushOpn( CITNode );
         e2_node = CITNode;
         AdvanceITPtr();
@@ -168,7 +157,7 @@ static  void    DoLoop( int do_type ) {
             EatDoParm();                        // process e3
             e3_node = CITNode;
             if( AError == FALSE ) {
-                if( (CITNode->opn == OPN_CON) && _IsTypeInteger( do_type ) ) {
+                if( (CITNode->opn.us == USOPN_CON) && _IsTypeInteger( do_type ) ) {
                     incr = GetIntValue( CITNode );
                     doptr->incr_value = incr;
                     doptr->increment = NULL;
@@ -211,7 +200,7 @@ static  void    DoLoop( int do_type ) {
                 doptr->increment = StaticAlloc( do_size, do_type );
             }
         }
-        EmitOp( DO_BEGIN );
+        EmitOp( FC_DO_BEGIN );
         OutPtr( doptr->do_parm );
         OutPtr( doptr->increment );
         if( doptr->increment == NULL ) { // INTEGER do-loop with constant incr
@@ -240,7 +229,7 @@ static  void    DoLoop( int do_type ) {
 }
 
 
-static  void    DataDo( int do_type ) {
+static  void    DataDo( TYPE do_type ) {
 //=====================================
 
 // Process an implied-DO for DATA statements.
@@ -259,7 +248,7 @@ static  void    DataDo( int do_type ) {
             PushConst( 1 );             // indicate unit incrementation
         }
     }
-    EmitOp( DATA_DO_LOOP );
+    EmitOp( FC_DATA_DO_LOOP );
     OutPtr( do_var );
 }
 
@@ -296,7 +285,7 @@ static  void    DoLoopEnd() {
     do_entry    *doptr;
 
     doptr = CSHead->cs_info.do_parms;
-    EmitOp( DO_END );
+    EmitOp( FC_DO_END );
     OutPtr( doptr->do_parm );
     OutPtr( doptr->increment );
     if( doptr->increment == NULL ) {
@@ -313,5 +302,5 @@ static  void    DataDoEnd() {
 
 // Process end of implied-DO for DATA statement.
 
-    EmitOp( END_OF_SEQUENCE );
+    EmitOp( FC_END_OF_SEQUENCE );
 }

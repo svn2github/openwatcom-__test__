@@ -81,7 +81,7 @@ _WCRTLINK extern void _WCFAR *_fcalloc( size_t __n, size_t __size );
 #if !defined(_ncalloc) || !defined(_INC_WINDOWSX)
 _WCRTLINK extern void _WCNEAR *_ncalloc( size_t __n, size_t __size );
 #endif
-_WCRTLINK extern void * _expand( void *__ptr, size_t __size );
+_WCRTLINK extern void *_expand( void *__ptr, size_t __size );
 :segment DOS
 #if !defined(_fexpand) || !defined(_INC_WINDOWSX)
 _WCRTLINK extern void _WCFAR *_fexpand( void _WCFAR *__ptr, size_t __size );
@@ -95,7 +95,7 @@ _WCRTLINK extern void _WCNEAR *_nexpand( void _WCNEAR *__ptr, size_t __size );
 _WCRTLINK extern void _ffree( void _WCFAR *__ptr );
 #endif
 #if !defined(_fmalloc) || !defined(_INC_WINDOWSX)
-_WCRTLINK extern void _WCFAR * _fmalloc( size_t __size );
+_WCRTLINK extern void _WCFAR *_fmalloc( size_t __size );
 #endif
 :endsegment
 _WCRTLINK extern unsigned int _freect( size_t __size );
@@ -132,10 +132,10 @@ _WCRTLINK extern size_t _memmax( void );
 #ifdef __cplusplus
 namespace std {
 #endif
-_WCRTLINK extern void * calloc( size_t __n, size_t __size );
+_WCRTLINK extern void *calloc( size_t __n, size_t __size );
 _WCRTLINK extern void free( void *__ptr );
-_WCRTLINK extern void * malloc( size_t __size );
-_WCRTLINK extern void * realloc( void *__ptr, size_t __size );
+_WCRTLINK extern void *malloc( size_t __size );
+_WCRTLINK extern void *realloc( void *__ptr, size_t __size );
 #ifdef __cplusplus
 }
 using std::calloc;

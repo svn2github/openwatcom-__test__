@@ -38,15 +38,13 @@
 #include "global.h"
 #include "errcod.h"
 #include "segsw.h"
-#include "prdefn.h"
+#include "recog.h"
+#include "insert.h"
+#include "utility.h"
 
-extern  void            ReqNOpn(void);
-extern  void            ReqEOS(void);
-extern  void            AdvanceITPtr(void);
 extern  void            STUnion(void);
 extern  void            STMap(void);
 extern  void            CSExtn(void);
-extern  void            StmtPtrErr(int,char *);
 
 extern  char            *StmtKeywords[];
 
@@ -72,7 +70,7 @@ void    CpEndUnion() {
 
     CSExtn();
     if( !( SgmtSw & SG_DEFINING_STRUCTURE ) ) {
-        StmtPtrErr( SP_UNMATCHED, StmtKeywords[ PR_UNION - 1 ] );
+        StmtPtrErr( SP_UNMATCHED, StmtKeywords[ PR_UNION ] );
     }
     SgmtSw &= ~SG_DEFINING_UNION;
     EndOfStatement();
@@ -100,7 +98,7 @@ void    CpEndMap() {
 
     CSExtn();
     if( !( SgmtSw & SG_DEFINING_MAP ) ) {
-        StmtPtrErr( SP_UNMATCHED, StmtKeywords[ PR_MAP - 1 ] );
+        StmtPtrErr( SP_UNMATCHED, StmtKeywords[ PR_MAP ] );
     }
     SgmtSw &= ~SG_DEFINING_MAP;
     EndOfStatement();

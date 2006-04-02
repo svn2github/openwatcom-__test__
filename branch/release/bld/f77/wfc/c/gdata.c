@@ -36,18 +36,12 @@
 
 #include "ftnstd.h"
 #include "fcodes.h"
-#include "parmtype.h"
 #include "global.h"
 #include "fcgbls.h"
+#include "emitobj.h"
+#include "types.h"
 
-extern  sym_id          STConst(void *,int,int);
-extern  void            EmitOp(unsigned_16);
-extern  void            OutPtr(pointer);
-extern  void            OutU16(unsigned_16);
-extern  obj_ptr         ObjTell(void);
-extern  obj_ptr         ObjSeek(obj_ptr);
-extern  unsigned_16     ObjOffset(obj_ptr);
-extern  int             TypeSize(int);
+extern  sym_id          STConst(void *,TYPE,uint);
 
 
 label_id        GDataProlog() {
@@ -55,7 +49,7 @@ label_id        GDataProlog() {
 
 // Start off data statement code.
 
-    EmitOp( START_DATA_STMT );
+    EmitOp( FC_START_DATA_STMT );
     DtConstList = ObjTell();
     OutU16( 0 );
     return( NULL );
@@ -92,7 +86,6 @@ void    GDataItem( itnode *rpt ) {
 // Generate a data item.
 
     sym_id      data;
-    int         typ;
     intstar4    one;
 
     if( rpt == NULL ) {
@@ -101,14 +94,12 @@ void    GDataItem( itnode *rpt ) {
     } else {
         data = rpt->sym_ptr;
     }
-    typ = CITNode->typ;
-    if( typ == TY_HEX ) {
-        typ = PT_NOTYPE;
-    } else {
-        typ = ParmType( typ, CITNode->size );
-    }
     OutPtr( data );
-    OutU16( typ );
+    if( CITNode->typ == TY_HEX ) {
+        OutU16( PT_NOTYPE );
+    } else {
+        GenType( CITNode );
+    }
     OutPtr( CITNode->sym_ptr );
 }
 
@@ -137,5 +128,5 @@ void    GEndVarSet() {
 // Terminate set of variables (i.e. Data i,j,k/1,2,3/,m/3/ - i,j,k is a set
 // and m is a set).
 
-    EmitOp( END_VAR_SET );
+    EmitOp( FC_END_VAR_SET );
 }

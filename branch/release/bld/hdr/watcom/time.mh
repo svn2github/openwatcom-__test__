@@ -78,6 +78,16 @@ using std::time;
 
 :include clockt.sp
 
+:segment !CNAME
+:include saferpro.sp
+
+:include errnot.sp
+
+:include rsizet.sp
+
+:include saferepi.sp
+:endsegment
+
 :segment DOS
 #define CLK_TCK          1000
 #define CLOCKS_PER_SEC   1000
@@ -200,12 +210,12 @@ struct tm {
 :segment CNAME
 namespace std {
 :endsegment
-_WCRTLINK extern char        *asctime( const struct tm *__timeptr );
+_WCRTLINK extern char         *asctime( const struct tm *__timeptr );
 _WCRTLINK extern clock_t      clock( void );
-_WCRTLINK extern char        *ctime( const time_t *__timer );
+_WCRTLINK extern char         *ctime( const time_t *__timer );
 _WMRTLINK extern double       difftime( time_t __t1, time_t __t0 );
-_WCRTLINK extern struct tm   *gmtime( const time_t *__timer );
-_WCRTLINK extern struct tm   *localtime( const time_t *__timer );
+_WCRTLINK extern struct tm    *gmtime( const time_t *__timer );
+_WCRTLINK extern struct tm    *localtime( const time_t *__timer );
 _WCRTLINK extern time_t       mktime( struct tm *__timeptr );
 _WCRTLINK extern size_t       strftime( char *__s, size_t __maxsiz, const char *__fmt, const struct tm *__tp );
 _WCRTLINK extern time_t       time( time_t *__timer );
@@ -226,12 +236,12 @@ _WCRTLINK extern wchar_t      *_wasctime( const std::tm * );
 _WCRTLINK extern wchar_t      *_wctime( const std::time_t * );
 _WCRTLINK extern wchar_t      *_wstrdate( wchar_t *__buf );
 _WCRTLINK extern wchar_t      *_wstrtime( wchar_t *__buf );
-_WCRTLINK extern std::size_t   _wstrftime_ms( wchar_t *, std::size_t, const char *, const std::tm * );
+_WCRTLINK extern std::size_t  _wstrftime_ms( wchar_t *, std::size_t, const char *, const std::tm * );
 :elsesegment
-_WCRTLINK extern wchar_t     *_wasctime( const struct tm * );
-_WCRTLINK extern wchar_t     *_wctime( const time_t * );
-_WCRTLINK extern wchar_t     *_wstrdate( wchar_t *__buf );
-_WCRTLINK extern wchar_t     *_wstrtime( wchar_t *__buf );
+_WCRTLINK extern wchar_t      *_wasctime( const struct tm * );
+_WCRTLINK extern wchar_t      *_wctime( const time_t * );
+_WCRTLINK extern wchar_t      *_wstrdate( wchar_t *__buf );
+_WCRTLINK extern wchar_t      *_wstrtime( wchar_t *__buf );
 _WCRTLINK extern size_t       _wstrftime_ms( wchar_t *, size_t, const char *, const struct tm * );
 :endsegment
 :endsegment
@@ -261,30 +271,48 @@ _WCRTLINK extern wchar_t     *__wasctime( const struct tm *, wchar_t * );
 :endsegment
 #endif
 
+:segment !CNAME
+:include saferpro.sp
+
+_WCRTLINK extern errno_t      asctime_s( char *__s, rsize_t __maxsize, const struct tm *__timeptr );
+_WCRTLINK extern errno_t      ctime_s( char *__s, rsize_t __maxsize, const time_t *__timer );
+_WCRTLINK extern struct tm    *gmtime_s( const time_t * __restrict __timer, struct tm * __restrict __result );
+_WCRTLINK extern struct tm    *localtime_s( const time_t * __restrict __timer, struct tm * __restrict __t );
+
+:segment !NO_WIDECHAR
+_WCRTLINK extern errno_t      _wasctime_s( wchar_t *__s, rsize_t __maxsize, const struct tm *__timeptr );
+_WCRTLINK extern errno_t      _wctime_s( wchar_t *__s, rsize_t __maxsize, const time_t *__timer );
+:endsegment
+
+:include saferepi.sp
+:endsegment
+
 :segment QNX | LINUX
 :include unixext.sp
 :endsegment
-_WCRTLINK extern void  tzset( void );
-
+_WCRTLINK extern void   tzset( void );
+_WCRTLINK extern char   **__get_tzname_ptr( void );
 #if defined(__FUNCTION_DATA_ACCESS)
-#define tzname  ( *__get_tzname_ptr( void ) )
+ #define tzname         (*__get_tzname_ptr())
 #elif defined(__SW_BR) || defined(_RTDLL)
-#define tzname  tzname_br
+ #define tzname  tzname_br
 #endif
-_WCRTLINK extern char  *tzname[2];             /*  time zone names */
+_WCRTLINKD extern char  *tzname[2];             /*  time zone names */
 
 :segment QNX | LINUX
 :include ext.sp
 :endsegment
+_WCRTLINK extern long   *__get_timezone_ptr( void );
+_WCRTLINK extern int    *__get_daylight_ptr( void );
 #if defined( __FUNCTION_DATA_ACCESS )
-#define timezone ( *__get_timezone_ptr() )
-#define daylight ( *__get_daylight_ptr() )
+ #define timezone       (*__get_timezone_ptr())
+ #define daylight       (*__get_daylight_ptr())
 #elif defined( __SW_BR ) || defined( _RTDLL )
-#define timezone timezone_br
-#define daylight daylight_br
+ #define timezone       timezone_br
+ #define daylight       daylight_br
 #endif
-_WCRTLINK extern long  timezone;               /* # of seconds from GMT */
-_WCRTLINK extern int   daylight;               /* d.s.t. indicator */
+_WCRTLINKD extern long  timezone;               /* # of seconds from GMT */
+_WCRTLINKD extern int   daylight;               /* d.s.t. indicator */
 :segment QNX | LINUX
 #endif
 :endsegment

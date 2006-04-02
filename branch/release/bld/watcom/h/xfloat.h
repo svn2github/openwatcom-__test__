@@ -24,41 +24,17 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  C/C++ run-time library floating-point definitions.
 *
 ****************************************************************************/
 
 
-// C/C++ run-time library floating-point definitions
 #ifndef _XFLOAT_H_INCLUDED
 #define _XFLOAT_H_INCLUDED
 
 #include <stddef.h>     // for wchar_t
 #include <float.h>      // for LDBL_DIG
 
-#ifndef _WCNEAR
-  #if defined(_M_IX86)
-    #define _WCNEAR __near
-  #elif defined(__AXP__)
-    #define _WCNEAR
-  #elif defined(__PPC__)
-    #define _WCNEAR
-  #endif
-#endif
-#ifndef _WMRTLINK
-  #if defined(__SW_BR)
-    #if defined(__NT__)
-      #define _WMRTLINK __declspec(dllimport)
-    #elif defined(__OS2__) && (defined(__386__)||defined(__PPC__))
-      #define _WMRTLINK
-    #else
-      #define _WMRTLINK
-    #endif
-  #else
-    #define _WMRTLINK
-  #endif
-#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -80,13 +56,29 @@ typedef struct {                // This layout matches Intel 8087
   #endif
 } long_double;
 
+typedef struct {                // Layout of IEEE 754 double (FD)
+    union {
+        double          value;  // - double value
+        unsigned long   word[2];// - so we can access bits
+    };
+} float_double;
+
+typedef struct {                // Layout of IEEE 754 single (FS)
+    union {
+        float           value;  // - double value
+        unsigned long   word;   // - so we can access bits
+    };
+} float_single;
+
+/* NB: The following values *must* match FP_ macros in math.h! */
 enum    ld_classification {
     __ZERO      = 0,
-    __NONZERO   = 1,
-    __NAN       = 2,
-    __INFINITY  = 3,
-    __DENORMAL  = 4
+    __DENORMAL  = 1,
+    __NONZERO   = 2,
+    __NAN       = 3,
+    __INFINITY  = 4
 };
+
 enum    ldcvt_flags {
     E_FMT       = 0x0001,       // 'E' format
     F_FMT       = 0x0002,       // 'F' format
@@ -95,6 +87,7 @@ enum    ldcvt_flags {
     F_DOT       = 0x0010,       // always put '.' in result
     LONG_DOUBLE = 0x0020,       // number is true long double
     NO_TRUNC    = 0x0040,       // always provide ndigits in buffer
+    IN_CAPS     = 0x0080,       // 'inf'/'nan' is uppercased
 };
 
 typedef struct cvt_info {
@@ -111,13 +104,22 @@ typedef struct cvt_info {
       int       nz2;            // OUTPUT: followed by this many '0's
 } CVT_INFO;
 
-_WMRTLINK
-extern  void    __LDcvt( long_double *pld,      // pointer to long_double
-              CVT_INFO  *cvt,                   // conversion info
-              char      *buf );                 // buffer
-extern  int     __LDClass(long_double *);
+_WMRTLINK extern void __LDcvt(
+                         long_double *pld,      // pointer to long_double
+                         CVT_INFO  *cvt,        // conversion info
+                         char      *buf );      // buffer
+#if defined( __WATCOMC__ )
+_WMRTLINK extern int __Strtold(
+                        const char *bufptr,
+                        long_double *pld,
+                        char **endptr );
+#endif
+extern  int     __LDClass( long_double * );
 extern  void    __ZBuf2LD(char _WCNEAR *, long_double _WCNEAR *);
 extern  void    _LDScale10x(long_double _WCNEAR *,int);
+_WMRTLINK extern void  __cnvd2ld( double _WCNEAR *src, long_double _WCNEAR *dst );
+_WMRTLINK extern void  __cnvs2d( char *buf, double *value );
+_WMRTLINK extern int   __cnvd2f( double *src, float *tgt );
 #ifdef _LONG_DOUBLE_
 extern  void    __iLDFD(long_double _WCNEAR *, double _WCNEAR *);
 extern  void    __iLDFS(long_double _WCNEAR *, float _WCNEAR *);
@@ -133,7 +135,7 @@ extern void __FLDD(long_double _WCNEAR *,long_double _WCNEAR *,long_double _WCNE
 extern int  __FLDC(long_double _WCNEAR *,long_double _WCNEAR *);
 #endif
 
-#ifdef __WATCOMC__        
+#ifdef __WATCOMC__
 #if defined(__386__)
  #pragma aux    __ZBuf2LD       "*"  parm caller [eax] [edx];
  #if defined(__FPI__)

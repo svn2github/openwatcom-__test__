@@ -58,8 +58,8 @@
 #else
     #include <ctype.h>
 #endif
+#include "d2ttime.h"
 
-extern time_t _d2ttime();
 static unsigned short at2mode();
 
 _WCRTLINK int __F_NAME(stat,_wstat)( CHAR_TYPE const *path, struct __F_NAME(stat,_stat) *buf )
@@ -121,9 +121,18 @@ _WCRTLINK int __F_NAME(stat,_wstat)( CHAR_TYPE const *path, struct __F_NAME(stat
         dta.size      = 0;
         dta.name[0] = NULLCHAR;
     } else {                            /* not a root directory */
-        #if defined(__OSI__)
-            rc = _dos_findfirst( path, _A_NORMAL | _A_RDONLY | _A_HIDDEN |
-                    _A_SYSTEM | _A_SUBDIR | _A_ARCH, &dta );
+        #if defined(__OSI__) || defined(__WATCOM_LFN__)
+            #if defined(__WIDECHAR__) && defined(__WATCOM_LFN__)
+                char    mbPath[MB_CUR_MAX*_MAX_PATH];
+                __filename_from_wide( mbPath, path );
+                rc = _dos_findfirst( mbPath,
+                        _A_NORMAL | _A_RDONLY | _A_HIDDEN |
+                        _A_SYSTEM | _A_SUBDIR | _A_ARCH, &dta );
+            #else
+                rc = _dos_findfirst( path,
+                        _A_NORMAL | _A_RDONLY | _A_HIDDEN |
+                        _A_SYSTEM | _A_SUBDIR | _A_ARCH, &dta );
+            #endif
         #else
             #ifdef __WIDECHAR__
                 char    mbPath[MB_CUR_MAX*_MAX_PATH];
@@ -193,7 +202,7 @@ _WCRTLINK int __F_NAME(stat,_wstat)( CHAR_TYPE const *path, struct __F_NAME(stat
     buf->st_size = dta.size;
     buf->st_mode = at2mode( dta.attrib, dta.name );
 
-    buf->st_mtime = _d2ttime( dta.wr_date, dta.wr_time );
+    buf->st_mtime = _d2ttime( TODDATE( dta.wr_date ), TODTIME( dta.wr_time ) );
     buf->st_atime = buf->st_ctime = buf->st_btime = buf->st_mtime;
 
     buf->st_nlink = 1;

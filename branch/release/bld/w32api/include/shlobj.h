@@ -98,12 +98,18 @@ extern "C" {
 #define SFGAO_HASPROPSHEET	0x00000040L
 #define SFGAO_DROPTARGET	0x00000100L
 #define SFGAO_CAPABILITYMASK	0x00000177L
+#define SFGAO_ISSLOW            0x00004000L
 #define SFGAO_GHOSTED		0x00008000L
 #define SFGAO_LINK		0x00010000L
 #define SFGAO_SHARE		0x00020000L
 #define SFGAO_READONLY		0x00040000L
 #define SFGAO_HIDDEN		0x00080000L
-#define SFGAO_DISPLAYATTRMASK	0x000F0000L
+#define SFGAO_DISPLAYATTRMASK   (SFGAO_ISSLOW \
+				 | SFGAO_GHOSTED \
+				 | SFGAO_LINK \
+				 | SFGAO_SHARE \
+				 | SFGAO_READONLY \
+				 | SFGAO_HIDDEN)
 #define SFGAO_FILESYSANCESTOR	0x10000000L
 #define SFGAO_FOLDER		0x20000000L
 #define SFGAO_FILESYSTEM	0x40000000L
@@ -601,6 +607,21 @@ DECLARE_INTERFACE_(IContextMenu2,IContextMenu)
 };
 typedef IContextMenu2 *LPCONTEXTMENU2;
 
+#undef INTERFACE
+#define INTERFACE IContextMenu3
+DECLARE_INTERFACE_(IContextMenu3,IContextMenu2)
+{
+ STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
+ STDMETHOD_(ULONG,AddRef)(THIS) PURE;
+ STDMETHOD_(ULONG,Release)(THIS) PURE;
+ STDMETHOD(QueryContextMenu)(THIS_ HMENU,UINT,UINT,UINT,UINT) PURE;
+ STDMETHOD(InvokeCommand)(THIS_ LPCMINVOKECOMMANDINFO) PURE;
+ STDMETHOD(GetCommandString)(THIS_ UINT,UINT,PUINT,LPSTR,UINT) PURE;
+ STDMETHOD(HandleMenuMsg)(THIS_ UINT,WPARAM,LPARAM) PURE;
+ STDMETHOD(HandleMenuMsg2)(THIS_ UINT,WPARAM,LPARAM,LRESULT*) PURE;
+};
+typedef IContextMenu3 *LPCONTEXTMENU3;
+
 #if (_WIN32_IE >= 0x0500)
 #pragma pack(push,8)
 typedef struct {
@@ -656,6 +677,17 @@ typedef enum {
 #define IContextMenu2_InvokeCommand(T,a) (T)->lpVtbl->InvokeCommand(T,a)
 #define IContextMenu2_GetCommandString(T,a,b,c,d,e) (T)->lpVtbl->GetCommandString(T,a,b,c,d,e)
 #define IContextMenu2_HandleMenuMsg(T,a,b,c) (T)->lpVtbl->HandleMenuMsg(T,a,b,c)
+#endif
+
+#ifdef COBJMACROS
+#define IContextMenu3_QueryInterface(T,a,b) (T)->lpVtbl->QueryInterface(T,a,b)
+#define IContextMenu3_AddRef(T) (T)->lpVtbl->AddRef(T)
+#define IContextMenu3_Release(T) (T)->lpVtbl->Release(T)
+#define IContextMenu3_QueryContextMenu(T,a,b,c,d,e) (T)->lpVtbl->QueryContextMenu(T,a,b,c,d,e)
+#define IContextMenu3_InvokeCommand(T,a) (T)->lpVtbl->InvokeCommand(T,a)
+#define IContextMenu3_GetCommandString(T,a,b,c,d,e) (T)->lpVtbl->GetCommandString(T,a,b,c,d,e)
+#define IContextMenu3_HandleMenuMsg(T,a,b,c) (T)->lpVtbl->HandleMenuMsg(T,a,b,c)
+#define IContextMenu3_HandleMenuMsg2(T,a,b,c,d) (T)->lpVtbl->HandleMenuMsg(T,a,b,c,d)
 #endif
 
 #undef INTERFACE
@@ -1373,6 +1405,14 @@ DECLARE_INTERFACE_(IDropTargetHelper, IUnknown)
 };
 #endif /* _WIN32_IE >= 0x0500 */
 
+#if (_WIN32_WINNT >= 0x0500)
+BOOL WINAPI PathResolve(LPWSTR, LPCWSTR*, UINT);
+#define PRF_VERIFYEXISTS            0x0001
+#define PRF_TRYPROGRAMEXTENSIONS    (0x0002 | PRF_VERIFYEXISTS)
+#define PRF_FIRSTDIRDEF             0x0004
+#define PRF_DONTFINDLNK             0x0008
+#endif
+
 void WINAPI SHAddToRecentDocs(UINT,PCVOID);
 LPITEMIDLIST WINAPI SHBrowseForFolderA(PBROWSEINFOA);
 LPITEMIDLIST WINAPI SHBrowseForFolderW(PBROWSEINFOW);
@@ -1473,6 +1513,15 @@ typedef BROWSEINFOA BROWSEINFO,*PBROWSEINFO,*LPBROWSEINFO;
 #define FILEGROUPDESCRIPTOR FILEGROUPDESCRIPTORA
 #define LPFILEGROUPDESCRIPTOR LPFILEGROUPDESCRIPTORA
 #endif /* UNICODE */
+
+DWORD WINAPI SHFormatDrive(HWND,UINT,UINT,UINT);
+
+#define SHFMT_ID_DEFAULT 0xFFFF
+#define SHFMT_OPT_FULL 1
+#define SHFMT_OPT_SYSONLY 2
+#define SHFMT_ERROR 0xFFFFFFFF
+#define SHFMT_CANCEL 0xFFFFFFFE
+#define SHFMT_NOFORMAT 0xFFFFFFFD
 
 #pragma pack(pop)
 #ifdef __cplusplus

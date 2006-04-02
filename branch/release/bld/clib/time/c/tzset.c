@@ -39,6 +39,7 @@
 #include "rtdata.h"
 #include "timedata.h"
 #include "exitwmsg.h"
+#include "_time.h"
 
 /*
  * TZSET - sets the values of the variables 'timezone', 'daylight'
@@ -67,10 +68,10 @@ struct tm       __end_dst = {   /* end of daylight savings */
 static char     stzone[TZNAME_MAX + 1] = "EST";       /* place to store names */
 static char     dtzone[TZNAME_MAX + 1] = "EDT";       /* place to store names */
 
-_WCRTLINK char  *tzname[2] = { stzone, dtzone };
+_WCRTLINKD char *tzname[2] = { stzone, dtzone };
 
-_WCRTLINK long  timezone = 5L * 60L * 60L;      /* seconds from GMT */
-_WCRTLINK int   daylight = 1;                   /* d.s.t. indicator */
+_WCRTLINKD long timezone = 5L * 60L * 60L;      /* seconds from GMT */
+_WCRTLINKD int  daylight = 1;                   /* d.s.t. indicator */
 int             __dst_adjust = 60 * 60;         /* daylight adjustment */
 
 static struct {
@@ -79,6 +80,7 @@ static struct {
 }               tzFlag = { 1, 0 };
 
 int __DontCacheOSTZ( void )
+/*************************/
 {
     int old_flag;
 
@@ -89,6 +91,7 @@ int __DontCacheOSTZ( void )
 }
 
 int __CacheOSTZ( void )
+/*********************/
 {
     int old_flag;
 
@@ -99,6 +102,7 @@ int __CacheOSTZ( void )
 }
 
 static char *parse_time( char *tz, int *val )
+/*******************************************/
 {
     int value;
 
@@ -112,6 +116,7 @@ static char *parse_time( char *tz, int *val )
 }
 
 static char *parse_offset( char *tz, char *name, long *offset )
+/*************************************************************/
 {
     int         hours;
     int         minutes;
@@ -170,6 +175,7 @@ static char *parse_offset( char *tz, char *name, long *offset )
 }
 
 static char *parse_rule( char *tz, struct tm *timeptr )
+/*****************************************************/
 {
     int         date_form;
     int         days;
@@ -249,6 +255,7 @@ void __parse_tz( char * tz )
 }
 
 static int tryOSTimeZone( const char *tz )
+/****************************************/
 {
     if( tz == NULL ) {
         /* calling OS can be expensive; many programs don't care */

@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  Platform independent chktty() implementation.
+* Description:  Implementation of chktty() - check if stream is teletype.
 *
 ****************************************************************************/
 
@@ -35,6 +35,8 @@
 #include <unistd.h>
 #include "rtdata.h"
 #include "fileacc.h"
+#include "streamio.h"
+
 
 void __chktty( FILE  *fp )
 {
@@ -42,7 +44,7 @@ void __chktty( FILE  *fp )
     if( !(fp->_flag & _ISTTY) ) {
         if( isatty( fileno( fp ) ) ) {
             fp->_flag |= _ISTTY;
-            if( ( fp->_flag & ( _IONBF | _IOLBF | _IOFBF ) ) == 0 ) {
+            if( ( fp->_flag & (_IONBF | _IOLBF | _IOFBF) ) == 0 ) {
                 fp->_flag |= _IOLBF;
             }
         }

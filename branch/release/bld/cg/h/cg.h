@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Common types and constants used by code generator interface.
 *
 ****************************************************************************/
 
@@ -74,16 +73,11 @@ typedef enum {
 
 typedef void *          cg_name;        /* retval for CGName(),CGUnary()*/
 typedef void *          call_handle;    /* retval for CGInitCall(), etc. */
-#if defined( BY_C_FRONT_END ) || defined( BY_CPP_FRONT_END )
-  // this was only required when front-end and back-end were separate
-  // executables compiled with mismatching data memory models
-  #ifdef __LARGE__
-   typedef unsigned long        cg_sym_handle;
-  #else
-   typedef unsigned     cg_sym_handle;
-  #endif
+
+#ifdef BY_CPP_FRONT_END
+typedef unsigned        cg_sym_handle;
 #else
-typedef void    *       cg_sym_handle;
+typedef void *          cg_sym_handle;
 #endif
 
 typedef void *          label_handle;   /*  2nd parm to CGName for CG_LBL */
@@ -162,7 +156,8 @@ typedef enum {
         PRIVATE         = 0x0040,       /* private segment */
         GIVEN_NAME      = 0x0080,       /* use the segment name as given */
         COMDAT          = 0x0100,       /* COMDAT segment (ALPHA) */
-        THREAD_LOCAL    = 0x0200        /* Thread Local Storage */
+        THREAD_LOCAL    = 0x0200,       /* Thread Local Storage */
+        NOGROUP         = 0x0400        /* Not part of a group (DGROUP) */
 } seg_attr;
 
 

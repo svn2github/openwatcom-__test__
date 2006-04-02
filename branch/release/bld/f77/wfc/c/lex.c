@@ -41,17 +41,14 @@
 #include "stmtsw.h"
 #include "progsw.h"
 #include "global.h"
-#include "prdefn.h"
+#include "ferror.h"
+#include "frl.h"
+#include "comio.h"
 
 #include <string.h>
 
-extern  void            *FrlAlloc(void **,int);
-extern  void            Error(int,...);
 extern  void            InitScan(void);
 extern  void            Scan(void);
-extern  void            ComRead(void);
-extern  void            ComPrint(void);
-extern  void            Extension(int,...);
 
 extern  char            *StmtKeywords[];
 extern  char            *LogTab[];
@@ -59,15 +56,14 @@ extern  char            *LogTab[];
 #define LOG_OPS         11
 #define XLOG_OPS        11
 
-static  const byte __FAR        LogOpr[] = { // must correspond to table in SCAN
+static  const OPR __FAR        LogOpr[] = { // must correspond to table in SCAN
         OPR_EQ,  OPR_NE,  OPR_LT,  OPR_GT,  OPR_LE,   OPR_GE,
         OPR_OR,  OPR_AND, OPR_NOT, OPR_EQV, OPR_NEQV, OPR_NEQV,
         OPR_PHI, OPR_PHI, OPR_PHI
 };
 
-
-static  itnode  *NewITNode( ) {
-//=============================
+static  itnode  *NewITNode( void ) {
+//==================================
 
 // Create a new itnode.
 
@@ -79,18 +75,15 @@ static  itnode  *NewITNode( ) {
         new->opnd_size = Lex.len;
         new->opr = Lex.opr;
         new->oprpos = Lex.oprpos;
-        new->opn = Lex.opn;
+        new->opn.ds = Lex.opn.ds;
         new->opnpos = Lex.opnpos;
         new->link = NULL;
         new->list = NULL;
         new->flags = 0;
-        new->typ = 0;
+        new->typ = TY_NO_TYPE;
         new->chsize = 0;
         new->is_unsigned = 0;
         new->is_catparen = 0;
-#if _CPU == _VAX
-        new->pass_by = 0;
-#endif
     }
     return( new );
 }
@@ -144,14 +137,14 @@ void    MakeITList() {
     // make the caret point 1 past the operator. Otherwise
     // it will point at the end of the line and for fixed-length
     // files which contain trailing blanks this will look funny.
-    if( CITNode->opn == OPN_PHI ) {
+    if( CITNode->opn.ds == DSOPN_PHI ) {
         CITNode->opnpos = CITNode->oprpos + 1;
     }
     if( BrCnt != 0 ) {
         Error( PC_NO_CLOSEPAREN );
     }
     Lex.opr = OPR_TRM;
-    Lex.opn = OPN_PHI;
+    Lex.opn.ds = DSOPN_PHI;
     Lex.oprpos = 9999;
     Lex.opnpos = 9999;
     Lex.len = 0;
@@ -215,7 +208,7 @@ static  void    SetSwitch() {
 }
 
 
-static  byte    LkUpOpr() {
+static  OPR    LkUpOpr() {
 //=========================
 
     switch( *LexToken.start ) {
@@ -230,9 +223,6 @@ static  byte    LkUpOpr() {
     case ':':   return( OPR_COL );
     case '%':   return( OPR_FLD );
     case '.':   return( OPR_DPT );
-#if _CPU == _VAX
-    case '&':   return( OPR_AMP );
-#endif
     }
     Error( SX_INV_OPR );
     return( OPR_PHI );
@@ -287,33 +277,33 @@ static  void    GetOpnd() {
     Lex.ptr = LexToken.start;
     Lex.opnpos = ( LexToken.line << 8 ) + LexToken.col + 1;
     if( LexToken.class == TO_OPR ) {
-        Lex.opn = OPN_PHI;
+        Lex.opn.ds = DSOPN_PHI;
         Lex.len = 0;
     } else if( LexToken.class == TO_LGL ) {
         if( LexToken.log > LOG_OPS ) {
             Lex.len = LexToken.stop - LexToken.start;
-            Lex.opn = OPN_LGL;
+            Lex.opn.ds = DSOPN_LGL;
             Scan();
         } else {
             Lex.len = 0;
-            Lex.opn = OPN_PHI;
+            Lex.opn.ds = DSOPN_PHI;
         }
     } else {
         Lex.len = LexToken.stop - LexToken.start;
-        Lex.opn = LexToken.class;
+        Lex.opn.ds = LexToken.class;
         // this is a kludge to collect FORMAT/INCLUDE statements
         // we don't want INCLUDE statements to span lines
-        if( (ITHead == NULL) && (Lex.opr == OPR_TRM) && (Lex.opn == OPN_NAM) ) {
+        if( (ITHead == NULL) && (Lex.opr == OPR_TRM) && (Lex.opn.ds == DSOPN_NAM) ) {
             if( Lex.len == 6 ) {
                 if( ( Cursor == NULL ) || ( *Cursor == '(' ) ) {
-                    kw = StmtKeywords[ PR_FMT - 1 ];
+                    kw = StmtKeywords[ PR_FMT ];
                     if( memcmp( LexToken.start, kw, 6 ) == 0 ) {
                         State = SFM;
                     }
                 }
             } else if( Lex.len == 7 ) {
                 if( ( Cursor != NULL ) && ( *Cursor == '\'' ) ) {
-                    kw = StmtKeywords[ PR_INCLUDE - 1 ];
+                    kw = StmtKeywords[ PR_INCLUDE ];
                     if( memcmp( LexToken.start, kw, 7 ) == 0 ) {
                         LexToken.flags |= TK_INCLUDE;
                     }

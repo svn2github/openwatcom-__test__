@@ -37,6 +37,8 @@
 #include "nonibm.h"
 #include "rtdata.h"
 #include "stacklow.h"
+#include "sigfunc.h"
+#include "_int23.h"
 
 typedef void (_WCINTERRUPT _WCFAR *pfun)( void );
 
@@ -106,10 +108,6 @@ typedef void (_WCINTERRUPT _WCFAR *pfun)( void );
  #endif
 #endif
 
-extern  void    (*__int23_exit)( void );
-extern  void    __null_int23_exit( void );
-extern  void    _WCI86FAR __sigfpe_handler( int );
-
         void    __restore_int23( void );
         void    __restore_int_ctrl_break( void );
 static  void    __restore_int( void );
@@ -121,9 +119,6 @@ static  void    __restore_int( void );
 
 static pfun __old_int23 = 0;
 static pfun __old_int_ctrl_break = 0;
-#if defined( __DOS__ )
-static void (_WCI86FAR *__old_FPE_handler)( int ) = NULL;
-#endif
 
 #if defined( __386__ )
 
@@ -365,6 +360,9 @@ void __grab_int_ctrl_break( void )
 }
 
 #if defined( __DOS__ )
+
+static FPEhandler   *__old_FPE_handler = NULL;
+
 void __restore_FPE_handler( void )
 {
     if( __old_FPE_handler == NULL ) {

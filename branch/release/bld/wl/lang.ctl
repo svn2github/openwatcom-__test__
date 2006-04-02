@@ -9,6 +9,8 @@ set PROJDIR=<CWD>
 cdsay .
 
 [ BLOCK <1> build rel2 ]
+    echo wsplice -k Pwlsystem specs.sp wlsystem.lnk
+    wsplice -k Pwlsystem specs.sp wlsystem.lnk
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
 
 [ BLOCK <1> rel2 cprel2 ]
@@ -26,7 +28,7 @@ cdsay .
 #    <CPCMD> <PROJDIR>/ovlldr/wmovl.lib                  <RELROOT>/rel2/lib286/dos/wmovl.lib
 
   [ IFDEF (os_os2 "") <2*> ]
-    <CPCMD> <PROJDIR>/os2386.dll/wlstub.exe             <RELROOT>/rel2/binp/wlink.exe
+    <CPCMD> <PROJDIR>/os2386.dll/wl.exe                 <RELROOT>/rel2/binp/wlink.exe
     <CPCMD> <PROJDIR>/os2386.dll/wl.dll                 <RELROOT>/rel2/binp/dll/wlink.dll
     <CPCMD> <PROJDIR>/os2386.dll/wl.sym                 <RELROOT>/rel2/binp/dll/wlink.sym
     <CPCMD> <PROJDIR>/ms2wlink/os2i86/ms2wlink.exe      <RELROOT>/rel2/binp/ms2wlink.exe
@@ -35,9 +37,10 @@ cdsay .
     <CPCMD> <PROJDIR>/wlbinp.lnk                        <RELROOT>/rel2/binp/wlink.lnk
 
   [ IFDEF (os_nt "") <2*> ]
-    <CPCMD> <PROJDIR>/nt386.dll/wlstub.exe              <RELROOT>/rel2/binnt/wlink.exe
+    <CPCMD> <PROJDIR>/nt386.dll/wl.exe                  <RELROOT>/rel2/binnt/wlink.exe
     <CPCMD> <PROJDIR>/nt386.dll/wl.dll                  <RELROOT>/rel2/binnt/wlink.dll
     <CPCMD> <PROJDIR>/nt386.dll/wl.sym                  <RELROOT>/rel2/binnt/wlink.sym
+    <CPCMD> <PROJDIR>/nt386.rtd/wl.exe                  <RELROOT>/rel2/binnt/rtdll/wlink.exe
     <CPCMD> <PROJDIR>/nt386.rtd/wl.dll                  <RELROOT>/rel2/binnt/rtdll/wlink.dll
     <CPCMD> <PROJDIR>/ms2wlink/nt386/ms2wlink.exe       <RELROOT>/rel2/binnt/ms2wlink.exe
     <CPCMD> <PROJDIR>/fcenable/nt386/fcenable.exe       <RELROOT>/rel2/binnt/fcenable.exe
@@ -51,7 +54,7 @@ cdsay .
     <CPCMD> <PROJDIR>/wlbinl.lnk                        <RELROOT>/rel2/binl/wlink.lnk
 
   [ IFDEF (cpu_axp) <2*> ]
-    <CPCMD> <PROJDIR>/ntaxp.dll/wlstub.exe              <RELROOT>/rel2/axpnt/wlink.exe
+    <CPCMD> <PROJDIR>/ntaxp.dll/wl.exe                  <RELROOT>/rel2/axpnt/wlink.exe
     <CPCMD> <PROJDIR>/ntaxp.dll/wl.dll                  <RELROOT>/rel2/axpnt/wlink.dll
     <CPCMD> <PROJDIR>/exe2bin/ntaxp/exe2bin.exe         <RELROOT>/rel2/axpnt/exe2bin.exe
     <CPCMD> <PROJDIR>/wlaxpnt.lnk                       <RELROOT>/rel2/axpnt/wlink.lnk
@@ -63,6 +66,8 @@ cdsay .
 
 [ BLOCK <1> clean ]
 #==================
+    echo rm -f wlsystem.lnk
+    rm -f wlsystem.lnk
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
 
 [ BLOCK . . ]

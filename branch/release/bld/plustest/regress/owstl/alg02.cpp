@@ -1,3 +1,31 @@
+/****************************************************************************
+*
+*                            Open Watcom Project
+*
+*  Copyright (c) 2004-2006 The Open Watcom Contributors. All Rights Reserved.
+*
+*  ========================================================================
+*
+*    This file contains Original Code and/or Modifications of Original
+*    Code as defined in and that are subject to the Sybase Open Watcom
+*    Public License version 1.0 (the 'License'). You may not use this file
+*    except in compliance with the License. BY USING THIS FILE YOU AGREE TO
+*    ALL TERMS AND CONDITIONS OF THE LICENSE. A copy of the License is
+*    provided with the Original Code and Modifications, and is also
+*    available at www.sybase.com/developer/opensource.
+*
+*    The Original Code and all software distributed under the License are
+*    distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+*    EXPRESS OR IMPLIED, AND SYBASE AND ALL CONTRIBUTORS HEREBY DISCLAIM
+*    ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF
+*    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR
+*    NON-INFRINGEMENT. Please see the License for the specific language
+*    governing rights and limitations under the License.
+*
+*  ========================================================================
+*
+* Description:  This file tests sorting and searching algorithms.
+****************************************************************************/
 
 #include <algorithm>
 #include <iostream>
@@ -7,6 +35,10 @@ bool heap_test( )
   bool rc = true;
 
   // Exercise heaps here.
+
+  // Currently std::sort is implemented in terms of heaps so perhaps we
+  // can get by without testing anything here for right now (obviously
+  // this needs to be fixed at some point).
 
   return( rc );
 }
@@ -81,8 +113,6 @@ bool sort_test( )
 {
   bool rc = true;
 
-  #ifdef _WATCOM_UNSUPPORTED
-
   // For each test...
   for( int i = 0; i < sizeof(tests)/sizeof(struct test_case); ++i ) {
 
@@ -103,8 +133,6 @@ bool sort_test( )
     }
   }
 
-  #endif
-
   return( rc );
 }
 
@@ -113,10 +141,8 @@ int main( )
 {
   int rc = 0;
   try {
-    // Heaps don't work because of a compiler bug. See bug02.cpp.
-    // NOTE: When fixed uncomment body of sort_test and fill in heap_test.
-    // if( !heap_test( )       ) rc = 1;
-    // if( !sort_test( )       ) rc = 1;
+    if( !heap_test( )       ) rc = 1;
+    if( !sort_test( )       ) rc = 1;
   }
   catch( ... ) {
     std::cout << "Unexpected exception of unexpected type.\n";

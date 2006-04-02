@@ -7,6 +7,7 @@ typedef struct {
     long int rem;      /* remainder */
 } ldiv_t;
 .funcend
+.*
 .desc begin
 The &func
 function calculates the quotient and remainder of the division of the
@@ -15,6 +16,7 @@ numerator
 by the denominator
 .arg denom.
 .desc end
+.*
 .return begin
 The &func function returns a structure of type
 .kw ldiv_t
@@ -26,9 +28,11 @@ and
 which are both of type
 .id long int.
 .return end
+.*
 .see begin
-.seelist ldiv div imaxdiv
+.seelist ldiv div lldiv imaxdiv
 .see end
+.*
 .exmp begin
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,12 +48,13 @@ void print_time( long int ticks )
             min_sec.quot, min_sec.rem );
 }
 .exmp break
-void main()
+void main( void )
 {
     print_time( 86712L );
 }
 .exmp output
 It took 14 minutes and 27 seconds
 .exmp end
-.class ANSI
+.*
+.class ISO C90
 .system

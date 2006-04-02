@@ -37,7 +37,8 @@
 #include "wdglb.h"
 #include "wdfunc.h"
 
-char *pe_exe_msg[] = {
+
+static  char    *pe_exe_msg[] = {
     "2cpu type                                        = ",
     "2number of object entries                        = ",
     "4time/date stamp                                 = ",
@@ -78,7 +79,7 @@ char *pe_exe_msg[] = {
     NULL
 };
 
-char *pe_obj_msg[] = {
+static  char    *pe_obj_msg[] = {
     "4          virtual memory size                = ",
     "4          relative virtual address           = ",
     "4          physical size of initialized data  = ",
@@ -90,7 +91,7 @@ char *pe_obj_msg[] = {
     NULL
 };
 
-char *PEHeadFlags[] = {
+static  char    *PEHeadFlags[] = {
     "RELOCS_STRIPPED",
     "EXECUTABLE",
     "LINES_STRIPPED",
@@ -109,7 +110,7 @@ char *PEHeadFlags[] = {
     "BIG_ENDIAN"
 };
 
-char *PEObjFlags[] = {
+static  char    *PEObjFlags[] = {
     "DUMMY",
     "NOLOAD",
     "GROUPED",
@@ -278,6 +279,24 @@ extern void DumpCoffHdrFlags( unsigned_16 flags )
     DumpFlags( flags, 0, PEHeadFlags, "" );
 }
 
+
+static void DumpPEObjFlags( unsigned_32 flags )
+/*********************************************/
+{
+    unsigned    alignval;
+    char        buf[8];
+
+    alignval = (flags & PE_OBJ_ALIGN_MASK) >> PE_OBJ_ALIGN_SHIFT;
+    if( alignval != 0 ) {
+        memcpy( buf, "ALIGN", 5 );
+        utoa( 1 << (alignval - 1), buf + 5, 10 );
+    } else {
+        buf[0] = '\0';
+    }
+    DumpFlags( flags, PE_OBJ_ALIGN_MASK, PEObjFlags, buf );
+}
+
+
 /*
  * Dump the Object Table.
  */
@@ -380,20 +399,4 @@ bool Dmp_pe_tab( void )
         Wdputslc( "no export table\n" );
     }
     return( 1 );
-}
-
-static void DumpPEObjFlags( unsigned_32 flags )
-/*********************************************/
-{
-    unsigned    alignval;
-    char        buf[8];
-
-    alignval = (flags & PE_OBJ_ALIGN_MASK) >> PE_OBJ_ALIGN_SHIFT;
-    if( alignval != 0 ) {
-        memcpy( buf, "ALIGN", 5 );
-        utoa( 1 << (alignval - 1), buf + 5, 10 );
-    } else {
-        buf[0] = '\0';
-    }
-    DumpFlags( flags, PE_OBJ_ALIGN_MASK, PEObjFlags, buf );
 }

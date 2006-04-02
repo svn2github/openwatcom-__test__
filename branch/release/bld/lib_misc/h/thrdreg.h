@@ -47,7 +47,7 @@
     #ifdef __NT__
         typedef unsigned __stdcall thread_fnex( void * );
         typedef unsigned long beginnerex( void *security,
-            unsigned stack_size, thread_fnex start_address, void *arglist,
+            unsigned stack_size, thread_fnex *start_address, void *arglist,
             unsigned initflag, unsigned *thrdaddr );
         typedef void enderex( unsigned retval );
     #endif
@@ -56,13 +56,13 @@
 extern "C" {
 #endif
 
-    _WCRTLINK extern  void    __RegisterThreadData( beginner **begin,
+    _WCRTLINK extern  void      __RegisterThreadData( beginner **begin,
                                                  ender **end,
                                                  initializer **init );
 
-    _WCRTLINK extern unsigned __RegisterThreadDataSize( unsigned size );
-    _WCRTLINK extern struct thread_data *(*__GetThreadPtr)( void );
-    _WCRTLINK extern unsigned   __ThreadDataSize;
+    _WCRTLINK extern unsigned   __RegisterThreadDataSize( unsigned size );
+    _WCRTLINKD extern struct thread_data *(*__GetThreadPtr)( void );
+    _WCRTLINKD extern unsigned  __ThreadDataSize;
 
 #ifdef __cplusplus
 }

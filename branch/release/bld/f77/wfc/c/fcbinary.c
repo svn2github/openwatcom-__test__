@@ -37,10 +37,11 @@
 #include "ftnstd.h"
 #include "cgdefs.h"
 #include "wf77cg.h"
-#include "fcodes.h"
 #include "global.h"
 #include "cpopt.h"
-#include "parmtype.h"
+#include "types.h"
+#include "emitobj.h"
+#include "fctypes.h"
 
 //=================== Back End Code Generation Routines ====================
 
@@ -61,13 +62,27 @@ extern  void            XPush(cg_name);
 extern  cg_name         XPopValue(cg_type);
 extern  void            XPopCmplx(cg_cmplx *,cg_type);
 extern  cg_name         XPop(void);
-extern  cg_type         GetType1(unsigned_16);
-extern  cg_type         GetType2(unsigned_16);
-extern  cg_type         GetType(unsigned_16);
-extern  cg_type         ResCGType(cg_type,cg_type);
-extern  unsigned_16     GetU16(void);
 extern  void            CloneCGName(cg_name,cg_name *,cg_name *);
-extern  bool            TypeCGInteger(cg_type);
+
+
+static  void    XBinary( int op_code ) {
+//======================================
+
+// Binary operator F-Code processor.
+
+    cg_name     op1;
+    cg_name     op2;
+    unsigned_16 typ_info;
+    cg_type     typ1;
+    cg_type     typ2;
+
+    typ_info = GetU16();
+    typ1 = GetType1( typ_info );
+    typ2 = GetType2( typ_info );
+    op1 = XPopValue( typ1 );
+    op2 = XPopValue( typ2 );
+    XPush( CGBinary( op_code, op1, op2, ResCGType( typ1, typ2 ) ) );
+}
 
 
 void            FCFlip() {
@@ -127,26 +142,6 @@ void    FCModulus() {
 // Binary mod F-Code processor.
 
     XBinary( O_MOD );
-}
-
-
-static  void    XBinary( int op_code ) {
-//======================================
-
-// Binary operator F-Code processor.
-
-    cg_name     op1;
-    cg_name     op2;
-    unsigned_16 typ_info;
-    cg_type     typ1;
-    cg_type     typ2;
-
-    typ_info = GetU16();
-    typ1 = GetType1( typ_info );
-    typ2 = GetType2( typ_info );
-    op1 = XPopValue( typ1 );
-    op2 = XPopValue( typ2 );
-    XPush( CGBinary( op_code, op1, op2, ResCGType( typ1, typ2 ) ) );
 }
 
 
@@ -252,13 +247,14 @@ void    FCPow() {
 void    FCDoneParenExpr() {
 //=========================
 
-    unsigned_16 typ_info;
+    PTYPE       typ_info;
     cg_name     val;
     cg_cmplx    z;
 
     typ_info = GetU16();
-    if( (typ_info == PT_CPLX_8) || (typ_info == PT_CPLX_16) ||
-                                                (typ_info == PT_CPLX_32) ) {
+    if( (typ_info == PT_CPLX_8)
+      || (typ_info == PT_CPLX_16)
+      || (typ_info == PT_CPLX_32) ) {
         XPopCmplx( &z, GetType( typ_info ) );
         val = z.imagpart;
         XPush( CGUnary( O_PARENTHESIS, z.imagpart, CGType( val ) ) );

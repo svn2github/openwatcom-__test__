@@ -34,13 +34,9 @@
 #include "ecflags.h"
 #include "errcod.h"
 #include "progsw.h"
-#include "prdefn.h"
 #include "fmemmgr.h"
+#include "insert.h"
 
-extern  void            NameErr(int,sym_id);
-extern  void            NameStmtErr(int,sym_id,int);
-extern  void            NameTypeErr(int,sym_id);
-extern  void            NamNamErr(int,sym_id,sym_id);
 extern  void            STComDump(void);
 extern  bool            DoSubstring(intstar4,intstar4,int);
 extern  bool            DoSubscript(act_dim_list *,intstar4 *,intstar4 *);
@@ -177,7 +173,7 @@ void    EquivResolve() {
 }
 
 
-static  byte    ClassifyType( byte sym_type ) {
+static  byte    ClassifyType( TYPE sym_type ) {
 //=============================================
 
 // Classify the type of the specified symbol.

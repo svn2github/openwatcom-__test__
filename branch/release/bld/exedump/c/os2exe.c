@@ -37,7 +37,7 @@
 #include "wdglb.h"
 #include "wdfunc.h"
 
-char *os2_exe_msg[] = {
+static  char    *os2_exe_msg[] = {
     "2link version                                         = ",
     "2offset of entry table                                = ",
     "2length of entry table                                = ",
@@ -71,7 +71,7 @@ char *os2_exe_msg[] = {
     NULL
 };
 
-char *os2_386_msg[] = {
+static  char    *os2_386_msg[] = {
     "1byte order (0==little endian, 1==big endian)      = ",
     "1word order       \"                \"               = ",
     "4linear EXE format level                           = ",
@@ -121,7 +121,7 @@ char *os2_386_msg[] = {
     NULL
 };
 
-char *os2_obj_msg[] = {
+static  char    *os2_obj_msg[] = {
     "4virtual memory size              = ",
     "4          relocation base address          = ",
     "4          object flag bits                 = ",
@@ -131,7 +131,7 @@ char *os2_obj_msg[] = {
     NULL
 };
 
-char *map_flgs[] = {
+static  char    *map_flgs[] = {
     "Valid", "Iterated", "Invalid", "Zeroed", "Range", "Compressed"
 };
 
@@ -139,8 +139,8 @@ char *map_flgs[] = {
 /*
  * dump the NE module flag word
  */
-void dmp_mod_flag_ne( unsigned_16 flag, unsigned_8 target )
-/*********************************************************/
+static void dmp_mod_flag_ne( unsigned_16 flag, unsigned_8 target )
+/****************************************************************/
 {
     Wdputs( "Module Flag Word = " );
     if( flag & OS2_IS_DLL ) {
@@ -217,8 +217,8 @@ void dmp_mod_flag_ne( unsigned_16 flag, unsigned_8 target )
 /*
  * dump the LE/LX module flag word
  */
-void dmp_mod_flag_lx( unsigned_32 flag, unsigned_16 ostype )
-/**********************************************************/
+static void dmp_mod_flag_lx( unsigned_32 flag, unsigned_16 ostype )
+/*****************************************************************/
 {
     Wdputs( "Module Flags = " );
     if( (flag & OSF_MODTYPE_MASK) == OSF_VIRT_DEVICE ) {
@@ -301,60 +301,6 @@ bool Dmp_os2_head( void )
         free( Int_seg_tab );
     }
     return( 1 );
-}
-
-/*
- * Dump the 386 Executable Header, if any.
- */
-bool Dmp_386_head( void )
-/***********************/
-{
-    Wlseek( New_exe_off );
-    Wread( &Os2_386_head, sizeof( Os2_386_head ) );
-    if( Os2_386_head.signature == OSF_FLAT_SIGNATURE ) {
-        Form = FORM_LE;
-        Banner( "Linear EXE Header (OS/2 V2.x) - LE" );
-    } else if ( Os2_386_head.signature == OSF_FLAT_LX_SIGNATURE ) {
-        Form = FORM_LX;
-        Banner( "Linear EXE Header (OS/2 V2.x) - LX" );
-    } else {
-        return( 0 );
-    }
-    Wdputs( "file offset = " );
-    Puthex( New_exe_off, 8 );
-    Wdputslc( "H\n" );
-    Wdputslc( "\n" );
-    Dump_header( (char *)&Os2_386_head.byte_order, os2_386_msg );
-    dmp_mod_flag_lx( Os2_386_head.flags, Os2_386_head.os_type );
-    dmp_obj_table();
-    Dmp_resrc2_tab();
-    Dmp_le_lx_tbls();
-    return( 1 );
-}
-
-/*
- * dump the LE/LX object table
- */
-static void dmp_obj_table( void )
-/*******************************/
-{
-    unsigned_16     i;
-    object_record   os_obj;
-
-    Banner( "Object Table" );
-    for( i = 0; i < Os2_386_head.num_objects; i++ ) {
-        Wlseek( New_exe_off + Os2_386_head.objtab_off
-                            + i * sizeof( object_record ) );
-        Wread( &os_obj, sizeof( object_record ) );
-        Wdputs( "object " );
-        Putdec( i );
-        Wdputs( ": " );
-        Dump_header( (char *)&os_obj.size, os2_obj_msg );
-        Wdputs( "          flags = " );
-        dmp_obj_flags( os_obj.flags );
-        dmp_obj_page( os_obj );
-        Wdputslc( "\n" );
-    }
 }
 
 /*
@@ -473,4 +419,60 @@ static void dmp_obj_flags( unsigned_32 flags )
     }
     Wdputs( name );
     Wdputslc( "\n" );
+}
+
+/*
+ * dump the LE/LX object table
+ */
+static void dmp_obj_table( void )
+/*******************************/
+{
+    unsigned_16     i;
+    object_record   os_obj;
+
+    Banner( "Object Table" );
+    for( i = 0; i < Os2_386_head.num_objects; i++ ) {
+        Wlseek( New_exe_off + Os2_386_head.objtab_off
+                            + i * sizeof( object_record ) );
+        Wread( &os_obj, sizeof( object_record ) );
+        Wdputs( "object " );
+        Putdec( i + 1 );
+        Wdputs( ": " );
+        Dump_header( &os_obj.size, os2_obj_msg );
+        Wdputs( "          flags = " );
+        dmp_obj_flags( os_obj.flags );
+        if( Options_dmp & PAGE_DMP ) {
+            dmp_obj_page( os_obj );
+        }
+        Wdputslc( "\n" );
+    }
+}
+
+/*
+ * Dump the 386 Executable Header, if any.
+ */
+bool Dmp_386_head( void )
+/***********************/
+{
+    Wlseek( New_exe_off );
+    Wread( &Os2_386_head, sizeof( Os2_386_head ) );
+    if( Os2_386_head.signature == OSF_FLAT_SIGNATURE ) {
+        Form = FORM_LE;
+        Banner( "Linear EXE Header (OS/2 V2.x) - LE" );
+    } else if ( Os2_386_head.signature == OSF_FLAT_LX_SIGNATURE ) {
+        Form = FORM_LX;
+        Banner( "Linear EXE Header (OS/2 V2.x) - LX" );
+    } else {
+        return( 0 );
+    }
+    Wdputs( "file offset = " );
+    Puthex( New_exe_off, 8 );
+    Wdputslc( "H\n" );
+    Wdputslc( "\n" );
+    Dump_header( (char *)&Os2_386_head.byte_order, os2_386_msg );
+    dmp_mod_flag_lx( Os2_386_head.flags, Os2_386_head.os_type );
+    dmp_obj_table();
+    Dmp_resrc2_tab();
+    Dmp_le_lx_tbls();
+    return( 1 );
 }

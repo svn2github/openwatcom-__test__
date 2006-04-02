@@ -32,6 +32,7 @@
 
 #include "variety.h"
 #include <stdio.h>
+#include <signal.h>
 #include <dos.h>
 #include <errno.h>
 #include <float.h>
@@ -45,12 +46,7 @@
 #include "fpusig.h"
 #include "seterrno.h"
 #include "rtinit.h"
-
-extern  void            __terminate( void );
-
-extern  void            (*__abort)( void );
-extern  void            __null_int23_exit( void );
-extern  void            (*__int23_exit)( void );
+#include "_int23.h"
 
 unsigned        char    __ExceptionHandled;
 
@@ -76,12 +72,12 @@ sigtab  SignalTable[] = {
 _WCRTLINK int   __sigfpe_handler( int fpe )
 /*****************************************/
 {
-    sig_func func;
+    __sig_func  func;
 
     func = _RWD_sigtab[ SIGFPE ].func;
     if(( func != SIG_IGN ) && ( func != SIG_DFL ) && ( func != SIG_ERR )) {
         _RWD_sigtab[ SIGFPE ].func = SIG_DFL;
-        (*(sigfpe_func)func)( SIGFPE, fpe );
+        (*(__sigfpe_func)func)( SIGFPE, fpe );
         return( 0 );
     } else if( func == SIG_IGN ) {
         return( 0 );
@@ -258,17 +254,17 @@ static  void    restore_handler( void )
 }
 
 
-_WCRTLINK sig_func signal( int sig, sig_func func ) {
+_WCRTLINK __sig_func signal( int sig, __sig_func func ) {
 /***************************************************************/
 
-    sig_func    prev_func;
+    __sig_func  prev_func;
     ULONG       nesting;
 
     if(( sig < 1 ) || ( sig > __SIGLAST )) {
         __set_errno( EINVAL );
         return( SIG_ERR );
     }
-    __abort = __sigabort;               /* change the abort rtn address */
+    _RWD_abort = __sigabort;            /* change the abort rtn address */
     if(( func != SIG_DFL ) && ( func != SIG_ERR )) {
         if( _RWD_sigtab[ sig ].os_sig_code != 0 ) {
             if( __XCPTHANDLER->prev_structure == NULL ) {
@@ -296,7 +292,7 @@ _WCRTLINK sig_func signal( int sig, sig_func func ) {
 _WCRTLINK int raise( int sig ) {
 /*****************************/
 
-    sig_func func;
+    __sig_func  func;
 
     func = _RWD_sigtab[ sig ].func;
     switch( sig ) {
@@ -337,7 +333,7 @@ _WCRTLINK extern  void  (*__sig_fini_rtn)( void );
 static void __SetSigInit( void ) {
     __sig_init_rtn = &__SigInit;
     __sig_fini_rtn = &__SigFini;
-    _RWD_FPE_handler = (sig_func)__sigfpe_handler;
+    _RWD_FPE_handler = (FPEhandler *)__sigfpe_handler;
 }
 
 AXI( __SetSigInit, INIT_PRIORITY_LIBRARY )
