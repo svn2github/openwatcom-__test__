@@ -934,8 +934,7 @@ static void analyseAnyTargetOptions( OPT_STORAGE *data )
         GenSwitches |= INS_SCHEDULING;          // -or
         CmdSysSetMaxOptimization();             // -om
         CompFlags.inline_intrinsics = 1;        // -oi
-// Disabled for OW 1.4 release
-#if 0
+#if 0   // Disabled - introduces too many problems which no one is ready to fix
         if( ! data->oe ) {
             data->oe = 1;                       // -oe
             // keep in sync with options.gml
