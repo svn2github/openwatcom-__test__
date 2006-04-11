@@ -66,7 +66,7 @@ struct asm_code         *Code = &Code_Info;
 
 unsigned char           Opnd_Count;
 
-extern int              dup_array( struct asm_sym *, char, char );
+extern int              dup_array( struct asm_sym *, struct asm_sym *, char, char );
 extern int              data_init( int, int );
 
 static void             SizeString( unsigned op_size );
@@ -81,7 +81,7 @@ extern int              SymIs32( struct asm_sym *sym );
 
 static void             check_assume( struct asm_sym *, enum prefix_reg );
 
-extern  int_8           DefineProc;     // TRUE if the definition of procedure
+extern int_8            DefineProc;     // TRUE if the definition of procedure
                                         // has not ended
 
 uint_8                  CheckSeg;       // if checking of opened segment is needed
@@ -823,10 +823,8 @@ static int proc_check( void )
         }
     }
 
-    /* 1st instruction following a procedure definition */
     if( WritePrologue() == ERROR )
         return( ERROR );
-    InputQueueLine( CurrString );
     DefineProc = FALSE;
     return( TRUE );
 }
@@ -1813,7 +1811,7 @@ int AsmParse( void )
         // drop flag
         More_Array_Element = FALSE;
         // action
-        return( dup_array( NULL, 0, Last_Element_Size ) );
+        return( dup_array( NULL, NULL, 0, Last_Element_Size ) );
     }
 
 #if defined( _STANDALONE_ )
