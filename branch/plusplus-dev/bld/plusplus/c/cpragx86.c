@@ -907,11 +907,11 @@ boolean AsmSysInsertFixups( VBUF *code )
     return( uses_auto );
 }
 
-void *AsmSysCreateAux( char *name )
-/*********************************/
+AUX_INFO *AsmSysCreateAux( char *name )
+/*************************************/
 {
     CreateAux( name );
-    AuxCopy( CurrInfo, &DefaultInfo );
+    AuxCopy( CurrInfo, &WatcallInfo );
     CurrInfo->use = 1;
     CurrInfo->save = asmRegsSaved;
     CurrEntry->info = CurrInfo;
@@ -1279,7 +1279,7 @@ boolean PragmasTypeEquivalent(  // TEST IF TWO PRAGMAS ARE TYPE-EQUIVALENT
 }
 
 boolean PragmaOKForInlines(     // TEST IF PRAGMA IS SUITABLE FOR INLINED FN
-    struct aux_info *fnp )      // - pragma
+    AUX_INFO *fnp )             // - pragma
 {
     if( fnp->code != NULL ) {
         return FALSE;
@@ -1328,6 +1328,14 @@ boolean PragmaOKForVariables(   // TEST IF PRAGMA IS SUITABLE FOR A VARIABLE
     return( TRUE );
 }
 
+
+static boolean okClassChange(   // TEST IF OK TO CHANGE A CLASS IN PRAGMA
+    call_class oldp,                 // - old
+    call_class newp,                 // - new
+    call_class defp )                // - default
+{
+    return ( ( oldp & newp) == oldp ) || ( oldp == defp );
+}
 
 static boolean okPtrChange(     // TEST IF OK TO CHANGE A PTR IN PRAGMA
     void *oldp,                 // - old ptr
@@ -1382,7 +1390,9 @@ boolean PragmaChangeConsistent( // TEST IF PRAGMA CHANGE IS CONSISTENT
     if( oldp == newp ) {
         return TRUE;
     }
-    return ( ( oldp->cclass & newp->cclass ) == oldp->cclass )
+    return( ( okClassChange( oldp->cclass
+                         , newp->cclass
+                         , DefaultInfo.cclass ) )
         && ( ( oldp->flags & newp->flags ) == oldp->flags )
         && ( okParmChange( oldp->parms
                          , newp->parms
@@ -1401,6 +1411,5 @@ boolean PragmaChangeConsistent( // TEST IF PRAGMA CHANGE IS CONSISTENT
                         , DefaultInfo.objname ) )
         && ( okPtrChange( oldp->code
                         , newp->code
-                        , DefaultInfo.code ) )
-        ;
+                        , DefaultInfo.code ) ) );
 }

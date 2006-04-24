@@ -194,11 +194,11 @@ static void AuxCopy(           // COPY AUX STRUCTURE
     to->code = AuxCodeDup( from->code );
 }
 
-void *AsmSysCreateAux( char *name )
-/**********************************/
+AUX_INFO *AsmSysCreateAux( char *name )
+/*************************************/
 {
     CreateAux( name );
-    AuxCopy( CurrInfo, &DefaultInfo );
+    AuxCopy( CurrInfo, &WatcallInfo );
     CurrInfo->use = 1;
     CurrEntry->info = CurrInfo;
     return( CurrInfo );
