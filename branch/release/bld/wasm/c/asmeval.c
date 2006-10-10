@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WASM expression evaluator
+* Description:  WASM expression evaluator.
 *
 ****************************************************************************/
 
@@ -42,7 +42,7 @@
 #define myassert(x)
 #endif
 
-extern void             DefFlatGroup();
+extern void             DefFlatGroup( void );
 
 static int              TakeOut[ MAX_TOKEN ];
 static int              TokCnt;
@@ -71,6 +71,7 @@ static void init_expr( expr_list *new )
     new->idx_reg  = EMPTY;
     new->indirect = FALSE;
     new->explicit = FALSE;
+    new->abs      = FALSE;
     new->mem_type = MT_EMPTY;
     new->value    = 0;
     new->scale    = 1;
@@ -91,6 +92,7 @@ static void TokenAssign( expr_list *t1, expr_list *t2 )
     t1->idx_reg  = t2->idx_reg;
     t1->indirect = t2->indirect;
     t1->explicit = t2->explicit;
+    t1->abs      = t2->abs;
     t1->mem_type = t2->mem_type;
     t1->value    = t2->value;
     t1->scale    = t2->scale;
@@ -104,23 +106,44 @@ static void TokenAssign( expr_list *t1, expr_list *t2 )
 static int get_precedence( int i )
 /********************************/
 {
-    /* Base on MASM 6.0 pg.18 Table 1.3 */
+    /* The following table is taken verbatim from MASM 6.1 Programmer's Guide,
+     * page 14, Table 1.3. Sadly, it flatly contradicts QuickHelp online
+     * documentation shipped with said product and should not be taken as gospel.
+     */
 
+//    1             (), []
+//    2             LENGTH, SIZE, WIDTH, MASK, LENGTHOF, SIZEOF
+//    3             . (structure-field-name operator)
+//    4             : (segment override operator), PTR
+//    5             LROFFSET, OFFSET, SEG, THIS, TYPE
+//    6             HIGH, HIGHWORD, LOW, LOWWORD
+//    7             +, - (unary)
+//    8             *, /, MOD, SHL, SHR
+//    9             +, - (binary)
+//    10            EQ, NE, LT, LE, GT, GE
+//    11            NOT
+//    12            AND
+//    13            OR, XOR
+//    14            OPATTR, SHORT, .TYPE
 
-//    1              (), [], <>
-//    2              .
-//    3              LENGTH, SIZE, LENGTHOF, SIZEOF, WIDTH, MASK
-//    4              :
-//    5              OFFSET, SEG, TYPE, THIS, PTR
-//    6              HIGH, LOW
-//    7              + (unary), - (unary)
-//    8              *, /, MODE, SHL, SHR
-//    9              +, -
-//    10             EQ, NE, LT, LE, GT, GE
-//    11             NOT
-//    12             AND
-//    13             OR, XOR
-//    14             SHORT, .TYPE
+    /* The following table appears in QuickHelp online documentation for
+     * both MASM 6.0 and 6.1. Typical Microsoft mess.
+     */
+
+//    1             LENGTH, SIZE, WIDTH, MASK
+//    2             (), []
+//    3             . (structure-field-name operator)
+//    4             : (segment override operator), PTR
+//    5             THIS, OFFSET, SEG, TYPE
+//    6             HIGH, LOW
+//    7             +, - (unary)
+//    8             *, /, MOD, SHL, SHR
+//    9             +, - (binary)
+//    10            EQ, NE, LT, LE, GT, GE
+//    11            NOT
+//    12            AND
+//    13            OR, XOR
+//    14            SHORT, OPATTR, .TYPE, ADDR
 
     switch( AsmBuffer[i]->token ) {
     case T_UNARY_OPERATOR:
@@ -312,7 +335,7 @@ static int get_operand( expr_list *new, int *start, int end, bool (*is_expr)(int
                 return( ERROR );
             }
 #if 0
-// FIXME !!!!! 
+// FIXME !!!!!
 // problem with aliases and equ directive
             if( ( new->sym == NULL ) || ( new->sym->state == SYM_UNDEFINED ) ) {
                 if( error_msg )
@@ -339,11 +362,16 @@ static int get_operand( expr_list *new, int *start, int end, bool (*is_expr)(int
                 new->type = EXPR_ADDR;
                 break;
             }
+            if( new->sym->mem_type == MT_ABS ) {
+                new->abs = TRUE;
+            } else {
+                new->mem_type = new->sym->mem_type;
+            }
         }
 #else
         new->sym = AsmLookup( AsmBuffer[i]->string_ptr );
-#endif
         new->mem_type = new->sym->mem_type;
+#endif
         new->empty = FALSE;
         new->type = EXPR_ADDR;
         new->label = i;
@@ -666,13 +694,13 @@ static int calculate( expr_list *token_1, expr_list *token_2, uint_8 index )
                 token_1->indirect |= token_2->indirect;
             }
             fix_struct_value( token_1 );
-                
+
         } else if( check_same( token_1, token_2, EXPR_REG ) ) {
 
             index_connect( token_1, token_2 );
             token_1->indirect |= token_2->indirect;
             token_1->type = EXPR_ADDR;
-                
+
         } else if( check_both( token_1, token_2, EXPR_CONST, EXPR_REG ) ) {
 
             if( token_2->type == EXPR_REG ) {
@@ -1209,21 +1237,49 @@ static int calculate( expr_list *token_1, expr_list *token_2, uint_8 index )
                 return( ERROR );
             switch( AsmBuffer[index]->value ) {
             case T_LENGTH:
-                token_1->value = sym->first_length;
-                if( sym->mem_type != MT_STRUCT ) {
-                    break;
+                if( sym->mem_type == MT_STRUCT ) {
+                    token_1->value = sym->count;
+                } else if( sym->mem_type == MT_EMPTY ) {
+                    token_1->value = 0;
+                } else {
+                    token_1->value = sym->first_length;
                 }
+                break;
             case T_LENGTHOF:
-                token_1->value = sym->total_length;
+                if( sym->mem_type == MT_STRUCT ) {
+                    token_1->value = sym->count;
+                } else if( sym->mem_type == MT_EMPTY ) {
+                    token_1->value = 0;
+                } else {
+                    token_1->value = sym->total_length;
+                }
                 break;
             case T_SIZE:
-                token_1->value = sym->first_size;
-                if( sym->mem_type != MT_STRUCT ) {
-                    break;
+                if( sym->mem_type == MT_STRUCT ) {
+                    token_1->value = sym->total_size * sym->count;
+                } else if( sym->state == SYM_STRUCT ) {
+                    token_1->value = sym->total_size;
+                } else if( sym->mem_type == MT_NEAR ) {
+                    token_1->value = 0xFF02;
+                } else if( sym->mem_type == MT_FAR ) {
+                    token_1->value = 0xFF04;
+                } else {
+                    token_1->value = sym->first_size;
                 }
-            case T_SIZEOF:
-                token_1->value = sym->total_size;
                 break;
+            case T_SIZEOF:
+                if( sym->mem_type == MT_STRUCT ) {
+                    token_1->value = sym->total_size * sym->count;
+                } else {
+                    token_1->value = sym->total_size;
+                }
+                break;
+            }
+            if( Parse_Pass != PASS_1 && token_1->value == 0 ) {
+                if( error_msg )
+                    AsmError( DATA_LABEL_IS_EXPECTED );
+                token_1->type = EXPR_UNDEF;
+                return( ERROR );
             }
             token_1->label = EMPTY;
             token_1->sym = NULL;
@@ -1248,7 +1304,7 @@ static int calculate( expr_list *token_1, expr_list *token_2, uint_8 index )
     return( NOT_ERROR );
 }
 
-static int evaluate( 
+static int evaluate(
     expr_list *operand1,
     int *i,
     int end,
@@ -1476,7 +1532,7 @@ static int evaluate(
         }
 
     } while ( ( next_operator == TRUE )
-        || ( ( proc_flag == PROC_BRACKET ) 
+        || ( ( proc_flag == PROC_BRACKET )
             && !cmp_token( *i, T_CL_BRACKET )
             && !cmp_token( *i, T_CL_SQ_BRACKET )
             && ( *i < end ) ) );
@@ -1696,10 +1752,10 @@ static bool is_expr2( int i )
     return( FALSE );
 }
 
-static int fix_parant( void )
+static int fix_parens( void )
 /***************************/
 /* Take out those brackets which may surround a non-expression, e.g.
-   Right now only 'dup' requires a pair of parantheses, which should be
+   Right now only 'dup' requires a pair of parentheses, which should be
    taken out temporarily */
 {
     int         i;
@@ -1959,7 +2015,7 @@ static int fix( expr_list *res, int start, int end )
 
 static void fix_final( void )
 /***************************/
-/* Put back those brackets taken out by fix_parant() and take out all T_NOOP
+/* Put back those brackets taken out by fix_parens() and take out all T_NOOP
    tokens */
 {
     int         start;
@@ -2018,13 +2074,13 @@ extern int EvalExpr( int count, int start_tok, int end_tok, bool flag_msg )
 
     TokCnt = count;
 
-    if( fix_parant() == ERROR ) {
-        // take out those parantheses which are not part of an expression
+    if( fix_parens() == ERROR ) {
+        // take out those parentheses which are not part of an expression
         return( ERROR );
     }
 
     while( i < TokCnt && i <= end_tok ) {
-        if( is_expr1(i) ) {
+        if( is_expr1( i ) ) {
             start = i++;
             num = 0;
             for( ;; ) {
@@ -2032,7 +2088,7 @@ extern int EvalExpr( int count, int start_tok, int end_tok, bool flag_msg )
                     break;
                 if( i > end_tok )
                     break;
-                if( !is_expr1(i) )
+                if( !is_expr1( i ) )
                     break;
                 i++;
                 num++;
@@ -2082,7 +2138,7 @@ extern int EvalOperand( int *start_tok, int count, expr_list *result, bool flag_
     init_expr( result );
     if( AsmBuffer[i]->token == T_FINAL )
         return( NOT_ERROR );
-    if( !is_expr2(i) )
+    if( !is_expr2( i ) )
         return( NOT_ERROR );
 
     num = 0;
@@ -2090,7 +2146,7 @@ extern int EvalOperand( int *start_tok, int count, expr_list *result, bool flag_
         i++;
         if( i >= count )
             break;
-        if( !is_expr2(i) )
+        if( !is_expr2( i ) )
             break;
         num++;
     }
@@ -2183,7 +2239,7 @@ extern int EvalConstant( int count, int start_tok, int end_tok, bool flag_msg )
     TokCnt = count;
     error_msg = flag_msg;
     while( i < TokCnt && i <= end_tok ) {
-        if( !is_expr1(i) ) {
+        if( !is_expr1( i ) ) {
             const_expr = FALSE;
             break;
         }

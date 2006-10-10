@@ -633,7 +633,7 @@ set default calling convention to __fortran
 .do end
 .if &e'&$SWecs eq 1 .do begin
 .note ecs
-set default calling convention to _Syscall
+set default calling convention to __syscall
 :optref refid='SWecs'.
 .do end
 .if &e'&$SWecw eq 1 .do begin
@@ -913,6 +913,11 @@ FS floats i.e. not fixed to a segment
 .note zfp
 FS is pegged to a segment
 :optref refid='SWzffp'.
+.do end
+.if &e'&$SWzfp eq 1 .do begin
+.note zfp
+Generate FWAIT instructions on 386 and later
+:optref refid='SWzfp'.
 .do end
 .if &e'&$SWzgfp eq 1 .do begin
 .note zgf
@@ -3354,7 +3359,7 @@ set default calling convention to __fortran
 .if &e'&$SWecs eq 1 .do begin
 :OPT refid='SWecs' name='ecs'.
 .ix 'options' 'ecs'
-set default calling convention to _Syscall
+set default calling convention to __syscall
 .do end
 .*
 .if &e'&$SWecw eq 1 .do begin
@@ -4810,6 +4815,21 @@ will be predefined if "zff" is selected.
 The macro
 .kwm __SW_ZFP
 will be predefined if "zfp" is selected.
+.do end
+.*
+.if &e'&$SWzfw eq 1 .do begin
+:OPT refid='SWzfw' name='zfw'.&optdag.
+.ix 'options' 'zfw'
+The "zfw" option turns on generation of FWAIT instructions on 386 and later
+CPUs. Note that when targeting 286 and earlier, this option has no effect
+because FWAITs are always required for synchronization between CPU and FPU.
+.np
+This option generates larger and slower code and should only be used when
+restartable floating-point exceptions are required.
+.np
+The macro
+.kwm __SW_ZFW
+will be predefined if "zfw" is selected.
 .do end
 .*
 .if &e'&$SWzgfp eq 1 .do begin

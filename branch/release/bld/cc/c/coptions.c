@@ -424,7 +424,7 @@ static void SetGenSwitches( void )
 {
 #if _CPU == 8086 || _CPU == 386
     #if _CPU == 386
-        if( SwData.cpu == SW_CPU_DEF ) SwData.cpu = SW_CPU5;
+        if( SwData.cpu == SW_CPU_DEF ) SwData.cpu = SW_CPU6;
         if( SwData.fpu == SW_FPU_DEF ) SwData.fpu = SW_FPU3;
         if( SwData.mem == SW_M_DEF   ) SwData.mem = SW_MF;
         TargetSwitches |= USE_32;
@@ -589,6 +589,9 @@ static void MacroDefs( void )
     }
     if( TargetSwitches & NEED_STACK_FRAME ) {
         Define_Macro( "__SW_OF" );
+    }
+    if( TargetSwitches & GEN_FWAIT_386 ) {
+        Define_Macro( "__SW_ZFW" );
     }
 #endif
 #if _CPU == _AXP || _CPU == _PPC || _CPU == _MIPS
@@ -809,7 +812,7 @@ static void AddIncList( char *str )
 
 #define INC_VAR "INCLUDE"
 
-void MergeInclude()
+void MergeInclude( void )
 {
     /* must be called after GenCOptions to get req'd HFileList */
     char        *env_var;
@@ -1127,7 +1130,7 @@ static void Set_FR( void )
 
 #if _CPU == 8086 || _CPU == 386
 static void SetCodeClass( void )    { CodeClassName = CopyOfParm(); }
-static void SetDataSegName()
+static void SetDataSegName( void )
 {
     SwData.nd_used = 1;
     DataSegName = CopyOfParm();
@@ -1318,6 +1321,11 @@ static void Set_ZS( void )          { CompFlags.check_syntax = 1; }
 
 #if _CPU == 8086 || _CPU == 386
 static void Set_EQ( void )          { CompFlags.no_conmsg  = 1; }
+
+static void Set_ZFW( void )
+{
+    TargetSwitches |= GEN_FWAIT_386;
+}
 
 static void Set_ZU( void )
 {
@@ -1702,6 +1710,9 @@ static struct option const CFE_Options[] = {
     { "zgp",    0,              Set_ZGP },
 #endif
     { "ze",     0,              Set_ZE },
+#if _CPU == 8086 || _CPU == 386
+    { "zfw",    0,              Set_ZFW },
+#endif
     { "zg",     0,              Set_ZG },
     { "zi",     0,              Set_ZI },
     { "zk0u",   0,              Set_ZK0U },
@@ -2166,9 +2177,10 @@ void GenCOptions( char **cmdline )
      * because Windows and OS/2 API headers use it
      */
     EnableDisableMessage( 0, ERR_OBSOLETE_FUNC_DECL );
-    /* Warning about calling function with non-prototype declaration */
-    /* Temporarily disabled until source tree is cleaned up. */
+    /* Warnings about calling functions with non-prototype declaration */
+    /* Disabled at least until source tree is cleaned up. */
     EnableDisableMessage( 0, ERR_NONPROTO_FUNC_CALLED );
+    EnableDisableMessage( 0, ERR_NONPROTO_FUNC_CALLED_INDIRECT );
     InitModInfo();
     InitCPUModInfo();
 #if _CPU == 386

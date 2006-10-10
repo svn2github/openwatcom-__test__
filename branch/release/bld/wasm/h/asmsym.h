@@ -75,6 +75,7 @@ typedef struct asm_sym {
         uint_32         first_length; /* size of 1st initializer--elts. dup'd */
         uint_32         total_size;   /* total number of bytes (sizeof) */
         uint_32         total_length; /* total number of elements (lengthof) */
+        uint_32         count;
         char            *(*mangler)( struct asm_sym *sym, char *buffer );
         unsigned        public:1;
         unsigned        langtype:3;
@@ -86,15 +87,16 @@ typedef struct asm_sym {
         struct asmfixup *fixup;
 } asm_sym;
 
-extern struct asm_sym *AsmLookup( char *name );
-extern struct asm_sym *AsmGetSymbol( char *name );
+extern  struct asm_sym  *AsmLookup( const char *name );
+extern  struct asm_sym  *AsmGetSymbol( const char *name );
 
 #if defined( _STANDALONE_ )
 
-extern void AsmTakeOut( char *name );
-extern int AsmChangeName( char *old, char *new );
+extern  void            AsmTakeOut( const char *name );
+extern  int             AsmChangeName( const char *old, const char *new );
+extern  void            WriteListing( void );
 
-extern struct asm_sym *AllocDSym( char *, int );
+extern  struct asm_sym  *AllocDSym( const char *, int );
 
 #define IS_SYM_COUNTER( x ) ( ( x[0] == '$' ) && ( x[1] == 0 ) )
 

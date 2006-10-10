@@ -29,8 +29,10 @@
 ****************************************************************************/
 
 
-#include "rcs.h"
 #include <stdlib.h>
+#include "rcscli.h"
+#include "rcs.h"
+
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
@@ -38,28 +40,27 @@
 
 #if defined( __WINDOWS__ ) || defined( __NT__ ) || defined( __OS2__ )
 /* function pointers */
-extern RCSGetVerFn              RCSGetVersion = NULL;
-extern RCSInitFn                RCSInit = NULL;
-extern RCSCheckoutFn            RCSCheckout = NULL;
-extern RCSCheckinFn             RCSCheckin = NULL;
-extern RCSHasShellFn            RCSHasShell = NULL;
-extern RCSRunShellFn            RCSRunShell = NULL;
-extern RCSSetSystemFn           RCSSetSystem = NULL;
-extern RCSQuerySystemFn         RCSQuerySystem = NULL;
-extern RCSRegBatchCbFn          RCSRegisterBatchCallback = NULL;
-extern RCSRegMsgBoxCbFn         RCSRegisterMessageBoxCallback = NULL;
-extern RCSSetPauseFn            RCSSetPause = NULL;
-extern RCSFiniFn                RCSFini = NULL;
+extern RCSGetVersionFn          *RCSGetVersion = NULL;
+extern RCSInitFn                *RCSInit = NULL;
+extern RCSCheckoutFn            *RCSCheckout = NULL;
+extern RCSCheckinFn             *RCSCheckin = NULL;
+extern RCSHasShellFn            *RCSHasShell = NULL;
+extern RCSRunShellFn            *RCSRunShell = NULL;
+extern RCSSetSystemFn           *RCSSetSystem = NULL;
+extern RCSQuerySystemFn         *RCSQuerySystem = NULL;
+extern RCSRegBatchCbFn          *RCSRegisterBatchCallback = NULL;
+extern RCSRegMsgBoxCbFn         *RCSRegisterMessageBoxCallback = NULL;
+extern RCSSetPauseFn            *RCSSetPause = NULL;
+extern RCSFiniFn                *RCSFini = NULL;
 #endif
 
 #if defined( __WINDOWS__ ) || defined( __NT__ )
-    #include <windows.h>
 
-    #define GET_ADDR( inst, name, proc, type ) proc = (type)GetProcAddress( inst, name )
+    #define GET_ADDR( inst, name, proc, type ) proc = (type*)GetProcAddress( inst, name )
     static HINSTANCE LibHandle;
     static void getFunctionPtrs( void );
 
-    int ViRCSInit()
+    int ViRCSInit( void )
     {
         LibHandle = LoadLibrary( RCS_DLLNAME );
         if( LibHandle < (HINSTANCE)32 ) {
@@ -68,13 +69,13 @@ extern RCSFiniFn                RCSFini = NULL;
         getFunctionPtrs();
         return( TRUE );
     }
-    int ViRCSFini()
+    int ViRCSFini( void )
     {
         FreeLibrary( LibHandle );
         return( TRUE );
     }
 #elif defined( __OS2__ ) && defined( __386__ )
-    #include <os2.h>
+
     static HMODULE LibHandle;
     APIRET APIENTRY  DosLoadModule(PSZ pszName, ULONG cbName, PSZ pszModname, PHMODULE phmod);
     APIRET APIENTRY  DosFreeModule(HMODULE hmod);
@@ -82,7 +83,7 @@ extern RCSFiniFn                RCSFini = NULL;
     #define GET_ADDR( inst, name, proc, type ) DosQueryProcAddr( inst, 0, name, (PFN*)(&proc) )
     static void getFunctionPtrs( void );
 
-    int ViRCSInit()
+    int ViRCSInit( void )
     {
         #define BUFF_LEN 128
         char fail_name[BUFF_LEN];
@@ -95,20 +96,20 @@ extern RCSFiniFn                RCSFini = NULL;
             return( LibHandle );
         }
     }
-    int ViRCSFini()
+    int ViRCSFini( void )
     {
         DosFreeModule( LibHandle );
         return( TRUE );
     }
 #else
-    int ViRCSInit() { return( TRUE ); }
-    int ViRCSFini() { return( TRUE ); }
+    int ViRCSInit( void ) { return( TRUE ); }
+    int ViRCSFini( void ) { return( TRUE ); }
 #endif
 
 #if defined( __WINDOWS__ ) || defined( __NT__ ) || (defined( __OS2__ ) && defined( __386__ ))
 static void getFunctionPtrs( void )
 {
-    GET_ADDR( LibHandle, GETVER_FN_NAME,        RCSGetVersion,                 RCSGetVerFn );
+    GET_ADDR( LibHandle, GETVER_FN_NAME,        RCSGetVersion,                 RCSGetVersionFn );
     GET_ADDR( LibHandle, INIT_FN_NAME,          RCSInit,                       RCSInitFn );
     GET_ADDR( LibHandle, CHECKOUT_FN_NAME,      RCSCheckout,                   RCSCheckoutFn );
     GET_ADDR( LibHandle, CHECKIN_FN_NAME,       RCSCheckin,                    RCSCheckinFn );

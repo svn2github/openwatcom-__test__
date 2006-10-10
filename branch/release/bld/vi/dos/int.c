@@ -46,10 +46,10 @@
 #include "pragmas.h"
 
 #if !defined( __386__ ) || defined( __4G__ )
-static void (interrupt _FAR_ *oldInt1c)();
-static void (interrupt _FAR_ *oldInt1b)();
-static void (interrupt _FAR_ *oldInt23)();
-static void (interrupt _FAR_ *oldInt24)();
+static void (interrupt _FAR_ *oldInt1c)( void );
+static void (interrupt _FAR_ *oldInt1b)( void );
+static void (interrupt _FAR_ *oldInt23)( void );
+static void (interrupt _FAR_ *oldInt24)( void );
 #else
 typedef struct {
     void far    *prot;
@@ -105,7 +105,7 @@ static void drawClock( void )
 /*
  * handleInt1c - int 0x1c handler (clock timer)
  */
-static void interrupt handleInt1c()
+static void interrupt handleInt1c( void )
 {
     ClockTicks++;
     cTick1--;
@@ -157,7 +157,7 @@ static void interrupt handleInt1c()
 /*
  * handleInt1b_23
  */
-static void interrupt handleInt1b_23()
+static void interrupt handleInt1b_23( void )
 {
     if( EditFlags.WatchForBreak ) {
         EditFlags.BreakPressed = TRUE;

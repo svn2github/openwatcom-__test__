@@ -215,6 +215,22 @@ static void DropLabel( LABEL_INDEX label )
 }
 
 
+static void DropBreakLabel( void )
+{
+    if( BlockStack->break_label != 0 ) {        /* 05-apr-92 */
+        DropLabel( BlockStack->break_label );
+    }
+}
+
+
+static void DropContinueLabel( void )
+{
+    if( BlockStack->continue_label != 0 ) {
+        DropLabel( BlockStack->continue_label );
+    }
+}
+
+
 static TREEPTR BracketExpr( void )
 {
     TREEPTR     tree;
@@ -364,10 +380,11 @@ static void ReturnStmt( SYM_HANDLE func_result, struct return_info *info )
         TYPEPTR     func_type;
 
         func_type = CurFunc->sym_type->object;
+        SKIP_TYPEDEFS( func_type );
         tree = RValue( Expr() );
         ChkRetType( tree );
-        tree = BaseConv( func_type, tree );
         tree = BoolConv( func_type, tree );
+        tree = FixupAss( tree, func_type );
         tree = ExprNode( 0, OPR_RETURN, tree );
         tree->expr_type = func_type;
         tree->op.sym_handle = func_result;
@@ -809,7 +826,7 @@ static void CaseStmt( void )
 
     NextToken();
     if( SwitchStack ) {
-        if( ConstExprAndType( &val ) ){
+        if( ConstExprAndType( &val ) ) {
             if( ( val.type == TYPE_ULONG64 ) && !U64IsU32( val.value ) ) {
                 CErr1( ERR_CONSTANT_TOO_BIG );
             } else if( ( val.type == TYPE_LONG64 ) && !I64IsI32( val.value ) ) {
@@ -1036,22 +1053,6 @@ static void EndSwitch( void )
     }
     CMemFree( sw );
 #endif
-}
-
-
-static void DropBreakLabel( void )
-{
-    if( BlockStack->break_label != 0 ) {        /* 05-apr-92 */
-        DropLabel( BlockStack->break_label );
-    }
-}
-
-
-static void DropContinueLabel( void )
-{
-    if( BlockStack->continue_label != 0 ) {
-        DropLabel( BlockStack->continue_label );
-    }
 }
 
 
@@ -1416,9 +1417,12 @@ void Statement( void )
             NextToken();
         }
     }
+    /* C99 has special semantics for return value of main() */
     if( CompFlags.c99_extensions && !strcmp( CurFunc->name, "main" ) ) {
-        FixupC99MainReturn( func_result, &return_info );
-        return_at_outer_level = TRUE;
+        if( !return_at_outer_level ) {
+            FixupC99MainReturn( func_result, &return_info );
+            return_at_outer_level = TRUE;
+        }
     }
     if( !return_info.with_expr ) {   /* no return values present */
         if( !CurFunc->naked ) {

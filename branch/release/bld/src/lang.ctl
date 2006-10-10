@@ -21,6 +21,7 @@ cdsay .
     <CPCMD> <DEVDIR>/clib/startup/a/cstrtx32.asm        <RELROOT>/rel2/src/startup/386/cstrtx32.asm
     <CPCMD> <DEVDIR>/clib/startup/c/cmain386.c          <RELROOT>/rel2/src/startup/386/cmain386.c
     <CPCMD> <DEVDIR>/clib/startup/c/wildargv.c          <RELROOT>/rel2/src/startup/wildargv.c
+    <CPCMD> <DEVDIR>/clib/h/initarg.h                   <RELROOT>/rel2/src/startup/initarg.h
     <CPCMD> <DEVDIR>/clib/startup/a/cstrt086.asm        <RELROOT>/rel2/src/startup/dos/cstrt086.asm
     <CPCMD> <DEVDIR>/clib/startup/a/dos16m.asm          <RELROOT>/rel2/src/startup/dos/dos16m.asm
     <CPCMD> <DEVDIR>/clib/startup/a/dstrt386.asm        <RELROOT>/rel2/src/startup/386/dstrt386.asm
@@ -59,6 +60,7 @@ cdsay .
     <CPCMD> <DEVDIR>/src/cppexamp/*.*                   <RELROOT>/rel2/samples/cppexamp/
     <CPCMD> <DEVDIR>/src/cppexamp/excarea/*.*           <RELROOT>/rel2/samples/cppexamp/excarea/
     <CPCMD> <DEVDIR>/src/cppexamp/membfun/*.*           <RELROOT>/rel2/samples/cppexamp/membfun/
+    <CPCMD> <DEVDIR>/src/cppexamp/rtti/*.*              <RELROOT>/rel2/samples/cppexamp/rtti/
 
     <CPCMD> <DEVDIR>/src/dll/*.*                        <RELROOT>/rel2/samples/dll/
     <CPCMD> <DEVDIR>/src/goodies/*.*                    <RELROOT>/rel2/samples/goodies/
@@ -66,6 +68,7 @@ cdsay .
     <CPCMD> <DEVDIR>/src/os2/dll/*.*                    <RELROOT>/rel2/samples/os2/dll/
     <CPCMD> <DEVDIR>/src/os2/pdd/*.*                    <RELROOT>/rel2/samples/os2/pdd/
     <CPCMD> <DEVDIR>/src/os2/som/*.*                    <RELROOT>/rel2/samples/os2/som/
+    <CPCMD> <DEVDIR>/src/os2/som/animals/*.*            <RELROOT>/rel2/samples/os2/som/animals/
     <CPCMD> <DEVDIR>/src/os2/som/classes/*.*            <RELROOT>/rel2/samples/os2/som/classes/
     <CPCMD> <DEVDIR>/src/os2/som/helloc/*.*             <RELROOT>/rel2/samples/os2/som/helloc/
     <CPCMD> <DEVDIR>/src/os2/som/hellocpp/*.*           <RELROOT>/rel2/samples/os2/som/hellocpp/

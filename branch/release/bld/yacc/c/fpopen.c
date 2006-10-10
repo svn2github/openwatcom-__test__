@@ -24,18 +24,14 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Path-searching file open routine.
 *
 ****************************************************************************/
 
 
-#include <malloc.h>
 #include <string.h>
 #include <stdio.h>
-#ifdef UNIX
-#include <alloca.h>     /* alloca is not defined in malloc.h on unix systems */
-#endif
+#include "walloca.h"
 
 
 FILE *fpopen( path, name )

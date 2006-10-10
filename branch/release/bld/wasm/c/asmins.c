@@ -52,22 +52,17 @@
 #if defined( _STANDALONE_ )
   #include "directiv.h"
   #include "myassert.h"
+  #include "asminput.h"
 #endif
 
 extern int              match_phase_1( void );
 extern int              ptr_operator( memtype, uint_8 );
 extern int              jmp( expr_list * );
 
-unsigned char           More_Array_Element = FALSE;
-unsigned char           Last_Element_Size;
-
 static struct asm_code  Code_Info;
 struct asm_code         *Code = &Code_Info;
 
 unsigned char           Opnd_Count;
-
-extern int              dup_array( struct asm_sym *, struct asm_sym *, char, char );
-extern int              data_init( int, int );
 
 static void             SizeString( unsigned op_size );
 static int              check_size( void );
@@ -75,7 +70,6 @@ static int              segm_override_jumps( expr_list *opndx );
 
 #if defined( _STANDALONE_ )
 
-extern void             InputQueueLine( char * );
 extern int              directive( int , long );
 extern int              SymIs32( struct asm_sym *sym );
 
@@ -87,7 +81,6 @@ extern int_8            DefineProc;     // TRUE if the definition of procedure
 uint_8                  CheckSeg;       // if checking of opened segment is needed
 int_8                   Frame;          // Frame of current fixup
 uint_8                  Frame_Datum;    // Frame datum of current fixup
-extern char             *CurrString;    // Current Input Line
 struct asm_sym          *SegOverride;
 
 static int              in_epilogue = 0;
@@ -232,7 +225,7 @@ static void seg_override( int seg_reg, asm_sym *sym )
             }
         }
     }
-    
+
     if( Code->prefix.seg == default_seg ) {
         Code->prefix.seg = EMPTY;
     }
@@ -1163,12 +1156,15 @@ static int idata_fixup( expr_list *opndx )
 #if defined( _STANDALONE_ )
     if( ( opndx->sym->state == SYM_SEG )
         || ( opndx->sym->state == SYM_GRP )
-        || ( opndx->instr == T_SEG ) )
+        || ( opndx->instr == T_SEG ) ) {
         sym32 = 0;
-    else
+    } else if( opndx->abs ) {
+        sym32 = 0;
+    } else {
         sym32 = SymIs32( opndx->sym );
+    }
 #else
-        sym32 = Code->use32;
+    sym32 = Code->use32;
 #endif
     if( opndx->instr != EMPTY ) {
         if( ( opndx->base_reg != EMPTY )
@@ -1213,6 +1209,23 @@ static int idata_fixup( expr_list *opndx )
                 break;
             }
         }
+        if( opndx->abs ) {
+            if( opndx->mem_type == MT_BYTE ) {
+                Code->mem_type = MT_BYTE;
+                Code->info.opnd_type[Opnd_Count] = OP_I8;
+                break;
+            } else if( opndx->mem_type == MT_EMPTY ) {
+                SET_OPSIZ_NO( Code );
+                if( oper_32( Code ) ) {
+                    Code->mem_type = MT_DWORD;
+                    Code->info.opnd_type[Opnd_Count] = OP_I32;
+                    sym32 = 1;
+                    break;
+                }
+            } else if( opndx->mem_type == MT_DWORD ) {
+                sym32 = 1;
+            }
+        }
         if( ( Code->info.token == T_PUSHD ) || sym32 ) {
             Code->mem_type = MT_DWORD;
             Code->info.opnd_type[Opnd_Count] = OP_I32;
@@ -1241,7 +1254,9 @@ static int idata_fixup( expr_list *opndx )
     if( opndx->instr == T_SEG ) {
         fixup_type = FIX_SEG;
     } else {
-        if( oper_32( Code ) ) {
+        if( Code->mem_type == MT_BYTE ) {
+            fixup_type = FIX_LOBYTE;
+        } else if( oper_32( Code ) ) {
             fixup_type = ( sym32 ) ? FIX_OFF32 : FIX_OFF16;
         } else {
             if( sym32 ) {
@@ -1452,7 +1467,11 @@ static int memory_operand( expr_list *opndx, bool with_fixup )
         }
 
 #if defined( _STANDALONE_ )
-        sym32 = SymIs32( sym );
+        if( opndx->abs ) {
+            sym32 = addr_32( Code );
+        } else {
+            sym32 = SymIs32( sym );
+        }
         if( ( opndx->base_reg == EMPTY ) && ( opndx->idx_reg == EMPTY ) ) {
             SET_ADRSIZ( Code, sym32 );
             fixup_type = ( sym32 ) ? FIX_OFF32 : FIX_OFF16;
@@ -1585,12 +1604,12 @@ static int process_address( expr_list *opndx )
                 } else {
                     // CODE location is converted to OFFSET symbol
                     mem_type = ( opndx->explicit ) ? opndx->mem_type : opndx->sym->mem_type;
-                    switch( mem_type ) {
 #if defined( _STANDALONE_ )
-                    case MT_ABS:
+                    if( opndx->abs ) {
                         return( idata_fixup( opndx ) );
-                        break;
+                    }
 #endif
+                    switch( mem_type ) {
                     case MT_FAR:
                     case MT_NEAR:
                     case MT_SHORT:
@@ -1748,7 +1767,7 @@ static int process_reg( expr_list *opndx )
         Code->info.rm_byte |= reg;
     } else {
         // the second operand
-        if( ( Code->info.token == T_XCHG ) 
+        if( ( Code->info.token == T_XCHG )
             && ( ( Code->info.opnd_type[OPND1] == OP_AX )
             || ( Code->info.opnd_type[OPND1] == OP_EAX ) ) ) {
             // XCHG can use short form if op1 is AX or EAX
@@ -1786,18 +1805,18 @@ int AsmParse( void )
 #endif
 
     //init
-    rCode->info.token   = T_NULL;
-    rCode->info.opcode  = 0;
-    rCode->info.rm_byte = 0;
-    rCode->prefix.ins   = EMPTY;
-    rCode->prefix.seg   = EMPTY;
-    rCode->prefix.adrsiz = FALSE;
-    rCode->prefix.opsiz = FALSE;
-    rCode->mem_type     = MT_EMPTY;
+    rCode->info.token     = T_NULL;
+    rCode->info.opcode    = 0;
+    rCode->info.rm_byte   = 0;
+    rCode->prefix.ins     = EMPTY;
+    rCode->prefix.seg     = EMPTY;
+    rCode->prefix.adrsiz  = FALSE;
+    rCode->prefix.opsiz   = FALSE;
+    rCode->mem_type       = MT_EMPTY;
     rCode->mem_type_fixed = FALSE;
-    rCode->extended_ins = EMPTY;
-    rCode->sib          = 0;            // assume ss is *1
-    rCode->indirect     = FALSE;
+    rCode->extended_ins   = EMPTY;
+    rCode->sib            = 0;            // assume ss is *1
+    rCode->indirect       = FALSE;
     for( i = 0; i < 3; i++ ) {
         rCode->info.opnd_type[i] = OP_NONE;
         rCode->data[i] = 0;
@@ -1807,12 +1826,9 @@ int AsmParse( void )
     curr_ptr_type = EMPTY;
 
     // check if continue initializing array
-    if( More_Array_Element == TRUE ) {
-        // drop flag
-        More_Array_Element = FALSE;
-        // action
-        return( dup_array( NULL, NULL, 0, Last_Element_Size ) );
-    }
+    temp = NextArrayElement();
+    if( temp != EMPTY )
+        return( temp );
 
 #if defined( _STANDALONE_ )
     CheckSeg = TRUE;
@@ -2354,7 +2370,7 @@ static int check_size( void )
     case T_MOVNTI:
         break;
     case T_MOVD:
-#if 0    
+#if 0
         op1_size = OperandSize( op1 );
         op2_size = OperandSize( op2 );
         if( ( op1_size != 0 ) && ( op1_size != 4 )
@@ -2362,7 +2378,7 @@ static int check_size( void )
             AsmError( OPERANDS_MUST_BE_THE_SAME_SIZE );
             state = ERROR;
         }
-#endif        
+#endif
         break;
     case T_MOV:
         if( op1 & OP_SR ) {
@@ -2581,7 +2597,7 @@ void AsmInit( int cpu, int fpu, int use32, int extn )
 
     // initialize AsmOpcode table to point to entry in AsmOpTable
     // token has its own value, e.g. T_AAA is 0, T_ADD is 1, etc.
-    
+
     if( AsmOpcode[1].position == 0 ) {  // if not initialized
         while( AsmOpcode[token_value].len != 0 ) {
             do {

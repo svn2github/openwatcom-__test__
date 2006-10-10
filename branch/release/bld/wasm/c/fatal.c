@@ -37,7 +37,7 @@
 #include "womputil.h"
 #include "fatal.h"
 
-typedef void (*err_act)();
+typedef void (*err_act)( void );
 
 typedef struct {
     int       num;            // index
@@ -76,6 +76,7 @@ void AsmShutDown( void )
     }
     AsmFree( AsmFiles.fname[ASM] );
     AsmFree( AsmFiles.fname[ERR] );
+    AsmFree( AsmFiles.fname[LST] );
     AsmFree( AsmFiles.fname[OBJ] );
     MemFini();
 }

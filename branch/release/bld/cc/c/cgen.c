@@ -256,6 +256,14 @@ static void RelLocalVars( struct local_vars *local_var_list ) /* 12-mar-92 */
     }
 }
 
+static cg_type ReturnType( cg_type type )
+{
+    if( CompFlags.returns_promoted && (InLineDepth == 0) ) {
+        type = FEParmType( NULL, NULL, type );
+    }
+    return( type );
+}
+
 static void EndFunction( OPNODE *node )
 {
     int         i;
@@ -284,10 +292,7 @@ static void EndFunction( OPNODE *node )
         dtype = CGenType( sym.sym_type );
         name = CGTempName( sym.info.return_var, dtype );
         name = CGUnary( O_POINTS, name, dtype );
-        if( CompFlags.returns_promoted ) {
-            dtype = FEParmType( NULL, NULL, dtype );
-        }
-        CGReturn( name, dtype );
+        CGReturn( name, ReturnType( dtype ) );
     }
     FreeLocalVars( CurFunc->u.func.parms );
     FreeLocalVars( CurFunc->u.func.locals );
@@ -769,9 +774,9 @@ static cg_name DoIndirection( OPNODE *node, cg_name name )
 static cg_name ConvertPointer( OPNODE *node, cg_name name )
 {
 #if _CPU == 386
-    if( node->oldptr_class == PTR_FAR16 ) {
+    if( FAR16_PTRCLASS( node->oldptr_class ) ) {
         name = CGUnary( O_PTR_TO_NATIVE, name, T_POINTER );
-    } else if( node->newptr_class == PTR_FAR16 ) {
+    } else if( FAR16_PTRCLASS( node->newptr_class ) ) {
         name = CGUnary( O_PTR_TO_FOREIGN, name, T_POINTER );
     }
 #endif
@@ -1422,7 +1427,7 @@ static void NoCodeGenDLL( void )
 
 void DoCompile( void )
 {
-    unsigned int    *old_env;
+    jmp_buf         *old_env;
     jmp_buf         env;
     cg_init_info    cgi_info;
 
@@ -1598,10 +1603,7 @@ local int DoFuncDefn( SYM_HANDLE funcsym_handle )
         }
     }
 #endif
-    ret_type = CGenType( CurFunc->sym_type->object );
-    if( CompFlags.returns_promoted ) {
-        ret_type = FEParmType( NULL, NULL, ret_type );
-    }
+    ret_type = ReturnType( CGenType( CurFunc->sym_type->object ) );
     CGProcDecl( funcsym_handle, ret_type );
 #if _CPU == 386
     if( TargetSwitches & P5_PROFILING ) {

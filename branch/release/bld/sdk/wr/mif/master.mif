@@ -92,7 +92,7 @@ extra_c_flags_palette = -fh
 
 extra_c_flags_trmem = $(trmem_cflags)
 
-.c:   ../c;$(trmem_dir);$(misc_dir);$(cpp_dir);$(wrc_dir)/c
+.c:   ../c;$(trmem_dir);$(misc_dir);$(cpp_dir);$(wrc_dir)/c;$(watcom_dir)/c
 
 inc_dirs = -I. -I"../h" -I"$(misc_dir)" -I$(cpp_dir) -I"$(wres_dir)/h" -I"$(wrc_dir)/h"
 
@@ -109,9 +109,20 @@ extra_l_flags_win = op rwr,stack=16k export WEP RESIDENT
 #extra_l_flags_win += segment  CLASS 'CODE' LOADONCALL MOVEABLE DISCARDABLE
 #extra_l_flags_win += segment  CLASS 'CODE' PRELOAD
 
-$(name).dll: $(__MAKEFILES__) ytab.gh wrcmsg.gh $(object) $(wres_lib) $(name).res
+# systems where version resources must be added to .DLL
+build_rc_nt_386 = nt
+
+!ifdef build_rc_$(host_os)_$(host_cpu)
+res_objs = version.res
+!endif
+
+$(name).dll: $(__MAKEFILES__) ytab.gh wrcmsg.gh $(object) $(wres_lib) $(name).res $(res_objs)
         $(linker) $(lflags) name $^@ lib $(wres_lib) file {$(object)}
+!ifdef build_rc_$(host_os)_$(host_cpu)
+        $(rc) -k $(name).res $^@ -fr=version.res
+!else
         $(rc) -k $(name).res $^@
+!endif
 
 #---------- TEST
 test_system_win_i86= windows
@@ -139,3 +150,16 @@ ytab.gh : $(wrc_dir)/y/rc.y $(wrc_dir)/y/yydriver.c $(wrc_dir)/h/rcmem.h
 
 $(name).res: ../h/wr.rc .AUTODEPEND
         $(rc) $(rc_flags) -r -ad $(inc_path) -DWR_COMPILED $[@ -fo=$^@
+
+version.res: version.rc .AUTODEPEND
+        $(rc) $(rc_flags) -r -ad $(inc_path) $[@ -fo=$^@
+
+./genverrc.exe : $(fe_misc_dir)/c/genverrc.c
+        $(bld_cl) $[@ $(wcl_util_opts) -D_VERSION=$(bld_ver)
+
+!ifndef patch_level
+patch_level=0
+!endif
+
+version.rc : ./genverrc.exe ../h/version.rc $(fe_misc_dir)/c/genverrc.c
+        $[@ ../h/version.rc version.rc $$ $(name).dll $(patch_level)

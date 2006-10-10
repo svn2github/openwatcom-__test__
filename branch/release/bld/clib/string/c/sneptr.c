@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Definition accessor of sys_nerr.
 *
 ****************************************************************************/
 
@@ -35,10 +34,11 @@
 #include "rtdata.h"
 
 #ifdef __NETWARE__
-_WCRTLINKD extern int _WCNEAR   sys_nerr;   /* # of entries in sys_errlist array */
+_WCRTDATA extern int _WCNEAR    sys_nerr;   /* # of entries in sys_errlist array */
 #define _sys_nerr               sys_nerr
 #endif
 
-_WCRTLINK int (*__get_sys_nerr_ptr()) {
-    return &_sys_nerr;
+_WCRTLINK int *__get_sys_nerr_ptr( void )
+{
+    return( &_sys_nerr );
 }

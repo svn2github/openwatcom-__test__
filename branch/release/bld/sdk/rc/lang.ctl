@@ -18,6 +18,10 @@ cdsay .
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
     cdsay <PROJDIR>/rc
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
+    cdsay <PROJDIR>/restest
+    pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
+    cdsay <PROJDIR>/wresdmp
+    pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h
 
 [ BLOCK <1> rel2 cprel2 ]
 #========================
@@ -46,7 +50,7 @@ cdsay .
     <CPCMD> <PROJDIR>/rc/ntaxp/wrce.exe         <RELROOT>/rel2/axpnt/wrc.exe
     <CPCMD> <PROJDIR>/mkcdpg/ntaxp/mkcdpg.exe   <RELROOT>/rel2/axpnt/mkcdpg.exe
 
-  [ IFDEF (os_linux) <2*> ]
+  [ IFDEF (os_linux "") <2*> ]
     <CPCMD> <PROJDIR>/rc/linux386/wrce.exe      <RELROOT>/rel2/binl/wrc
     <CPCMD> <PROJDIR>/rc/linux386/wrce.sym      <RELROOT>/rel2/binl/wrc.sym
 
@@ -59,6 +63,10 @@ cdsay .
     cdsay <PROJDIR>/exedmp
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
     cdsay <PROJDIR>/rc
+    pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
+    cdsay <PROJDIR>/restest
+    pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
+    cdsay <PROJDIR>/wresdmp
     pmake -d build <2> <3> <4> <5> <6> <7> <8> <9> -h clean
 
 [ BLOCK . . ]

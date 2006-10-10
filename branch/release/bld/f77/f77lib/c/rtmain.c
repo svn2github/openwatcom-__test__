@@ -38,7 +38,7 @@
 
 #include <stdlib.h>
 
-extern  int             Spawn(void (*)());
+extern  int             Spawn(void (*)( void ));
 
 // FORTRAN 77 run-time system must be initialized before we call
 // user's program. Part of the run-time initialization includes
@@ -55,8 +55,7 @@ extern  void            RTSysInit(void);
 #include <win386.h>
 
 extern  int     PASCAL  DefaultWinMain(HINSTANCE,HINSTANCE,LPSTR,int,int(*)(int,char**));
-extern  int             Spawn(void (*)());
-extern  void            FMAIN();
+extern  void            FMAIN(void);
 extern  int             main(int,char **);
 
 extern  char            __FAppType;

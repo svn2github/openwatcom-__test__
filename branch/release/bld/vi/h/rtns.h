@@ -314,7 +314,7 @@ int DoEGREP( char *, char * );
 
 /* file.c */
 void SaveInfo( info * );
-void SaveCurrentInfo();
+void SaveCurrentInfo( void );
 bool RestoreInfo( info * );
 int DisplayFileStatus( void );
 void CTurnOffFileDisplayBits( void );
@@ -373,7 +373,6 @@ void ResetLastFind( void );
 int FindForwardWithString( char * );
 int GetFind( char *, linenum *, int *, int *, int );
 int FindBackwardsWithString( char * );
-int GetFindString( range *, char *, int ( *)() );
 void SaveFindRowColumn( void );
 int ColorFind( char *, int );
 void FindCmdFini( void );
@@ -449,7 +448,7 @@ void IDEGetKeys( void );
 /* init.c */
 void InitializeEditor( void );
 void SetConfigFileName( char *fn );
-char *GetConfigFileName();
+char *GetConfigFileName( void );
 void FiniCFName( void );
 
 /* io.c */
@@ -601,8 +600,8 @@ void StaticFini( void );
 char *MemStrDup( char * );
 int DumpMemory( void );
 #ifdef TRMEM
-    void InitTRMEM();
-    void DumpTRMEM();
+    void InitTRMEM( void );
+    void DumpTRMEM( void );
 #endif
 
 /* misc.c */
@@ -610,7 +609,7 @@ int ExecCmd( char *, char *, char * );
 int GetResponse( char *, char * );
 void ExitWithVerify( void );
 bool ExitWithPrompt( bool );
-bool PromptFilesForSave();
+bool PromptFilesForSave( void );
 bool PromptThisFileForSave( const char * );
 bool QueryFile( const char * );
 int PrintHexValue( void );
@@ -704,7 +703,7 @@ void FiniSavebufs( void );
 
 /* select.c */
 int SelectItem( selectitem *si );
-int SelectItemAndValue( window_info *, char *, char **, int , int (*)(), int, char **, int );
+int SelectItemAndValue( window_info *, char *, char **, int , int (*)(char *, char *, int * ), int, char **, int );
 
 /* selrgn.c */
 void UpdateDrag( window_id, int, int );

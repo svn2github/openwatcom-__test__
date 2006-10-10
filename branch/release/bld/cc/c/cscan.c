@@ -1347,11 +1347,15 @@ static int ScanString( void )
     for( ;; ) {
         if( c == '\n' ) {
             TokenLine = SrcFileLineNum-1; /* place error at site */
-            if( NestLevel == SkipLevel ) {  /* 10-sep-92 */
-                CErr1( ERR_MISSING_LINE_CONTINUE );
-            } else {
-                CWarn1( WARN_CONSTANT_TOO_BIG, ERR_MISSING_LINE_CONTINUE  );
+            if( NestLevel != SkipLevel ) {
+                if ( CompFlags.extensions_enabled ) {
+                    CWarn1( WARN_MISSING_QUOTE, ERR_MISSING_QUOTE );
+                    ok = 1;
+                } else {
+                    CErr1( ERR_MISSING_QUOTE );
+                }
             }
+            break;
         }
         if( c == EOF_CHAR ) break;
         if( c == '"' ) {
@@ -1661,7 +1665,7 @@ int ReScanToken( void )
 {
     int         saved_currchar;
     char        *saved_ScanCharPtr;
-    int         (*saved_nextchar)();
+    int         (*saved_nextchar)( void );
 
     saved_currchar = CurrChar;
     saved_nextchar = NextChar;

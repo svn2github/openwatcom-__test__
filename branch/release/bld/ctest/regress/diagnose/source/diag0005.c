@@ -46,3 +46,15 @@ int i6;                     // bad internal->external linkage redeclaration
 // warnings may be output in different order depending on circumstances.
 // If we only have one warning, there's no problem.
 int *pi6 = &i6;
+
+// Test function redeclaration which is considered OK (as long as the
+// default calling convention is in fact __watcall, ie. -ec? isn't used)
+void foo( void );
+void __watcall foo( void );
+
+// The following is also considered OK. Users may still shoot themselves
+// in the foot by not including prototype in the module where function is
+// defined, but sloppy programmers do not deserve too much compassion. Just
+// about all other compilers (incl. wpp) allow this.
+void __cdecl bar( void );
+void bar( void );

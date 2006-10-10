@@ -46,6 +46,7 @@ int     no_disp = FALSE;
 static  char            outBuff[ OUT_BUFF_SIZE ];
 static  char            *outBuffPtr;
 static  FILE            *outputFH;
+static  size_t          col;
 
 static  const char hexStr[] = "0123456789abcdef";
 
@@ -183,16 +184,17 @@ static char *to5Dec16( char *dest, unsigned_16 num )
     Output makes the assumption that % is not followed by the null-
     terminator.
 */
-void Output( const char *fmt, ... )
+size_t  Output( const char *fmt, ... )
 {
     va_list     args;
     char        *p;
     const char  *probe;
     const char  *str;
     size_t      len;
+    char        *pcrlf;
 
     if( no_disp )
-        return;
+        return( 0 );
     va_start( args, fmt );
     p = outBuffPtr;
     for(;;) {
@@ -211,7 +213,7 @@ void Output( const char *fmt, ... )
         fmt = probe + 1;
         switch( *fmt ) {
         case 'c':
-            *p++ = va_arg( args, char );
+            *p++ = va_arg( args, int );
             break;
         case 's':
             str = va_arg( args, const char * );
@@ -234,14 +236,14 @@ void Output( const char *fmt, ... )
             *p++ = '\'';
             break;
         case 'b':
-            p = toHex2( p, va_arg( args, unsigned_8 ) );
+            p = toHex2( p, va_arg( args, unsigned ) );
             *p++ = 'h';
             break;
         case '2':
-            p = toHex2( p, va_arg( args, unsigned_8 ) );
+            p = toHex2( p, va_arg( args, unsigned ) );
             break;
         case 'x':
-            p = toHex4( p, va_arg( args, unsigned_16 ) );
+            p = toHex4( p, va_arg( args, unsigned ) );
             *p++ = 'h';
             break;
         case 'X':
@@ -252,10 +254,10 @@ void Output( const char *fmt, ... )
             p = toHex8( p, va_arg( args, unsigned_32 ) );
             break;
         case 'u':
-            p = toDec16( p, va_arg( args, unsigned_16 ) );
+            p = toDec16( p, va_arg( args, unsigned ) );
             break;
         case '5':
-            p = to5Dec16( p, va_arg( args, unsigned_16 ) );
+            p = to5Dec16( p, va_arg( args, unsigned ) );
             break;
         case '<':
             len = va_arg( args, unsigned );
@@ -280,7 +282,15 @@ void Output( const char *fmt, ... )
     va_end( args );
     outBuffPtr = p;
     len = p - outBuff;
+    *p = '\0';                        /* for following str.. function */
+    pcrlf = strrchr( outBuff, '\n' ); /* need CRLF as char not string */
+    if( pcrlf != NULL ) {
+        col = p - pcrlf;
+    } else {
+        col += len;
+    }
     if( len > OUT_BUFF_WRITE ) flush();
+    return( col );
 }
 
 void OutputInit( void )
@@ -288,6 +298,7 @@ void OutputInit( void )
 {
     outBuffPtr = outBuff;
     outputFH = stdout;
+    col = 0;
 }
 
 void OutputSetFH( FILE *fh )

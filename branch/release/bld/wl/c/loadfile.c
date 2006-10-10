@@ -30,8 +30,8 @@
 
 
 #include <string.h>
-#include <malloc.h>
 #include <stdlib.h>
+#include "walloca.h"
 #include "linkstd.h"
 #if !defined( __LINUX__ ) || defined(__WATCOMC__)
 #include <process.h>
@@ -421,6 +421,7 @@ extern void GetStartAddr( void )
 /******************************/
 {
     bool        addoff;
+    int         deltaseg;
 
     if( FmtData.type & MK_NOVELL ) return;
     addoff = TRUE;
@@ -440,6 +441,20 @@ extern void GetStartAddr( void )
     case START_IS_SDATA:
         StartInfo.addr = StartInfo.targ.sdata->u.leader->seg_addr;
         StartInfo.addr.off += StartInfo.targ.sdata->a.delta;
+        /* if startaddr is not in first segment and segment is part of */
+        /* a group, adjust seg + off relative to start of group        */
+        /* instead of start of seg. This allows far call optimization to work*/
+        if( (StartInfo.targ.sdata->u.leader->seg_addr.seg > 0) &&
+            (StartInfo.targ.sdata->u.leader->group != NULL) ) {
+
+            deltaseg = StartInfo.targ.sdata->u.leader->seg_addr.seg
+              - StartInfo.targ.sdata->u.leader->group->grp_addr.seg;
+            if( (deltaseg > 0) && (deltaseg <= StartInfo.targ.sdata->u.leader->seg_addr.seg) ) {
+                StartInfo.addr.seg -= deltaseg;
+                StartInfo.addr.off += 16 * deltaseg
+                     - StartInfo.targ.sdata->u.leader->group->grp_addr.off;
+            }
+        }
         break;
     case START_IS_SYM:
         StartInfo.addr = StartInfo.targ.sym->addr;
@@ -944,7 +959,7 @@ extern void WriteGroupLoad( group_entry *group )
     class_entry *    class;
 
     class = group->leaders->class;
-    
+
     info.pos = PosLoad();
     // If group is a copy group, substitute source group(s) here
     if (class->flags & CLASS_COPY ) {

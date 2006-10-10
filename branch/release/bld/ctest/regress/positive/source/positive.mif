@@ -28,6 +28,9 @@ opt_init21  = -za99
 opt_init22  = -za99
 opt_opt09 = -za
 opt_opt41 = -ot -ol+
+opt_opt45 = -za99
+opt_opt46 = -za99
+opt_opt47 = -ri
 opt_pack04 = -wx
 opt_pch01 = -fhq
 opt_pch02 = -fhq
@@ -81,6 +84,7 @@ positive_tests = &
     asm06.$(exe) &
     asm07.$(exe) &
     asm08.$(exe) &
+    asm09.$(exe) &
     based01.$(exe) &
     based02.$(exe) &
     based03.$(exe) &
@@ -88,6 +92,7 @@ positive_tests = &
     bf02.$(exe) &
     bf03.$(exe) &
     callc01.$(exe) &
+    cmp01.$(exe) &
     conv02.$(exe) &
     conv03.$(exe) &
     conv04.$(exe) &
@@ -97,6 +102,7 @@ positive_tests = &
     enum04.$(exe) &
     expr01.$(exe) &
     expr02.$(exe) &
+    far1601.$(exe) &
     float01.$(exe) &
     float03.$(exe) &
     float04.$(exe) &
@@ -131,6 +137,7 @@ positive_tests = &
     init20.$(exe) &
     init21.$(exe) &
     init22.$(exe) &
+    init23.$(exe) &
     inline01.$(exe) &
     inline04.$(exe) &
     intel01.$(exe) &
@@ -173,6 +180,9 @@ positive_tests = &
     opt42.$(exe) &
     opt43.$(exe) &
     opt44.$(exe) &
+    opt45.$(exe) &
+    opt46.$(exe) &
+    opt47.$(exe) &
     pack01.$(exe) &
     pack02.$(exe) &
     pack03.$(exe) &

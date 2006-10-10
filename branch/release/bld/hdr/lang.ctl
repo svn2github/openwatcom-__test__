@@ -16,7 +16,6 @@ cdsay .
     <CPCMD> <PROJDIR>/dos/*.h*           <RELROOT>/rel2/h/
     <CPCMD> <PROJDIR>/dos/*.cnv          <RELROOT>/rel2/h/
     <CPCMD> <PROJDIR>/dos/sys/*.h        <RELROOT>/rel2/h/sys/
-    <CPCMD> <PROJDIR>/dos/win/*.h        <RELROOT>/rel2/h/win/
     <CPCMD> <PROJDIR>/dos/algorith       <RELROOT>/rel2/h/
     <CPCMD> <PROJDIR>/dos/bitset         <RELROOT>/rel2/h/
     <CPCMD> <PROJDIR>/dos/cassert        <RELROOT>/rel2/h/
@@ -132,8 +131,9 @@ cdsay .
     <CPCMD> <PROJDIR>/linux/arch/mips/*.h       <RELROOT>/rel2/lh/arch/mips/
     <CPCMD> <PROJDIR>/linux/arch/mips/sys/*.h   <RELROOT>/rel2/lh/arch/mips/sys/
 
-#    <CPCMD> <PROJDIR>/qnx/*.h*           <RELROOT>/rel2/qh/
-#    <CPCMD> <PROJDIR>/qnx/sys/*.h        <RELROOT>/rel2/qh/sys/
+[ IFDEF (os_qnx) <2*> ]
+    <CPCMD> <PROJDIR>/qnx/*.h*           <RELROOT>/rel2/qh/
+    <CPCMD> <PROJDIR>/qnx/sys/*.h        <RELROOT>/rel2/qh/sys/
 
 [ BLOCK <1> clean ]
 #==================

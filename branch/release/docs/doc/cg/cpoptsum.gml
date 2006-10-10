@@ -288,7 +288,7 @@ set default calling convention to __fortran
 .*
 .note ecs
 :CMT. .ix 'options' 'ecs'
-set default calling convention to _Syscall
+set default calling convention to __syscall
 :optref refid='SWecs'.
 .*
 .note ecw
@@ -856,6 +856,11 @@ load DS register directly from DGROUP
 allow FS register to be used (default for all but flat memory model)
 or not be used (default for flat memory model)
 :optref refid='SWzffp'.
+.*
+.note zfw
+:CMT. .ix 'options' 'zfw'
+generate FWAIT instructions on 386 and later
+:optref refid='SWzfw'.
 .*
 .note zg
 :CMT. .ix 'options' 'zg'

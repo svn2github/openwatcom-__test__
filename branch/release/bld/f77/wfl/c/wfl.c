@@ -178,7 +178,7 @@ static  void    PrintMsg( uint msg, ... ) {
 }
 
 
-static  void    PrtBanner() {
+static  void    PrtBanner( void ) {
 //===========================
 
     puts( banner1w( _NAME_ "Compile and Link Utility", _WFL_VERSION_ ) );
@@ -842,7 +842,7 @@ void    TOut( char *msg ) {
 }
 
 
-#define opt( name, bit, flags, action, desc ) name, desc, flags
+#define opt( name, bit, flags, actionstr, actionneg, desc ) name, desc, flags
 
 #include "cpopt.h"
 #include "optinfo.h"

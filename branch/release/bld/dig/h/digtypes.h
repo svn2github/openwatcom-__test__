@@ -24,15 +24,15 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Debugger interface types.
 *
 ****************************************************************************/
 
 
 #ifndef DIGTYPES_H
-#include "digpck.h"
 #include <machtype.h>
+
+#include "digpck.h"
 
 typedef unsigned_8 search_result; enum {
                 SR_NONE,
@@ -391,7 +391,8 @@ enum ostypes {                  //NYI: redo these for PIL
         OS_NT,
         OS_AUTOCAD,
         OS_NEUTRINO,
-        OS_LINUX
+        OS_LINUX,
+        OS_FREEBSD
 };
 
 typedef struct {                //NYI: redo this for PIL

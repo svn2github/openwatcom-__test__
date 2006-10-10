@@ -232,23 +232,23 @@ local char ShiftResult[TYPE_LAST_ENTRY] = {
 /* matches enum DATA_TYPE in ctypes.h */
 local  const unsigned char  BinResult[TYPE_LAST_ENTRY][TYPE_LAST_ENTRY] = {
 /*  +       CHR,UCH,SHT,USH,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,LDB,FIM,DIM,LIM,BOL,PTR,ARR,STC,UNI,FNC,FLD,VOD,ENM,TDF,UFD,...,PCH,WCH,FCX,DCX,LCX, */
-/* CHR */ { CHR,UCH,INT,PUS,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* UCH */ { UCH,UCH,INT,PUS,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* SHT */ { INT,INT,INT,PUS,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* USH */ { PUS,PUS,PUS,PUS,PUS,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* INT */ { INT,INT,INT,PUS,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* UIN */ { UIN,UIN,UIN,UIN,UIN,UIN,PUI,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* LNG */ { LNG,LNG,LNG,LNG,LNG,PUI,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* ULN */ { ULN,ULN,ULN,ULN,ULN,ULN,ULN,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* LN8 */ { LN8,LN8,LN8,LN8,LN8,LN8,LN8,LN8,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* UL8 */ { UL8,UL8,UL8,UL8,UL8,UL8,UL8,UL8,UL8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* FLT */ { FLT,FLT,FLT,FLT,FLT,FLT,FLT,FLT,FLT,FLT,FLT,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* DBL */ { DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* CHR */ { CHR,UCH,INT,PUS,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,UCH,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* UCH */ { UCH,UCH,INT,PUS,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,UCH,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* SHT */ { INT,INT,INT,PUS,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,INT,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* USH */ { PUS,PUS,PUS,PUS,PUS,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,PUS,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* INT */ { INT,INT,INT,PUS,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,INT,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* UIN */ { UIN,UIN,UIN,UIN,UIN,UIN,PUI,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,UIN,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* LNG */ { LNG,LNG,LNG,LNG,LNG,PUI,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,LNG,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* ULN */ { ULN,ULN,ULN,ULN,ULN,ULN,ULN,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,ULN,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* LN8 */ { LN8,LN8,LN8,LN8,LN8,LN8,LN8,LN8,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,LN8,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* UL8 */ { UL8,UL8,UL8,UL8,UL8,UL8,UL8,UL8,UL8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,UL8,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* FLT */ { FLT,FLT,FLT,FLT,FLT,FLT,FLT,FLT,FLT,FLT,FLT,DBL,ERR,ERR,ERR,ERR,FLT,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* DBL */ { DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,DBL,ERR,ERR,ERR,ERR,DBL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
 /* LDB */ { ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
 /* FIM */ { ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
 /* DIM */ { ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
 /* LIM */ { ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
-/* BOL */ { ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
+/* BOL */ { UCH,UCH,INT,PUS,INT,UIN,LNG,ULN,LN8,UL8,FLT,DBL,ERR,ERR,ERR,ERR,BOL,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
 /* PTR */ { ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
 /* ARR */ { ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
 /* STC */ { ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR,ERR, },
@@ -439,9 +439,8 @@ DATA_TYPE DataTypeOf( TYPEPTR typ )
     case TYPE_ENUM:
         return( typ->object->decl_type );  /* true size of enum */
     case TYPE_FIELD:
-        return( TYPE_INT );
     case TYPE_UFIELD:
-        return( TYPE_UINT );
+        return( typ->u.f.field_type );     /* true bitfield type */
     default:
         break;
     }
@@ -566,10 +565,8 @@ static char NumSize( int op_type )
         break;
 #endif
     case TYPE_INT:
-    case TYPE_FIELD:
         size = 0x80;
     case TYPE_UINT:
-    case TYPE_UFIELD:
 #if TARGET_INT == 2
         size |= 16;
 #else
@@ -620,12 +617,12 @@ static cmp_result IsMeaninglessCompare( long val, int op1_type, int op2_type, in
     }
     if( NumSign( op1_size ) && NumSign( op1_size ) != NumSign( result_size ) ) {
         if( NumBits( op1_size ) < NumBits( result_size ) ) {
-         // signed promoted to bigger unsigned num gets signed extended
-        //  could have two ranges unsigned
+            // signed promoted to bigger unsigned num gets signed extended
+            // could have two ranges unsigned
             return( CMP_VOID ); //TODO: could check == & !=
         } else if( NumBits( op1_size) == NumBits( result_size ) ) {
-          // signed promoted to unsigned use unsigned range
-          op1_size &= 0x7f;
+            // signed promoted to unsigned use unsigned range
+            op1_size &= 0x7f;
         }
     }
     if( NumSign( result_size ) == 0 && NumBits( result_size ) == 16 ) {
@@ -1430,7 +1427,7 @@ TREEPTR AsgnOp( TREEPTR op1, TOKEN opr, TREEPTR op2 )
         op1_class = ExprTypeClass( typ );
         op2_class = ExprTypeClass( op2->expr_type );
         if( op1_class != op2_class ) {
-            if( op1_class == PTR_FAR16 || op2_class == PTR_FAR16 ) {  // if far16 pointer
+            if( FAR16_PTRCLASS( op1_class ) || FAR16_PTRCLASS( op2_class ) ) {  // if far16 pointer
                 op2 = ExprNode( NULL, OPR_CONVERT_PTR, op2 );
                 op2->op.oldptr_class = op2_class;
                 op2->op.newptr_class = op1_class;
@@ -1677,7 +1674,7 @@ convert:                                /* moved here 30-aug-89 */
                     new_class = ExprTypeClass( newtyp );
                     old_class = ExprTypeClass( typ );
                     if( new_class != old_class &&
-                    (new_class == PTR_FAR16  ||  old_class == PTR_FAR16) ) {    // foreign pointers
+                    (FAR16_PTRCLASS( new_class ) || FAR16_PTRCLASS( old_class )) ) { // foreign pointers
                         opnd = ExprNode( NULL, OPR_CONVERT_PTR, opnd );
                         opnd->op.oldptr_class = old_class;
                         opnd->op.newptr_class = new_class;
@@ -1710,8 +1707,10 @@ convert:                                /* moved here 30-aug-89 */
     return( opnd );
 }
 
-
-TREEPTR ParmAss( TREEPTR opnd, TYPEPTR newtyp )
+/* Fix up assignments - used for passing function arguments and also
+ * return values. Fixes up based pointers and other x86 weirdnesses.
+ */
+TREEPTR FixupAss( TREEPTR opnd, TYPEPTR newtyp )
 {
 //TODO check out base ptrs
     TYPEPTR             typ;

@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  3D dialogs setup.
 *
 ****************************************************************************/
 
@@ -50,7 +49,7 @@ BOOL Init32Ctl3d( void )
 {
     LPVOID      ptr;
 
-    dllCtl3d = LoadLibrary( "ctl3d.dll" );
+    dllCtl3d = LoadLibrary( "ctl3dv2.dll" );
     if( dllCtl3d < (HANDLE)32 ) {
         return( FALSE );
     }

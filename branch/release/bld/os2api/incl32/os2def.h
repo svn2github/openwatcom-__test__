@@ -3,8 +3,9 @@
 */
 
 
-#ifndef __OS2DEF_H__
-#define __OS2DEF_H__
+#ifndef __OS2DEF__
+#define __OS2DEF__
+#define OS2DEF_INCLUDED
 
 #ifndef NULL
 #define NULL  0

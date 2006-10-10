@@ -1225,7 +1225,7 @@ APIRET APIENTRY DosUnwindException(PEXCEPTIONREGISTRATIONRECORD,PVOID,PEXCEPTION
 
 #endif
 
-#ifdef INCL_DOSRESOURCES
+#if defined(INCL_DOSRESOURCES) || !defined(INCL_NOCOMMON)
 
 #define RT_POINTER      1
 #define RT_BITMAP       2
@@ -1252,6 +1252,12 @@ APIRET APIENTRY DosUnwindException(PEXCEPTIONREGISTRATIONRECORD,PVOID,PEXCEPTION
 #define RT_RESNAMES     255
 
 #define RF_ORDINALID 0x80000000
+
+#endif
+
+#ifdef INCL_DOSRESOURCES
+
+#define DosGetResource2 DosGetResource
 
 APIRET APIENTRY DosFreeResource(PVOID);
 APIRET APIENTRY DosGetResource(HMODULE,ULONG,ULONG,PPVOID);
@@ -1685,7 +1691,7 @@ typedef struct _QSLREC {
     UCHAR     FAR *pName;
 } QSLREC;
 
-typedef struct _QSEXLREC {
+typedef _Packed struct _QSEXLREC {
     struct    _QSEXLREC *next;
     USHORT    hndmod;
     USHORT    pid;
@@ -1700,15 +1706,15 @@ typedef struct _QSEXLREC {
 } QSEXLREC;
 
 typedef struct _QSSFT {
-    USHORT    sfn;
-    USHORT    refcnt;
-    USHORT    flags;
-    USHORT    flags2;
-    USHORT    mode;
-    USHORT    mode2;
-    ULONG     size;
-    USHORT    hVPB;
-    USHORT    attr;
+    USHORT sfn;
+    USHORT refcnt;
+    USHORT flags;
+    USHORT flags2;
+    USHORT mode;
+    USHORT mode2;
+    ULONG  size;
+    USHORT hVPB;
+    USHORT attr;
     PADSHORT;
 } QSSFT;
 

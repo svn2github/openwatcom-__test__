@@ -31,6 +31,15 @@
 
 #include "wlib.h"
 #include "idedll.h"
+#ifdef __WATCOMC__
+    #include <malloc.h> // for _heapshrink()
+#endif
+#include <banner.h>
+
+#if defined(__DEBUG__) && defined(_BANEXTRA)
+#undef  _BANEXTRA
+#define _BANEXTRA _BANEXSHORT
+#endif
 
 static IDECBHdl   ideHdl;
 static IDECallBacks  *ideCb;
@@ -116,7 +125,7 @@ void FatalResError()
         msg_info.severity = IDEMSGSEV_ERROR;
         msg_info.flags = 0;
         msg_info.helpfile = NULL;
-        msg_info.helpid = NULL;
+        msg_info.helpid = 0;
         msg_info.msg = NO_RES_MESSAGE;
         ideCb->PrintWithInfo( ideHdl, &msg_info );
     }
@@ -188,7 +197,7 @@ void Usage( void )
         count=3;
         msg_info.flags = 0;
         msg_info.helpfile = NULL;
-        msg_info.helpid = NULL;
+        msg_info.helpid = 0;
         msg_info.msg = buff;
         if( Options.ar ) {
             str_first = USAGE_AR_FIRST;
@@ -241,7 +250,7 @@ banner3a,
         msg_info.severity = IDEMSGSEV_BANNER;
         msg_info.flags = 0;
         msg_info.helpfile = NULL;
-        msg_info.helpid = NULL;
+        msg_info.helpid = 0;
         text = bannerText;
         while( *text ) {
             msg_info.msg = *text++;

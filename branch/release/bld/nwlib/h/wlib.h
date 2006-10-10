@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Master include for librarian.
 *
 ****************************************************************************/
 
@@ -41,7 +40,7 @@
 #include <time.h>
 #include <limits.h>
 #include <errno.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #ifdef __WATCOMC__
 #include <process.h>
@@ -84,7 +83,6 @@
 #include "coff.h"
 #include "coffwrt.h"
 #include "pcobj.h"
-#include "banner.h"
 #include "omfutil.h"
 #include "exedos.h"
 #include "exeos2.h"

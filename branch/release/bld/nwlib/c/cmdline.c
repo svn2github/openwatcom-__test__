@@ -31,6 +31,8 @@
 
 #include <wlib.h>
 
+#define AR_MODE_ENV "WLIB$AR"
+
 #define eatwhite( c ) while( *(c) && isspace( *(c) ) ) ++(c);
 #define notwhite( c ) ( (c) != '\0' && !isspace( c ) )
 
@@ -93,7 +95,7 @@ char *GetEqual( char **pc, char *buff, char *ext )
     return( ret );
 }
 
-static void SetPageSize(unsigned short new_size)
+static void SetPageSize( unsigned short new_size )
 {
     unsigned int i;
     Options.page_size = MIN_PAGE_SIZE;
@@ -348,7 +350,7 @@ void AddCommand( operation ops, char *name )
     CmdList = new;
 }
 
-static void FreeCommands()
+static void FreeCommands( void )
 {
     lib_cmd     *cmd, *next;
 
@@ -623,7 +625,7 @@ void ProcessCmdLine( char *argv[] )
     char        *env;
     lib_cmd     *cmd;
 
-    if( FNCMP( MakeFName( ImageName ), "ar" ) == 0 ) {
+    if( FNCMP( MakeFName( ImageName ), "ar" ) == 0 || WlibGetEnv( AR_MODE_ENV ) != NULL ) {
         Options.ar = TRUE;
     }
     if( Options.ar ) {
@@ -668,7 +670,9 @@ void ProcessCmdLine( char *argv[] )
         }
     }
 
-    Banner();
+    if( !Options.ar ) {
+        Banner();
+    }
     if( Options.input_name == NULL ) {
         FatalError( ERR_NO_LIBNAME );
     }
@@ -687,13 +691,13 @@ void ProcessCmdLine( char *argv[] )
     }
 }
 
-void InitCmdLine()
+void InitCmdLine( void )
 {
     CmdList = NULL;
     memset( &Options, 0, sizeof( Options ) );
 }
 
-void ResetCmdLine()
+void ResetCmdLine( void )
 {
     MemFree( Options.output_directory );
     MemFree( Options.list_file );

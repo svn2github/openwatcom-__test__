@@ -52,10 +52,10 @@
     #define __SEH__
 #endif
 
-typedef char    *MACADDR_T;     /* contains actual pointer to block of memory */
-typedef char    *SEGADDR_T;     /* contains actual pointer to block of memory */
-typedef char    *MPTR_T;        /* first parm to MacroCopy */
-typedef void    *VOIDPTR;
+typedef char        *MACADDR_T; /* contains actual pointer to block of memory */
+typedef char        *SEGADDR_T; /* contains actual pointer to block of memory */
+typedef const char  *MPTR_T;    /* first parm to MacroCopy */
+typedef void        *VOIDPTR;
 
 #include "macro.h"
 #include "dw.h"
@@ -229,7 +229,7 @@ global  struct  global_comp_flags      GlobalCompFlags;
 global  int     SegmentNum;     /* next PRIVATE segment number to use */
 global  int     FarStringSegment;
 
-global  void    *Environment;   /* var for Suicide() */
+global  jmp_buf *Environment;   /* var for Suicide() */
 
 #define MAX_LEVEL       1024
 
@@ -514,6 +514,7 @@ extern  void    CErr2(int,int);
 extern  void    CErr2p(int,char *);
 extern  void    CErr(int,...);
 extern  void    SetErrLoc(char *,unsigned);
+extern  void    SetErrLocFno( unsigned findex, unsigned line_num );
 extern  void    SetSymLoc(SYMPTR);
 extern  void    CWarn1(int,int);
 extern  void    CWarn2(int,int,int);
@@ -524,6 +525,7 @@ extern  void    CSuicide(void);
 extern  void    OpenErrFile(void);
 extern  void    FmtCMsg( char *buff, cmsg_info *info );
 extern  void    SetDiagSymbol(SYMPTR sym, SYM_HANDLE handle);
+extern  void    SetDiagType1(TYPEPTR typ_source);
 extern  void    SetDiagType2(TYPEPTR typ_source, TYPEPTR typ_target);
 extern  void    SetDiagPop(void);
 
@@ -658,7 +660,7 @@ extern  TREEPTR UComplement(TREEPTR);
 extern  TREEPTR UMinus(TREEPTR);
 extern  DATA_TYPE DataTypeOf(TYPEPTR);
 extern  int     FuncPtr(TYPEPTR);
-extern  TREEPTR ParmAss( TREEPTR opnd, TYPEPTR newtyp );
+extern  TREEPTR FixupAss( TREEPTR opnd, TYPEPTR newtyp );
 extern  pointer_class   ExprTypeClass( TYPEPTR typ );
 extern  TREEPTR LCastAdj(  TREEPTR tree );
 
@@ -827,7 +829,6 @@ extern  void    InitBuildPreCompiledHeader( void );
 extern  void    BuildPreCompiledHeader( char * );
 extern  void    FreePreCompiledHeader( void );
 
-extern  unsigned char     _dos_switch_char( void );     /* swchar */
 extern  void    CBanner( void );                        /* watcom */
 extern  void    MyExit( int ret );                      /* cintmain */
 

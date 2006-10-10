@@ -122,7 +122,7 @@ static int     Parse( char *Cmd );
 #elif defined( __OS2__ ) || defined( __NT__ )
     #define _dos_switch_char() '/'
 #else
-    extern  int     _dos_switch_char();
+    extern  int     _dos_switch_char( void );
 #endif
 
 
@@ -813,9 +813,6 @@ static  int  CompLink( void )
     }
 
     fputs( DebugOptions[ DebugFlag ], Fp );
-#if defined( WCL386 ) || defined( WCLI86 )
-    Fputnl( "option dosseg", Fp );
-#endif
     if( StackSize != NULL ) {
         fputs( "option stack=", Fp );
         Fputnl( StackSize, Fp );

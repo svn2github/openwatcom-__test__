@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Toolbar window class for Windows and OS/2.
 *
 ****************************************************************************/
 
@@ -123,6 +122,10 @@ static BOOL     round_corners = FALSE;    // Platform has rounded buttons?
 #endif
 
 MRESULT CALLBACK ToolBarWndProc( HWND, WPI_MSG, WPI_PARAM1, WPI_PARAM2 );
+#if defined(__NT__) || defined(__WINDOWS__)
+void WPTB_TransparentBlt (HDC hDC,   UINT x, UINT y, UINT width, UINT height,
+                          HDC hDCIn, COLORREF cr);
+#endif
 
 static void toolbardestroywindow( HWND hwnd )
 {
@@ -287,7 +290,7 @@ toolbar *ToolBarInit( HWND parent )
         wc.hInstance = instance;
         wc.hIcon = HNULL;
         wc.hCursor = LoadCursor( (HANDLE) HNULL, IDC_ARROW );
-        wc.hbrBackground = (HBRUSH) 0; // (COLOR_BTNFACE + 1); 
+        wc.hbrBackground = (HBRUSH) 0; // (COLOR_BTNFACE + 1);
         wc.lpszMenuName = NULL;
         wc.lpszClassName = className;
         RegisterClass( &wc );
@@ -297,17 +300,19 @@ toolbar *ToolBarInit( HWND parent )
     clr_btnhighlight = GetSysColor( COLOR_BTNHIGHLIGHT );
     btnColour = GetSysColor( COLOR_BTNFACE );
     clr_btnface = btnColour;
-#if defined (__NT__)
+#if defined(__NT__) || defined(__WINDOWS__)
     clr_black = GetSysColor(COLOR_BTNTEXT);
+#endif
+#if defined(__NT__)
     {
         OSVERSIONINFO os;
-        
+
         GetVersionEx(&os);
         if ( os.dwMajorVersion == 4 || (os.dwMajorVersion == 5 && os.dwMinorVersion == 0)) {
             // round_corners = FALSE;
             // Later, when drawing code is adapted
         }
-    }    
+    }
 #else
     clr_black = RGB(0, 0, 0);
 #endif
@@ -544,7 +549,7 @@ void ToolBarDisplay( toolbar *bar, TOOLDISPLAYINFO *disp )
     height = _wpi_getheightrect( (disp->area) );
 
 #ifndef __OS2_PM__
-#if defined (__NT__)
+#if defined(__NT__)
     if ( LOBYTE(LOWORD(GetVersion())) >= 4 && (bar->is_fixed) ) {
         CreateWindow( className, NULL, WS_CHILD, //( disp->style ),
             disp->area.left, disp->area.top, width, height,
@@ -573,7 +578,7 @@ void ToolBarDisplay( toolbar *bar, TOOLDISPLAYINFO *disp )
      */
     MoveWindow( bar->hwnd, disp->area.left, disp->area.top,
                 width, height, TRUE );
-                
+
 #else  // It is __OS2_PM__
     {
         HWND    frame;
@@ -823,7 +828,7 @@ static void toolBarDrawBitmap( WPI_PRES pres, WPI_POINT dst_size,
     src_org.y = 0;
     DPtoLP( pres, &src_org, 1 );
 
-    #ifdef __NT__
+    #if defined(__NT__) || defined(__WINDOWS__)
         SetStretchBltMode( pres, COLORONCOLOR );
     #else
         SetStretchBltMode( pres, STRETCH_DELETESCANS );
@@ -871,7 +876,7 @@ static void drawButton( HWND hwnd, tool *tool, BOOL down,
     TOOLBR_DIM  bottom;
     BOOL        delete_pres;
     BOOL        delete_mempres;
-#if defined (__NT__)
+#if defined(__NT__) || defined(__WINDOWS__)
     HBITMAP     bitmap2, oldbmp2 , bmptmp;
     HDC         mem2;
     COLORREF    cr;
@@ -908,7 +913,7 @@ static void drawButton( HWND hwnd, tool *tool, BOOL down,
     bitmap = _wpi_createcompatiblebitmap( pres, bar->button_size.x,
                                             bar->button_size.y );
     oldbmp = _wpi_selectbitmap( mempres, bitmap );
-#if defined (__NT__)
+#if defined(__NT__) || defined(__WINDOWS__)
     mem2 = CreateCompatibleDC( pres );
     bitmap2 = CreateCompatibleBitmap( pres,
                 bar->button_size.x, bar->button_size.y );
@@ -941,7 +946,7 @@ static void drawButton( HWND hwnd, tool *tool, BOOL down,
     }
     toolBarDrawBitmap( mempres, dst_size, dst_org, used_bmp );
 
-#if defined (__NT__)
+#if defined(__NT__) || defined(__WINDOWS__)
     /* New, on WIN32 platforms, use WPTB_TransparentBlt() */
     /* Get background color of button bitmap */
     bmptmp = SelectObject(mem2, used_bmp);
@@ -1184,13 +1189,13 @@ MRESULT CALLBACK ToolBarWndProc( HWND hwnd, WPI_MSG msg, WPI_PARAM1 wparam,
             }
         }
         break;
-#if defined (__NT__)
+#if defined(__NT__) || defined(__WINDOWS__)
     case WM_SYSCOLORCHANGE: {
         COLORREF    clr_btnface;
         COLORREF    clr_btnshadow;
         COLORREF    clr_btnhighlight;
         COLORREF    clr_black;
-        
+
         if( gdiObjectsCreated ) {
             _wpi_deleteobject( blackPen );
             _wpi_deleteobject( btnShadowPen );
@@ -1272,38 +1277,38 @@ void ChangeToolButtonBitmap( toolbar *bar, WORD id, HBITMAP newbmp )
 
 /********** Below - new inserted 2003.10.31 ********************/
 
-#if defined (__NT__)
+#if defined(__NT__) || defined(__WINDOWS__)
 
 /*
  * WPTB_TransparentBlt
- * 
+ *
  * Purpose: Given two DC's and a color to assume as transparent in
  * the source, BitBlts the bitmap to the dest DC letting the existing
  * background show in place of the transparent color.
  * Adapted from an old MS SDK sample.
  *
  * NOTE: make sure BkColor is set in dest hDC.
- * 
- * Parameters: hDC      HDC      destination, on which to draw. 
- *             x, y     UINT     location at which to draw the bitmap 
+ *
+ * Parameters: hDC      HDC      destination, on which to draw.
+ *             x, y     UINT     location at which to draw the bitmap
  *             width    UINT     width to draw
  *             height   UINT     height to draw
  *             hDCIn    HDC      source, to copy from
  *             cr       COLORREF to consider as transparent in source.
- * 
+ *
  * Return Value: None
  */
 
 #define ROP_DSPDxax  0x00E20746
 
-void WPTB_TransparentBlt (HDC hDC, UINT x, UINT y, UINT width, UINT height,
-                     HDC hDCIn, COLORREF cr)
+void WPTB_TransparentBlt (HDC hDC,   UINT x, UINT y, UINT width, UINT height,
+                          HDC hDCIn, COLORREF cr)
 {
    HDC hDCMid, hMemDC;
    HBITMAP hBmpMono, hBmpT;
    HBRUSH hBr, hBrT;
    COLORREF crBack, crText;
-   
+
    if (NULL == hDCIn)
       return;
 
@@ -1359,4 +1364,3 @@ void WPTB_TransparentBlt (HDC hDC, UINT x, UINT y, UINT width, UINT height,
 }  /* TansparentBlt () */
 
 #endif
-

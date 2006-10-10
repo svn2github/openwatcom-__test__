@@ -28,7 +28,6 @@
 *
 ****************************************************************************/
 
-
 #include <string.h>
 #include "linkstd.h"
 #include "reloc.h"
@@ -343,7 +342,6 @@ static void BuildReloc( save_fixup *save, frame_spec *targ, frame_spec *frame )
     fix.type = save->flags;
     fix.loc_addr = CurrRec.addr;
     fix.loc_addr.off += save->off;
-    fix.ffix = GET_FFIX_VALUE( targ->u.sym );
 
     if( targ->type == FIX_FRAME_EXT ) {
         if( targ->u.sym->info & SYM_TRACE ) {
@@ -353,6 +351,7 @@ static void BuildReloc( save_fixup *save, frame_spec *targ, frame_spec *frame )
             ProcUndefined( targ->u.sym );
             return;
         }
+        fix.ffix = GET_FFIX_VALUE( targ->u.sym );
         if( IS_SYM_IMPORTED( targ->u.sym ) ) {
             if( ( frame->type < FIX_FRAME_LOC )
                 && ( targ->u.sym != frame->u.sym ) ) {
@@ -384,7 +383,17 @@ static void BuildReloc( save_fixup *save, frame_spec *targ, frame_spec *frame )
     if( !fix.imported ) {
         if( ( (save->flags & FIX_OFFSET_MASK) > FIX_OFFSET_16 )
             || ( fix.ffix != FFIX_NOT_A_FLOAT ) ) {
+
+            /***************************************************************/
+            /*  fix bug #630 fixup is applied to non first segment of grp  */
+            /*  recalculate offset from start of group                     */
+            /***************************************************************/
+
+            if( faddr.seg < fix.tgt_addr.seg ) {
+                ConvertToFrame( &fix.tgt_addr, faddr.seg );
+            }
             fix.tgt_addr.seg = faddr.seg;
+
         } else {
             ConvertToFrame( &fix.tgt_addr, faddr.seg );
         }

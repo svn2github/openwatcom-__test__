@@ -33,7 +33,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #ifndef __WATCOMC__
-#include <alloca.h>
+#include "walloca.h"
 #endif
 #include <sys/types.h>
 #include <unistd.h>
@@ -228,7 +228,7 @@ static int child_comp( const int *pkey, const eNode *pbase )
     #define __alloca( x ) alloca( (x) )
 #endif
 
-EVENT TrieRead()
+EVENT TrieRead( void )
 {
     eTrie       *trie;
     char        *buf;

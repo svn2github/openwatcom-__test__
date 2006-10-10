@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Paint debugger windows.
 *
 ****************************************************************************/
 
@@ -39,17 +38,17 @@
 
 
 
-extern void             ReqEOC(void);
-extern wnd_class        ReqWndName();
-extern void             Scan(void);
-extern unsigned int     ScanCmd(char *);
-extern void             ConfigLine(char *);
-extern char             *GetCmdEntry(char *,int ,char *);
-extern char             *Format(char *,char *,... );
+extern void             ReqEOC( void );
+extern wnd_class        ReqWndName( void );
+extern void             Scan( void );
+extern unsigned int     ScanCmd( char * );
+extern void             ConfigLine( char * );
+extern char             *GetCmdEntry( char *, int, char * );
+extern char             *Format( char *, char *, ... );
 extern bool             WndDlgTxt( char *buff );
-extern char             *StrCopy(char*,char*);
-extern char             *GetWndFont(a_window*);
-extern bool             ScanStatus();
+extern char             *StrCopy( char *, char * );
+extern char             *GetWndFont( a_window * );
+extern bool             ScanStatus( void );
 extern char             *GetCmdName( int );
 
 
@@ -280,7 +279,7 @@ static wnd_attr ScanAttr( attr_map *map, int size )
     return( 0 );
 }
 
-static gui_colour ScanColour()
+static gui_colour ScanColour( void )
 {
     colour_bits bits;
     int         i;
@@ -301,7 +300,7 @@ static gui_colour ScanColour()
     return( 0 );
 }
 
-void ProcPaint()
+void ProcPaint( void )
 {
     wnd_class           class;
     wnd_attr            attr;
@@ -327,7 +326,7 @@ void ProcPaint()
     ReqEOC();
     if( class == WND_NO_CLASS ) {
         if( dialog ) {
-            GUIGetDialogColours( &WndDlgColours );
+            GUIGetDialogColours( WndDlgColours );
             WndDlgColours[ dlg_attr ].fore = fore;
             WndDlgColours[ dlg_attr ].back = back;
             if( dlg_attr == GUI_DLG_NORMAL ) {
@@ -336,7 +335,7 @@ void ProcPaint()
                 WndDlgColours[ GUI_DLG_SCROLL_BAR ].fore = fore;
                 WndDlgColours[ GUI_DLG_SCROLL_BAR ].back = back;
             }
-            GUISetDialogColours( &WndDlgColours );
+            GUISetDialogColours( WndDlgColours );
         } else {
             WndStatusColour.fore = fore;
             WndStatusColour.back = back;
@@ -372,7 +371,7 @@ void ProcPaint()
 }
 
 
-void ProcPendingPaint()
+void ProcPendingPaint( void )
 {
     gui_colour_set      *set;
     a_window            *wnd;
@@ -397,7 +396,7 @@ void ProcPendingPaint()
 }
 
 
-void FiniPaint()
+void FiniPaint( void )
 {
     int         i;
 
@@ -411,7 +410,7 @@ void FiniPaint()
 
 extern gui_colour_set *GetWndColours( wnd_class class )
 {
-    if( class == WND_NO_CLASS ) return( &WndColours );
+    if( class == WND_NO_CLASS ) return( WndColours );
     if( WndClassColour[ class ] != NULL ) return( WndClassColour[ class ] );
     if( WndClassColour[ WND_ALL ] != NULL ) return( WndClassColour[ WND_ALL ] );
     return( WndColours );
@@ -471,7 +470,7 @@ static void GetColourName( gui_colour colour, char *buff )
 }
 
 
-static void PrintStatusColour()
+static void PrintStatusColour( void )
 {
     char        fore[20];
     char        back[20];
@@ -483,14 +482,14 @@ static void PrintStatusColour()
 }
 
 
-static void PrintDialogColours()
+static void PrintDialogColours( void )
 {
     int         i;
     char        fore[20];
     char        back[20];
     char        attr[30];
 
-    GUIGetDialogColours( &WndDlgColours );
+    GUIGetDialogColours( WndDlgColours );
     for( i = 0; i < ArraySize( DlgAttrMap ); ++i ) {
         if( i == GUI_DLG_SCROLL_ICON ) continue;
         if( i == GUI_DLG_SCROLL_BAR ) continue;
@@ -526,7 +525,7 @@ static void PrintColours( wnd_class class,
     }
 }
 
-void ConfigPaint()
+void ConfigPaint( void )
 {
     gui_colour_set *def;
     int                 i;
@@ -546,6 +545,6 @@ void ConfigPaint()
     PrintDialogColours();
 }
 
-void InitPaint()
+void InitPaint( void )
 {
 }

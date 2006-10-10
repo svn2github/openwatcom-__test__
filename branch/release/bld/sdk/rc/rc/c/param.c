@@ -43,6 +43,7 @@
  #include "ostype.h"
 #endif
 #include "leadbyte.h"
+#include "swchar.h"
 
 #if defined(__UNIX__)
 # define PATH_SPLIT_S       ":"     /* path seperator in string form        */
@@ -293,7 +294,7 @@ static bool ScanOptionsArg( const char * arg )
         if( tolower( *arg ) == 't' ) {
             arg++;
             if( *arg == '=' ) arg++;
-            if( stricmp( arg, "windows" ) == 0 ) {
+            if( stricmp( arg, "windows" ) == 0 || stricmp( arg, "win" ) == 0 ) {
                 CmdLineParms.TargetOS = RC_TARGET_OS_WIN16;
             } else if( stricmp( arg, "nt" ) == 0 ) {
                 CmdLineParms.TargetOS = RC_TARGET_OS_WIN32;

@@ -57,7 +57,6 @@ static  opcode_entry    Add1[] = {
 
 {_Bin(   ANY,  C,    ANY,  NONE ), NVI(V_OP2ZERO),   R_MAKEMOVE, RG_BYTE,FU_NO},
 {_Bin(   ANY,  C,    ANY,  NONE ), NVI(V_OP2NEG),    R_MAKESUB,  RG_BYTE,FU_NO},
-{_Bin(   R,    C,    R,    EQ_R1 ),NVI(V_OP2TWO_SIZE),R_DOUBLEHALF,RG_BYTE,FU_NO},
 {_Bin(   R,    U,    R,    NONE ), V_CONSTTEMP,    R_TEMP2CONST, RG_BYTE,FU_NO},
 
 /* instructions that we can generate*/
@@ -173,7 +172,6 @@ static  opcode_entry    Sub1[] = {
 
 {_Bin(   C,    ANY,  ANY,  NONE ), NVI(V_OP1ZERO),  R_MAKENEG,   RG_BYTE,FU_NO},
 {_Bin(   ANY,  C,    ANY,  NONE ), NVI(V_OP2ZERO),  R_MAKEMOVE,  RG_BYTE,FU_NO},
-{_Bin(   R,    C,    R,    EQ_R1 ),NVI(V_OP2TWO_SIZE),R_DOUBLEHALF,RG_BYTE,FU_NO},
 {_Bin(   ANY,  C,    ANY,  NONE ), NVI(V_OP2NEG),   R_MAKEADD,   RG_BYTE,FU_NO},
 {_Bin(   R,    U,    R,    NONE ), V_CONSTTEMP,    R_TEMP2CONST, RG_BYTE,FU_NO},
 
@@ -729,8 +727,8 @@ static  opcode_entry    TestOrCmp1[] = {
 {_Bin(   C,    C,    ANY,  EQ_R1 ),V_NO,      R_MOVOP1TEMP, RG_DOUBLE,FU_NO},
 {_Side(  R,    U ),      V_CONSTTEMP,    R_TEMP2CONST,   RG_BYTE,FU_NO},
 {_Side(  U,    R ),      V_CONSTTEMP,    R_TEMP2CONST,   RG_BYTE,FU_NO},
-{_Side(  ANY,  C ),      V_CMPTRUE,      R_CMPTRUE,      RG_,FU_NO},
-{_Side(  ANY,  C ),      V_CMPFALSE,     R_CMPFALSE,     RG_,FU_NO},
+{_Side(  ANY,  ANY ),    NVI(V_CMPTRUE), R_CMPTRUE,      RG_,FU_NO},
+{_Side(  ANY,  ANY ),    NVI(V_CMPFALSE),R_CMPFALSE,     RG_,FU_NO},
 
 /* instructions we can generate*/
 
@@ -809,11 +807,11 @@ static  opcode_entry    Cmp2[] = {
 /*       op1   op2       verify          gen             reg fu*/
 {_Side(  R,    U ),      V_CONSTTEMP,    R_TEMP2CONST,   RG_WORD,FU_NO},
 {_Side(  U,    R ),      V_CONSTTEMP,    R_TEMP2CONST,   RG_WORD,FU_NO},
+{_Side(  ANY,  ANY ),    NVI(V_CMPTRUE), R_CMPTRUE,      RG_,FU_NO},
+{_Side(  ANY,  ANY ),    NVI(V_CMPFALSE),R_CMPFALSE,     RG_,FU_NO},
 
 /* instructions we can generate*/
 
-{_Side(  ANY,  C ),      V_CMPTRUE,      R_CMPTRUE,      RG_,FU_NO},
-{_Side(  ANY,  C ),      V_CMPFALSE,     R_CMPFALSE,     RG_,FU_NO},
 {_SidCC( R,    C ),      V_OP2ZERO,      G_TEST,         RG_WORD,FU_ALU1},
 {_SidCC( R,    R ),      V_NO,           G_RR2,          RG_WORD,FU_ALU1},
 {_SidCC( R,    M ),      V_NO,           G_RM2,          RG_WORD,FU_ALU1},
@@ -839,8 +837,10 @@ static  opcode_entry    Cmp4[] = {
 /************************/
 /*       op1   op2       verify          gen             reg fu*/
 
-{_Side(  ANY,  C ),      V_CMPTRUE,      R_CMPTRUE,      RG_,FU_NO},
-{_Side(  ANY,  C ),      V_CMPFALSE,     R_CMPFALSE,     RG_,FU_NO},
+// 2006-06-01 RomanT: It's not effective. Compare is DoNothing()'ed and
+//                    operands are stuck unsplit, poisoning all analysis.
+// {_Side(  ANY,  C ),      V_CMPTRUE,      R_CMPTRUE,      RG_,FU_NO},
+// {_Side(  ANY,  C ),      V_CMPFALSE,     R_CMPFALSE,     RG_,FU_NO},
 {_Side(  ANY,  C   ),    V_U_TEST,       R_U_TEST,       RG_DOUBLE,FU_NO},
 {_Side(  C,    R|M|U ),  V_NO,           R_SWAPCMP,      RG_DOUBLE,FU_NO},
 {_Side(  ANY,  ANY ),    V_NO,           R_SPLITCMP,     RG_DOUBLE,FU_NO},
@@ -904,7 +904,6 @@ static  opcode_entry    Move1[] = {
 {_Un(    ANY,  ANY,  NONE ),     V_NO,           G_UNKNOWN,      RG_BYTE_NEED,FU_NO},
 };
 
-
 static  opcode_entry    Move2CC[] = {
 /***************************/
 /*       op    res   eq          verify          gen             reg fu*/
@@ -915,9 +914,9 @@ static  opcode_entry    Move2CC[] = {
 
 /* fall through into move2 table*/
 
-};
+/**** NB. Move2 points here ****/
+/* opcode_entry    Move2[]; */
 
-opcode_entry    Move2[] = {
 /*************************/
 /*       op    res   eq          verify          gen             reg fu*/
 
@@ -952,6 +951,8 @@ opcode_entry    Move2[] = {
 {_Un(    ANY,  ANY,  NONE ),     V_NO,           G_UNKNOWN,      RG_ANYWORD_NEED,FU_NO},
 };
 
+/* Point at where Move2 used to start */
+opcode_entry   *Move2 = &Move2CC[1];
 
 opcode_entry    Move4[] = {
 /*************************/

@@ -1205,9 +1205,12 @@ void StaticInit( SYMPTR sym, SYM_HANDLE sym_handle )
         } else if( typ->decl_type == TYPE_STRUCT ) {
             FIELDPTR    field;
 
-            last_array = NULL;
             /* Remember outermost structure type */
-            if( struct_typ == NULL )  struct_typ = typ;
+            if( struct_typ == NULL ) {
+                /* last_array cannot to be outside this struct! */
+                last_array = NULL;
+                struct_typ = typ;
+            }
             /* Determine the type of the last field in the struct */
             field = typ->u.tag->u.field_list;
             if( field == NULL )  break;                     /* 10-sep-92 */

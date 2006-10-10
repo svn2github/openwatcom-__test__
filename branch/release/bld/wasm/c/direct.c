@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  most of directive routines
+* Description:  Processing of assembly directives.
 *
 ****************************************************************************/
 
@@ -42,6 +42,8 @@
 #include "asmfixup.h"
 #include "mangle.h"
 #include "asmlabel.h"
+#include "asminput.h"
+#include "asmeval.h"
 
 #include "myassert.h"
 
@@ -112,10 +114,6 @@ static typeinfo TypeInfo[] = {
 #define LOCAL_STRING            " [bp- "
 #define LOCAL_STRING_32         " [ebp- "
 
-extern char             *ScanLine( char * );
-extern int              InputQueueFile( char * );
-extern void             InputQueueLine( char * );
-
 static char             *Check4Mangler( int *i );
 static int              token_cmp( char **token, int start, int end );
 static void             ModelAssumeInit( void );
@@ -124,11 +122,8 @@ extern  char            write_to_file;  // write if there is no error
 extern  uint_32         BufSize;
 extern  int_8           DefineProc;     // TRUE if the definition of procedure
                                         // has not ended
-extern char             *CurrString;    // Current Input Line
 extern char             EndDirectiveFound;
 extern struct asm_sym   *SegOverride;
-extern void             PushLineQueue( void );
-extern void             PopLineQueue( void );
 
 seg_list                *CurrSeg;       // points to stack of opened segments
 uint                    LnamesIdx;      // Number of LNAMES definition
@@ -472,7 +467,7 @@ static void dir_init( dir_node *dir, int tab )
 
     sym = &dir->sym;
 
-    dir->line = LineNumber;
+    dir->line_num = LineNumber;
     dir->next = dir->prev = NULL;
 
     switch( tab ) {
@@ -526,8 +521,7 @@ static void dir_init( dir_node *dir, int tab )
         dir->e.macroinfo = AsmAlloc( sizeof( macro_info ) );
         dir->e.macroinfo->parmlist = NULL;
         dir->e.macroinfo->data = NULL;
-        dir->e.macroinfo->filename = NULL;
-        dir->e.macroinfo->start_line = LineNumber;
+        dir->e.macroinfo->srcfile = NULL;
         break;
     case TAB_CLASS_LNAME:
     case TAB_LNAME:
@@ -605,8 +599,8 @@ void dir_change( dir_node *dir, int tab )
     dir_init( dir, tab );
 }
 
-dir_node *dir_insert( char *name, int tab )
-/*****************************************/
+dir_node *dir_insert( const char *name, int tab )
+/***********************************************/
 /* Insert a node into the table specified by tab */
 {
     dir_node            *new;
@@ -763,9 +757,6 @@ void FreeInfo( dir_node *dir )
                         break;
                     datacurr = datanext;
                 }
-            }
-            if( dir->e.macroinfo->filename != NULL ) {
-                AsmFree( dir->e.macroinfo->filename );
             }
             AsmFree( dir->e.macroinfo );
         }
@@ -1519,7 +1510,7 @@ int SegDef( int i )
     switch( AsmBuffer[i+1]->value ) {
     case T_SEGMENT:
         seg = ObjNewRec( CMD_SEGDEF );
-        
+
         /* Check to see if the segment is already defined */
         sym = AsmGetSymbol( name );
         if( sym != NULL ) {
@@ -1549,7 +1540,7 @@ int SegDef( int i )
             defined = FALSE;
             ignore = FALSE;
         }
-        
+
         /* Setting up default values */
         if( !defined ) {
             seg->d.segdef.align = ALIGN_PARA;
@@ -1575,20 +1566,20 @@ int SegDef( int i )
         dirnode->e.seginfo->ignore = FALSE; // always false unless set explicitly
         seg->d.segdef.access_valid = FALSE;
         seg->d.segdef.seg_length = 0;
-        
+
         if( lastseg.stack_size > 0 ) {
             seg->d.segdef.seg_length = lastseg.stack_size;
             lastseg.stack_size = 0;
         }
-        
+
         i+=2; /* go past segment name and "SEGMENT " */
-        
+
         for( ; i < Token_Count; i ++ ) {
             if( AsmBuffer[i]->token == T_STRING ) {
 
                 /* the class name - the only token which is of type STRING */
                 token = AsmBuffer[i]->string_ptr;
-                
+
                 classidx = FindLnameIdx( token );
                 if( classidx == LNAME_NULL ) {
                     classidx = InsertClassLname( token );
@@ -1599,20 +1590,20 @@ int SegDef( int i )
                 seg->d.segdef.class_name_idx = classidx;
                 continue;
             }
-            
+
             /* go through all tokens EXCEPT the class name */
             token = AsmBuffer[i]->string_ptr;
-            
+
             // look up the type of token
             type = token_cmp( &token, TOK_READONLY, TOK_AT );
             if( type == ERROR ) {
                 AsmError( UNDEFINED_SEGMENT_OPTION );
                 return( ERROR );
             }
-            
+
             /* initstate is used to check if any field is already
             initialized */
-            
+
             if( initstate & TypeInfo[type].init ) {
                 AsmError( SEGMENT_PARA_DEFINED ); // initialized already
                 return( ERROR );
@@ -1676,7 +1667,7 @@ int SegDef( int i )
 
         if( defined && !ignore && !dirnode->e.seginfo->ignore ) {
             /* Check if new definition is different from previous one */
-            
+
             oldobj = dirnode->e.seginfo->segrec;
             if( ( oldreadonly != dirnode->e.seginfo->readonly )
                 || ( oldobj->d.segdef.align != seg->d.segdef.align )
@@ -1700,7 +1691,7 @@ int SegDef( int i )
             oldobj->d.segdef.combine = seg->d.segdef.combine;
             oldobj->d.segdef.use_32 = seg->d.segdef.use_32;
             oldobj->d.segdef.class_name_idx = seg->d.segdef.class_name_idx;
-            
+
             ObjKillRec( seg );
             if( push_seg( dirnode ) == ERROR ) {
                 return( ERROR );
@@ -1742,7 +1733,7 @@ int SegDef( int i )
             AsmError( SEGMENT_NOT_OPENED );
             return( ERROR );
         }
-        
+
         sym = AsmGetSymbol( name );
         if( sym == NULL ) {
             AsmErr( SEG_NOT_DEFINED, name );
@@ -2090,6 +2081,8 @@ void ModuleInit( void )
     ModuleInfo.mseg = FALSE;
     ModuleInfo.flat_idx = 0;
     *ModuleInfo.name = 0;
+    // add source file to autodependency list
+    ModuleInfo.srcfile = AddFlist( AsmFiles.fname[ASM] );
 }
 
 static void get_module_name( void )
@@ -2101,7 +2094,7 @@ static void get_module_name( void )
     /**/myassert( AsmFiles.fname[ASM] != NULL );
     _splitpath( AsmFiles.fname[ASM], NULL, NULL, ModuleInfo.name, dummy );
     for( p = ModuleInfo.name; *p != '\0'; ++p ) {
-        if( !( isalnum( *p ) || ( *p == '_' ) || ( *p == '$' ) 
+        if( !( isalnum( *p ) || ( *p == '_' ) || ( *p == '$' )
             || ( *p == '@' ) || ( *p == '?') ) ) {
             /* it's not a legal character for a symbol name */
             *p = '_';
@@ -2459,7 +2452,7 @@ int FixOverride( int index )
     return( ERROR );
 }
 
-static enum assume_reg search_assume( struct asm_sym *sym, 
+static enum assume_reg search_assume( struct asm_sym *sym,
                          enum assume_reg def, int override )
 /**********************************************************/
 {
@@ -3404,6 +3397,7 @@ int Ret( int i, int count, int flag_iret )
 {
     char        buffer[20];
     proc_info   *info;
+    expr_list   opndx;
 
     info = CurrProc->e.procinfo;
 
@@ -3428,15 +3422,16 @@ int Ret( int i, int count, int flag_iret )
             if( ( info->langtype >= LANG_BASIC ) && ( info->langtype <= LANG_PASCAL )
                 || ( info->langtype == LANG_STDCALL ) && !info->is_vararg ) {
                 if( info->parasize != 0 ) {
-                    sprintf( buffer + strlen(buffer), "%d", info->parasize );
+                    sprintf( buffer + strlen( buffer ), "%d", info->parasize );
                 }
             }
         } else {
-            if( AsmBuffer[i+1]->token != T_NUM ) {
+            ++i;
+            if( (EvalOperand( &i, count, &opndx, TRUE ) == ERROR) || (opndx.type != EXPR_CONST) ) {
                 AsmError( CONSTANT_EXPECTED );
                 return( ERROR );
             }
-            sprintf( buffer + strlen(buffer), "%d", AsmBuffer[i+1]->value );
+            sprintf( buffer + strlen( buffer ), "%d", opndx.value );
         }
     }
 

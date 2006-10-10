@@ -38,6 +38,12 @@
 #include "wdfunc.h"
 
 
+#ifdef __BIG_ENDIAN__
+    #define NATIVE_ENDIAN   2
+#else
+    #define NATIVE_ENDIAN   1
+#endif
+
 static  char    *elf_exe_msg[] = {
     "2file type (i.e. object, executable file)    = ",
     "2required architecture                       = ",
@@ -81,6 +87,7 @@ static  char    *elf_sec_msg[] = {
     NULL
 };
 
+
 /*
  * Dump the segment type.
  */
@@ -117,7 +124,7 @@ static void dmp_hdr_type( unsigned_16 type )
 static void dmp_sec_strtab( unsigned_32 offset, unsigned_32 size )
 /****************************************************************/
 {
-    char *string_table, *ptr;
+    char    *string_table, *ptr;
 
     string_table = Wmalloc( size );
     Wlseek( offset );
@@ -139,6 +146,67 @@ static void dmp_sec_strtab( unsigned_32 offset, unsigned_32 size )
     free( string_table );
 }
 
+#define     ELF_ROUND   (sizeof( Elf32_Word ) - 1)
+
+/*
+ * Dump a note section.
+ */
+static void dmp_sec_note( unsigned_32 offset, unsigned_32 size )
+/**************************************************************/
+{
+    Elf_Note        note;
+    unsigned_32     read = 0;
+    unsigned_32     skip;
+    char            *ptr;
+
+    Wlseek( offset );
+    while( read < size ) {
+        Wdputslc( "\n" );
+        Wread( &note, sizeof( note ) );
+        read += sizeof( note );
+        if( Byte_swap ) {
+            SWAP_32( note.n_namesz );
+            SWAP_32( note.n_descsz );
+            SWAP_32( note.n_type );
+        }
+        ptr = Wmalloc( note.n_namesz );
+        Wread( ptr, note.n_namesz );
+        Wdputs( "    note name:                              " );
+        Wdputs( ptr );
+        Wdputslc( "\n" );
+        Wdputs( "    descriptor length:                      " );
+        Puthex( note.n_descsz, 8 );
+        Wdputslc( "H\n" );
+        Wdputs( "    note type:                              " );
+        switch( note.n_type ) {
+        case NT_PRSTATUS:
+            Wdputs( "process status" );
+            break;
+        case NT_FPREGSET:
+            Wdputs( "floating-point registers" );
+            break;
+        case NT_PRPSINFO:
+            Wdputs( "process info" );
+            break;
+        default:
+            Wdputs( "unknown (" );
+            Puthex( note.n_type, 8 );
+            Wdputs( "H)" );
+        }
+        Wdputslc( "\n" );
+        free( ptr );
+
+        /* Calculate rounded up note name length */
+        skip = (note.n_namesz + ELF_ROUND) & ~ELF_ROUND;
+        read += skip;
+        Wlseek( offset + read );
+        /* Calculate rounded up note descriptor length */
+        skip = (note.n_descsz + ELF_ROUND) & ~ELF_ROUND;
+        read += skip;
+        Wlseek( offset + read );
+    }
+}
+
 /*
  * Dump a progbits section.
  */
@@ -146,18 +214,18 @@ static void dmp_sec_progbits( char *name,
     unsigned_32 offset, unsigned_32 size )
 /****************************************/
 {
-    const char *ptr;
-    uint sect;
+    const char  *ptr;
+    uint        sect;
 
     if( name == NULL ) {
         Dmp_seg_data( offset, size );
     } else {
         ptr = Wmalloc( size );
         Wlseek( offset );
-        Wread( (char *) ptr, size );
+        Wread( (char *)ptr, size );
         sect = Lookup_section_name( name );
         Dump_specific_section( sect, ptr, size );
-        free( (void *) ptr );
+        free( (void *)ptr );
     }
 }
 
@@ -253,52 +321,91 @@ static void dmp_sec_type( unsigned_32 type )
  */
 static void dmp_prog_flgs( unsigned_32 flags )
 /********************************************/
-    {
-        char    name[128];
+{
+    char    name[128];
 
-        name[0] = 0;
-        if( flags & PF_X ) {
-            strcat( name, " EXECUTABLE |" );
-        }
-        if( flags & PF_W ) {
-            strcat( name, " WRITABLE |" );
-        }
-        if( flags & PF_R ) {
-            strcat( name, " READABLE |" );
-        }
-        if( name[strlen(name)-1] == '|' ) {
-            name[strlen(name)-1] = 0;
-        }
-        Wdputs( "flags = " );
-        Wdputs( name );
-        Wdputslc( "\n" );
+    name[0] = 0;
+    if( flags & PF_X ) {
+        strcat( name, " EXECUTABLE |" );
     }
+    if( flags & PF_W ) {
+        strcat( name, " WRITABLE |" );
+    }
+    if( flags & PF_R ) {
+        strcat( name, " READABLE |" );
+    }
+    if( name[strlen(name)-1] == '|' ) {
+        name[strlen(name)-1] = 0;
+    }
+    Wdputs( "flags = " );
+    Wdputs( name );
+    Wdputslc( "\n" );
+}
 
 /*
  * dump the section flag word
  */
 static void dmp_sec_flgs( unsigned_32 flags )
 /*******************************************/
-    {
-        char    name[128];
+{
+    char    name[128];
 
-        name[0] = 0;
-        if( flags & SHF_WRITE ) {
-            strcat( name, " WRITABLE |" );
-        }
-        if( flags & SHF_ALLOC ) {
-            strcat( name, " ALLOC_SPACE |" );
-        }
-        if( flags & SHF_EXECINSTR ) {
-            strcat( name, " EXEC_INSTR |" );
-        }
-        if( name[strlen(name)-1] == '|' ) {
-            name[strlen(name)-1] = 0;
-        }
-        Wdputs( "flags = " );
-        Wdputs( name );
-        Wdputslc( "\n" );
+    name[0] = 0;
+    if( flags & SHF_WRITE ) {
+        strcat( name, " WRITABLE |" );
     }
+    if( flags & SHF_ALLOC ) {
+        strcat( name, " ALLOC_SPACE |" );
+    }
+    if( flags & SHF_EXECINSTR ) {
+        strcat( name, " EXEC_INSTR |" );
+    }
+    if( name[strlen(name)-1] == '|' ) {
+        name[strlen(name)-1] = 0;
+    }
+    Wdputs( "flags = " );
+    Wdputs( name );
+    Wdputslc( "\n" );
+}
+
+/*
+ * byte swap ELF section header
+ */
+static void swap_shdr( Elf32_Shdr *elf_sec )
+/******************************************/
+{
+    if( Byte_swap ) {
+        SWAP_32( elf_sec->sh_name );
+        SWAP_32( elf_sec->sh_type );
+        SWAP_32( elf_sec->sh_flags );
+        SWAP_32( elf_sec->sh_addr );
+        SWAP_32( elf_sec->sh_offset );
+        SWAP_32( elf_sec->sh_size );
+        SWAP_32( elf_sec->sh_link );
+        SWAP_32( elf_sec->sh_info );
+        SWAP_32( elf_sec->sh_addralign );
+        SWAP_32( elf_sec->sh_entsize );
+    }
+}
+
+/*
+ * byte swap ELF program header
+ */
+static void swap_phdr( Elf32_Phdr *elf_prog )
+/*******************************************/
+{
+    if( Byte_swap ) {
+        /* Byte swap program header */
+        SWAP_32( elf_prog->p_type );
+        SWAP_32( elf_prog->p_offset );
+        SWAP_32( elf_prog->p_vaddr );
+        SWAP_32( elf_prog->p_paddr );
+        SWAP_32( elf_prog->p_filesz );
+        SWAP_32( elf_prog->p_memsz );
+        SWAP_32( elf_prog->p_flags );
+        SWAP_32( elf_prog->p_align );
+    }
+}
 
 static void set_dwarf( unsigned_32 start )
 /****************************************/
@@ -318,21 +425,23 @@ static void set_dwarf( unsigned_32 start )
     if( Elf_head.e_shnum == 0 ) {
         return; // no sections no dwarf
     }
-    memset( sections, 0, DR_DEBUG_NUM_SECTS * sizeof(unsigned_32) );
-    memset( sectsizes, 0, DR_DEBUG_NUM_SECTS * sizeof(unsigned_32) );
+    memset( sections, 0, DR_DEBUG_NUM_SECTS * sizeof( unsigned_32 ) );
+    memset( sectsizes, 0, DR_DEBUG_NUM_SECTS * sizeof( unsigned_32 ) );
     offset = Elf_head.e_shoff
            + Elf_head.e_shstrndx * Elf_head.e_shentsize+start;
     Wlseek( offset );
     Wread( &elf_sec, sizeof( Elf32_Shdr ) );
+    swap_shdr( &elf_sec );
     string_table = Wmalloc( elf_sec.sh_size );
     Wlseek( elf_sec.sh_offset + start );
     Wread( string_table, elf_sec.sh_size );
     for( i = 0; i < Elf_head.e_shnum; i++ ) {
         Wlseek( Elf_head.e_shoff + i * Elf_head.e_shentsize + start );
         Wread( &elf_sec, sizeof( Elf32_Shdr ) );
-        if( elf_sec.sh_type == SHT_PROGBITS ){
+        swap_shdr( &elf_sec );
+        if( elf_sec.sh_type == SHT_PROGBITS ) {
             sect = Lookup_section_name( &string_table[elf_sec.sh_name] );
-            if ( sect < DW_DEBUG_MAX ){
+            if ( sect < DW_DEBUG_MAX ) {
                 sections[sect] = elf_sec.sh_offset + start;
                 sectsizes[sect] = elf_sec.sh_size;
             }
@@ -348,7 +457,7 @@ static void set_dwarf( unsigned_32 start )
             Sections[i].data = Wmalloc( sectsizes[i] );
             if( Sections[i].data == NULL ) {
                 Wdputslc( "Not enough memory\n" );
-                exit(1);
+                exit( 1 );
             }
             Wread( Sections[i].data, sectsizes[i] );
         }
@@ -388,7 +497,7 @@ static void dmp_sec_data( char *name,
         Dmp_seg_data( offset, size );
         break;
     case SHT_NOTE:
-        Dmp_seg_data( offset, size );
+        dmp_sec_note( offset, size );
         break;
     case SHT_NOBITS:
         Dmp_seg_data( offset, size );
@@ -429,6 +538,7 @@ static void dmp_prog_sec( unsigned_32 start )
                + Elf_head.e_shstrndx * Elf_head.e_shentsize+start;
         Wlseek( offset );
         Wread( &elf_sec, sizeof( Elf32_Shdr ) );
+        swap_shdr( &elf_sec );
         string_table = Wmalloc( elf_sec.sh_size );
         Wlseek( elf_sec.sh_offset + start );
         Wread( string_table, elf_sec.sh_size );
@@ -437,28 +547,31 @@ static void dmp_prog_sec( unsigned_32 start )
     }
     if( Elf_head.e_phnum ) {
         Banner( "ELF Program Header" );
-        offset = Elf_head.e_phoff+start;
+        offset = Elf_head.e_phoff + start;
         for( i = 0; i < Elf_head.e_phnum; i++ ) {
             Wdputs( "                Program Header #" );
-            Putdec( i+1 );
+            Putdec( i + 1 );
             Wdputslc( "\n" );
-            if( start != 0 ){
+            if( start != 0 ) {
                 Wdputs("File Offset:");
                 Puthex( offset, 8 );
                 Wdputslc( "\n");
             }
             Wlseek( offset );
             Wread( &elf_prog, sizeof( Elf32_Phdr ) );
+            swap_phdr( &elf_prog );
 //          elf_prog.p_offset += start; //Relocate file pos
             offset += sizeof( Elf32_Phdr );
             Data_count++;
             dmp_prog_type( elf_prog.p_type );
-            Dump_header( (char *)&elf_prog.p_type, elf_prog_msg );
+            Dump_header( &elf_prog, elf_prog_msg );
             dmp_prog_flgs( elf_prog.p_flags );
             if( Options_dmp & (DOS_SEG_DMP | OS2_SEG_DMP) ) {
                 if( Segspec == 0 || Segspec == Data_count ) {
-                    Dmp_seg_data( elf_prog.p_offset+start, elf_prog.p_filesz );
+                    Dmp_seg_data( elf_prog.p_offset + start, elf_prog.p_filesz );
                 }
+            } else if( elf_prog.p_type == PT_NOTE ) {
+                dmp_sec_note( elf_prog.p_offset + start, elf_prog.p_filesz );
             }
             Wdputslc( "\n" );
         }
@@ -469,6 +582,7 @@ static void dmp_prog_sec( unsigned_32 start )
         for( i = 0; i < Elf_head.e_shnum; i++ ) {
             Wlseek( offset );
             Wread( &elf_sec, sizeof( Elf32_Shdr ) );
+            swap_shdr( &elf_sec );
 //          elf_sec.sh_offset += start;  // relocate file pos
             Wdputs( "             Section Header #" );
             Putdec( i );
@@ -478,16 +592,16 @@ static void dmp_prog_sec( unsigned_32 start )
                 Wdputs( "\"" );
             }
             Wdputslc( "\n" );
-            if( start != 0 ){
-                Wdputs("File Offset:");
+            if( start != 0 ) {
+                Wdputs( "File Offset:" );
                 Puthex( offset, 8 );
-                Wdputslc( "\n");
+                Wdputslc( "\n" );
             }
             dmp_sec_type( elf_sec.sh_type );
-            Dump_header( (char *)&elf_sec.sh_name, elf_sec_msg );
+            Dump_header( &elf_sec.sh_name, elf_sec_msg );
             dmp_sec_flgs( elf_sec.sh_flags );
             if( Options_dmp & FIX_DMP ) {
-                if( elf_sec.sh_type==SHT_REL || elf_sec.sh_type==SHT_RELA ){
+                if( elf_sec.sh_type==SHT_REL || elf_sec.sh_type==SHT_RELA ) {
                     Elf32_Shdr      rel_sec;
                     Elf32_Rela      elf_rela;
                     int             loc, ctr, rel_size;
@@ -497,6 +611,7 @@ static void dmp_prog_sec( unsigned_32 start )
                     Wlseek( Elf_head.e_shoff + start +
                             Elf_head.e_shentsize * elf_sec.sh_info );
                     Wread( &rel_sec, sizeof( Elf32_Shdr ) );
+                    swap_shdr( &rel_sec );
                     if( string_table ) {
                         Wdputs( " \"" );
                         Wdputs( &string_table[rel_sec.sh_name] );
@@ -578,7 +693,7 @@ bool Dmp_lib_head( void )
     filesize = WFileSize();
     Elf_off = LIBMAG_LEN + LIB_CLASS_LEN + LIB_DATA_LEN;
     Wlseek( Elf_off );
-    for(;;) {
+    for( ;; ) {
         if( Elf_off + LIB_HEADER_SIZE >= filesize ) break;
         Wread( &hdr, LIB_HEADER_SIZE );
         Elf_off += LIB_HEADER_SIZE;
@@ -610,17 +725,17 @@ bool Dmp_lib_head( void )
  * Dump the ELF header, if any.
  */
 bool Dmp_elf_header( unsigned_32 start )
-/********************/
+/**************************************/
 {
     Wread( &Elf_head, sizeof( Elf32_Ehdr ) );
     if( memcmp( Elf_head.e_ident, ELF_SIGNATURE, ELF_SIGNATURE_LEN ) ) {
         return( 0 );
     }
     Banner( "ELF Header" );
-    if( start != 0 ){
-        Wdputs("File Offset:");
+    if( start != 0 ) {
+        Wdputs( "File Offset:" );
         Puthex( start, 8 );
-        Wdputslc( "\n");
+        Wdputslc( "\n" );
     }
     Wdputs( "class (1==32-bit objects, 2==64-bit objs)   =       " );
     Puthex( Elf_head.e_ident[EI_CLASS], 2 );
@@ -628,9 +743,31 @@ bool Dmp_elf_header( unsigned_32 start )
     Puthex( Elf_head.e_ident[EI_DATA], 2 );
     Wdputslc( "H\nversion                                     =       " );
     Puthex( Elf_head.e_ident[EI_VERSION], 2 );
+    Wdputslc( "H\nOS/ABI type (0==unspecified)                =       " );
+    Puthex( Elf_head.e_ident[EI_OSABI], 2 );
+    Wdputslc( "H\nABI version (0==unspecified)                =       " );
+    Puthex( Elf_head.e_ident[EI_ABIVERSION], 2 );
     Wdputslc( "H\n" );
+    if( Elf_head.e_ident[EI_DATA] != NATIVE_ENDIAN ) {
+        Byte_swap = TRUE;
+
+        /* Byte swap ELF header */
+        SWAP_16( Elf_head.e_type );
+        SWAP_16( Elf_head.e_machine );
+        SWAP_32( Elf_head.e_version );
+        SWAP_32( Elf_head.e_entry );
+        SWAP_32( Elf_head.e_phoff );
+        SWAP_32( Elf_head.e_shoff );
+        SWAP_32( Elf_head.e_flags );
+        SWAP_16( Elf_head.e_ehsize );
+        SWAP_16( Elf_head.e_phentsize );
+        SWAP_16( Elf_head.e_phnum );
+        SWAP_16( Elf_head.e_shentsize );
+        SWAP_16( Elf_head.e_shnum );
+        SWAP_16( Elf_head.e_shstrndx );
+    }
     dmp_hdr_type( Elf_head.e_type );
-    Dump_header( (char *)&Elf_head.e_type, elf_exe_msg );
+    Dump_header( &Elf_head.e_type, elf_exe_msg );
     Wdputslc( "\n" );
     dmp_prog_sec( start );
     return( 1 );
@@ -640,8 +777,8 @@ bool Dmp_elf_header( unsigned_32 start )
 /*
  * Dump the ELF header, if any.
  */
-bool Dmp_elf_head( )
-/******************/
+bool Dmp_elf_head( void )
+/***********************/
 {
     Wlseek( 0 );
     return( Dmp_elf_header( 0 ) );

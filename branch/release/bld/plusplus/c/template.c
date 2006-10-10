@@ -949,6 +949,7 @@ static TEMPLATE_SPECIALIZATION *mergeClassTemplates( TEMPLATE_DATA *data,
             CErr2p( ERR_CANT_REDEFINE_CLASS_TEMPLATES, old_sym );
             RewriteFree( defn );
             data->defn = NULL;
+            return( NULL );
         } else {
             RewriteFree( tspec->defn );
             tspec->defn = defn;
@@ -1175,9 +1176,9 @@ void TemplateDeclFini( void )
         if( sym != NULL ) {
             if( tspec == NULL ) {
                 tspec = RingFirst( sym->u.tinfo->specializations );
+            } else {
+                tspec->corrupted = TRUE;
             }
-
-            tspec->corrupted = TRUE;
         }
     } else {
         if( data->defn_added && ( tspec != NULL ) ) {
@@ -2633,14 +2634,26 @@ static void processFunctionTemplateDefns( void )
 {
     SYMBOL fn_sym;
     FN_TEMPLATE_DEFN *curr_defn;
-
-    RingIterBeg( allFunctionTemplates, curr_defn ) {
-        RingIterBeg( curr_defn->sym->name->name_syms, fn_sym ) {
-            if( ! SymIsFunctionTemplateModel( fn_sym ) ) {
-                processSymDefn( fn_sym, curr_defn );
-            }
-        } RingIterEnd( fn_sym )
-    } RingIterEnd( curr_defn )
+    boolean keep_going;
+    unsigned old_depth = templateData.curr_depth;
+    do{
+        keep_going = FALSE;
+        RingIterBeg( allFunctionTemplates, curr_defn ) {
+            RingIterBeg( curr_defn->sym->name->name_syms, fn_sym ) {
+                if( ! SymIsFunctionTemplateModel( fn_sym ) ) {
+                    // if we process a definition check the list again
+                    // in case a new member function is created
+                    if( processSymDefn( fn_sym, curr_defn ) ) keep_going = TRUE;
+                }
+            } RingIterEnd( fn_sym )
+        } RingIterEnd( curr_defn )
+        // each time around the loop means another template instantiated by a
+        // template, incrementing this will cause trip in verifyOKToProceed
+        // when processing definition
+        templateData.curr_depth++; 
+    }while( keep_going );
+    
+    templateData.curr_depth = old_depth;
 }
 
 static void processNewFileSyms( NAME_SPACE *ns, SYMBOL old_last, SYMBOL curr_last )

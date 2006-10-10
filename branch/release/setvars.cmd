@@ -40,7 +40,7 @@ set WIN95HC=
 set OS2HC=ipfc
 
 REM Set up default path information variable
-if %DEFPATH%. == . set DEFPATH=%PATH%
+if "%DEFPATH%" == "" set DEFPATH=%PATH%
 
 REM Subdirectory to be used for bootstrapping
 set OBJDIR=bootstrp
@@ -50,8 +50,8 @@ set PREOBJDIR=prebuild
 
 REM Stuff for the Open Watcom build environment
 set BUILD_PLATFORM=os2386
-set BLD_VER=15
-set BLD_VER_STR=1.5
+set BLD_VER=16
+set BLD_VER_STR=1.6
 set BUILDER_CTL=lang.ctl
 set DEVDIR=%OWROOT%\bld
 REM Subdirectory to be used for bootstrapping/prebuild binaries
@@ -60,8 +60,7 @@ set DISTROOT=%OWROOT%\distrib
 set RELROOT=%OWROOT%
 set DWATCOM=%WATCOM%
 set DOC_ROOT=%OWROOT%\docs
-set INCLUDE=%WATCOM%\h;%WATCOM%\h\os2;%DEVDIR%\watcom\h
-set LIB=%OWROOT%\bld\watcom\lib
+set INCLUDE=%WATCOM%\h;%WATCOM%\h\os2
 set EDPATH=%WATCOM%\eddat
 set PATH=%OWROOT%\binp;%OWBINDIR%;%OWROOT%\bat;%WATCOM%\binp;%WATCOM%\binw;%DOC_ROOT%\cmds;%OS2TKROOT%\bin;%DEFPATH%
 

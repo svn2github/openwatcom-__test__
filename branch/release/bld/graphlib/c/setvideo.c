@@ -147,7 +147,7 @@ static short            SelectMode( short );
 #endif
 
 
-static void SetTextInfo()
+static void SetTextInfo( void )
 /*=======================
 
    This routine initializes the graphics text defaults. */
@@ -461,7 +461,7 @@ short _WCI86FAR _CGRAPH _setvideomode( short req_mode )
         _ErrorStatus = _GRERROR;
         return( 0 );
     }
-    for( tab = &VideoModes; ; ++tab ) {
+    for( tab = VideoModes; ; ++tab ) {
         if( tab->mode == -1 ) {
             _ErrorStatus = _GRINVALIDPARAMETER;
             return( 0 );

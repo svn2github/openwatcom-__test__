@@ -6,9 +6,17 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <sys/types.h>      /* for off_t */
+#ifdef __QNX__
+    #include <strings.h>    /* for str*case* functions */
+#endif
 
+#ifndef O_BINARY
 #define O_BINARY 0
+#endif
+#ifndef O_TEXT
 #define O_TEXT 0
+#endif
 #define stricmp strcasecmp
 #define strcmpi strcasecmp
 #define strnicmp strncasecmp
@@ -19,7 +27,6 @@
 #define __near
 #define near
 #define __based(x)
-#define __alloca(x) alloca(x)
 #define _snprintf snprintf
 #define _vsnprintf vsnprintf
 #define  __va_list  va_list
@@ -80,7 +87,7 @@ char *strlwr( char *string );
 char *strupr( char *string );
 char *strrev( char *string );
 int memicmp(const void *, const void *, size_t);
-long tell( int handle );
+off_t tell( int handle );
 long filelength(int handle);
 int eof( int fildes );
 char *getcmd( char *buffer );

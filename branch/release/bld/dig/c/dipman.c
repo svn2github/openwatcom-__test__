@@ -30,8 +30,8 @@
 
 
 #include <string.h>
-#include <malloc.h>
 #include <limits.h>
+#include "walloca.h"
 #include "dip.h"
 #include "dipimp.h"
 #include "dipcli.h"
@@ -288,7 +288,7 @@ dip_status DIPMoreMem( unsigned amount )
     return( DS_FAIL );
 }
 
-void DIPCancel()
+void DIPCancel( void )
 {
     unsigned            i;
     image_handle        *ih;
@@ -645,7 +645,7 @@ static walk_result DoWalkSymList( symbol_source ss, void *start, walk_glue *wd )
 {
     image_handle        *ih;
     sym_handle          *sh = __alloca( DIPHandleSize( HK_SYM ) );
-    image_idx           ii;
+    image_idx           ii = NULL;
     imp_mod_handle      im;
     mod_handle          mh;
     type_handle         *it;
@@ -939,8 +939,8 @@ dip_status TypeRelease( type_handle *th )
     }
 }
 
-dip_status TypeFreeAll()
-/**********************/
+dip_status TypeFreeAll( void )
+/****************************/
 {
     image_handle        *ih;
 
@@ -1173,8 +1173,8 @@ dip_status SymRelease( sym_handle *sh )
     }
 }
 
-dip_status SymFreeAll()
-/*********************/
+dip_status SymFreeAll( void )
+/***************************/
 {
     image_handle        *ih;
 

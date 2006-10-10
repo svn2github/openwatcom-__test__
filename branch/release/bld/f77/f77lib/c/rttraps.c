@@ -80,14 +80,14 @@ typedef void            (*fsig_func)(intstar4);
          void           (* __UserIOvFlHandler)(intstar4) = { (fsig_func)SIG_DFL };
   extern byte           IntDivBy0;
          void           (* __UserIDivZHandler)(intstar4) = { (fsig_func)SIG_DFL };
-  static void           (_handler *ISave)();
-  static void           (_handler *ZSave)();
+  static void           (_handler *ISave)(void);
+  static void           (_handler *ZSave)(void);
 #endif
 
 #if defined( __DOS__ )
   extern byte           BreakVector;
          void           (* __UserBreakHandler)(intstar4) = { (fsig_func)SIG_DFL };
-  static void           (_handler *CBSave)();
+  static void           (_handler *CBSave)(void);
  #if defined( __386__ )
   static unsigned long  CBRealSave;
  #endif
@@ -110,7 +110,7 @@ typedef void            (*fsig_func)(intstar4);
 
   extern unsigned long _dos_getrealvect(int);
   extern void          _dos_setrealvect(int,unsigned long);
-  extern void          _dos_setvectp(int,void (interrupt far *)());
+  extern void          _dos_setvectp(int,void (interrupt far *)(void));
 #endif
 
 
@@ -118,7 +118,7 @@ typedef void            (*fsig_func)(intstar4);
 
 #else
 
-static  void    ProcessBreak() {
+static  void    ProcessBreak( void ) {
 //==============================
 
     __XcptFlags &= ~XF_ERR_MASK;
@@ -146,8 +146,8 @@ static  void    BreakSignal( int sig ) {
 #endif
 
 #if defined( __DOS__ )
-static  void    _handler BreakHandler() {
-//=======================================
+static  void    _handler BreakHandler( void ) {
+//=============================================
 
     _enable();
     if( __UserBreakHandler != (fsig_func)SIG_DFL ) {
@@ -166,13 +166,13 @@ static  void    _handler BreakHandler() {
 
 #elif defined( __DOS__ ) || defined( __WINDOWS__ ) || defined( __OS2__ ) || defined( __NT__ )
 
-static  void    ProcessIDivZ() {
+static  void    ProcessIDivZ( void ) {
 //==============================
 
     RTErr( KO_IDIV_ZERO );
 }
 
-static  void    ProcessIOvFl() {
+static  void    ProcessIOvFl( void ) {
 //==============================
 
     // Set flag so that we report an overflow when we read an integer
@@ -204,8 +204,8 @@ static  void    IOvFlSignal( int sig ) {
 
 #elif defined( __DOS__ ) || defined( __WINDOWS__ ) || defined( __OS2_286__ )
 
-static  void    _handler IDivZHandler() {
-//=======================================
+static  void    _handler IDivZHandler( void ) {
+//=============================================
 
  #if defined( __DOS__ ) || defined( __WINDOWS__ )
     _enable();
@@ -226,8 +226,8 @@ static  void    _handler IDivZHandler() {
     }
 }
 
-static  void    _handler IOvFlHandler() {
-//=======================================
+static  void    _handler IOvFlHandler( void ) {
+//=============================================
 
  #if defined( __DOS__ ) || defined( __WINDOWS__ )
     _enable();
@@ -243,7 +243,7 @@ static  void    _handler IOvFlHandler() {
 }
 #endif
 
-static  void    AbnormalTerm() {
+static  void    AbnormalTerm( int dummy ) {
 //==============================
 
     RTErr( CP_TERMINATE );
@@ -259,7 +259,7 @@ int     __EnableF77RTExceptionHandling( void ) {
 #endif
 }
 
-void    R_TrapInit() {
+void    R_TrapInit( void ) {
 //====================
 
     int enable_excpt;
@@ -311,7 +311,7 @@ void    R_TrapInit() {
     FPTrapInit();
 }
 
-void    R_TrapFini() {
+void    R_TrapFini( void ) {
 //====================
 
 #if defined( __DOS__ )
@@ -335,10 +335,10 @@ void    R_TrapFini() {
     FPTrapFini();
 }
 
-extern void             (*_ExceptionInit)();
-extern void             (*_ExceptionFini)();
+extern void             (*_ExceptionInit)( void );
+extern void             (*_ExceptionFini)( void );
 
-void    __InitExceptionVectors() {
+void    __InitExceptionVectors( void ) {
 //================================
 
     _ExceptionInit = &R_TrapInit;

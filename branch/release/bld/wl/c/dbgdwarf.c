@@ -24,14 +24,14 @@
 *
 *  ========================================================================
 *
-* Description:  routines for producing DWARF debugging information
+* Description:  Routines for producing DWARF debugging information.
 *
 ****************************************************************************/
 
 
 #include <string.h>
 #include <setjmp.h>
-#include <malloc.h>
+#include "walloca.h"
 #include "linkstd.h"
 #include "alloc.h"
 #include "objcalc.h"
@@ -627,7 +627,7 @@ static void DwarfGenAddrInit( segdata *sdata, void *_tuple )
 /**********************************************************/
 {
     arange_tuple *tuple = _tuple;
-    
+
     if( FmtData.type & MK_SEGMENTED ) {
         tuple->s.segment = sdata->u.leader->seg_addr.seg;
         tuple->s.offset = sdata->u.leader->seg_addr.off + sdata->a.delta;
@@ -838,6 +838,8 @@ extern void DwarfWriteDBI( void )
     elf_header.e_ident[EI_DATA] = ELFDATA2LSB;
 #endif
     elf_header.e_ident[EI_VERSION] = EV_CURRENT;
+    elf_header.e_ident[EI_OSABI] = ELFOSABI_NONE;
+    elf_header.e_ident[EI_ABIVERSION] = 0;
     memset( &elf_header.e_ident[EI_PAD], 0, EI_NIDENT - EI_PAD );
     elf_header.e_type = ET_EXEC;
     elf_header.e_machine = EM_386;

@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Implementation of tell() for UNIX.
 *
 ****************************************************************************/
 
@@ -34,8 +33,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-_WCRTLINK long (tell)( fd )         /* return current file position */
-int fd;
+_WCRTLINK off_t (tell)( int fd )        /* return current file position */
 {
     return( lseek( fd, 0L, SEEK_CUR ) );
 }

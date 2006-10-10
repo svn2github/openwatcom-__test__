@@ -33,7 +33,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <time.h>
-#include <malloc.h>
 #include "linkstd.h"
 #include "exeos2.h"
 #include "loados2.h"
@@ -964,8 +963,8 @@ static void SetMiscTableEntries( pe_header *hdr )
     }
 }
 
-static unsigned FindNumObjects()
-/******************************/
+static unsigned FindNumObjects( void )
+/************************************/
 {
     unsigned            num_objects;
 

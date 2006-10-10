@@ -66,8 +66,8 @@ static int ResWrite( int dummy, const void *buff, size_t size )
 }
 
 extern int WLinkItself;
-static long ResSeek( int handle, long position, int where )
-/*********************************************************/
+static long ResSeek( int handle, off_t position, int where )
+/**********************************************************/
 /* Workaround wres bug */
 {
     if( ( where == SEEK_SET ) && ( handle == WLinkItself ) ) {
@@ -325,7 +325,7 @@ extern name_list * AddNameTable( char *name, unsigned len, bool is_mod,
 /*************************************************************************/
 {
     name_list * imp;
-    unsigned_16 off;
+    unsigned_32 off;
     unsigned_16 index;
 
     index = 1;

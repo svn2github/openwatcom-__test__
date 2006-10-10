@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Mainline for ssl utility.
 *
 ****************************************************************************/
 
@@ -35,7 +34,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdarg.h>
-#include <malloc.h>
 
 #include "preproc.h"
 #undef T_LEFT_PAREN
@@ -131,7 +129,7 @@ void Error( char *fmt, ... )
 }
 
 
-static void Usage(void)
+static void Usage( void )
 {
     Error( "Usage: ssl {-(v|c)} filename[.ssl] [out_file]" );
 }
@@ -141,7 +139,7 @@ void UngetChar( int c )
     SavedChar = c;
 }
 
-int NextChar()
+int NextChar( void )
 {
     int next;
 
@@ -154,7 +152,7 @@ int NextChar()
     return( next );
 }
 
-unsigned short SrcLine(void)
+unsigned short SrcLine( void )
 {
     return( LineNum );
 }
@@ -204,14 +202,14 @@ static void OpenFiles( char verbose, char *path, char *out_file )
 }
 
 
-static void CloseFiles(void)
+static void CloseFiles( void )
 {
     fclose( PrsFile );
     if( TblFile != NULL ) fclose( TblFile );
 }
 
 
-unsigned short GetNum(void)
+unsigned short GetNum( void )
 {
     char        *end;
     unsigned    value;
@@ -223,7 +221,7 @@ unsigned short GetNum(void)
 }
 
 
-void Scan(void)
+void Scan( void )
 {
     static char Delims[] =
     {';',':','?','.','#','{','}','[',']','(',')','>','|','*','@',',','=','\0'};
@@ -320,14 +318,14 @@ void Scan(void)
 }
 
 
-void WantColon(void)
+void WantColon( void )
 {
     if( CurrToken != T_COLON ) Error( "expecting ':'" );
     Scan();
 }
 
 
-static void Parse(void)
+static void Parse( void )
 {
     Decls();
     if( CurrToken != T_RULES ) Error( "expecting rules" );

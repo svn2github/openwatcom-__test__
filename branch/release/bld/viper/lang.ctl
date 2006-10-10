@@ -31,12 +31,23 @@ cdsay .
     <CPCMD> viper/ideaxp.cfg     <RELROOT>/rel2/binw/ideaxp.cfg
     <CPCMD> viper/idelnx.cfg     <RELROOT>/rel2/binw/idelnx.cfg
 
+    <CPCMD> viper/ide.cfg        <RELROOT>/rel2/binl/ide.cfg
+    <CPCMD> viper/idedos.cfg     <RELROOT>/rel2/binl/idedos.cfg
+    <CPCMD> viper/idedos32.cfg   <RELROOT>/rel2/binl/idedos32.cfg
+    <CPCMD> viper/idewin.cfg     <RELROOT>/rel2/binl/idewin.cfg
+    <CPCMD> viper/ideos2.cfg     <RELROOT>/rel2/binl/ideos2.cfg
+    <CPCMD> viper/ideos232.cfg   <RELROOT>/rel2/binl/ideos232.cfg
+    <CPCMD> viper/idew32.cfg     <RELROOT>/rel2/binl/idew32.cfg
+    <CPCMD> viper/idew386.cfg    <RELROOT>/rel2/binl/idew386.cfg
+    <CPCMD> viper/idenlm.cfg     <RELROOT>/rel2/binl/idenlm.cfg
+    <CPCMD> viper/ideaxp.cfg     <RELROOT>/rel2/binl/ideaxp.cfg
+    <CPCMD> viper/idelnx.cfg     <RELROOT>/rel2/binl/idelnx.cfg
+
   [ IFDEF (os_win "") <2*> ]
     <CPCMD> viper/wini86/ide.exe <RELROOT>/rel2/binw/ide.exe
     <CPCMD> viper/win/idex.cfg   <RELROOT>/rel2/binw/idex.cfg
     <CPCMD> viper/win/wsrv.pif   <RELROOT>/rel2/binw/wsrv.pif
     <CPCMD> viper/win/wd.pif     <RELROOT>/rel2/binw/wd.pif
-    <CPCMD> vpdll/wini86/vpdll.dll <RELROOT>/rel2/binw/vpdll.dll
 
   [ IFDEF (os_os2 "") <2*> ]
     <CPCMD> viper/os2386/ide.exe <RELROOT>/rel2/binp/ide.exe
@@ -45,7 +56,6 @@ cdsay .
   [ IFDEF (os_nt "") <2*> ]
     <CPCMD> viper/nt386/ide.exe  <RELROOT>/rel2/binnt/ide.exe
     <CPCMD> viper/nt/idex.cfg    <RELROOT>/rel2/binnt/idex.cfg
-    <CPCMD> vpdll/nt386/vpdll.dll  <RELROOT>/rel2/binnt/vpdll.dll
 
   [ IFDEF (cpu_axp) <2*> ] 
     <CPCMD> viper/ntaxp/ide.exe  <RELROOT>/rel2/axpnt/ide.exe

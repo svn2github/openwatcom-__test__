@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  RISCify complex instructions into load/store model.
 *
 ****************************************************************************/
 
@@ -68,9 +67,12 @@ extern  hw_reg_set      FullReg( hw_reg_set );
 extern  bool            ReDefinedBy( instruction *, name * );
 extern  void            MoveSegRes( instruction *, instruction * );
 extern  void            MoveSegOp( instruction *, instruction *, int );
-extern  int             NumOperands(instruction*);
+extern  int             NumOperands( instruction * );
+extern  bool            InsOrderDependant( instruction *, instruction * );
 
 extern  type_length     TypeClassSize[];
+
+static  bool            PreferSize;
 
 static  name    **Enregister( instruction *ins )
 /***********************************************
@@ -108,6 +110,8 @@ static  name    **Enregister( instruction *ins )
     default:
         break;
     }
+    /* only RISCify CMPs, TESTs, and MOVs when optimizing for size */
+    if( PreferSize && !_OpIsCondition( ins->head.opcode ) ) return( FALSE );
     for( i = ins->num_operands-1; i >= 0; --i ) {
         switch( ins->operands[i]->n.class ) {
         case N_INDEXED:
@@ -145,6 +149,7 @@ static hw_reg_set       *FindRegister( instruction *ins )
 {
     hw_reg_set  except;
     hw_reg_set  *regs;
+    hw_reg_set  *curregs;
     hw_reg_set  *start;
     hw_reg_set  *first;
     hw_reg_set  **rover_ptr;
@@ -180,18 +185,33 @@ static hw_reg_set       *FindRegister( instruction *ins )
         regs = start;
         *rover_ptr = start;
     }
+    /* 2006-04-25 RomanT
+       When optimizing for size, disable rover pointers and
+       reuse registers to decrease number of push'es in function prologue
+    */
+    if( PreferSize ) {
+        regs = start;
+    }
     first = regs;
     /* NOTE: assumes at least one register in the set */
-    for(;;) {
+    /* 2006-04-25 RomanT
+       Code rewriten because first and best reg in list (_AX) was used last
+    */
+    for( ;; ) {
+        curregs = regs;
         ++regs;
         if( HW_CEqual( *regs, HW_EMPTY ) ) {
             regs = start;
         }
-        if( !HW_Ovlap( *regs, except ) ) break;
+        if( !HW_Ovlap( *curregs, except ) ) {
+            *rover_ptr = regs;  /* next run will use next register */
+            break;
+        }
         if( regs == first ) return( NULL );
+        /* only use _AX when optimizing for size */
+        if( PreferSize ) return ( NULL );
     }
-    *rover_ptr = regs;
-    return( regs );
+    return( curregs );
 }
 
 
@@ -393,6 +413,10 @@ extern  bool    LdStAlloc( void )
     into RISC style load/store instructions. This helps on the 486 and
     up because of instruction scheduling. Return a boolean saying whether
     anything got twiddled so the register scoreboarder can be run again.
+
+    This routine also required for optimization of assignment
+    of one copy of same constant to multiple memory locations using
+    temporary register.
 */
 {
     block       *blk;
@@ -403,8 +427,22 @@ extern  bool    LdStAlloc( void )
     RoverByte = NULL;
     RoverWord = NULL;
     RoverDouble = NULL;
-    if( OptForSize > 50 ) return( FALSE );
-    if( !_CPULevel( CPU_486 ) ) return( FALSE );
+
+    /* 2006-04-25 RomanT:
+       Run RISCifier for all modes, but sometimes (depending on CPU and
+       optimization) prefer shorter non-RISC version of instructions.
+    */
+    PreferSize = FALSE;
+    if( OptForSize > 50 ) {
+        PreferSize = TRUE;
+    }
+    if( !_CPULevel( CPU_486 ) ) {
+        PreferSize = TRUE;
+    }
+
+#if 0  /* You can optionally disable riscifer when optimizing for size */
+    if (PreferSize) return FALSE;
+#endif
 
     changed = FALSE;
     for( blk = HeadBlock; blk != NULL; blk = blk->next_block ) {
@@ -420,6 +458,33 @@ extern  bool    LdStAlloc( void )
     return( changed );
 }
 
+static bool     CanCompressResult( instruction *ins,
+                                   instruction *prev, instruction *next,
+                                   name **presult,    name **popnd )
+{
+    int         i;
+
+    if( presult == NULL ) {
+        return FALSE;
+    }
+    if( HW_Ovlap( (*presult)->r.reg, next->head.next->head.live.regs ) ) {
+        return FALSE;
+    }
+    if( popnd != NULL ) {
+        if( *popnd != *presult ) return FALSE;
+        if( next->result != prev->operands[0] ) return FALSE;
+    } else {
+        for( i = 0; i < ins->num_operands; ++i ) {
+            if( ins->operands[i]->n.class != N_REGISTER ) {
+                continue;
+            }
+            if( HW_Ovlap( ins->operands[i]->r.reg, ins->result->r.reg ) ) {
+                return FALSE;
+            }
+        }
+    }
+    return TRUE;
+}
 
 static void     CompressIns( instruction *ins )
 /**************************************************
@@ -441,19 +506,22 @@ static void     CompressIns( instruction *ins )
     switch( ins->head.opcode ) {
     case OP_PUSH:
     case OP_POP:
+        /* If size preferable then push must be compacted */
+        if( PreferSize ) break;
         /* It's better to use a register for PUSH/POP on a 486 */
         if( _CPULevel( CPU_486 ) ) return;
     default:
         break;
     }
     next = ins->head.next;
-    if( next->head.opcode!=OP_MOV || next->operands[0]->n.class!=N_REGISTER ) {
+    if( next->head.opcode != OP_MOV || next->operands[0]->n.class != N_REGISTER ) {
         next = NULL;
     }
     prev = ins->head.prev;
-    if( prev->head.opcode!=OP_MOV || prev->result->n.class!=N_REGISTER ) {
+    if( prev->head.opcode != OP_MOV || prev->result->n.class != N_REGISTER ) {
         prev = NULL;
     }
+
     presult = NULL;
     popnd = NULL;
     if( next != NULL && ins->result == next->operands[0] ) {
@@ -471,26 +539,13 @@ static void     CompressIns( instruction *ins )
             }
         }
     }
-    if( presult != NULL ) {
-        if( HW_Ovlap( (*presult)->r.reg, next->head.next->head.live.regs ) ) {
-            return;
-        }
-        if( popnd != NULL ) {
-            if( *popnd != *presult ) return;
-            if( next->result != prev->operands[0] ) return;
-        } else {
-            for( i = 0; i < ins->num_operands; ++i ) {
-                if( ins->operands[i]->n.class != N_REGISTER ) {
-                    continue;
-                }
-                if( HW_Ovlap( ins->operands[i]->r.reg, ins->result->r.reg ) ) {
-                    return;
-                }
-            }
-        }
+    // 2006-05-19 RomanT
+    // Even if compression of result failed, we must try to compress operands
+    if( CanCompressResult( ins, prev, next, presult, popnd ) ) {
         replacement = next->result;
         preplace = presult;
     } else {
+        presult = NULL; // Forget about result (don't free ins below!)
         if( popnd == NULL ) return;
         // make sure that the REG is not used in any operands besides
         // the one which we are thinking of replacing BBB - Dec 4, 1993
@@ -530,8 +585,7 @@ extern  void    LdStCompress( void )
     block       *blk;
     instruction *ins;
 
-    if( OptForSize > 50 ) return;
-    if( !_CPULevel( CPU_486 ) ) return;
+    /* Note: LdStAlloc() must be called first to set PreferSize variable */
 
     CompressMem16Moves();
     for( blk = HeadBlock; blk != NULL; blk = blk->next_block ) {

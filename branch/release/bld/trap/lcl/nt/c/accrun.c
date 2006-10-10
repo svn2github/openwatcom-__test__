@@ -130,11 +130,11 @@ static void setTBitInAllThreads( set_t set )
     }
 }
 
-void InterruptProgram()
+void InterruptProgram( void )
 {
     setTBitInAllThreads( T_ON_CURR );
     // a trick to make app execute long enough to hit a breakpoint
-    PostMessage( HWND_TOPMOST, WM_TIMECHANGE, 0, 0 );
+    PostMessage( HWND_TOPMOST, WM_NULL, 0, 0 );
     PendingProgramInterrupt = TRUE;
 }
 
@@ -470,7 +470,7 @@ int DebugExecute( DWORD state, int *tsc, bool stop_on_module_load )
                     break;
                 case DBG_INIT:
                     // I have no idea how to handle this!
-                    break;                    
+                    break;
                 default:
                     DebugeeTid = DebugEvent.dwThreadId;
                     LastExceptionCode = STATUS_ACCESS_VIOLATION;

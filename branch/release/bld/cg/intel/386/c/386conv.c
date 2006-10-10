@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  386 machine type conversion routines.
 *
 ****************************************************************************/
 
@@ -212,6 +211,17 @@ static  opcode_entry    ChpPT[] = {
 _Un( ANY,  ANY,  NONE ),     V_NO,           R_CHPPT,        RG_,   FU_NO,
 };
 
+static  opcode_entry    PTtoI8[] = {
+/**********************************/
+/*    from  to    eq          verify          gen             reg   fu*/
+_Un( ANY,  ANY,  NONE ),     V_NO,           R_MOVPTI8,     RG_,   FU_NO,
+};
+
+static  opcode_entry    I8toPT[] = {
+/*********************************/
+/*    from  to    eq          verify          gen             reg   fu*/
+_Un( ANY,  ANY,  NONE ),     V_NO,           R_MOVI8PT,     RG_,   FU_NO,
+};
 
 static  opcode_entry    CRtn[] = {
 /********************************/
@@ -220,25 +230,27 @@ _Un( ANY,  ANY,  NONE ),     V_NO,           R_MAKECALL,     RG_,   FU_NO,
 };
 
 static opcode_entry     *CvtAddr[] = {
-        &C2to1,
-        &C4to1,
-        &C4to2,
-        &C8to4,
-        &C8to4,
-        &S1to2,
-        &S1to4,
-        &S1to8,
-        &S2to4,
-        &S2to8,
-        &S4to8,
-        &Z1to2,
-        &Z1to4,
-        &Z1to8,
-        &Z2to4,
-        &Z2to8,
-        &Z4to8,
-        &ExtPT,
-        &ChpPT,
+        C2to1,
+        C4to1,
+        C4to2,
+        C8to4,
+        C8to4,
+        S1to2,
+        S1to4,
+        S1to8,
+        S2to4,
+        S2to8,
+        S4to8,
+        Z1to2,
+        Z1to4,
+        Z1to8,
+        Z2to4,
+        Z2to8,
+        Z4to8,
+        ExtPT,
+        ChpPT,
+        PTtoI8,
+        I8toPT,
         };
 
 static  rt_class         CvtTable[] = {
@@ -250,9 +262,9 @@ Z1TO2, S1TO2, OK,    OK,    C4TO2, C4TO2, C8TO2, C8TO2, CU4,   BAD,   CU4,   CU4
 Z1TO2, S1TO2, OK,    OK,    C4TO2, C4TO2, C8TO2, C8TO2, CU4,   BAD,   CI4,   CI4,   CI4,     /* I2*/
 Z1TO4, S1TO4, Z2TO4, S2TO4, OK,    OK,    C8TO4, C8TO4, CHP_PT,BAD,   C_S_U, C_D_U, C_D_U,   /* U4*/
 Z1TO4, S1TO4, Z2TO4, S2TO4, OK,    OK,    C8TO4, C8TO4, CU4,   BAD,   C_S_4, C_D_4, C_D_4,   /* I4*/
-Z1TO8, S1TO8, Z2TO8, S2TO8, Z4TO8, S4TO8, OK,    OK,    BAD,   BAD,   C_S_U8,C_D_U8,C_D_U8,  /* U8*/
-Z1TO8, S1TO8, Z2TO8, S2TO8, Z4TO8, S4TO8, OK,    OK,    BAD,   BAD,   C_S_I8,C_D_I8,C_D_I8,  /* I8*/
-CU4,   CI4,   CU4,   CI4,   EXT_PT,CU4,   EXT_PT,CU4,   OK,    BAD,   BAD,   BAD,   BAD,     /* CP*/
+Z1TO8, S1TO8, Z2TO8, S2TO8, Z4TO8, S4TO8, OK,    OK,    PTTOI8,BAD,   C_S_U8,C_D_U8,C_D_U8,  /* U8*/
+Z1TO8, S1TO8, Z2TO8, S2TO8, Z4TO8, S4TO8, OK,    OK,    PTTOI8,BAD,   C_S_I8,C_D_I8,C_D_I8,  /* I8*/
+CU4,   CI4,   CU4,   CI4,   EXT_PT,CU4,   I8TOPT,I8TOPT,OK,    BAD,   BAD,   BAD,   BAD,     /* CP*/
 BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,     /* PT*/
 CU4,   CI4,   CU4,   CI4,   C_U4_S,C_I4_S,C_U8_S,C_I8_S,BAD,   BAD,   OK,    C_D_S, C_D_S,   /* FS*/
 CU4,   CI4,   CU4,   CI4,   C_U4_D,C_I4_D,C_U8_D,C_I8_D,BAD,   BAD,   C_S_D, OK,    OK,      /* FD*/
@@ -268,9 +280,9 @@ Z1TO2, S1TO2, OK,    OK,    C4TO2, C4TO2, C8TO2, C8TO2, CU4,   BAD,   CU4,   CU4
 Z1TO2, S1TO2, OK,    OK,    C4TO2, C4TO2, C8TO2, C8TO2, CU4,   BAD,   CI4,   CI4,   CI4,     /* I2*/
 Z1TO4, S1TO4, Z2TO4, S2TO4, OK,    OK,    C8TO4, C8TO4, CHP_PT,BAD,   FPOK,  FPOK,  FPOK,    /* U4*/
 Z1TO4, S1TO4, Z2TO4, S2TO4, OK,    OK,    C8TO4, C8TO4, CU4,   BAD,   FPOK,  FPOK,  FPOK,    /* I4*/
-Z1TO8, S1TO8, Z2TO8, S2TO8, Z4TO8, S4TO8, OK,    OK,    BAD,   BAD,   C7S_U8,C7D_U8,C7D_U8,  /* U8*/
-Z1TO8, S1TO8, Z2TO8, S2TO8, Z4TO8, S4TO8, OK,    OK,    BAD,   BAD,   FPOK,  FPOK,  FPOK,    /* I8*/
-CU4,   CI4,   CU4,   CI4,   EXT_PT,CU4,   EXT_PT,CU4,   OK,    BAD,   BAD,   BAD,   BAD,     /* CP*/
+Z1TO8, S1TO8, Z2TO8, S2TO8, Z4TO8, S4TO8, OK,    OK,    PTTOI8,BAD,   C7S_U8,C7D_U8,C7D_U8,  /* U8*/
+Z1TO8, S1TO8, Z2TO8, S2TO8, Z4TO8, S4TO8, OK,    OK,    PTTOI8,BAD,   FPOK,  FPOK,  FPOK,    /* I8*/
+CU4,   CI4,   CU4,   CI4,   EXT_PT,CU4,   I8TOPT,I8TOPT,OK,    BAD,   BAD,   BAD,   BAD,     /* CP*/
 BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,   BAD,     /* PT*/
 CU4,   CI4,   CU4,   FPOK,  FPOK,  FPOK,  C7U8_S,FPOK,  BAD,   BAD,   FPOK,  FPOK,  FPOK,    /* FS*/
 CU4,   CI4,   CU4,   FPOK,  FPOK,  FPOK,  C7U8_D,FPOK,  BAD,   BAD,   FPOK,  FPOK,  FPOK,    /* FD*/
@@ -357,7 +369,7 @@ extern  instruction     *rDOCVT( instruction *ins ) {
         ins->table = CvtAddr[  how - ( OK + 1 )  ];
         new_ins = ins;
     } else {
-        ins->table = &CRtn;
+        ins->table = CRtn;
         RoutineNum = how - BEG_RTNS;
         new_ins = ins;
     }

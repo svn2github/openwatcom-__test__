@@ -216,12 +216,11 @@ local SYM_HANDLE FuncDecl( SYMPTR sym, stg_classes stg_class, decl_state *state 
                     old_sym.defn_file_index = sym->defn_file_index;
                 }
             }
-            if( (sym->attrib & FLAG_LANGUAGES) != (old_sym.attrib & FLAG_LANGUAGES) ) {
-                // just inherit old lang flags
-                // if new != 0 then it's possible someone saw a different prototype
-                if( (sym->attrib & FLAG_LANGUAGES) != 0 ) {
-                    CErr2p( ERR_MODIFIERS_DISAGREE, sym->name );
-                }
+            // check lang flags to make sure no one saw an incompatible prototype; if
+            // previous prototype specified calling convention and later definition does
+            // not, propagate the convention from the prototype
+            if( (sym->attrib & FLAG_LANGUAGES) && !ChkCompatibleLanguage( sym->attrib, old_sym.attrib ) ) {
+                CErr2p( ERR_MODIFIERS_DISAGREE, sym->name );
             }
             if( (sym->attrib & FLAG_INLINE) != (old_sym.attrib & FLAG_INLINE) ) {
                 old_sym.attrib |= FLAG_INLINE; //either is inline
@@ -522,7 +521,7 @@ new_var:
 local void AdjSymTypeNode( SYMPTR sym, type_modifiers decl_mod )
 {
     TYPEPTR     typ;
-    
+
     if( decl_mod ) {
         typ = sym->sym_type;
         if( typ->decl_type == TYPE_FUNCTION ) {
@@ -542,7 +541,7 @@ local void AdjSymTypeNode( SYMPTR sym, type_modifiers decl_mod )
             }
         } else {
             TYPEPTR     *xtyp;
-            
+
             xtyp = &sym->sym_type;
             while( ( typ->object != NULL ) && ( typ->decl_type == TYPE_POINTER ) ) {
                 xtyp = &typ->object;
@@ -557,7 +556,11 @@ local void AdjSymTypeNode( SYMPTR sym, type_modifiers decl_mod )
                     }
                 }
             } else {
-                CErr1( ERR_INVALID_DECLSPEC );
+                if( sym->attrib & FLAG_LANGUAGES ) {
+                    CErr1( ERR_INVALID_DECLSPEC );
+                } else {
+                    sym->attrib |= decl_mod;
+                }
             }
         }
     }
@@ -1345,8 +1348,14 @@ static TYPEPTR DeclPart3( TYPEPTR typ, type_modifiers mod )
         }
     } else {
         NextToken();    /* skip over ')' */
-        /* Non-prototype declarators are obsolescent too */
-        CWarn1( WARN_OBSOLETE_FUNC_DECL, ERR_OBSOLETE_FUNC_DECL );
+        /* Non-prototype declarators are obsolescent too; however, __interrupt
+         * functions have a special exemption due to messy historical usage,
+         * with variants both with and without arguments in use. Note that
+         * __interrupt functions are unlikely to be called directly.
+         */
+        if( !(mod & FLAG_INTERRUPT) ) {
+            CWarn1( WARN_OBSOLETE_FUNC_DECL, ERR_OBSOLETE_FUNC_DECL );
+        }
     }
     if( typ != NULL ) {                                 /* 09-apr-90 */
         TYPEPTR     typ2;
