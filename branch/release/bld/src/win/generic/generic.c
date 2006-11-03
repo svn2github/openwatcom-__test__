@@ -1,4 +1,7 @@
 #include <windows.h>
+#ifdef __NT__
+#include <commctrl.h>   // for InitCommonControls()
+#endif
 #include <stdio.h>
 #include <malloc.h>
 #include "generic.h"
@@ -49,6 +52,9 @@ static BOOL FirstInstance( HINSTANCE this_inst )
     WNDCLASS    wc;
     BOOL        rc;
 
+#ifdef __NT__
+    InitCommonControls();
+#endif
     /*
      * set up and register window class
      */
