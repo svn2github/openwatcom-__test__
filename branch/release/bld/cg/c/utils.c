@@ -31,26 +31,26 @@
 
 #include "standard.h"
 
-#if (defined(__386__) || defined(M_I86)) && defined(__WATCOMC__)
+#if defined( _M_IX86 ) && defined(__WATCOMC__)
 
 #include "cypfunc.h"
 
 extern  byte    *Copy( byte *x, byte *y, uint len ) {
 /***************************************************/
 
-    return(  CypCopy( x, y, len ) );
+    return( CypCopy( x, y, len ) );
 }
 
 extern  bool    Equal( char *src, char *dst, int length ) {
 /*********************************************************/
 
-    return( CypEqual( src, dst, length ) );
+    return( CypEqual( (byte *)src, (byte *)dst, length ) );
 }
 
 extern  char    *CopyStr( char *src, char *dst ) {
 /************************************************/
 
-    return( CypCopy( src, dst, CypLength( src ) + 1 ) - 1 );
+    return( (char *)CypCopy( (byte *)src, (byte *)dst, CypLength( src ) + 1 ) - 1 );
 }
 
 extern  uint    Length( char *string ) {

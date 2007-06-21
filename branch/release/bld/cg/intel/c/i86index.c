@@ -30,12 +30,12 @@
 
 
 #include "standard.h"
+#include "cgdefs.h"
 #include "coderep.h"
 #include "procdef.h"
 #include "conflict.h"
 #include "pattern.h"
 #include "opcodes.h"
-#include "sysmacro.h"
 #include "regset.h"
 #include "model.h"
 #include "feprotos.h"

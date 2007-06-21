@@ -101,7 +101,7 @@ STATIC TOKEN_T lexLongFilePathName( STRM_T t, TOKEN_T tok )
 #ifdef __WATCOMC__
 #pragma on (check_stack);
 #endif
-extern TOKEN_T LexPath( STRM_T t )
+TOKEN_T LexPath( STRM_T t )
 /*********************************
  * returns: ({filec}*";")+          TOK_PATH
  *          EOL                     EOL
@@ -154,6 +154,10 @@ extern TOKEN_T LexPath( STRM_T t )
 
                 if( t == DOUBLEQUOTE ) {
                     path[pos++] = DOUBLEQUOTE;
+                } else if( t == EOL || t == STRM_END ) {
+                    // Handle special case when backslash is placed at end of
+                    // line or file
+                    path[pos++] = BACKSLASH;
                 } else {
                     path[pos++] = BACKSLASH;
 
@@ -605,7 +609,7 @@ STATIC char *DeMacroDoubleQuote( BOOLEAN IsDoubleQuote )
 }
 
 
-extern TOKEN_T LexParser( TOKEN_T t )
+TOKEN_T LexParser( TOKEN_T t )
 /************************************
  * returns: next token for parser
  * remarks: possibly defines a macro

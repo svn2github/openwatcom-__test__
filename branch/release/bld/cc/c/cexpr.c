@@ -173,7 +173,7 @@ extern op_flags OpFlags( type_modifiers flags )
 {
     op_flags      ops;
 
-    ops = 0;
+    ops = OPFLAG_NONE;
     if( flags & FLAG_CONST )    ops |= OPFLAG_CONST;
     if( flags & FLAG_VOLATILE ) ops |= OPFLAG_VOLATILE;
     if( flags & FLAG_UNALIGNED )ops |= OPFLAG_UNALIGNED;
@@ -571,6 +571,8 @@ local TREEPTR TakeRValue( TREEPTR tree, int void_ok )
             }
         } else if( tree->op.opr == OPR_POINTS ) {
             decl_flags = tree->op.result_type->u.p.decl_flags;
+        } else {
+            decl_flags = FLAG_NONE;
         }
         tree = ExprNode( NULL, OPR_ADDROF, tree );
         tree->expr_type = PtrNode( typ, decl_flags, 0 );
@@ -778,6 +780,9 @@ static TREEPTR FarPtrCvt( SYMPTR sym, SYM_HANDLE sym_handle )
             tree->expr_type = typ;
             tree->op.result_type = PtrNode( typ->object, FLAG_FAR, 0 );
         }
+    } else {
+        assert( 0 );
+	tree = NULL;
     }
     return( tree );
 }
@@ -1719,7 +1724,7 @@ local int LValueArray( TREEPTR tree )
 local TREEPTR GenIndex( TREEPTR tree, TREEPTR index_expr )
 {
     TYPEPTR         typ;
-    type_modifiers  tree_flags;
+    op_flags        tree_flags;
 
 //  if( ! LValueArray( tree ) ) {
 //      CErr1( ERR_CANT_TAKE_ADDR_OF_RVALUE );
@@ -1731,6 +1736,9 @@ local TREEPTR GenIndex( TREEPTR tree, TREEPTR index_expr )
         CErr1( ERR_EXPR_MUST_BE_INTEGRAL );
         FreeExprTree( tree );
         return( ErrorNode( index_expr ) );
+    }
+    if( TypeOf( index_expr )->type_flags & TF2_TYPE_PLAIN_CHAR ) {
+        CWarn1( WARN_PLAIN_CHAR_SUBSCRIPT, ERR_PLAIN_CHAR_SUBSCRIPT );
     }
     typ = tree->expr_type;
     SKIP_TYPEDEFS( typ );
@@ -1744,6 +1752,7 @@ local TREEPTR GenIndex( TREEPTR tree, TREEPTR index_expr )
         tree_flags = OpFlags( flags );
     } else {
         CErr2p( ERR_FATAL_ERROR, "Bad array index tree" );
+	tree_flags = OPFLAG_NONE;
     }
     typ = typ->object;
     SKIP_TYPEDEFS( typ );
@@ -2263,7 +2272,7 @@ local TREEPTR StartFunc( TREEPTR tree, TYPEPTR **plistptr )
     TYPEPTR             *parms;
     type_modifiers      decl_flags;
     char                recursive = 0;
-    unsigned char       opr;
+    opr_code            opr;
     SYM_HANDLE          sym_handle;
     SYM_ENTRY           sym;
 

@@ -441,7 +441,7 @@ typedef         unsigned char           ATTR;
     typedef PIXEL *LPPIXEL;
     #define __FAR
     #undef HAVE_FAR
-#elif defined(__386__) || defined(M_I86)
+#elif defined( _M_IX86 )
     typedef struct pixel {
             char            ch;
             ATTR            attr;
@@ -694,7 +694,7 @@ extern          EVENT           uikeyboardevent( void );
 extern          int             uimouseinstalled( void );
 
 extern          int             FlipCharacterMap( void );
-extern          int             UIMapCharacters( char mapchar[], char mapdata[][16] );
+extern          int             UIMapCharacters( char mapchar[], unsigned char mapdata[][16] );
 
 extern          void            uiyield( void );
 extern          int             uiforceevadd( EVENT );  // int is a bool

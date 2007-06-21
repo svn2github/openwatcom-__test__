@@ -78,6 +78,8 @@ int             SkipDialogs;
 char            *VariablesFile;
 DEF_VAR         *ExtraVariables;
 int             Invisible;
+int             NoProgramGroups;
+int             NoStartupChange;
 
 #ifdef PATCH
 extern int      InitIO( void );
@@ -96,6 +98,10 @@ extern bool ModifyEnvironment( bool uninstall )
 #ifdef _UI
     uninstall = uninstall;
 #else
+
+    if(NoProgramGroups)
+        return TRUE;
+
     ret = CreatePMInfo( uninstall );
     if( !ret ) {                   // create folder and icons
         gui_message_return  gui_ret;
@@ -117,6 +123,9 @@ extern bool ModifyStartup( bool uninstall )
 /*****************************************/
 {
     bool                ret;
+
+    if(NoStartupChange)
+        return TRUE;
 
 #if !defined( _UI )
     WriteProfileStrings( uninstall );  // will write to the win.ini file.
@@ -2203,11 +2212,37 @@ extern bool GetDirParams( int       argc,
     SkipDialogs         = FALSE;
     VariablesFile       = NULL;
     ExtraVariables      = NULL;
+    NoProgramGroups     = FALSE;
+    NoStartupChange     = FALSE;
     i                   = 1;
 
     while( i < argc ) {
         if( argv[i][0] == '-' || argv[i][0] == '/' ) {
             switch( argv[i][1] ) {
+            case '?':
+            {            
+                char * msg = "Usage: @ [-options]\n\n" \
+                    "Supported options (case insensitive):\n\n" \
+                    "-f=script\t\tspecify script file to override setup.inf\n" \
+                    "-d<name=val>\tdefine a variable for the installer\n" \
+                    "-i\t\tinvisible: shows no dialogs; infers -s\n" \
+                    "-s\t\tskips dialogs but shows install progress\n" \
+                    "-np\t\tdoes not create Program Manager entries\n" \
+                    "-ns\t\tdoes not register startup information (paths, environment)\n" ;
+
+#if 0  /* If SetupInit is called, the dialog is shown on the big blue window */
+                if( !SetupInit() ) 
+                    return FALSE;
+#endif
+
+                InitGlobalVarList();
+                SetVariableByName( "IDS_USAGE", "%s");
+                MsgBox( NULL, "IDS_USAGE", GUI_OK, msg );
+                
+                /* return FALSE to terminate installer */
+                return FALSE;
+            }
+            
             case 'f': // Process "script" file to override variables in setup.inf
             case 'F':
                 if( argv[i][2] == '=' && argv[i][3] != '\0'
@@ -2228,6 +2263,14 @@ extern bool GetDirParams( int       argc,
             case 'S':
                 SkipDialogs = TRUE;
                 break;
+                
+            case 'n':
+            case 'N':
+                if(argv[i][2] == 's' || argv[i][2] == 'S')
+                    NoStartupChange = TRUE;
+                else if(argv[i][2] == 'p' || argv[i][2] == 'P')
+                    NoProgramGroups = TRUE;
+                break; 
             }
 
             i++;

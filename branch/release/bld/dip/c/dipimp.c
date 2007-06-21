@@ -191,14 +191,14 @@ int PASCAL WinMain( HINSTANCE this_inst, HINSTANCE prev_inst,
     }
     link->load = (INTER_FUNC *)MakeProcInstance( (FARPROC)DIPLOAD, this_inst );
     link->unload = (INTER_FUNC *)MakeProcInstance( (FARPROC)DIPUNLOAD, this_inst );
-    while( GetMessage( &msg, NULL, NULL, NULL ) ) {
+    while( GetMessage( &msg, NULL, 0, 0 ) ) {
         TranslateMessage( &msg );
         DispatchMessage( &msg );
     }
 
     return( 0 );
 }
-#elif defined( M_I86 )
+#elif defined( _M_I86 )
 #pragma aux DIPLOAD "*" loadds
 #else
 /* nothing to do for Alpha, PowerPC etc. */

@@ -31,8 +31,10 @@
 
 
 #include <os2.h>
+#include "clibint.h"
+
 char *ImageName;
-extern char * _LpDllName;
+
 unsigned __dll_initialize()
 {
     ImageName = _LpDllName;

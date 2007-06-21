@@ -34,8 +34,8 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include "wpack.h"
-#ifdef UNIX
-#include <clibext.h>
+#ifndef __WATCOMC__
+#include "clibext.h"
 #endif
 
 // external function declarations
@@ -51,7 +51,7 @@ extern int              QOpenR( char * );
 extern unsigned long    QFileLen( int );
 extern unsigned long    QGetDate( int );
 extern unsigned_32      GetCRC( void );
-extern void             LinkList( void **, void * );
+extern void             LinkList( void *, void * );
 extern void             QClose( int );
 extern void             QSeek( int, signed long, int );
 extern int              QWrite( int, void *, int );
@@ -98,7 +98,7 @@ static void *           AltBuffer;
 unsigned long    codesize;
 
 #if defined( __WATCOMC__ ) && defined( __386__ )
-unsigned fastcmp( char *src, char *dst, int *cmp );
+unsigned fastcmp( unsigned char *src, unsigned char *dst, int *cmp );
 
 #pragma aux fastcmp parm [esi] [edi] [edx] modify exact [eax ebx] value [ecx] = \
         "       xor ecx,ecx" \

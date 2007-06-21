@@ -285,7 +285,7 @@ bool GUIProcessControlMsg( WPI_PARAM1 wparam, WPI_PARAM2 lparam,
  *                 boxes
  */
 
-#if defined( UNIX )
+#if defined( __UNIX__ )
 long GUIDialogFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wparam, WPI_PARAM2 lparam )
 #else
 WPI_DLGRESULT CALLBACK GUIDialogFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wparam, WPI_PARAM2 lparam )
@@ -699,7 +699,7 @@ bool GUIXCreateDialog( gui_create_info *dialog, gui_window *wnd,
             GlobalFree( data );
             return( FALSE );
         }
-        if( GUIControlInsert( wnd, control->control_class, NULL, control,
+        if( GUIControlInsert( wnd, control->control_class, NULLHANDLE, control,
                               NULL ) == NULL ) {
             GlobalFree( data );
             return( FALSE );
@@ -732,7 +732,7 @@ static WPI_FONT         DlgFont;
  *
  */
 
-#if defined( UNIX )
+#if defined( __UNIX__ )
 long GUIInitDialogFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wparam, WPI_PARAM2 lparam )
 #else
 WPI_DLGRESULT CALLBACK GUIInitDialogFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wparam, WPI_PARAM2 lparam )
@@ -823,7 +823,7 @@ void GUIInitDialog( void )
                            LIT( Empty ), LIT( Empty ), PointSize, Font );
     if( data != NULL ) {
         data = DoneAddingControls( data );
-        DynamicDialogBox( (LPVOID) GUIInitDialogFunc, GUIMainHInst, NULL, data, 0 );
+        DynamicDialogBox( (LPVOID) GUIInitDialogFunc, GUIMainHInst, NULLHANDLE, data, 0 );
     }
 }
 

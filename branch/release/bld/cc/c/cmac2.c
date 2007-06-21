@@ -229,7 +229,7 @@ void CInclude( void )
             CompFlags.use_precompiled_header = 1;
         }
     }
-    if( CompFlags.make_precompiled_header ) {
+    if( CompFlags.use_precompiled_header ) {
         InitBuildPreCompiledHeader();
     }
     InitialMacroFlag = 0;
@@ -363,10 +363,11 @@ local void GrabTokens( int parm_cnt, struct macro_parm *formal_parms, const char
     MEPTR       mentry;
     int         i;
     int         j;
-    int         prev_token;
+    TOKEN       prev_token;
     int         prev_non_ws_token;
     unsigned    mlen;
     int         has_var_args = 0;
+    TOKEN       *p_token;
 
     j = strlen( mac_name ) + 1;
     mentry = (MEPTR)CMemAlloc( sizeof( MEDEFN ) + j );
@@ -396,23 +397,25 @@ local void GrabTokens( int parm_cnt, struct macro_parm *formal_parms, const char
         if( (CurToken == T_STRING) && CompFlags.wide_char_string ) {
             CurToken = T_LSTRING;                   /* 15-may-92 */
         }
-        TokenBuf[i++] = CurToken;
+        p_token = (TOKEN *)&TokenBuf[i];
+        *p_token = CurToken;
+        i += sizeof( TOKEN );
         if( CurToken == T_NULL ) break;
         if( CurToken == T_EOF )  break;
         switch( CurToken ) {
         case T_SHARP:
             /* if it is a function-like macro definition */
             if( parm_cnt != 0 ) {
-                TokenBuf[i-1] = T_MACRO_SHARP;
+                *p_token = T_MACRO_SHARP;
                 CurToken = T_MACRO_SHARP;           /* 26-mar-91 */
             }
             break;
         case T_SHARP_SHARP:
-            TokenBuf[i-1] = T_MACRO_SHARP_SHARP;
+            *p_token = T_MACRO_SHARP_SHARP;
             break;
         case T_WHITE_SPACE:
             if( prev_token == T_WHITE_SPACE )
-                --i;
+                i -= sizeof( TOKEN );
             break;
         case T_ID:
             j = FormalParm( formal_parms );
@@ -421,7 +424,7 @@ local void GrabTokens( int parm_cnt, struct macro_parm *formal_parms, const char
                     CurToken = T_MACRO_VAR_PARM;
                 else
                     CurToken = T_MACRO_PARM;
-                TokenBuf[i-1] = CurToken;
+                *p_token = CurToken;
                 TokenBuf[i] = j - 1;
                 ++i;
             } else {
@@ -432,8 +435,10 @@ local void GrabTokens( int parm_cnt, struct macro_parm *formal_parms, const char
             break;
         case T_BAD_CHAR:
             TokenBuf[i++] = Buffer[0];
-            if( Buffer[1] != '\0' )
-                TokenBuf[i++] = T_WHITE_SPACE;
+            if( Buffer[1] != '\0' ) {
+                *(TOKEN *)&TokenBuf[i] = T_WHITE_SPACE;
+                i += sizeof( TOKEN );
+            }
             break;
         case T_CONSTANT:
         case T_STRING:
@@ -452,10 +457,11 @@ local void GrabTokens( int parm_cnt, struct macro_parm *formal_parms, const char
                 CurToken != T_MACRO_PARM &&
                 CurToken != T_MACRO_VAR_PARM ) {
                 CErr1( ERR_MUST_BE_MACRO_PARM );
-                prev_token = TokenBuf[0];
-                TokenBuf[0] = T_SHARP;              /* 17-jul-92 */
-                MacroCopy( TokenBuf, MacroOffset + mlen - 1, 1 );
-                TokenBuf[0] = prev_token;
+                prev_token = *(TOKEN *)TokenBuf;
+                *(TOKEN *)TokenBuf = T_SHARP;               /* 17-jul-92 */
+                MacroCopy( TokenBuf, MacroOffset + mlen - sizeof( TOKEN ),
+                           sizeof( TOKEN ) );
+                *(TOKEN *)TokenBuf = prev_token;
             }
             prev_non_ws_token = CurToken;
         }
@@ -469,11 +475,11 @@ local void GrabTokens( int parm_cnt, struct macro_parm *formal_parms, const char
         CErr1( ERR_MUST_BE_MACRO_PARM );
     }
     if( prev_token == T_WHITE_SPACE ) {
-        --mlen;
+        mlen -= sizeof( TOKEN );
     }
-    MacroOverflow( mlen + 1, mlen );                /* 27-apr-94 */
-    *(char *)(MacroOffset + mlen) = T_NULL;
-    ++mlen;
+    MacroOverflow( mlen + sizeof( TOKEN ), mlen );
+    *(TOKEN *)(MacroOffset + mlen) = T_NULL;
+    mlen += sizeof( TOKEN );
     if( prev_non_ws_token == T_SHARP_SHARP ) {
         CErr1( ERR_MISPLACED_SHARP_SHARP );
     }
@@ -755,6 +761,7 @@ local void CLine( void )
     FNAMEPTR        flist;
     unsigned long   src_line;
 
+    src_line = 0;
     CompFlags.pre_processing = 1;
     PPNextToken();
     if( CurToken != T_CONSTANT ) {

@@ -189,7 +189,7 @@ static bool isCOMDEF32( void )
     return( (ObjFormat & FMT_32BIT_REC) != 0 );
 }
 
-extern void ProcComdef( bool isstatic )
+void ProcComdef( bool isstatic )
 /*************************************/
 {
     bool                is32bit = isCOMDEF32();
@@ -223,7 +223,7 @@ extern void ProcComdef( bool isstatic )
     }
 }
 
-extern void ProcLinsym( void )
+void ProcLinsym( void )
 /****************************/
 {
     list_of_names *     symname;
@@ -272,7 +272,7 @@ static void FinishComdat( void *inf )
     FreeCDatInfo( info );
 }
 
-extern void ResolveComdats( void )
+void ResolveComdats( void )
 /********************************/
 {
     RingWalk( CDatList, FinishComdat );
@@ -333,13 +333,13 @@ static void AddToLinkerComdat( symbol *sym )
 }
 #endif
 
-static offset CountIDBlock( char ** buffptr )
-/*******************************************/
+static offset CountIDBlock( unsigned_8 **buffptr )
+/************************************************/
 /* this finds the length of an individual lidata block */
 {
     offset      repeat;
     offset      size;
-    char *      buff;
+    unsigned_8  *buff;
     unsigned_16 count;
 
     buff = *buffptr;
@@ -372,7 +372,7 @@ static offset CalcLIDataLength( void )
 /* this finds the length of the equivalent of an lidata record */
 {
     offset      total;
-    char *      buff;
+    unsigned_8  *buff;
 
     total = 0;
     buff = ObjBuff;
@@ -402,7 +402,7 @@ static bool CheckSameComdat( void *info, void *sym )
 
 #define ST_COMDAT (ST_REFERENCE | ST_CREATE | ST_NOALIAS)
 
-extern void ProcComdat( void )
+void ProcComdat( void )
 /****************************/
 /* process a comdat record */
 {

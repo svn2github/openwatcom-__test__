@@ -45,34 +45,10 @@
 #include "errcod.h"
 #include "ferror.h"
 #include "fctypes.h"
+#include "cgswitch.h"
+#define  BY_CLI
+#include "cgprotos.h"
 
-//=================== Back End Code Generation Routines ====================
-
-extern  label_handle    BENewLabel(void);
-extern  back_handle     BENewBack(sym_handle);
-extern  void            BEFiniBack(back_handle);
-extern  void            BEFreeBack(back_handle);
-extern  void            BEFiniLabel(label_handle);
-extern  void            CGControl(cg_op,cg_name,label_handle);
-extern  void            CGDone(cg_name);
-extern  cg_name         CGAssign(cg_name,cg_name,cg_type);
-extern  cg_name         CGUnary(cg_op,cg_name,cg_type);
-extern  cg_name         CGFEName(sym_handle,cg_type);
-extern  cg_name         CGInteger(signed_32,cg_type);
-extern  cg_name         CGBackName(back_handle,cg_type);
-extern  cg_name         CGCompare(cg_op,cg_name,cg_name,cg_type);
-extern  cg_name         CG3WayControl(cg_name,label_handle,label_handle,
-                                      label_handle);
-extern  cg_name         CGWarp(cg_name,label_handle,cg_name);
-extern  cg_name         CGBinary(cg_op,cg_name,cg_name,cg_type);
-extern  void            CGTrash(cg_name);
-extern  sel_handle      CGSelInit(void);
-extern  void            CGSelCase(sel_handle,label_handle,signed_32);
-extern  void            CGSelect(sel_handle,cg_name);
-extern  void            CGSelOther(sel_handle,label_handle);
-extern  cg_name         CGEval(cg_name);
-
-//=========================================================================
 
 extern  cg_name         XPopValue(cg_type);
 extern  cg_name         XPop(void);
@@ -115,7 +91,7 @@ void    FiniLabels( int label_type ) {
     label_entry **owner;
     label_entry *curr;
 
-    owner = &LabelList;
+    owner = (label_entry **)&LabelList;
     for(;;) {
         curr = *owner;
         if( curr == NULL ) break;
@@ -603,7 +579,7 @@ void    DoneLabel( label_id label ) {
     label_entry **owner;
     label_entry *curr;
 
-    owner = &LabelList;
+    owner = (label_entry **)&LabelList;
     for(;;) {
         curr = *owner;
         if( curr->label == label ) break;

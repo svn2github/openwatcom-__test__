@@ -24,13 +24,12 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Internal definitions for bdiff tool.
 *
 ****************************************************************************/
 
 
-#ifndef UNIX
+#ifndef __UNIX__
 #include <conio.h>
 #endif
 #include <ctype.h>
@@ -68,7 +67,6 @@ typedef enum {
 } patch_cmd;
 
 #define s(x) #x
-#define assert( x )
 //if( !(x) ) printf("Internal error @" s(__LINE__) ": \n");
 
 /*

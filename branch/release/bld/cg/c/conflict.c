@@ -31,10 +31,10 @@
 
 
 #include "standard.h"
+#include "cgdefs.h"
 #include "coderep.h"
 #include "conflict.h"
 #include "opcodes.h"
-#include "sysmacro.h"
 #include "regset.h"
 #include "model.h"
 #include "freelist.h"
@@ -47,7 +47,7 @@ extern  reg_set_index   SegIndex(void);
 extern  name            *DeAlias(name*);
 
 extern  conflict_node   *ConfList;
-static  pointer         ConfFrl;
+static  pointer         *ConfFrl;
 
 /* forward declarations */
 extern  void    MarkPossible( instruction *ins,

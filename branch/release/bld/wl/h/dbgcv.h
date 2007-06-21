@@ -39,12 +39,12 @@ extern void     CVGenModule( void );
 extern void     CVAddLocal( unsigned_16, offset );
 extern void     CVAddGlobal( symbol * );
 extern void     CVGenGlobal( symbol *, section * );
-extern void     CVGenLines( segdata *, void *, unsigned, bool );
+extern void     CVGenLines( lineinfo * );
 extern void     CVAddAddrInfo( seg_leader * );
 extern void     CVGenAddrInfo( seg_leader * );
 extern void     CVAddrStart( void );
 extern void     CVDefClass( class_entry *, unsigned_32 );
 extern void     CVFini( section * );
-extern void     CVWriteDBI( void );
+extern void     CVWrite( void );
 
 extern unsigned_32      CVSize;

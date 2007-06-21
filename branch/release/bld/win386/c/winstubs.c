@@ -193,7 +193,7 @@ int FAR PASCAL __Escape(HDC a, int b, int c, LPSTR d, LPSTR e)
      */
     if( b != SETABORTPROC ) {
         od = d;
-        GetAlias( &d );
+        GetAlias( (LPLPVOID)&d );
     }
     if( b == NEXTBAND ) {
         RECT    r;
@@ -239,7 +239,7 @@ int FAR PASCAL __GetInstanceData( HANDLE a, DWORD offset, int len )
     WORD        sel;
     char        ch;
 
-    got = GetInstanceData( a, (NPSTR) &MyDataSelector, sizeof( WORD ) );
+    got = GetInstanceData( a, (PBYTE) &MyDataSelector, sizeof( WORD ) );
     if( got == 2 ) {
         sel = MyDataSelector;
         MyDataSelector = DataSelector;

@@ -48,7 +48,7 @@ extern  WPI_INST        GUIMainHInst;
 extern  gui_window      *GUICurrWnd;
 extern  bool            EditControlHasFocus;
 
-#if defined( UNIX )
+#if defined( __UNIX__ )
 long GUIEditFunc( HWND, WPI_MSG, WPI_PARAM1, WPI_PARAM2 );
 long GUIGroupBoxFunc( HWND, WPI_MSG, WPI_PARAM1, WPI_PARAM2 );
 #else
@@ -285,7 +285,7 @@ void GUIControlDeleteAll( gui_window *wnd )
  * GUIEditFunc - callback function for all edit windows
  */
 
-#if defined( UNIX )
+#if defined( __UNIX__ )
 long GUIEditFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wparam, WPI_PARAM2 lparam )
 #else
 WPI_MRESULT CALLBACK GUIEditFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wparam, WPI_PARAM2 lparam )
@@ -401,7 +401,7 @@ WPI_MRESULT CALLBACK GUIEditFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wparam,
  * GUIGroupBoxFunc - callback function for all GroupBox windows
  */
 
-#if defined( UNIX )
+#if defined( __UNIX__ )
 long GUIGroupBoxFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wparam, WPI_PARAM2 lparam )
 #else
 WPI_MRESULT CALLBACK GUIGroupBoxFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wparam, WPI_PARAM2 lparam )
@@ -428,7 +428,7 @@ WPI_MRESULT CALLBACK GUIGroupBoxFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wpa
     case WM_ERASEBKGND:
         hdc = _wpi_getpres( hwnd );
         _wpi_getupdaterect( hwnd, &rect );
-        _wpi_fillrect( hdc, &rect, NULL, wnd->bk_brush );
+        _wpi_fillrect( hdc, &rect, NULLHANDLE, wnd->bk_brush );
         _wpi_releasepres( hwnd, hdc );
         break;
     }

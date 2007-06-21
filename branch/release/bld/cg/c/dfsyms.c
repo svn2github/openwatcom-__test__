@@ -35,7 +35,7 @@
 #include "pattern.h"
 #include "procdef.h"
 #include "cgdefs.h"
-#include "sysmacro.h"
+#include "cgmem.h"
 #include "symdbg.h"
 #include "model.h"
 #include "ocentry.h"
@@ -293,7 +293,7 @@ static void CLIReloc( dw_sectnum sect, dw_relocs reloc_type, ... ){
     case DW_W_UNIT_SIZE:
         UnitSize->segment = curr->seg;
         UnitSize->offset =  AskBigLocation();
-        DataBytes( sizeof( uint_32 ), (char *)&zero );
+        DataBytes( sizeof( uint_32 ), (byte *)&zero );
         break;
     case DW_W_SECTION_POS:
         section = va_arg( args, uint );
@@ -328,7 +328,7 @@ static void *CLIAlloc( size_t size ) {
 
 static void CLIFree( void *p ) {
 
-    CGFreeSize( p, 0 );
+    CGFree( p );
 }
 
 static bck_info  *MakeLabel( void ){
@@ -559,7 +559,7 @@ extern  void    DFObjInitInfo( void ) {
     }
     info.language = DWLANG_C;
     info.compiler_options = DW_CM_DEBUGGER;
-    info.abbrev_sym = NULL;
+    info.abbrev_sym = 0;
     info.producer_name = "WATCOM";
     info.language = SetLang();
     if( setjmp( info.exception_handler ) == 0 ) {
@@ -625,7 +625,7 @@ extern  void    DFObjLineInitInfo( void ) {
 
     info.language = DWLANG_C;
     info.compiler_options = DW_CM_DEBUGGER;
-    info.abbrev_sym = NULL;
+    info.abbrev_sym = 0;
     info.producer_name = "WATCOM";
     info.language = SetLang();
     if( setjmp( info.exception_handler ) == 0 ) {
@@ -637,7 +637,7 @@ extern  void    DFObjLineInitInfo( void ) {
         }
         cu.source_filename = FEAuxInfo( NULL, SOURCE_NAME );
         cu.directory = "";
-        cu.dbg_pch   = NULL;
+        cu.dbg_pch   = 0;
         cu.inc_list = NULL;
         cu.inc_list_len = 0;
 #if _TARGET &( _TARG_IAPX86 | _TARG_80386 )
@@ -683,10 +683,10 @@ extern pointer _CGAPI DFClient( void ) {
     return( Client );
 }
 //TODO: maybe this should be some sort of call back
-extern void DFDwarfLocal( dw_client client, dw_loc_id locid, sym_handle sym ){
-/*** add to location expr where local sym is *************************/
+extern void _CGAPI DFDwarfLocal( pointer client, pointer locid, sym_handle sym ){
+/*** add to location expr where local sym is ***********************************/
     name        *tmp;
-    type_length     offset;
+    type_length offset;
 
     tmp = DeAlias( AllocUserTemp( sym, XX ) );
     offset = NewBase( tmp );
@@ -803,7 +803,7 @@ extern  void    DFGenStatic( sym_handle sym, dbg_loc loc ) {
     dbtype = FEDbgType( sym ); /* causes name side effects */
     dw_loc = DBGLoc2DF( loc );
     obj = DWVariable( Client, dbtype, dw_loc,
-                NULL, dw_segloc, name, NULL, flags );
+                0, dw_segloc, name, 0, flags );
     if( attr &  FE_GLOBAL ){
         name = FEName( sym );
         DWPubname( Client, obj, name );
@@ -828,7 +828,7 @@ static  void    GenRetSym( dbg_loc loc, dbg_type tipe ) {
     dw_loc = DBGLoc2DF( loc );
     if( dw_loc != NULL ){
         DWVariable( Client, tipe, dw_loc,
-                   NULL, NULL, ".return", NULL, DW_FLAG_ARTIFICIAL );
+                   0, NULL, ".return", 0, DW_FLAG_ARTIFICIAL );
         DWLocTrash( Client, dw_loc );
     }
 }
@@ -934,7 +934,7 @@ static  void GenParmLoc( dbg_local   *parm,
         }
         dw_loc = DBGLoc2DF( alt->loc );
         DBLocFini( alt->loc );
-        _Free( alt, sizeof( dbg_local ) );
+        CGFree( alt );
     }else{
         dw_loc = DBGLoc2DF( NULL );
     }
@@ -1044,7 +1044,7 @@ extern  void    DFProEnd( dbg_rtn *rtn, offset lc ) {
         DBLocFini( parm->loc );
         junk = parm;
         parm = parm->link;
-        _Free( junk, sizeof( dbg_local ) );
+        CGFree( junk );
     }
     if( rtn->reeturn != NULL ){
         GenRetSym( rtn->reeturn, tipe );
@@ -1119,7 +1119,7 @@ static  void    DumpLocals( dbg_local *local ) {
         }
         junk = local;
         local = local->link;
-        _Free( junk, sizeof( dbg_local ) );
+        CGFree( junk );
     }
 }
 

@@ -160,7 +160,7 @@ STATIC size_t nestLevel;                // items on stack
 STATIC struct nestIf curNest;           // current skip info
 
 
-extern void PreProcInit( void )
+void PreProcInit( void )
 /*****************************/
 {
     StreamInit();
@@ -176,7 +176,7 @@ extern void PreProcInit( void )
 }
 
 
-extern void PreProcFini( void )
+void PreProcFini( void )
 /*****************************/
 {
     StreamFini();
@@ -1055,7 +1055,7 @@ static int PreTestString( const char *str )
 }
 
 
-extern STRM_T PreGetCH( void )
+STRM_T PreGetCH( void )
 /*****************************
  * returns: next character of input that is not a preprocessor directive
  * errors:  if an EOF occurs while nested
@@ -1084,7 +1084,7 @@ extern STRM_T PreGetCH( void )
 
             if( Glob.microsoft || Glob.posix ) {
                 /* Check for NMAKE and UNIX compatible 'include' directive */
-                if( t == 'i' && PreTestString( "nclude" ) ) {
+                if( t == 'i' && PreTestString( "nclude " ) ) {
                     UnGetCH( eatWhite() );
                     bangInclude();
                     t = GetCHR();
@@ -2015,7 +2015,7 @@ STATIC void multExpr( DATAVALUE *leftValue )
 }
 
 
-extern BOOLEAN existFile( char const *inPath )
+BOOLEAN existFile( char const *inPath )
 /*********************************************
  * This function is to determine whether or not a particular
  * filename / directory exists  (for use with EXIST())

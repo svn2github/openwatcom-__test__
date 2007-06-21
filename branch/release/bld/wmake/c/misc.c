@@ -42,13 +42,13 @@
 #include "massert.h"
 #include "mmemory.h"
 #include "mmisc.h"
-#include "mpathgrp.h"
+#include "pathgrp.h"
 #include "mtypes.h"
 #include "mlex.h"
 
 static ENV_TRACKER  *envList;
 
-extern char *SkipWS( char *p )
+char *SkipWS( char *p )
 /*****************************
  * p is not const because the return value is usually used to write data.
  */
@@ -59,7 +59,7 @@ extern char *SkipWS( char *p )
     return( p );
 }
 
-extern char *FindNextWS( char *str )
+char *FindNextWS( char *str )
 /***********************************
  * Finds next free white space character, allowing doublequotes to
  * be used to specify strings with white spaces.
@@ -98,7 +98,7 @@ extern char *FindNextWS( char *str )
     return( str );
 }
 
-extern char *RemoveDoubleQuotes( char *dst, int maxlen, const char *src )
+char *RemoveDoubleQuotes( char *dst, int maxlen, const char *src )
 /************************************************************************
  * Removes doublequote characters from string and copies other content
  * from src to dst. Only maxlen number of characters are copied to dst
@@ -160,7 +160,7 @@ extern char *RemoveDoubleQuotes( char *dst, int maxlen, const char *src )
     return( orgdst );
 }
 
-extern char *FixName( char *name )
+char *FixName( char *name )
 {
 #if defined( __DOS__ )
 /*********************************
@@ -230,7 +230,7 @@ extern char *FixName( char *name )
 }
 
 
-extern int FNameCmp( const char *a, const char *b )
+int FNameCmp( const char *a, const char *b )
 /*************************************************/
 {
 #if defined( __OS2__ ) || defined( __NT__ ) || defined( __DOS__ )
@@ -253,7 +253,7 @@ static int FNameCmpChr( char a, char b )
 
 
 #ifdef USE_FAR
-extern int _fFNameCmp( const char FAR *a, const char FAR *b )
+int _fFNameCmp( const char FAR *a, const char FAR *b )
 /***********************************************************/
 {
 #if defined( __OS2__ ) || defined( __NT__ ) || defined( __DOS__ )
@@ -376,25 +376,15 @@ static DIR  *parent = NULL;  /* we need this across invocations */
 static char *path = NULL;
 static char *pattern = NULL;
 
-extern const char *DoWildCard( const char *base )
+const char *DoWildCard( const char *base )
 /***********************************************/
 {
-    PGROUP          *pg;
+    PGROUP          pg;
     struct dirent   *entry;
 
     if( base != NULL ) {
-        if( path != NULL ) {        /* clean up from previous invocation */
-            FreeSafe( path );
-            path = NULL;            /* 1-jun-90 AFS */
-        }
-        if( pattern != NULL ) {
-            FreeSafe( pattern );
-            pattern = NULL;
-        }
-        if( parent != NULL ) {
-            closedir( parent );
-            parent = NULL;          /* 1-jun-90 AFS */
-        }
+        /* clean up from previous invocation */
+        DoWildCardClose();
 
         if( strpbrk( base, WILD_METAS ) == NULL ) {
             return( base );
@@ -404,18 +394,14 @@ extern const char *DoWildCard( const char *base )
         pattern = MallocSafe( _MAX_PATH );
         strcpy( path, base );
         FixName( path );
-        pg = SplitPath( path );
-        _makepath( path, pg->drive, pg->dir, ".", NULL );
+        _splitpath2( path, pg.buffer, &pg.drive, &pg.dir, &pg.fname, &pg.ext );
+        _makepath( path, pg.drive, pg.dir, ".", NULL );
         // create file name pattern
-        _makepath( pattern, NULL, NULL, pg->fname, pg->ext );
-        DropPGroup( pg );
+        _makepath( pattern, NULL, NULL, pg.fname, pg.ext );
 
         parent = opendir( path );
         if( parent == NULL ) {
-            FreeSafe( path );
-            path = NULL;
-            FreeSafe( pattern );
-            pattern = NULL;
+            DoWildCardClose();
             return( base );
         }
     }
@@ -440,24 +426,18 @@ extern const char *DoWildCard( const char *base )
         entry = readdir( parent );
     }
     if( entry == NULL ) {
-        closedir( parent );
-        parent = NULL;
-        FreeSafe( path );
-        path = NULL;                    /* 1-jun-90 AFS */
-        FreeSafe( pattern );
-        pattern = NULL;
+        DoWildCardClose();
         return( base );
     }
 
-    pg = SplitPath( path );
-    _makepath( path, pg->drive, pg->dir, entry->d_name, NULL );
-    DropPGroup( pg );
+    _splitpath2( path, pg.buffer, &pg.drive, &pg.dir, &pg.fname, &pg.ext );
+    _makepath( path, pg.drive, pg.dir, entry->d_name, NULL );
 
     return( path );
 }
 
 
-extern void DoWildCardClose( void )
+void DoWildCardClose( void )
 /*********************************/
 {
     if( path != NULL ) {
@@ -475,14 +455,14 @@ extern void DoWildCardClose( void )
 }
 
 
-extern int KWCompare( const char **p1, const char **p2 )    /* for bsearch */
+int KWCompare( const char **p1, const char **p2 )    /* for bsearch */
 /******************************************************/
 {
     return( stricmp( *p1, *p2 ) );
 }
 
 
-extern int PutEnvSafe( ENV_TRACKER *env )
+int PutEnvSafe( ENV_TRACKER *env )
 /****************************************
  * This function takes over responsibility for freeing env
  */
@@ -527,7 +507,7 @@ extern int PutEnvSafe( ENV_TRACKER *env )
 
 
 #if !defined(NDEBUG) || defined(DEVELOPMENT)
-extern void PutEnvFini( void )
+void PutEnvFini( void )
 /****************************/
 {
     ENV_TRACKER *cur;

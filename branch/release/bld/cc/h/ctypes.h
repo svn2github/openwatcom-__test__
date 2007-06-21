@@ -177,42 +177,12 @@ typedef enum BASED_KIND {
            CnvTable[] tables in cmath.c */
 /* matches AsmDataType[] table in cpragx86.c */
 /* matches CTypeSizes[] table in ctype.c */
+
 typedef enum DATA_TYPE {
     TYPE_UNDEFINED = -1,
-    TYPE_CHAR  =    0,      /* signed char */
-    TYPE_UCHAR,
-    TYPE_SHORT,
-    TYPE_USHORT,
-    TYPE_INT,
-    TYPE_UINT,
-    TYPE_LONG,
-    TYPE_ULONG,
-    TYPE_LONG64,
-    TYPE_ULONG64,
-    TYPE_FLOAT,
-    TYPE_DOUBLE,
-    TYPE_LONG_DOUBLE,
-    TYPE_FIMAGINARY,
-    TYPE_DIMAGINARY,
-    TYPE_LDIMAGINARY,
-    TYPE_BOOL,
-    TYPE_POINTER,           /* types up to here are scalars */
-    TYPE_ARRAY,
-    TYPE_STRUCT,
-    TYPE_UNION,
-    TYPE_FUNCTION,
-    TYPE_FIELD,             /* signed bit field */
-    TYPE_VOID,
-    TYPE_ENUM,
-    TYPE_TYPEDEF,
-    TYPE_UFIELD,            /* unsigned bit field */
-    TYPE_DOT_DOT_DOT,       /* for the ... in prototypes */
-    TYPE_PLAIN_CHAR,        /* char */
-    TYPE_WCHAR,             /* L'c' - a wide character constant */
-    TYPE_FCOMPLEX,
-    TYPE_DCOMPLEX,
-    TYPE_LDCOMPLEX,
-
+#undef pick1
+#define pick1(enum,cgtype,asmtype,name,size) TYPE_##enum,
+#include "cdatatyp.h"
     TYPE_LAST_ENTRY,        /* make sure this is always last */
 } DATA_TYPE;
 
@@ -312,6 +282,19 @@ typedef struct rdir_list {
     };
     char     name[1];
 } *RDIRPTR;
+
+typedef struct ialias_list {
+    union {
+        struct ialias_list  *next;
+        int                 total_len;      /* for pre-compiled header */
+    };
+    union {
+        char                *real_name;
+        int                 alias_name_len; /* for pre-compiled header */
+    };
+    int             delimiter;
+    char            alias_name[1];
+} *IALIASPTR;
 
 typedef struct incfile {
     struct incfile  *nextfile;
@@ -490,6 +473,17 @@ enum quad_flags {           /* code data */
     Q_NULL          = 0x00
 };
 
+enum quad_type {
+#undef pick1
+#define pick1(enum,cgtype,asmtype,name,size) QDT_##enum,
+#include "cdatatyp.h"
+    QDT_STATIC,
+    QDT_CONSTANT,
+    QDT_STRING,
+    QDT_CONST,
+    QDT_ID,
+};
+
 typedef struct {
     union   {
         long        long_values[2];
@@ -502,12 +496,8 @@ typedef struct {
             SYM_HANDLE  sym_handle;
         } var;
     } u;
-#if defined( __386__ )
-    byte    opr;            /* contains T_xxxx token value */
-#else
-    int     opr;            /* contains T_xxxx token value */
-#endif
-    enum quad_flags    flags;
+    enum quad_type  type;
+    enum quad_flags flags;
 } DATA_QUAD;
 
 typedef struct {
@@ -696,6 +686,8 @@ struct comp_flags {
     unsigned use_long_double        : 1;    /* Make CC send long double types to code gen */
 
     unsigned track_includes         : 1;    /* report opens of include files */
+    unsigned ignore_fnf             : 1;    /* ignore file not found errors */
+    unsigned disable_ialias         : 1;    /* supress inclusion of _ialias.h */
 };
 
 struct global_comp_flags {  // things that live across compiles

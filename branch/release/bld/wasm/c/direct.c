@@ -233,8 +233,48 @@ enum regsize {
     A_DWORD,
 };
 
+static struct asm_tok const_CodeSize = { T_NUM, NULL, 0 };
+static struct asm_tok const_DataSize = { T_NUM, NULL, 0 };
+static struct asm_tok const_Model = { T_NUM, NULL, 0 };
+static struct asm_tok const_Interface = { T_NUM, NULL, 0 };
+
+static const_info info_CodeSize = { TRUE, 0, 0, TRUE, &const_CodeSize };
+static const_info info_DataSize = { TRUE, 0, 0, TRUE, &const_DataSize };
+static const_info info_Model = { TRUE, 0, 0, TRUE, &const_Model };
+static const_info info_Interface = { TRUE, 0, 0, TRUE, &const_Interface };
+   
 
 #define ROUND_UP( i, r ) (((i)+((r)-1)) & ~((r)-1))
+
+int AddPredefinedConstant( char *name, const_info *info )
+/*******************************************************/
+{
+    struct asm_sym      *sym;
+    dir_node            *dir;
+
+    sym = AsmGetSymbol( name );
+    if( sym == NULL ) {
+        dir = dir_insert( name, TAB_CONST );
+        if( dir == NULL ) {
+            return( ERROR );
+        }
+    } else {
+        /* check if it can be redefined */
+        dir = (dir_node *)sym;
+        if( sym->state == SYM_UNDEFINED ) {
+            dir_change( dir, TAB_CONST );
+        } else if( sym->state != SYM_CONST ) {
+            /* error */
+            AsmError( LABEL_ALREADY_DEFINED );
+            return( ERROR );
+        }
+    }
+    if( !dir->e.constinfo->predef ) {
+        FreeInfo( dir );
+        dir->e.constinfo = info;
+    }
+    return( NOT_ERROR );
+}
 
 static int get_watcom_argument_string( char *buffer, uint_8 size, uint_8 *parm_number )
 /*************************************************************************************/
@@ -375,10 +415,11 @@ static int SetAssumeCSCurrSeg( void )
     return( NOT_ERROR );
 }
 
-void push( void **stack, void *elt )
-/**********************************/
+void push( void *stk, void *elt )
+/*******************************/
 {
-    stacknode *node;
+    void        **stack = stk;
+    stacknode   *node;
 
     node = AsmAlloc( sizeof( stacknode ));
     node->next = *stack;
@@ -386,9 +427,10 @@ void push( void **stack, void *elt )
     *stack = node;
 }
 
-void *pop( void **stack )
-/***********************/
+void *pop( void *stk )
+/********************/
 {
+    void        **stack = stk;
     stacknode   *node;
     void        *elt;
 
@@ -508,6 +550,7 @@ static void dir_init( dir_node *dir, int tab )
         dir->e.constinfo = AsmAlloc( sizeof( const_info ) );
         dir->e.constinfo->data = NULL;
         dir->e.constinfo->count = 0;
+        dir->e.constinfo->predef = FALSE;
         return;
     case TAB_PROC:
         sym->state = SYM_PROC;
@@ -651,27 +694,29 @@ void FreeInfo( dir_node *dir )
         AsmFree( dir->e.lnameinfo );
         break;
     case SYM_CONST:
+        if( !dir->e.constinfo->predef ) {
 #ifdef DEBUG_OUT
-        if( ( dir->e.constinfo->count > 0 )
-            && ( dir->e.constinfo->data[0].token != T_NUM ) ) {
-            DebugMsg( ( "freeing const(String): %s = ", dir->sym.name ) );
-        } else {
-            DebugMsg( ( "freeing const(Number): %s = ", dir->sym.name ) );
-        }
-#endif
-        for( i=0; i < dir->e.constinfo->count; i++ ) {
-#ifdef DEBUG_OUT
-            if( dir->e.constinfo->data[i].token == T_NUM ) {
-                DebugMsg(( "%d ", dir->e.constinfo->data[i].value ));
+            if( ( dir->e.constinfo->count > 0 )
+                && ( dir->e.constinfo->data[0].token != T_NUM ) ) {
+                DebugMsg( ( "freeing const(String): %s = ", dir->sym.name ) );
             } else {
-                DebugMsg(( "%s ", dir->e.constinfo->data[i].string_ptr ));
+                DebugMsg( ( "freeing const(Number): %s = ", dir->sym.name ) );
             }
 #endif
-            AsmFree( dir->e.constinfo->data[i].string_ptr );
+            for( i=0; i < dir->e.constinfo->count; i++ ) {
+#ifdef DEBUG_OUT
+                if( dir->e.constinfo->data[i].token == T_NUM ) {
+                    DebugMsg(( "%d ", dir->e.constinfo->data[i].value ));
+                } else {
+                    DebugMsg(( "%s ", dir->e.constinfo->data[i].string_ptr ));
+                }
+#endif
+                AsmFree( dir->e.constinfo->data[i].string_ptr );
+            }
+            DebugMsg(( "\n" ));
+            AsmFree( dir->e.constinfo->data );
+            AsmFree( dir->e.constinfo );
         }
-        DebugMsg(( "\n" ));
-        AsmFree( dir->e.constinfo->data );
-        AsmFree( dir->e.constinfo );
         break;
     case SYM_PROC:
         {
@@ -982,29 +1027,31 @@ uint_32 GetCurrSegStart( void )
     return( CurrSeg->seg->e.seginfo->start_loc );
 }
 
-static int GetLangType( int i )
-/*****************************/
+static int GetLangType( int *i )
+/******************************/
 {
-    if( AsmBuffer[i]->token != T_RES_ID)
-        return( LANG_NONE );
-    switch( AsmBuffer[i]->value ) {
-    case T_C:
-        return( LANG_C );
-    case T_BASIC:
-        return( LANG_BASIC );
-    case T_FORTRAN:
-        return( LANG_FORTRAN );
-    case T_PASCAL:
-        return( LANG_PASCAL );
-    case T_WATCOM_C:
-        return( LANG_WATCOM_C );
-    case T_STDCALL:
-        return( LANG_STDCALL );
-    case T_SYSCALL:
-        return( LANG_SYSCALL );
-    default:
-        return( LANG_NONE );
+    if( AsmBuffer[*i]->token == T_RES_ID) {
+        switch( AsmBuffer[(*i)++]->value ) {
+        case T_C:
+            return( LANG_C );
+        case T_BASIC:
+            return( LANG_BASIC );
+        case T_FORTRAN:
+            return( LANG_FORTRAN );
+        case T_PASCAL:
+            return( LANG_PASCAL );
+        case T_WATCOM_C:
+            return( LANG_WATCOM_C );
+        case T_STDCALL:
+            return( LANG_STDCALL );
+        case T_SYSCALL:
+            return( LANG_SYSCALL );
+        default:
+            (*i)--;
+            break;
+        }
     }
+    return( ModuleInfo.langtype );
 }
 
 int GlobalDef( int i )
@@ -1020,9 +1067,10 @@ int GlobalDef( int i )
 
     mangle_type = Check4Mangler( &i );
     for( ; i < Token_Count; i++ ) {
-        lang_type = GetLangType( i );
-        if( lang_type != LANG_NONE )
-            i++;
+
+        /* get the symbol language type if present */
+        lang_type = GetLangType( &i );
+
         /* get the symbol name */
         token = AsmBuffer[i++]->string_ptr;
 
@@ -1109,9 +1157,10 @@ int ExtDef( int i )
 
     mangle_type = Check4Mangler( &i );
     for( ; i < Token_Count; i++ ) {
-        lang_type = GetLangType( i );
-        if( lang_type != LANG_NONE )
-            i++;
+
+        /* get the symbol language type if present */
+        lang_type = GetLangType( &i );
+
         /* get the symbol name */
         token = AsmBuffer[i++]->string_ptr;
 
@@ -1186,12 +1235,14 @@ int PubDef( int i )
 
     mangle_type = Check4Mangler( &i );
     for( ; i < Token_Count; i+=2 ) {
-        lang_type = GetLangType( i );
-        if( lang_type != LANG_NONE )
-            i++;
-        token = AsmBuffer[i]->string_ptr;
-        /* Add the public name */
 
+        /* get the symbol language type if present */
+        lang_type = GetLangType( &i );
+
+        /* get the symbol name */
+        token = AsmBuffer[i]->string_ptr;
+
+        /* Add the public name */
         if( checkword( &token ) == ERROR ) {
             AsmError( EXPECTING_COMMA );
             return( ERROR );
@@ -1207,22 +1258,6 @@ int PubDef( int i )
                     ExpandTheWorld( i, FALSE, TRUE );
                     return( PubDef( i ) );
                  }
-            }
-            /* make the existing symbol public */
-
-            switch( sym->state ) {
-            case SYM_UNDEFINED:
-            case SYM_INTERNAL:
-            case SYM_EXTERNAL:
-            case SYM_STACK:
-            case SYM_CONST:
-                break;
-            case SYM_PROC:
-                if( node->e.procinfo->visibility != VIS_EXPORT ) {
-                    node->e.procinfo->visibility = VIS_PUBLIC;
-                }
-            default:
-                break;
             }
         } else {
             node = dir_insert( token, TAB_PUB );
@@ -1346,7 +1381,7 @@ int SetUse32Def( bool flag )
 /**************************/
 {
     if( ( CurrSeg == NULL )               // outside any segments
-        && ( !ModuleInfo.init             // model not defined
+        && ( ModuleInfo.model == MOD_NONE             // model not defined
             || ModuleInfo.cmdline ) ) {   // model defined on cmdline by -m?
         ModuleInfo.defUse32 = flag;
     }
@@ -1408,7 +1443,7 @@ static seg_type ClassNameType( char *name )
 
     if( name == NULL )
         return( SEGTYPE_UNDEF );
-    if( ModuleInfo.init ) {
+    if( ModuleInfo.model != MOD_NONE ) {
         if( stricmp( name, Options.code_class ) == 0 ) {
             return( SEGTYPE_ISCODE );
         }
@@ -1839,7 +1874,7 @@ int Startup( int i )
     int         count;
     char        buffer[ MAX_LINE_LEN ];
 
-    if( !ModuleInfo.init ) {
+    if( ModuleInfo.model == MOD_NONE ) {
         AsmError( MODEL_IS_NOT_DECLARED );
         return( ERROR );
     }
@@ -1921,7 +1956,7 @@ int SimSeg( int i )
     int         type;
     int         seg;
 
-    if( !ModuleInfo.init ) {
+    if( ModuleInfo.model == MOD_NONE ) {
         AsmError( MODEL_IS_NOT_DECLARED );
         return( ERROR );
     }
@@ -2046,94 +2081,67 @@ static void module_prologue( int type )
     InputQueueLine( SimCodeBegin[bit][SIM_DATA] );
     InputQueueLine( SimCodeEnd[SIM_DATA] );
 
-    /* Generates codes for grouping */
-    strcpy( buffer, "DGROUP GROUP " );
+    if( type != MOD_FLAT ) {
+        /* Generates codes for grouping */
+        strcpy( buffer, "DGROUP GROUP " );
+        if( type == MOD_TINY ) {
+            strcat( buffer, Options.text_seg );
+            strcat( buffer, "," );
+        }
+        strcat( buffer, Options.data_seg );
+        InputQueueLine( buffer );
+    }
+
+    ModelAssumeInit();
+
+// FIXME !! 
+// it is temporary fix for PROC parameters
+// but PTR operator should be resolved globaly
+    /* Fix up PTR size */
     switch( type ) {
-    case MOD_TINY:
-        strcat( buffer, Options.text_seg );
-        strcat( buffer, ", ");
-        /* fall through */
-    case MOD_SMALL:
     case MOD_COMPACT:
+    case MOD_LARGE:
+    case MOD_HUGE:
+    case MOD_FLAT:
+        TypeInfo[TOK_EXT_PTR].value = MT_DWORD;
+        break;
+    }
+
+    /* Set @CodeSize */
+    switch( type ) {
     case MOD_MEDIUM:
     case MOD_LARGE:
     case MOD_HUGE:
-        strcat( buffer, Options.data_seg );
-        InputQueueLine( buffer );
+        const_CodeSize.value = 1;
+        break;
+    default:
+        const_CodeSize.value = 0;
         break;
     }
-    ModelAssumeInit();
+    AddPredefinedConstant( "@CodeSize", &info_CodeSize );
 
-    if( ModuleInfo.init == FALSE ) {
-        int         modelnum = -1;
-
-        /* Fix up PTR size */
-        switch( type ) {
-        case MOD_COMPACT:
-        case MOD_LARGE:
-        case MOD_HUGE:
-        case MOD_FLAT:
-            TypeInfo[TOK_EXT_PTR].value = MT_DWORD;
-            break;
-        }
-        /* Set @CodeSize equate */
-        switch( type ) {
-        case MOD_MEDIUM:
-        case MOD_LARGE:
-        case MOD_HUGE:
-            InputQueueLine( "@CodeSize equ 1" );
-            break;
-        default:
-            InputQueueLine( "@CodeSize equ 0" );
-            break;
-        }
-
-        /* Set @DataSize equate */
-        switch( type ) {
-        case MOD_COMPACT:
-        case MOD_LARGE:
-            InputQueueLine( "@DataSize equ 1" );
-            break;
-        case MOD_HUGE:
-            InputQueueLine( "@DataSize equ 2" );
-            break;
-        default:
-            InputQueueLine( "@DataSize equ 0" );
-            break;
-        }
-
-        /* Set @Model equate */
-        switch( type ) {
-        case MOD_TINY:
-            modelnum = 1;
-            break;
-        case MOD_SMALL:
-            modelnum = 2;
-            break;
-        case MOD_COMPACT:
-            modelnum = 3;
-            break;
-        case MOD_MEDIUM:
-            modelnum = 4;
-            break;
-        case MOD_LARGE:
-            modelnum = 5;
-            break;
-        case MOD_HUGE:
-            modelnum = 6;
-            break;
-        case MOD_FLAT:
-            modelnum = 7;
-            break;
-        default:
-            modelnum = 0;
-            break;
-        }
-        if( modelnum > 0 ) {
-            sprintf( buffer, "@Model equ %d", modelnum );
-            InputQueueLine( buffer );
-        }
+    /* Set @DataSize */
+    switch( type ) {
+    case MOD_COMPACT:
+    case MOD_LARGE:
+        const_DataSize.value = 1;
+        break;
+    case MOD_HUGE:
+        const_DataSize.value = 2;
+        break;
+    default:
+        const_DataSize.value = 0;
+        break;
     }
+    AddPredefinedConstant( "@DataSize", &info_DataSize );
+
+    /* Set @Model */
+    const_Model.value = ModuleInfo.model;
+    AddPredefinedConstant( "@Model", &info_Model );
+
+    /* Set @Interface */
+    const_Interface.value = ModuleInfo.langtype;
+    AddPredefinedConstant( "@Interface", &info_Interface );
 }
 
 void ModuleInit( void )
@@ -2145,7 +2153,6 @@ void ModuleInit( void )
     ModuleInfo.ostype = OPSYS_DOS;
     ModuleInfo.use32 = FALSE;
     ModuleInfo.defUse32 = FALSE;
-    ModuleInfo.init = FALSE;
     ModuleInfo.cmdline = FALSE;
     ModuleInfo.mseg = FALSE;
     ModuleInfo.flat_idx = 0;
@@ -2187,19 +2194,24 @@ static void set_def_seg_name( void )
     }
     /* set Options.text_seg based on module name */
     if( Options.text_seg == NULL ) {
-        if( ModuleInfo.model >= MOD_MEDIUM ) {
+        switch( ModuleInfo.model ) {
+        case MOD_MEDIUM:
+        case MOD_LARGE:
+        case MOD_HUGE:
             len = strlen( ModuleInfo.name ) + sizeof( DEFAULT_CODE_NAME ) + 1;
             Options.text_seg = AsmAlloc( len );
             strcpy( Options.text_seg, ModuleInfo.name );
             strcat( Options.text_seg, DEFAULT_CODE_NAME );
-        } else {
-            Options.text_seg = AsmAlloc( sizeof( DEFAULT_DATA_NAME ) + 1 );
+            break;
+        default:
+            Options.text_seg = AsmAlloc( sizeof( DEFAULT_CODE_NAME ) + 1 );
             strcpy( Options.text_seg, DEFAULT_CODE_NAME );
+            break;
         }
     }
     /* set Options.data_seg */
     if( Options.data_seg == NULL ) {
-        Options.data_seg = AsmAlloc( 5 + 1 );
+        Options.data_seg = AsmAlloc( sizeof( DEFAULT_DATA_NAME ) + 1 );
         strcpy( Options.data_seg, DEFAULT_DATA_NAME );
     }
     return;
@@ -2230,7 +2242,7 @@ int Model( int i )
         return( NOT_ERROR );
     }
 
-    if( ModuleInfo.init && !ModuleInfo.cmdline ) {
+    if( ModuleInfo.model != MOD_NONE && !ModuleInfo.cmdline ) {
         AsmError( MODEL_DECLARED_ALREADY );
         return( ERROR );
     }
@@ -2277,7 +2289,6 @@ int Model( int i )
         case TOK_HUGE:
             ModuleInfo.model = TypeInfo[type].value;
             set_def_seg_name();
-            module_prologue( ModuleInfo.model );
             break;
         case TOK_NEARSTACK:
         case TOK_FARSTACK:
@@ -2311,9 +2322,9 @@ int Model( int i )
         return( ERROR );
     }
 
+    module_prologue( ModuleInfo.model );
     lastseg.seg = SIM_NONE;
     lastseg.stack_size = 0;
-    ModuleInfo.init = TRUE;
     ModuleInfo.cmdline = (LineNumber == 0);
     return(NOT_ERROR);
 }
@@ -2336,24 +2347,23 @@ static void ModelAssumeInit( void )
     char        buffer[ MAX_LINE_LEN ];
 
     /* Generates codes for assume */
-    if( ModuleInfo.model == MOD_FLAT ) {
+    switch( ModuleInfo.model ) {
+    case MOD_FLAT:
         InputQueueLine( "ASSUME CS:FLAT,DS:FLAT,SS:FLAT,ES:FLAT,FS:ERROR,GS:ERROR");
-    } else {
-        switch( ModuleInfo.model ) {
-        case MOD_TINY:
-            InputQueueLine( "ASSUME CS:DGROUP, DS:DGROUP, ES:DGROUP, SS:DGROUP" );
-            break;
-        case MOD_SMALL:
-        case MOD_COMPACT:
-        case MOD_MEDIUM:
-        case MOD_LARGE:
-        case MOD_HUGE:
-            strcpy( buffer, "ASSUME CS:" );
-            strcat( buffer, Options.text_seg );
-            strcat( buffer, ", DS:DGROUP, SS:DGROUP" );
-            InputQueueLine( buffer );
-            break;
-        }
+        break;
+    case MOD_TINY:
+        InputQueueLine( "ASSUME CS:DGROUP, DS:DGROUP, ES:DGROUP, SS:DGROUP" );
+        break;
+    case MOD_SMALL:
+    case MOD_COMPACT:
+    case MOD_MEDIUM:
+    case MOD_LARGE:
+    case MOD_HUGE:
+        strcpy( buffer, "ASSUME CS:" );
+        strcat( buffer, Options.text_seg );
+        strcat( buffer, ", DS:DGROUP, SS:DGROUP" );
+        InputQueueLine( buffer );
+        break;
     }
 }
 
@@ -2918,50 +2928,45 @@ int LocalDef( int i )
     return( NOT_ERROR );
 }
 
-static memtype proc_exam( int i )
-/*******************************/
+static int proc_exam( dir_node *proc, int i )
+/*******************************************/
 {
-    char        *name;
-    char        *token;
-    char        *typetoken;
-    int_8       minimum;        // Minimum value of the type of token to be read
-    int_8       finish;
-    dir_node    *dir;
-    proc_info   *info;
-    regs_list   *regist;
-    regs_list   *temp_regist;
-    label_list  *paranode;
-    label_list  *paracurr;
-    int         type;
-    int         vis;
-    struct asm_sym      *sym;
+    char            *token;
+    char            *typetoken;
+    int_8           minimum;        // Minimum value of the type of token to be read
+    int_8           finish;
+    proc_info       *info;
+    regs_list       *regist;
+    regs_list       *temp_regist;
+    label_list      *paranode;
+    label_list      *paracurr;
+    int             type;
+    struct asm_sym  *param;
 
-    name = AsmBuffer[i++]->string_ptr;
-    dir = (dir_node *)AsmGetSymbol( name );
-    info = dir->e.procinfo;
+    info = proc->e.procinfo;
 
     minimum = TOK_PROC_FAR;
     finish = FALSE;
-    info->langtype = ModuleInfo.langtype;
+    proc->sym.langtype = ModuleInfo.langtype;
 
     // fixme ... we need error checking here --- for nested procs
 
     /* Obtain all the default value */
 
     info->mem_type = IS_PROC_FAR() ? MT_FAR : MT_NEAR;
-    info->visibility = dir->sym.public ? VIS_PUBLIC : VIS_PRIVATE;
     info->parasize = 0;
     info->localsize = 0;
+    info->export = FALSE;
     info->is_vararg = FALSE;
     info->pe_type = ( ( Code->info.cpu & P_CPU_MASK ) == P_286 ) || ( ( Code->info.cpu & P_CPU_MASK ) == P_386 );
-    SetMangler( &dir->sym, NULL, LANG_NONE );
+    SetMangler( &proc->sym, NULL, LANG_NONE );
 
     /* Parse the definition line, except the parameters */
     for( i++; i < Token_Count && AsmBuffer[i]->token != T_COMMA; i++ ) {
         token = AsmBuffer[i]->string_ptr;
         if( AsmBuffer[i]->token == T_STRING ) {
             /* name mangling */
-            SetMangler( &dir->sym, token, LANG_NONE );
+            SetMangler( &proc->sym, token, LANG_NONE );
             continue;
         }
 
@@ -2970,7 +2975,7 @@ static memtype proc_exam( int i )
             break;
         if( type < minimum ) {
             AsmError( SYNTAX_ERROR );
-            return( MT_ERROR );
+            return( ERROR );
         }
         switch( type ) {
         case TOK_PROC_FAR:
@@ -2985,17 +2990,19 @@ static memtype proc_exam( int i )
         case TOK_PROC_WATCOM_C:
         case TOK_PROC_STDCALL:
         case TOK_PROC_SYSCALL:
-            info->langtype = TypeInfo[type].value;
-            ((asm_sym *)dir)->langtype = info->langtype;
+            proc->sym.langtype = TypeInfo[type].value;
             minimum = TOK_PROC_PRIVATE;
             break;
-        case TOK_PROC_PRIVATE:
-        case TOK_PROC_PUBLIC:
         case TOK_PROC_EXPORT:
-            vis = TypeInfo[type].value;
-            if( info->visibility < vis ) {
-                info->visibility = vis;
+            info->export = TRUE;
+            // fall through
+        case TOK_PROC_PUBLIC:
+            if( !proc->sym.public ) {
+                AddPublicData( proc );
             }
+            proc->sym.public = TRUE;
+            // fall through
+        case TOK_PROC_PRIVATE:
             minimum = TOK_PROC_USES;
             break;
         case TOK_PROC_USES:
@@ -3026,14 +3033,15 @@ static memtype proc_exam( int i )
     }
 
 parms:
-    CurrProc = dir;
+    CurrProc = proc;
     DefineProc = TRUE;
+    proc->sym.mem_type = info->mem_type;
 
     if( i >= Token_Count ) {
-        return( info->mem_type );
-    } else if( info->langtype == LANG_NONE ) {
+        return( NOT_ERROR );
+    } else if( proc->sym.langtype == LANG_NONE ) {
         AsmError( LANG_MUST_BE_SPECIFIED );
-        return( MT_ERROR );
+        return( ERROR );
     } else if( AsmBuffer[i]->token == T_COMMA ) {
         i++;
     }
@@ -3047,7 +3055,7 @@ parms:
         /* read colon */
         if( AsmBuffer[i]->token != T_COLON ) {
             AsmError( COLON_EXPECTED );
-            return( MT_ERROR );
+            return( ERROR );
         }
         i++;
 
@@ -3060,25 +3068,31 @@ parms:
             type = token_cmp( &typetoken, TOK_PROC_VARARG, TOK_PROC_VARARG );
             if( type == ERROR ) {
                 AsmError( INVALID_QUALIFIED_TYPE );
-                return( MT_ERROR );
+                return( ERROR );
             } else {
-                if( info->langtype <= LANG_PASCAL ) {
+                switch( proc->sym.langtype ) {
+                case LANG_NONE:
+                case LANG_BASIC:
+                case LANG_FORTRAN:
+                case LANG_PASCAL:
                     AsmError( VARARG_REQUIRES_C_CALLING_CONVENTION );
-                    return( MT_ERROR );
+                    return( ERROR );
+                default:
+                    break;
                 }
             }
         }
 
-        sym = AsmLookup( token );
-        if( sym == NULL )
-            return( MT_ERROR );
+        param = AsmLookup( token );
+        if( param == NULL )
+            return( ERROR );
 
-        if( sym->state != SYM_UNDEFINED ) {
-            AsmErr( SYMBOL_PREVIOUSLY_DEFINED, sym->name );
-            return( MT_ERROR );
+        if( param->state != SYM_UNDEFINED ) {
+            AsmErr( SYMBOL_PREVIOUSLY_DEFINED, param->name );
+            return( ERROR );
         } else {
-            sym->state = SYM_INTERNAL;
-            sym->mem_type = TypeInfo[type].value;
+            param->state = SYM_INTERNAL;
+            param->mem_type = TypeInfo[type].value;
         }
 
         paranode = AsmAlloc( sizeof( label_list ) );
@@ -3095,14 +3109,15 @@ parms:
         }
         info->is_vararg |= paranode->is_vararg;
 
-        if( ( info->langtype >= LANG_BASIC ) && ( info->langtype <= LANG_PASCAL ) ) {
-
+        switch( proc->sym.langtype ) {
+        case LANG_BASIC:
+        case LANG_FORTRAN:
+        case LANG_PASCAL:
             /* Parameters are stored in reverse order */
             paranode->next = info->paralist;
             info->paralist = paranode;
-
-        } else {
-
+            break;
+        default:
             paranode->next = NULL;
             if( info->paralist == NULL ) {
                 info->paralist = paranode;
@@ -3114,15 +3129,16 @@ parms:
                 }
                 paracurr->next = paranode;
             }
+            break;
         }
         /* go past comma */
         i++;
         if( ( i < Token_Count ) && ( AsmBuffer[i]->token != T_COMMA ) ) {
             AsmError( EXPECTING_COMMA );
-            return( MT_ERROR );
+            return( ERROR );
         }
     }
-    return( info->mem_type );
+    return( NOT_ERROR );
 }
 
 int ProcDef( int i )
@@ -3142,7 +3158,7 @@ int ProcDef( int i )
             AsmError( PROC_MUST_HAVE_A_NAME );
             return( ERROR );
         }
-        name = AsmBuffer[i]->string_ptr;
+        name = AsmBuffer[i++]->string_ptr;
         sym = AsmGetSymbol( name );
 
         if( sym != NULL ) {
@@ -3161,8 +3177,7 @@ int ProcDef( int i )
             dir_change( dir, TAB_PROC );
         }
         GetSymInfo( sym );
-        sym->mem_type = proc_exam( i );
-        if( sym->mem_type == MT_ERROR ) {
+        if( proc_exam( dir, i ) == ERROR ) {
             return( ERROR );
         }
     } else {
@@ -3185,6 +3200,7 @@ static void ProcFini( void )
     label_list  *curr;
 
     info = CurrProc->e.procinfo;
+    CurrProc->sym.total_size = GetCurrAddr() - CurrProc->sym.offset;
 
     if( Parse_Pass == PASS_1 ) {
         for( curr = info->paralist; curr; curr = curr->next ) {
@@ -3274,13 +3290,13 @@ int WritePrologue( void )
             offset *= 2;
 
         for( curr = info->paralist; curr; curr = curr->next, parm_count++ ) {
-            if( info->langtype == LANG_WATCOM_C ) {
+            if( CurrProc->sym.langtype == LANG_WATCOM_C ) {
                 retcode = get_watcom_argument_string( buffer, curr->size, &parm_count );
                 if( retcode == ERROR ) {
                     return( ERROR );
                 }
             }
-            if( ( info->langtype != LANG_WATCOM_C ) || ( retcode == FALSE ) ) {
+            if( ( CurrProc->sym.langtype != LANG_WATCOM_C ) || ( retcode == FALSE ) ) {
                 size_override( buffer, curr->size );
                 if( Use32 ) {
                     strcat( buffer, ARGUMENT_STRING_32 );
@@ -3503,11 +3519,21 @@ int Ret( int i, int count, int flag_iret )
 
     if( !flag_iret ) {
         if( count == i + 1 ) {
-            if( ( info->langtype >= LANG_BASIC ) && ( info->langtype <= LANG_PASCAL )
-                || ( info->langtype == LANG_STDCALL ) && !info->is_vararg ) {
+            switch( CurrProc->sym.langtype ) {
+            case LANG_BASIC:
+            case LANG_FORTRAN:
+            case LANG_PASCAL:
                 if( info->parasize != 0 ) {
                     sprintf( buffer + strlen( buffer ), "%d", info->parasize );
                 }
+                break;
+            case LANG_STDCALL:
+                if( !info->is_vararg && info->parasize != 0 ) {
+                    sprintf( buffer + strlen( buffer ), "%d", info->parasize );
+                }
+                break;
+            default:
+                break;
             }
         } else {
             ++i;
@@ -3658,8 +3684,8 @@ int CommDef( int i )
     mangle_type = Check4Mangler( &i );
     for( ; i < Token_Count; i++ ) {
         count = 1;
-        /* get the distance ( near or far ) */
 
+        /* get the distance ( near or far ) */
         typetoken = AsmBuffer[i]->string_ptr;
         distance = token_cmp( &typetoken, TOK_EXT_NEAR, TOK_EXT_FAR );
 
@@ -3670,9 +3696,8 @@ int CommDef( int i )
             distance = TOK_EXT_NEAR;
         }
 
-        lang_type = GetLangType( i );
-        if( lang_type != LANG_NONE )
-            i++;
+        /* get the symbol language type if present */
+        lang_type = GetLangType( &i );
 
         /* get the symbol name */
         token = AsmBuffer[i++]->string_ptr;

@@ -225,6 +225,9 @@ int Test_print_float( void )
     VERIFY( sprintf( buf, "%2.4f", 4.5 ) == 6 );
     VERIFY( !strcmp( buf, "4.5000" ) );
 
+    VERIFY( sprintf( buf, "%05.2f", 4.5 ) == 5 );
+    VERIFY( !strcmp( buf, "04.50" ) );
+
     VERIFY( sprintf( buf, "%0f", 0.8 ) == 8 );
     VERIFY( !strcmp( buf, "0.800000" ) );
 
@@ -236,6 +239,19 @@ int Test_print_float( void )
 
     VERIFY( sprintf( buf, "%2.4g", 4.5 ) == 3 );
     VERIFY( !strcmp( buf, "4.5" ) );
+
+    /* Test rounding */
+    VERIFY( sprintf( buf, "%0.9e", 99999999.99 ) == 15 );
+    VERIFY( !strcmp( buf, "9.999999999e+07" ) );
+
+    VERIFY( sprintf( buf, "%0.9e", 999999999.99 ) == 15 );
+    VERIFY( !strcmp( buf, "1.000000000e+09" ) );
+
+    VERIFY( sprintf( buf, "%0.9e", 9999999999.99 ) == 15 );
+    VERIFY( !strcmp( buf, "1.000000000e+10" ) );
+
+    VERIFY( sprintf( buf, "%0.9e", 99999999999.99 ) == 15 );
+    VERIFY( !strcmp( buf, "1.000000000e+11" ) );
 
 #if defined( _NAN ) && defined( _INF )
     /* Test NaN/inf formatting */
@@ -269,6 +285,12 @@ int Test_print_float( void )
     VERIFY( sprintf( buf, "%G", _NAN ) == 3 );
     VERIFY( !strcmp( buf, "NAN" ) );
 
+    VERIFY( sprintf( buf, "%5g", _INF ) == 5 );
+    VERIFY( !strcmp( buf, "  inf" ) );
+
+    VERIFY( sprintf( buf, "%05.2E", _NAN ) == 5 );
+    VERIFY( !strcmp( buf, "  NAN" ) );
+
     /* Currently %F is a far pointer modified in some libs, to
      * be changed later. Most libs are ISO C compliant in this regard.
      */
@@ -284,6 +306,45 @@ int Test_print_float( void )
     return( 0 );
 }
 
+
+int Test_print_char_str( void )
+/*****************************/
+{
+    char    buf[128];
+
+    VERIFY( sprintf( buf, "a%ce", 'x' ) == 3 );
+    VERIFY( !strcmp( buf, "axe" ) );
+
+    VERIFY( sprintf( buf, "%3c", 'x' ) == 3 );
+    VERIFY( !strcmp( buf, "  x" ) );
+
+    VERIFY( sprintf( buf, "%-3c", 'x' ) == 3 );
+    VERIFY( !strcmp( buf, "x  " ) );
+
+    VERIFY( sprintf( buf, "%4s", "zz" ) == 4 );
+    VERIFY( !strcmp( buf, "  zz" ) );
+
+    VERIFY( sprintf( buf, "%-4s", "zz" ) == 4 );
+    VERIFY( !strcmp( buf, "zz  " ) );
+
+    /* NB: The following tests exercise behaviour that is undefined
+     * by ISO C. Nevertheless, defining the results is not unreasonable
+     * and helps compatibility (intended to be MSVC comaptible).
+     */
+    VERIFY( sprintf( buf, "%03c", 'x' ) == 3 );
+    VERIFY( !strcmp( buf, "00x" ) );
+
+    VERIFY( sprintf( buf, "%-03c", 'x' ) == 3 );
+    VERIFY( !strcmp( buf, "x  " ) );
+
+    VERIFY( sprintf( buf, "%04s", "zz" ) == 4 );
+    VERIFY( !strcmp( buf, "00zz" ) );
+
+    VERIFY( sprintf( buf, "%-04s", "zz" ) == 4 );
+    VERIFY( !strcmp( buf, "zz  " ) );
+
+    return( 0 );
+}
 
 int main( int argc, char *argv[] )
 /********************************/
@@ -308,6 +369,7 @@ int main( int argc, char *argv[] )
     Test_scan_std_xmp();
     Test_string_to_float();
     Test_print_float();
+    Test_print_char_str();
 
     /****************/
     /* End of tests */

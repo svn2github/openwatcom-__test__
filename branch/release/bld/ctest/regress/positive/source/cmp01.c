@@ -1,9 +1,11 @@
 #include "fail.h"
 #include <stdio.h>
 #include <limits.h>
+#include <float.h>
 
 /* Test const folding for out of range comparisons to make sure the results
- * are correct.
+ * are correct. Also make sure floating-point comparisons are not incorrectly
+ * folded (was broken in 1.6).
  */
 
 int cmp_U1_lo_lt( unsigned char x )
@@ -198,12 +200,143 @@ int cmp_I4_hi_gt( signed long x )
     return( 0 );
 }
 
+int cmp_U8_lo_lt( unsigned long long x )
+{
+    if( x < 0 ) {
+        return( 1 );
+    }
+    return( 0 );
+}
+
+int cmp_U8_lo_ge( unsigned long long x )
+{
+    if( x >= 0 ) {
+        return( 0 );
+    }
+    return( 1 );
+}
+
+int cmp_U8_hi_le( unsigned long long x )
+{
+    if( x <= ULLONG_MAX ) {
+        return( 0 );
+    }
+    return( 1 );
+}
+
+int cmp_U8_hi_gt( unsigned long long x )
+{
+    if( x > ULLONG_MAX ) {
+        return( 1 );
+    }
+    return( 0 );
+}
+
+int cmp_I8_lo_lt( signed long long x )
+{
+    if( x < LLONG_MIN ) {
+        return( 1 );
+    }
+    return( 0 );
+}
+
+int cmp_I8_lo_ge( signed long long x )
+{
+    if( x >= LLONG_MIN ) {
+        return( 0 );
+    }
+    return( 1 );
+}
+
+int cmp_I8_hi_le( signed long long x )
+{
+    if( x <= LLONG_MAX ) {
+        return( 0 );
+    }
+    return( 1 );
+}
+
+int cmp_I8_hi_gt( signed long long x )
+{
+    if( x > LLONG_MAX ) {
+        return( 1 );
+    }
+    return( 0 );
+}
+int cmp_FS_lo_lt( float x )
+{
+    if( x < LONG_MIN ) {
+        return( 1 );
+    }
+    return( 0 );
+}
+
+int cmp_FS_lo_ge( float x )
+{
+    if( x >= LONG_MIN ) {
+        return( 0 );
+    }
+    return( 1 );
+}
+
+int cmp_FS_hi_le( float x )
+{
+    if( x <= LONG_MAX ) {
+        return( 0 );
+    }
+    return( 1 );
+}
+
+int cmp_FS_hi_gt( float x )
+{
+    if( x > LONG_MAX ) {
+        return( 1 );
+    }
+    return( 0 );
+}
+
+int cmp_FD_lo_lt( double x )
+{
+    if( x < LONG_MIN ) {
+        return( 1 );
+    }
+    return( 0 );
+}
+
+int cmp_FD_lo_ge( double x )
+{
+    if( x >= LONG_MIN ) {
+        return( 0 );
+    }
+    return( 1 );
+}
+
+int cmp_FD_hi_le( double x )
+{
+    if( x <= LONG_MAX ) {
+        return( 0 );
+    }
+    return( 1 );
+}
+
+int cmp_FD_hi_gt( double x )
+{
+    if( x > LONG_MAX ) {
+        return( 1 );
+    }
+    return( 0 );
+}
+
 unsigned char       uc;
 signed char         sc;
 unsigned short      us;
 signed short        ss;
 unsigned long       ul;
 signed long         sl;
+float               fsx = FLT_MAX;
+float               fsn = -FLT_MAX;
+double              fdx = DBL_MAX;
+double              fdn = -DBL_MAX;
 
 int main( void )
 {
@@ -231,5 +364,23 @@ int main( void )
     if( cmp_I4_lo_ge( sl ) ) fail( __LINE__ );
     if( cmp_I4_hi_le( sl ) ) fail( __LINE__ );
     if( cmp_I4_hi_gt( sl ) ) fail( __LINE__ );
+    if( cmp_U8_lo_lt( ul ) ) fail( __LINE__ );
+    if( cmp_U8_lo_ge( ul ) ) fail( __LINE__ );
+    if( cmp_U8_hi_le( ul ) ) fail( __LINE__ );
+    if( cmp_U8_hi_gt( ul ) ) fail( __LINE__ );
+    if( cmp_I8_lo_lt( sl ) ) fail( __LINE__ );
+    if( cmp_I8_lo_ge( sl ) ) fail( __LINE__ );
+    if( cmp_I8_hi_le( sl ) ) fail( __LINE__ );
+    if( cmp_I8_hi_gt( sl ) ) fail( __LINE__ );
+
+    if( !cmp_FS_lo_lt( fsn ) ) fail( __LINE__ );
+    if( !cmp_FS_lo_ge( fsn ) ) fail( __LINE__ );
+    if( !cmp_FS_hi_le( fsx ) ) fail( __LINE__ );
+    if( !cmp_FS_hi_gt( fsx ) ) fail( __LINE__ );
+    if( !cmp_FD_lo_lt( fdn ) ) fail( __LINE__ );
+    if( !cmp_FD_lo_ge( fdn ) ) fail( __LINE__ );
+    if( !cmp_FD_hi_le( fdx ) ) fail( __LINE__ );
+    if( !cmp_FD_hi_gt( fdx ) ) fail( __LINE__ );
+
     _PASS;
 }

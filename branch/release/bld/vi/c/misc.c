@@ -35,7 +35,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#ifdef M_I86
+#ifdef _M_I86
  #include <i86.h>
 #endif
 #include <errno.h>
@@ -330,8 +330,8 @@ bool PromptFilesForSave( void )
     #ifdef __WIN__
     info        *cinfo;
     int         i;
-    int num = 0;
-    HWND hwnd_old = NULL;
+    int         num = 0;
+    HWND        hwnd_old = 0;
 
     if( !EditFlags.SaveOnBuild ) return( TRUE );
 
@@ -369,7 +369,7 @@ bool PromptThisFileForSave( const char *filename )
     filename = filename;
     #else
     info        *cinfo;
-    HWND hwnd_old = NULL;
+    HWND        hwnd_old = 0;
 
     while( isspace( *filename ) ) filename++;
     for( cinfo = InfoHead; cinfo != NULL; cinfo = cinfo->next ) {

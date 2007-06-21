@@ -324,20 +324,14 @@ static orl_return       processThreadFixup( omf_file_handle ofh,
 
 static orl_return       doTHEADR( omf_file_handle ofh )
 {
-    orl_return  err;
-    int         len;
+    orl_return          err;
 
     assert( ofh );
 
     err = loadRecord( ofh );
-    if( err != ORL_OKAY ) return( err );
-    if( ofh->modnamelen ) return( ORL_ERROR );
-    len = ofh->parsebuf[0];
-    if( len > ofh->parselen ) return( ORL_ERROR );
-    memcpy( ofh->modname, ofh->parsebuf + 1, len );
-    ofh->modname[len] = 0;
-    ofh->modnamelen = len;
-    return( ORL_OKAY );
+    if( err != ORL_OKAY )
+        return( err );
+    return( OmfTheadr( ofh ) );
 }
 
 
@@ -411,9 +405,9 @@ static orl_return       doCOMENT( omf_file_handle ofh )
          */
          if (*buffer)
              buffer++;
-         if( ( len == 0 ) || !strncmp( buffer, "CV", 2 ) ) {
+         if( ( len == 0 ) || !memcmp( buffer, "CV", 2 ) ) {
              ofh->debug_style = OMF_DBG_STYLE_CODEVIEW;
-         } else if( !strncmp( buffer, "HL", 2 ) ) {
+         } else if( !memcmp( buffer, "HL", 2 ) ) {
              ofh->debug_style = OMF_DBG_STYLE_HLL;
          } else {
              ofh->debug_style = OMF_DBG_STYLE_UNKNOWN;
@@ -492,7 +486,7 @@ static orl_return       doCEXTDEF( omf_file_handle ofh, omf_rectyp typ )
         loadIndex( &buffer, &len );
         slen = OmfGetLName( ofh->lnames, idx, name );
         if( slen < 0 ) return( ORL_ERROR );
-        err = OmfAddExtDef( ofh, name, slen, typ );
+        err = OmfAddExtDef( ofh, (omf_bytes)name, slen, typ );
         if( err != ORL_OKAY ) break;
     }
     return( err );
@@ -560,7 +554,6 @@ static orl_return       doCOMDEF( omf_file_handle ofh, omf_rectyp typ )
     return( err );
 }
 
-
 static orl_return       doLINNUM( omf_file_handle ofh, omf_rectyp typ )
 {
     orl_return          err;
@@ -571,6 +564,7 @@ static orl_return       doLINNUM( omf_file_handle ofh, omf_rectyp typ )
     unsigned_16         line;
     unsigned_32         offset;
     int                 wordsize;
+    omf_sec_handle      sh;
 
     assert( ofh );
 
@@ -611,18 +605,25 @@ static orl_return       doLINNUM( omf_file_handle ofh, omf_rectyp typ )
         assert( 0 );
     }
 
+    sh = OmfFindSegOrComdat( ofh, seg, name );
+    if( !sh )
+        return( ORL_ERROR );
+
     wordsize = OmfGetWordSize( check32Bit( ofh, typ ) );
 
     while( len ) {
-        if( len < ( wordsize + 2 ) ) return( ORL_ERROR );
+        if( len < ( wordsize + 2 ) )
+            return( ORL_ERROR );
         line = getUWord( buffer, 2 );
         buffer += 2;
         len -= 2;
         offset = getUWord( buffer, wordsize );
         buffer += wordsize;
         len -= wordsize;
-        err = OmfAddLineNum( ofh, seg, name, line, offset );
-        if( err != ORL_OKAY ) break;
+        err = OmfAddLineNum( sh, line, offset );
+        if( err != ORL_OKAY ) {
+            break;
+        }
     }
     return( err );
 }
@@ -637,7 +638,7 @@ static orl_return       doPUBDEF( omf_file_handle ofh, omf_rectyp typ )
     omf_idx             seg;
     omf_idx             group;
     omf_frame           frame = 0;
-    omf_bytes           name;
+    char                *name;
     orl_sec_offset      offset;
     int                 is32;
     int                 wordsize;
@@ -669,7 +670,7 @@ static orl_return       doPUBDEF( omf_file_handle ofh, omf_rectyp typ )
         buffer++;
         len--;
         if( ( slen + 1 + wordsize ) > len ) return( ORL_ERROR );
-        name = buffer;
+        name = (char *)buffer;
         buffer += slen;
         len -= slen;
         offset = getUWord( buffer, wordsize );
@@ -1063,6 +1064,9 @@ static orl_return       procRecord( omf_file_handle ofh, omf_rectyp typ )
     case( CMD_LCOMDEF ):        /* local comdev                         */
         return( doCOMDEF( ofh, typ ) );
 
+    case( CMD_THEADR ):         /* additonal header record              */
+        return( doTHEADR( ofh ) );
+
     case( CMD_LINNUM ):         /* line number record                   */
     case( CMD_LINNUM32 ):       /* 32-bit line number record.           */
     case( CMD_LINSYM ):         /* LINNUM for a COMDAT                  */
@@ -1099,7 +1103,6 @@ static orl_return       procRecord( omf_file_handle ofh, omf_rectyp typ )
     case( CMD_VERNUM ):         /* TIS version number record            */
     case( CMD_VENDEXT ):        /* TIS vendor extension record          */
     case( CMD_TYPDEF ):         /* type definition record               */
-    case( CMD_THEADR ):         /* additonal header record              */
         return( loadRecord( ofh ) );
 
     default:

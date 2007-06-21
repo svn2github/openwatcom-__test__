@@ -33,7 +33,6 @@
 #include <string.h>
 #include "standard.h"
 #include "coderep.h"
-#include "sysmacro.h"
 #include "opcodes.h"
 #include "regset.h"
 #include "zoiks.h"
@@ -44,7 +43,7 @@
 extern  void            DoNothing(instruction*);
 extern  name            *AllocRegName(hw_reg_set);
 
-static    pointer       InsFrl;
+static  pointer         *InsFrl;
 
 extern  conflict_node   *ConfList;
 

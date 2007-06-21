@@ -30,7 +30,11 @@
 ****************************************************************************/
 
 
+extern segment Find16MSeg( segment );
+
 #define SUB_ADDR( l, r ) ((((long)(l).seg-(long)(r).seg) << FmtData.SegShift) + ((l).off-(r).off))
+
+#define SUB_16M_ADDR( l, r ) (((long)Find16MSeg((l).seg)-(long)Find16MSeg((r).seg))*16+((l).off-(r).off))
 
 #define LESS_THAN_ADDR( l, r ) ((long)SUB_ADDR( l, r ) < 0L)
 

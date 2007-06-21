@@ -24,17 +24,9 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Additional routines for creating ELF load files.
 *
 ****************************************************************************/
-
-
-/*
-    LOADELF2 : Additional routines for creating ELF load files.
-
-*/
-
 
 
 #include "linkstd.h"
@@ -76,12 +68,13 @@ static unsigned FindClosestPrime( unsigned num )
     return prime;
 }
 
-static unsigned_32 ElfHash( unsigned char *name )
-/***********************************************/
+static unsigned_32 ElfHash( char *sym_name )
+/******************************************/
 // stolen from the ELF spec.
 {
     unsigned_32 h;
     unsigned_32 g;
+    unsigned_8  *name = (unsigned_8 *)sym_name;
 
     h = 0;
     while( *name != '\0' ) {
@@ -95,7 +88,7 @@ static unsigned_32 ElfHash( unsigned char *name )
     return h;
 }
 
-extern ElfSymTable *CreateElfSymTable( int maxElems, stringtable *strtab )
+ElfSymTable *CreateElfSymTable( int maxElems, stringtable *strtab )
 /************************************************************************/
 {
     ElfSymTable *tab;
@@ -117,7 +110,7 @@ extern ElfSymTable *CreateElfSymTable( int maxElems, stringtable *strtab )
     return tab;
 }
 
-extern void AddSymElfSymTable( ElfSymTable *tab, symbol *sym )
+void AddSymElfSymTable( ElfSymTable *tab, symbol *sym )
 /************************************************************/
 {
     unsigned_32 hash;
@@ -130,7 +123,7 @@ extern void AddSymElfSymTable( ElfSymTable *tab, symbol *sym )
     tab->numElems++;
 }
 
-extern int FindSymIdxElfSymTable( ElfSymTable *tab, symbol *sym )
+int FindSymIdxElfSymTable( ElfSymTable *tab, symbol *sym )
 /***************************************************************/
 {
     unsigned_32 hash;
@@ -197,7 +190,7 @@ static void SetElfSym( ElfHdr *hdr, Elf32_Sym *elfsym, symbol *sym )
 
 }
 
-extern void WriteElfSymTable( ElfSymTable *tab, ElfHdr *hdr, int hashidx,
+void WriteElfSymTable( ElfSymTable *tab, ElfHdr *hdr, int hashidx,
                                 int symtabidx, int strtabidx )
 /***********************************************************************/
 {
@@ -257,7 +250,7 @@ extern void WriteElfSymTable( ElfSymTable *tab, ElfHdr *hdr, int hashidx,
     AddSecName(hdr, hashSH, ".hash");
 }
 
-extern void ZapElfSymTable( ElfSymTable *tab )
+void ZapElfSymTable( ElfSymTable *tab )
 /********************************************/
 {
     _LnkFree( tab->table );

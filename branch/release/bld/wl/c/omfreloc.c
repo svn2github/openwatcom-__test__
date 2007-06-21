@@ -24,9 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  OMFRELOC:  routines specific processing relocations in OMF
+* Description:  Routines specific processing relocations in OMF.
 *
 ****************************************************************************/
+
 
 #include "linkstd.h"
 #include "msg.h"
@@ -77,13 +78,13 @@ static fix_type RelocTypeMap[] = {
 static void GetTarget( unsigned loc, frame_spec *targ );
 static void GetFrame( unsigned frame, frame_spec *refframe );
 
-extern void ResetOMFReloc( void )
+void ResetOMFReloc( void )
 /*******************************/
 {
     BakPats = NULL;
 }
 
-extern void DoRelocs( void )
+void DoRelocs( void )
 /**************************/
 /* Process FIXUP records. */
 {
@@ -252,7 +253,7 @@ static void StoreBakPat( segnode * seg, byte loctype )
     LinkList( &BakPats, bkptr );
 }
 
-extern void ProcBakpat( void )
+void ProcBakpat( void )
 /****************************/
 /* store the bakpat record away for future processing */
 {
@@ -265,7 +266,7 @@ extern void ProcBakpat( void )
     StoreBakPat( seg, loctype );
 }
 
-extern void DoBakPats( void )
+void DoBakPats( void )
 /***************************/
 /* go through the list of stored bakpats and apply them all */
 {
@@ -324,7 +325,7 @@ extern void DoBakPats( void )
     BakPats = NULL;
 }
 
-extern void ProcNbkpat( void )
+void ProcNbkpat( void )
 /****************************/
 /* process a named bakpat record */
 {

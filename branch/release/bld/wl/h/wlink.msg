@@ -78,6 +78,8 @@ pick(    MSG_FILE_TYPES_15, "ELF" ,
                 "ELF" )
 pick(    MSG_FILE_TYPES_16, "Windows VxD" ,
                 "Windows VxD" )
+pick(    MSG_FILE_TYPES_17, "DOS/16M" ,
+                "DOS/16M" )
 pick(    MSG_CREATE_TYPE_DLL,   "dynamic link library" ,
                 "ダイナミック・リンク・ライブラリ" )
 pick(    MSG_CREATE_TYPE_EXE,   "executable" ,
@@ -157,7 +159,7 @@ pick(    MSG_MAP_STACK_SIZE,            "Stack size:" ,
                     "スタック サイズ:" )
 pick(    MSG_MAP_MEM_SIZE,              "Memory size:" ,
                     "メモリ サイズ:" )
-pick(    MSG_MAP_OVL_SIZE,              "Overlay are size:" ,
+pick(    MSG_MAP_OVL_SIZE,              "Overlay area size:" ,
                     "オーバレイ サイズ:" )
 pick(    MSG_MAP_ENTRY_PT_ADDR,     "Entry point address: %a" ,
                     "エントリアドレス: %a" )
@@ -302,12 +304,12 @@ pick(    MSG_OS2_HELP_13,   "            | \"IMPFile\"[=file_name] | \"IMPLib\"[
                 "            | \"IMPFile\"[=ファイル名] | \"IMPLib\"[=ファイル名]" )
 pick(    MSG_OS2_HELP_14,   "            | (\"MANYautodata\" | \"NOautodata\" | \"ONEAutodata\")" ,
                 "            | (\"MANYautodata\" | \"NOautodata\" | \"ONEAutodata\")" )
-pick(    MSG_OS2_HELP_15,   "            | \"MODName=\"module_name | \"NEWFiles\" | \"OFFset=\"n" ,
-                "            | \"MODName=\"モジュール名 | \"NEWFiles\" | \"OFFset=\"n" )
+pick(    MSG_OS2_HELP_15,   "            | \"MODName=\"module_name | \"MIXed1632\" | \"NEWFiles\" | \"OFFset=\"n" ,
+                "            | \"MODName=\"モジュール名 | \"MIXed1632\" | \"NEWFiles\" | \"OFFset=\"n" )
 pick(    MSG_OS2_HELP_16,   "            | \"OLDlibrary=\"dll_name | \"PACKCode=\"n | \"PACKData=\"n | \"PROTmode\"" ,
                                 "            | \"OLDlibrary=\"DLL名 | \"PACKCode=\"n | \"PACKData=\"n | \"PROTmode\"")
-pick(    MSG_OS2_HELP_17,   "            | \"RESource=\"res_file_name | \"STUB=\"stub_name" ,
-                                "            | \"RESource=\"リソースファイル名 | \"STUB=\"スタブ名")
+pick(    MSG_OS2_HELP_17,   "            | \"RESource=\"res_file_name | \"STUB=\"stub_name | \"NOSTUB\"" ,
+                                "            | \"RESource=\"リソースファイル名 | \"STUB=\"スタブ名 | \"NOSTUB\"")
 pick(    MSG_OS2_HELP_18,   "            | \"VERSion=\"major.[minor]" ,
                                 "            | \"VERSion=\"ﾒｼﾞｬｰﾊﾞｰｼﾞｮﾝ.[ﾏｲﾅｰﾊﾞｰｼﾞｮﾝ]")
 pick(    MSG_OS2_HELP_19,   "export    ::= entryname[\".\"ordinal][\"=\"internal][\"RESident\"][\"PRIVATE\"][iopl]" ,
@@ -357,8 +359,8 @@ pick(    MSG_WINDOWS_HELP_13,   "            | \"MODName=\"module_name | \"OLDli
                 "            | \"MODName=\"モジュール名 | \"OLDlibrary=\"DLL名 | \"PACKCode=\"n" )
 pick(    MSG_WINDOWS_HELP_14,   "            | \"PACKData=\"n | \"RESource=\"res_file_name | \"RWReloccheck\"" ,
                                 "            | \"PACKData=\"n | \"RESource=\"リソースファイル名 | \"RWReloccheck\"")
-pick(    MSG_WINDOWS_HELP_15,   "            | \"STUB=\"stub_name | \"VERSion=\"major.[minor]" ,
-                                "            | \"STUB=\"スタブ名 | \"VERSion=\"ﾒｼﾞｬｰﾊﾞｰｼﾞｮﾝ.[ﾏｲﾅｰﾊﾞｰｼﾞｮﾝ]")
+pick(    MSG_WINDOWS_HELP_15,   "            | \"STUB=\"stub_name | \"NOSTUB\" | \"VERSion=\"major.[minor]" ,
+                                "            | \"STUB=\"スタブ名 | \"NOSTUB\" | \"VERSion=\"ﾒｼﾞｬｰﾊﾞｰｼﾞｮﾝ.[ﾏｲﾅｰﾊﾞｰｼﾞｮﾝ]")
 pick(    MSG_WINDOWS_HELP_16,   "export    ::= entryname[\".\"ordinal][\"=\"internal][\"RESident\"][\"PRIVATE\"]" ,
                                 "export    ::= エントリ名[\".\"序数][\"=\"内部名][\"RESident\"][\"PRIVATE\"]" )
 pick(    MSG_WINDOWS_HELP_17,   "segmodel  ::= (\"PReload\" | \"LOadoncall\") | (\"SHared\" | \"NONShared\")" ,
@@ -404,8 +406,8 @@ pick(    MSG_NT_HELP_14,    "            | \"MODName=\"module_name | \"NOSTDCall
                 "            | \"MODName=\"モジュール名 | \"NOSTDCall\" | \"OBJAlign=\"n | \"OFFset=\"n" )
 pick(    MSG_NT_HELP_15,    "            | \"OLDlibrary=\"dll_name | \"RESource=\"res_file_name" ,
                                 "            | \"OLDlibrary=\"DLL名 | \"RESource=\"リソースファイル名")
-pick(    MSG_NT_HELP_16,    "            | \"STUB=\"stub_name | \"VERSion=\"major.[minor]" ,
-                                "            | \"STUB=\"スタブ名 | \"VERSion=\"ﾒｼﾞｬｰﾊﾞｰｼﾞｮﾝ.[ﾏｲﾅｰﾊﾞｰｼﾞｮﾝ]")
+pick(    MSG_NT_HELP_16,    "            | \"STUB=\"stub_name | \"NOSTUB\" | \"VERSion=\"major.[minor]" ,
+                                "            | \"STUB=\"スタブ名 | \"NOSTUB\" | \"VERSion=\"ﾒｼﾞｬｰﾊﾞｰｼﾞｮﾝ.[ﾏｲﾅｰﾊﾞｰｼﾞｮﾝ]")
 pick(    MSG_NT_HELP_17,    "export    ::= entryname[\".\"ordinal][\"=\"internal][\"PRIVATE\"]" ,
                 "export    ::= エントリ名[\".\"序数][\"=\"内部名][\"PRIVATE\"]" )
 pick(    MSG_NT_HELP_18,    "segmodel  ::= (\"SHared\" | \"NONShared\") | (\"PAGEable\" | \"NONPageable\")" ,
@@ -487,11 +489,11 @@ pick(    MSG_NOVELL_HELP_17,    " " ,
  */
 pick(    MSG_DOS16_HELP_0,  " " ,
                 " " )               
-pick(    MSG_DOS16_HELP_1,  "commands valid for the Dos/16M executable format only:" ,
+pick(    MSG_DOS16_HELP_1,  "commands valid for the DOS/16M executable format only:" ,
                 "DOS/16M実行可能形式に対してのみ有効なコマンド:" )
 pick(    MSG_DOS16_HELP_2,  " " ,
                 " " )
-pick(    MSG_DOS16_HELP_3,  "form      ::= \"DOS16m\"" ,
+pick(    MSG_DOS16_HELP_3,  "form      ::= \"DOS16M\"" ,
                 "form      ::= \"DOS16m\"" )
 pick(    MSG_DOS16_HELP_4,  "directive ::= \"MEMory\"      strategy" ,
                 "directive ::= \"MEMory\"      strategy" )              
@@ -563,17 +565,19 @@ pick(    MSG_ELF_HELP_5,    "            | \"IMPort\"      import{\",\"import}" 
                 "            | \"IMPort\"      import{\",\"import}" )
 pick(    MSG_ELF_HELP_6,    "            | \"EXPort\"      export{\",\"export}" ,
                 "            | \"EXPort\"      export{\",\"export}" )
-pick(    MSG_ELF_HELP_7,    "option    ::= \"Alignment=\"n | \"EXPORTAll\" | \"EXTRASections=\"n | \"OBJAlign=\"n" ,
+pick(    MSG_ELF_HELP_7,    "            | \"RUntime\"     runoption{\",\"runoption}" ,
+                "            | \"RUntime\"     runoption{\",\"runoption}" )
+pick(    MSG_ELF_HELP_8,    "option    ::= \"Alignment=\"n | \"EXPORTAll\" | \"EXTRASections=\"n | \"OBJAlign=\"n" ,
                 "option    ::= \"Alignment=\"n | \"EXPORTAll\" | \"EXTRASections=\"n | \"OBJAlign=\"n" )
-pick(    MSG_ELF_HELP_8,    "            | \"OFFSet=\"n" ,
+pick(    MSG_ELF_HELP_9,    "            | \"OFFSet=\"n" ,
                 "            | \"OFFSet=\"n" )
-pick(    MSG_ELF_HELP_9,    "import    ::= entryname" ,
+pick(    MSG_ELF_HELP_10,   "import    ::= entryname" ,
                 "import    ::= エントリ名" )
-pick(    MSG_ELF_HELP_10,   "export    ::= entryname" ,
+pick(    MSG_ELF_HELP_11,   "export    ::= entryname" ,
                 "export    ::= エントリ名" )
-pick(    MSG_ELF_HELP_11,   "runoption ::= (\"SVR4\" | \"LINux\" | \"FREebsd\" | \"NETbsd\" | \"SOLaris\" | \"ABIver\" )" ,
+pick(    MSG_ELF_HELP_12,   "runoption ::= (\"SVR4\" | \"LINux\" | \"FREebsd\" | \"NETbsd\" | \"SOLaris\" | \"ABIver\" )" ,
                 "runoption ::= (\"SVR4\" | \"LINux\" | \"FREebsd\" | \"NETbsd\" | \"SOLaris\" | \"ABIver\" )" )
-pick(    MSG_ELF_HELP_12,   " " ,
+pick(    MSG_ELF_HELP_13,   " " ,
                 " " )
 
 
@@ -612,8 +616,8 @@ pick(    MSG_WIN_VXD_HELP_13,   "            | \"MODName=\"module_name | \"OLDli
                 "            | \"MODName=\"モジュール名 | \"OLDlibrary=\"DLL名 | \"PACKCode=\"n" )
 pick(    MSG_WIN_VXD_HELP_14,   "            | \"PACKData=\"n | \"RESource=\"res_file_name | \"RWReloccheck\"" ,
                                 "            | \"PACKData=\"n | \"RESource=\"リソースファイル名 | \"RWReloccheck\"")
-pick(    MSG_WIN_VXD_HELP_15,   "            | \"STUB=\"stub_name | \"VERSion=\"major.[minor]" ,
-                                "            | \"STUB=\"スタブ名 | \"VERSion=\"ﾒｼﾞｬｰﾊﾞｰｼﾞｮﾝ.[ﾏｲﾅｰﾊﾞｰｼﾞｮﾝ]")
+pick(    MSG_WIN_VXD_HELP_15,   "            | \"STUB=\"stub_name | \"NOSTUB\" | \"VERSion=\"major.[minor]" ,
+                                "            | \"STUB=\"スタブ名 | \"NOSTUB\" | \"VERSion=\"ﾒｼﾞｬｰﾊﾞｰｼﾞｮﾝ.[ﾏｲﾅｰﾊﾞｰｼﾞｮﾝ]")
 pick(    MSG_WIN_VXD_HELP_16,   "export    ::= entryname[\".\"ordinal][\"=\"internal][\"RESident\"][\"PRIVATE\"]" ,
                                 "export    ::= エントリ名[\".\"序数][\"=\"内部名][\"RESident\"][\"PRIVATE\"]" )
 pick(    MSG_WIN_VXD_HELP_17,   "segmodel  ::= (\"PReload\" | \"LOadoncall\") | (\"SHared\" | \"NONShared\")" ,

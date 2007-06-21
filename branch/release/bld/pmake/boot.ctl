@@ -17,4 +17,5 @@ set PROJDIR=<CWD>
     mkdir <PROJDIR>/<OBJDIR>
     cdsay <PROJDIR>/<OBJDIR>
     wmake -h -f ../bootmake
+    <CPCMD> pmake.exe <DEVDIR>/build/bin/pmake
     cdsay <PROJDIR>

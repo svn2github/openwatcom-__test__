@@ -48,8 +48,9 @@
 #include "loadfile.h"
 #include "objcalc.h"
 #include "fileio.h"
-#include "dbgcv.h"
+#include "dbgcomm.h"
 #include "dbgall.h"
+#include "dbgcv.h"
 #include "objpass1.h"
 #include "ring.h"
 #include "strtab.h"
@@ -122,7 +123,6 @@ static module_import *  PEImpList;
 static unsigned         NumMods;
 static segdata *        XFerSegData;
 
-static void             RegisterImport( dll_sym_info *sym );
 
 static struct {
     offset      ilt_off;
@@ -174,7 +174,7 @@ static offset CalcIDataSize( void )
     return( IData.total_size );
 }
 
-extern void ResetLoadPE( void )
+void ResetLoadPE( void )
 /*****************************/
 {
     PEImpList = NULL;
@@ -237,7 +237,7 @@ static void * GetTransferGlueCode( int lnk_state )
     }
 }
 
-extern offset FindIATSymAbsOff( symbol * sym )
+offset FindIATSymAbsOff( symbol * sym )
 /********************************************/
 {
     dll_sym_info *      dll;
@@ -247,7 +247,7 @@ extern offset FindIATSymAbsOff( symbol * sym )
     return( dll->iatsym->addr.off );
 }
 
-extern signed_32 FindSymPosInTocv( symbol * sym )
+signed_32 FindSymPosInTocv( symbol * sym )
 /***********************************************/
 {
     offset off = FindIATSymAbsOff(sym) - IDataGroup->linear - FmtData.base;
@@ -791,7 +791,7 @@ RcStatus CopyExeData( int inhandle, int outhandle, uint_32 length )
     return( RS_OK );
 }
 
-extern void DoAddResource( char *name )
+void DoAddResource( char *name )
 /*************************************/
 {
     list_of_names *     info;
@@ -994,7 +994,7 @@ static unsigned long CalcPEChecksum( unsigned long dwInitialCount, unsigned shor
     return( __wCrc & 0x0000FFFF );
 }
 
-extern void FiniPELoadFile( void )
+void FiniPELoadFile( void )
 /********************************/
 /* make a PE executable file */
 {
@@ -1142,7 +1142,7 @@ extern void FiniPELoadFile( void )
     }
     NullAlign( exe_head.file_align ); /* pad out last page */
     exe_head.header_size = object->physical_offset;
-    WriteDBI();
+    DBIWrite();
     SeekLoad( stub_len );
 
     if( FmtData.u.pe.checksumfile ) {
@@ -1197,7 +1197,7 @@ extern void FiniPELoadFile( void )
     _LnkFree( object );
 }
 
-extern unsigned long GetPEHeaderSize( void )
+unsigned long GetPEHeaderSize( void )
 /******************************************/
 {
     unsigned long       size;
@@ -1235,7 +1235,7 @@ static void ReadExports( unsigned_32 namestart, unsigned_32 nameend,
     _LnkFree( ordbuf );
 }
 
-extern void ReadPEExportTable( f_handle file, pe_hdr_table_entry * base )
+void ReadPEExportTable( f_handle file, pe_hdr_table_entry * base )
 /***********************************************************************/
 /* read a PE export table, and set ordinal values accordingly. */
 {
@@ -1304,49 +1304,6 @@ static void CreateIDataSection( void )
     }
 }
 
-extern void ChkPEData( void )
-/***************************/
-{
-    symbol *    sym;
-    class_entry *class;
-    class_entry *code = NULL;
-    segdata *   sdata;
-    int         glue_size;
-    offset      size;
-
-    ChkOS2Data();
-    /* find the last code class in the program */
-    for( class = Root->classlist; class != NULL; class = class->next_class ) {
-        if( class->flags & CLASS_CODE ) code = class;
-    }
-    if( code == NULL ) { // No code -- no need to do transfer stuff
-        return;
-    }
-    CurrMod = FakeModule;
-    size = 0;
-    glue_size = GetTransferGlueSize(LinkState);
-    WALK_IMPORT_SYMBOLS(sym) {
-        size += glue_size;
-        RegisterImport( sym->p.import );
-        DBIAddGlobal( sym );
-    }
-    if( size != 0 ) {
-        code->flags |= CLASS_TRANSFER;
-        sdata = AllocSegData();
-        sdata->length = size;
-        sdata->u.name = TRANSFER_SEGNAME;
-        sdata->align = 2;
-        sdata->combine = COMBINE_ADD;
-        sdata->is32bit = TRUE;
-        sdata->isabs = FALSE;
-        AddSegment( sdata, code );
-        sdata->data = AllocStg( sdata->length );
-        XFerSegData = sdata;
-    }
-    CreateIDataSection();
-    CurrMod = NULL;
-}
-
 static void RegisterImport( dll_sym_info *sym )
 /*********************************************/
 {
@@ -1403,7 +1360,50 @@ static void RegisterImport( dll_sym_info *sym )
     ++NumImports;
 }
 
-extern void AllocPETransferTable( void )
+void ChkPEData( void )
+/***************************/
+{
+    symbol *    sym;
+    class_entry *class;
+    class_entry *code = NULL;
+    segdata *   sdata;
+    int         glue_size;
+    offset      size;
+
+    ChkOS2Data();
+    /* find the last code class in the program */
+    for( class = Root->classlist; class != NULL; class = class->next_class ) {
+        if( class->flags & CLASS_CODE ) code = class;
+    }
+    if( code == NULL ) { // No code -- no need to do transfer stuff
+        return;
+    }
+    CurrMod = FakeModule;
+    size = 0;
+    glue_size = GetTransferGlueSize(LinkState);
+    WALK_IMPORT_SYMBOLS(sym) {
+        size += glue_size;
+        RegisterImport( sym->p.import );
+        DBIAddGlobal( sym );
+    }
+    if( size != 0 ) {
+        code->flags |= CLASS_TRANSFER;
+        sdata = AllocSegData();
+        sdata->length = size;
+        sdata->u.name = TRANSFER_SEGNAME;
+        sdata->align = 2;
+        sdata->combine = COMBINE_ADD;
+        sdata->is32bit = TRUE;
+        sdata->isabs = FALSE;
+        AddSegment( sdata, code );
+        sdata->data = AllocStg( sdata->length );
+        XFerSegData = sdata;
+    }
+    CreateIDataSection();
+    CurrMod = NULL;
+}
+
+void AllocPETransferTable( void )
 /**************************************/
 {
     symbol *            sym;

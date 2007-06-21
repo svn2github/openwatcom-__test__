@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  auxiliary information processing
+* Description:  Auxiliary information processing.
 *
 ****************************************************************************/
 
@@ -62,7 +62,7 @@ extern  char            *SkipBlanks(char *);
 extern  int             Spawn(void (*)(void));
 extern  aux_info        *AuxLookupName(char *,int);
 extern  sym_id          SymFind(char *,uint);
-extern  void            FreeChain(void **);
+extern  void            FreeChain(void *);
 
 static  aux_info        *CurrAux;
 static  char            *TokStart;
@@ -1377,7 +1377,7 @@ static  void    GetByteSeq( void ) {
     int             seq_len;
     int             len;
     char            *ptr;
-    char            buff[MAXIMUM_BYTESEQ+32]; // extra for assembler
+    byte            buff[MAXIMUM_BYTESEQ+32]; // extra for assembler
 #if _CPU == 8086
     bool            float_specified;
 

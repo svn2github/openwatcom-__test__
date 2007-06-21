@@ -35,6 +35,7 @@
 
 extern const char __based(__segname("_CONST")) __Alphabet[];
 
+#if defined(__WATCOMC__)
 unsigned __udiv( unsigned, unsigned _WCNEAR * );
 #if defined(__386__)
     #pragma aux __udiv = \
@@ -44,7 +45,7 @@ unsigned __udiv( unsigned, unsigned _WCNEAR * );
         parm caller [eax] [ebx] \
         modify exact [eax edx] \
         value [edx];
-#elif defined(M_I86) && defined(__BIG_DATA__)
+#elif defined( _M_I86 ) && defined(__BIG_DATA__)
     #pragma aux __udiv = \
         "xor dx,dx" \
         "div word ptr ss:[bx]" \
@@ -52,7 +53,7 @@ unsigned __udiv( unsigned, unsigned _WCNEAR * );
         parm caller [ax] [bx] \
         modify exact [ax dx] \
         value [dx];
-#elif defined(M_I86) && defined(__SMALL_DATA__)
+#elif defined( _M_I86 ) && defined(__SMALL_DATA__)
     #pragma aux __udiv = \
         "xor dx,dx" \
         "div word ptr [bx]" \
@@ -61,7 +62,7 @@ unsigned __udiv( unsigned, unsigned _WCNEAR * );
         modify exact [ax dx] \
         value [dx];
 #endif
-
+#endif /* __WATCOMC__ */
 
 _WCRTLINK CHAR_TYPE *__F_NAME(utoa,_utow)( unsigned value, CHAR_TYPE *buffer, int radix )
 {

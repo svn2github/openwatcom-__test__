@@ -24,6 +24,7 @@ echo Bootstrapping compiler using GNU tools...
 [ INCLUDE <DEVDIR>/w32loadr/prereq.ctl ]
 [ INCLUDE <DEVDIR>/yacc/prereq.ctl ]
 [ INCLUDE <DEVDIR>/re2c/prereq.ctl ]
+# [ INCLUDE <DEVDIR>/wgml/prereq.ctl ]
 [ INCLUDE <DEVDIR>/whpcvt/prereq.ctl ]
 [ INCLUDE <DEVDIR>/helpcomp/prereq.ctl ]
 [ INCLUDE <DEVDIR>/hcdos/prereq.ctl ]
@@ -31,12 +32,15 @@ echo Bootstrapping compiler using GNU tools...
 [ INCLUDE <DEVDIR>/ssl/prereq.ctl ]
 [ INCLUDE <DEVDIR>/wstub/lang.ctl ]
 [ INCLUDE <DEVDIR>/vi/prereq.ctl ]
+[ INCLUDE <DEVDIR>/wpack/prereq.ctl ]
 #        Prebuild new WLIB for build process
 [ INCLUDE <DEVDIR>/nwlib/prereq.ctl ]
 #        Prebuild POSIX tools for build process
 [ INCLUDE <DEVDIR>/posix/prereq.ctl ]
 #        Prebuild wres.lib and new WRC with OS/2 support for build process
 [ INCLUDE <DEVDIR>/sdk/rc/prereq.ctl ]
+#        Prebuild parsedlg tool for build process
+[ INCLUDE <DEVDIR>/parsedlg/prereq.ctl ]
 #
 #        Prebuild newest WASM version for build process
 [ INCLUDE <DEVDIR>/wasm/prereq.ctl ]
@@ -164,10 +168,11 @@ echo Bootstrapping compiler using GNU tools...
 #[ INCLUDE <DEVDIR>/version/lang.ctl ]
 [ INCLUDE <DEVDIR>/dmpobj/lang.ctl ]
 [ INCLUDE <DEVDIR>/exedump/lang.ctl ]
-[ INCLUDE <DEVDIR>/wpack/lang.ctl ]
 [ INCLUDE <DEVDIR>/cvpack/lang.ctl ]
 [ INCLUDE <DEVDIR>/wic/lang.ctl ]
 [ INCLUDE <DEVDIR>/redist/lang.ctl ]
+[ INCLUDE <DEVDIR>/wgml/lang.ctl ]
+[ INCLUDE <DEVDIR>/parsedlg/lang.ctl ]
 [ INCLUDE <DOC_ROOT>/lang.ctl ]
 #
 #        Do CDSAY to see end time

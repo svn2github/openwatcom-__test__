@@ -90,9 +90,6 @@ typedef struct ResTable {
     StringBlock Str;
 } ResTable;
 
-extern  unsigned_32      Write_Stub_File( void );
-
-static  void             SetGroupFlags( void );
 
 static  char            DosStub[] = {
         0x4D, 0x5A, 0x80, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -171,8 +168,8 @@ static void WriteOS2Data( unsigned_32 stub_len, os2_exe_header *exe_head )
     }
 }
 
-static void AddLLItemAtEnd( void **head, void **tail, void *item )
-/****************************************************************/
+static void AddLLItemAtEnd( void *head, void *tail, void *item )
+/**************************************************************/
 {
     struct dllist {
         struct dllist *next;
@@ -405,14 +402,14 @@ static unsigned long WriteTabList( name_list * val, unsigned long *count,
     return( off );
 }
 
-extern unsigned long ImportProcTable( unsigned long *count )
+unsigned long ImportProcTable( unsigned long *count )
 /**********************************************************/
 {
     return( WriteTabList( FmtData.u.os2.imp_tab_list, count,
                           !(LinkFlags & CASE_FLAG) ) );
 }
 
-extern unsigned long ImportModTable( unsigned long *count )
+unsigned long ImportModTable( unsigned long *count )
 /*********************************************************/
 {
     return( WriteTabList( FmtData.u.os2.mod_ref_list, count, FALSE ) );
@@ -458,7 +455,7 @@ static unsigned long ModRefTable( void )
     return nodenum;
 }
 
-extern unsigned long ResNonResNameTable( bool dores )
+unsigned long ResNonResNameTable( bool dores )
 /***************************************************/
 /* NOTE: this routine assumes INTEL byte ordering (in the use of namelen) */
 {
@@ -629,14 +626,54 @@ static unsigned long DumpEntryTable( void )
     return( size + 2 );
 }
 
-extern void ChkOS2Data()
+void ChkOS2Data()
 /**********************/
 {
     SetSegFlags( (seg_flags *) FmtData.u.os2.os2_seg_flags );
     FmtData.u.os2.os2_seg_flags = NULL;
 }
 
-extern void ChkOS2Exports( void )
+#define DEF_SEG_ON (SEG_PURE|SEG_READ_ONLY|SEG_CONFORMING|SEG_MOVABLE|SEG_DISCARD|SEG_RESIDENT|SEG_CONTIGUOUS|SEG_NOPAGE)
+#define DEF_SEG_OFF (SEG_PRELOAD|SEG_INVALID)
+
+static void CheckGrpFlags( void *_leader )
+/****************************************/
+{
+    seg_leader     *leader = _leader;
+    unsigned_16     sflags;
+
+    sflags = leader->segflags;
+// if any of these flags are on, turn it on for the entire group.
+    leader->group->segflags |= sflags & DEF_SEG_OFF;
+// if any of these flags off, make sure they are off in the group.
+    leader->group->segflags &= sflags & DEF_SEG_ON | ~DEF_SEG_ON;
+    if( (sflags & SEG_LEVEL_MASK) == SEG_LEVEL_2 ) {
+        /* if any are level 2 then all have to be. */
+        leader->group->segflags &= ~SEG_LEVEL_MASK;
+        leader->group->segflags |= SEG_LEVEL_2;
+    }
+}
+
+static void SetGroupFlags( void )
+/*******************************/
+// This goes through the groups, setting the flag word to be compatible with
+// the flag words that are specified in the segments.
+{
+    group_entry *   group;
+
+    for( group = Groups; group != NULL; group = group->next_group ) {
+        if( group->totalsize == 0 ) continue;   // DANGER DANGER DANGER <--!!!
+        group->segflags |= DEF_SEG_ON;
+        Ring2Walk( group->leaders, CheckGrpFlags );
+        /* for some insane reason, level 2 segments must be marked as
+            movable */
+        if( (group->segflags & SEG_LEVEL_MASK) == SEG_LEVEL_2 ) {
+            group->segflags |= SEG_MOVABLE;
+        }
+    }
+}
+
+void ChkOS2Exports( void )
 /*******************************/
 // NOTE: there is a continue in this loop!
 {
@@ -691,7 +728,7 @@ extern void ChkOS2Exports( void )
     }
 }
 
-extern void PhoneyStack( void )
+void PhoneyStack( void )
 /*****************************/
 // signal that we will be making a fake stack later on.
 {
@@ -769,7 +806,7 @@ static uint_32 ComputeResourceSize( WResDir dir )
 
 #define MAX_DGROUP_SIZE (64*1024UL)
 
-extern void FiniOS2LoadFile()
+void FiniOS2LoadFile()
 /***************************/
 /* terminate writing of load file */
 {
@@ -869,7 +906,7 @@ extern void FiniOS2LoadFile()
     }
     SeekEndLoad( 0 );
     FiniNEResources( resHandle, inRes, &outRes );
-    WriteDBI();
+    DBIWrite();
     exe_head.signature = OS2_SIGNATURE_WORD;
     exe_head.version = 0x0105;          /* version 5.1 */
     exe_head.chk_sum = 0L;
@@ -974,51 +1011,11 @@ extern void FiniOS2LoadFile()
     WriteLoad( &exe_head, sizeof(os2_exe_header) );
 }
 
-extern void FreeImpNameTab( void )
+void FreeImpNameTab( void )
 /********************************/
 {
     FmtData.u.os2.mod_ref_list = NULL;  /* these are permalloc'd */
     FmtData.u.os2.imp_tab_list = NULL;
-}
-
-#define DEF_SEG_ON (SEG_PURE|SEG_READ_ONLY|SEG_CONFORMING|SEG_MOVABLE|SEG_DISCARD|SEG_RESIDENT|SEG_CONTIGUOUS|SEG_NOPAGE)
-#define DEF_SEG_OFF (SEG_PRELOAD|SEG_INVALID)
-
-static void CheckGrpFlags( void *_leader )
-/****************************************/
-{
-    seg_leader     *leader = _leader;
-    unsigned_16     sflags;
-
-    sflags = leader->segflags;
-// if any of these flags are on, turn it on for the entire group.
-    leader->group->segflags |= sflags & DEF_SEG_OFF;
-// if any of these flags off, make sure they are off in the group.
-    leader->group->segflags &= sflags & DEF_SEG_ON | ~DEF_SEG_ON;
-    if( (sflags & SEG_LEVEL_MASK) == SEG_LEVEL_2 ) {
-        /* if any are level 2 then all have to be. */
-        leader->group->segflags &= ~SEG_LEVEL_MASK;
-        leader->group->segflags |= SEG_LEVEL_2;
-    }
-}
-
-static void SetGroupFlags( void )
-/*******************************/
-// This goes through the groups, setting the flag word to be compatible with
-// the flag words that are specified in the segments.
-{
-    group_entry *   group;
-
-    for( group = Groups; group != NULL; group = group->next_group ) {
-        if( group->totalsize == 0 ) continue;   // DANGER DANGER DANGER <--!!!
-        group->segflags |= DEF_SEG_ON;
-        Ring2Walk( group->leaders, CheckGrpFlags );
-        /* for some insane reason, level 2 segments must be marked as
-            movable */
-        if( (group->segflags & SEG_LEVEL_MASK) == SEG_LEVEL_2 ) {
-            group->segflags |= SEG_MOVABLE;
-        }
-    }
 }
 
 static unsigned DoExeName( void )
@@ -1040,11 +1037,11 @@ static unsigned DoExeName( void )
 
 #define PARA_ALIGN( x ) (((x)+0xf) &  ~0xfUL)
 
-extern unsigned_32 GetStubSize( void )
+unsigned_32 GetStubSize( void )
 /************************************/
 /* return the size of the stub file */
 {
-    unsigned_32     stub_len;
+    unsigned_32     stub_len = 0;
     f_handle        the_file;
     dos_exe_header  dosheader;
     unsigned_32     read_len;
@@ -1052,6 +1049,9 @@ extern unsigned_32 GetStubSize( void )
     unsigned_32     code_start;
     char *          name;
 
+    if( FmtData.u.os2.no_stub ) {
+        return( 0 );
+    }
     name = FmtData.u.os2.stub_file_name;
     stub_len = PARA_ALIGN( sizeof(DosStub) + DoExeName() );
     if( name != NULL && stricmp( name, Root->outfile->fname ) != 0 ) {
@@ -1096,7 +1096,7 @@ static unsigned WriteDefStub( void )
     return( fullsize );
 }
 
-extern unsigned_32 Write_Stub_File( void )
+unsigned_32 Write_Stub_File( void )
 /****************************************/
 {
     unsigned_32     stub_len;
@@ -1111,7 +1111,9 @@ extern unsigned_32 Write_Stub_File( void )
     char *          name;
 
     name = FmtData.u.os2.stub_file_name;
-    if( name == NULL ) {
+    if( FmtData.u.os2.no_stub ) {
+        stub_len = 0;
+    } else if( name == NULL ) {
         stub_len = WriteDefStub();
     } else if( stricmp( name, Root->outfile->fname ) == 0 ) {
         LnkMsg( ERR+MSG_STUB_SAME_AS_LOAD, NULL );

@@ -46,6 +46,24 @@
 #include "wressetr.h"
 #include "wreslang.h"
 
+#ifdef BOOTSTRAP
+
+    #define pick( id, en, jp )  {id, en},
+
+    static struct idstr { int id; char *s; } StringTable[] = {
+        #include "wmake.msg"
+        #include "usage.gh"
+    };
+
+    static int compar( const void *s1, const void *s2 ) {
+        return ((struct idstr *)s1)->id - ((struct idstr *)s2)->id;
+    }
+
+    #ifndef _arraysize
+        #define _arraysize( a ) (sizeof(a)/sizeof(a[0]))
+    #endif
+
+#endif
 
 #define NIL_HANDLE      ((int)-1)
 
@@ -54,9 +72,10 @@ static  TABLE_TYPE  PARA_TABLE[] = {
 #include "mrcmsg.h"
 #undef  FORMTABLE
 
+#ifndef BOOTSTRAP
+
 static  HANDLE_INFO hInstance = { 0 };
 static  unsigned    MsgShift;
-extern  long        FileShift;  // Defined in %devdir%\sdk\rc\wres\c\loadstr.c
 
 #define NO_RES_MESSAGE "Error: could not open message resource file.\r\n"
 #define NO_RES_SIZE (sizeof(NO_RES_MESSAGE)-1)
@@ -78,10 +97,12 @@ static long resSeek( int handle, off_t position, int where )
 
 WResSetRtns( open, close, read, write, resSeek, tell, malloc, free );
 
+#endif
 
-extern int MsgInit( void )
+int MsgInit( void )
 /************************/
 {
+#ifndef BOOTSTRAP
     int         initerror;
     static char name[_MAX_PATH]; // static because address passed outside.
 
@@ -109,22 +130,36 @@ extern int MsgInit( void )
         MsgFini();
         return( 0 );
     }
+#endif
     return( 1 );
 }
 
 
-extern int MsgGet( int resourceid, char *buffer )
+int MsgGet( int resourceid, char *buffer )
 /***********************************************/
 {
+#ifdef BOOTSTRAP
+    {
+        struct idstr *s;
+        s = bsearch( &resourceid, StringTable, _arraysize( StringTable ),
+                     sizeof( *s ), compar );
+        if( !s ) {
+            buffer[0] = '\0';
+            return( 0 );
+        }
+        strcpy( buffer, s->s );
+    }
+#else
     if( LoadString( &hInstance, resourceid + MsgShift, (LPSTR)buffer,
             MAX_RESOURCE_SIZE ) == -1 ) {
         buffer[0] = '\0';
         return( 0 );
     }
+#endif
     return( 1 );
 }
 
-extern void MsgGetTail( int resourceid, char *buffer )
+void MsgGetTail( int resourceid, char *buffer )
 /****************************************************/
 {
     char        msg[MAX_RESOURCE_SIZE];
@@ -139,13 +174,15 @@ extern void MsgGetTail( int resourceid, char *buffer )
 }
 
 
-extern void MsgFini( void )
+void MsgFini( void )
 /*************************/
 {
+#ifndef BOOTSTRAP
     if( hInstance.handle != NIL_HANDLE ) {
         CloseResFile( &hInstance );
         hInstance.handle = NIL_HANDLE;
     }
+#endif
 }
 
 
@@ -166,7 +203,7 @@ static char *msgInTable( int resourceid )
 }
 
 
-extern int MsgReOrder( int resourceid, char *buff, char **paratype )
+int MsgReOrder( int resourceid, char *buff, char **paratype )
 /******************************************************************/
 {
     int rvalue = 0;

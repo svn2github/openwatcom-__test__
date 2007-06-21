@@ -67,7 +67,7 @@ essentially no worst case performance scenario.
 #include "ptrint.h"
 #include "hostsys.h"
 #include "cg.h"
-#if defined( M_I86 ) || defined( M_I386 )
+#if defined( _M_IX86 ) && defined( __WATCOMC__ )
     #include <i86.h>
 #endif
 #include <unistd.h>
@@ -337,7 +337,7 @@ static  void    CalcMemSize( void )
             MemorySize = memory_available;
         }
     }
-    #elif defined( __LINUX__ )
+    #else
         if( size_requested != 0 ) {
             MemorySize = size_requested;
         } else {
@@ -346,7 +346,7 @@ static  void    CalcMemSize( void )
         memory_available = _16M;
     #endif
     if( max_size_queried || size_queried ) {
-        myitoa( (int)(memory_available/_1K), CopyStr( (char *)"Maximum WCGMEMORY=", (char *)buff ) );
+        myitoa( (int)(memory_available/_1K), CopyStr( "Maximum WCGMEMORY=", buff ) );
         write( 1, buff, Length( buff ) );
         write( 1, "\r\n", 2 );
     }

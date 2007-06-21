@@ -82,14 +82,14 @@ typedef struct readcache {
 
 static readcache * ReadCacheList;
 
-extern void InitObjORL( void )
+void InitObjORL( void )
 /****************************/
 {
     ORLHandle = ORLInit( &ORLFuncs );
     ReadCacheList = NULL;
 }
 
-extern void ObjORLFini( void )
+void ObjORLFini( void )
 /****************************/
 {
     ORLFini( ORLHandle );
@@ -126,7 +126,7 @@ static void * ORLRead( void *_list, size_t len )
     return result;
 }
 
-extern bool IsORL( file_list * list, unsigned loc )
+bool IsORL( file_list * list, unsigned loc )
 /*************************************************/
 // return TRUE if this is can be handled by ORL
 {
@@ -190,7 +190,7 @@ static void FiniFile( orl_file_handle filehdl, file_list *list )
     }
 }
 
-extern void ORLSkipObj( file_list *list, unsigned long *loc )
+void ORLSkipObj( file_list *list, unsigned long *loc )
 /***********************************************************/
 // skip the object file.
 // NYI: add an entry point in ORL for a more efficient way of doing this.
@@ -441,7 +441,7 @@ static orl_return DeclareSegment( orl_sec_handle sec )
         SeenDLLRecord();
         CurrMod->modinfo |= MOD_IMPORT_LIB;
         if( name[len + 1] == '6' ) {    // it is the segment containg the name
-            ORLSecGetContents( sec, &ImpExternalName );
+            ORLSecGetContents( sec, (unsigned_8 **)&ImpExternalName );
             ImpExternalName += 2;
         } else if( name[len + 1] == '4' ) {     // it is an import by ordinal
             ORLSecGetContents( sec, (void *) &contents );
@@ -899,7 +899,7 @@ static orl_return ProcP1Specific( orl_sec_handle hdl )
     return (P1SpecificJumpTable[ORLSecGetType( hdl )])( hdl );
 }
 
-extern unsigned long ORLPass1( void )
+unsigned long ORLPass1( void )
 /***********************************/
 // do pass 1 for an object file handled by ORL.
 {

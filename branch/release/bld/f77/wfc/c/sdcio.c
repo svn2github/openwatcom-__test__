@@ -24,15 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  System dependent compiler I/O routines.
 *
 ****************************************************************************/
 
-
-//
-// SDCIO      : System dependent compiler I/O routines
-//
 
 #include "ftnstd.h"
 #include "omodes.h"
@@ -127,7 +122,7 @@ void    SDClose( file_handle fp ) {
 uint    SDRead( file_handle fp, byte *buff, uint len ) {
 //======================================================
 
-    return( FGetRec( fp, buff, len ) );
+    return( FGetRec( fp, (char *)buff, len ) );
 }
 
 
@@ -137,7 +132,7 @@ void    SDWrite( file_handle fp, byte *buff, int len ) {
     if( fp == FStdOut ) {
         CheckBlips();
     }
-    FPutRec( fp, buff, len );
+    FPutRec( fp, (char *)buff, len );
 }
 
 

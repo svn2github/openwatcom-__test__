@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  routines for creating novell netware load files
+* Description:  Routines for creating Novell NetWare load files.
 *
 ****************************************************************************/
 
@@ -45,8 +45,6 @@
 #include "loadfile.h"
 #include "loadnov.h"
 
-static unsigned_32 WriteNovData( unsigned_32, fixed_header * );
-static unsigned_32 WriteNovImage( unsigned_32, bool );
 
 #define DUMMY_THREAD_NAME " LONG"
 
@@ -55,7 +53,7 @@ static unsigned_32  DbgInfoLen;
 static virt_mem     NovDbgInfo;
 static virt_mem     CurrDbgLoc;
 
-extern void ResetLoadNov( void )
+void ResetLoadNov( void )
 /******************************/
 {
     DbgInfoCount = 0;
@@ -212,7 +210,7 @@ static unsigned_32 WriteNovModules( fixed_header *header )
     return( wrote );
 }
 
-extern void NovDBIAddGlobal( void * _sym )
+void NovDBIAddGlobal( void * _sym )
 /****************************************/
 {
     symbol *sym = _sym;
@@ -228,7 +226,7 @@ extern void NovDBIAddGlobal( void * _sym )
     }
 }
 
-extern void NovDBIAddrStart( void )
+void NovDBIAddrStart( void )
 /*********************************/
 {
     if( DbgInfoLen != 0 ) {
@@ -237,7 +235,7 @@ extern void NovDBIAddrStart( void )
     }
 }
 
-extern void NovDBIGenGlobal( symbol *sym )
+void NovDBIGenGlobal( symbol *sym )
 /****************************************/
 {
     nov_dbg_info    info;
@@ -412,32 +410,6 @@ static void GetProcOffsets( fixed_header *header )
     }
 }
 
-static unsigned_32 WriteNovData( unsigned_32 file_pos, fixed_header * header )
-/****************************************************************************/
-// write both the code image and the data image.
-{
-    unsigned_32     codesize;
-
-    DEBUG(( DBG_BASE, "Writing data" ));
-    OrderGroups( CompareProtSegments );
-    CurrSect = Root;        // needed for WriteInfo.
-    Root->outfile->file_loc = file_pos;
-    Root->u.file_loc = file_pos;
-    Root->sect_addr.off = Groups->grp_addr.off;
-    Root->sect_addr.seg = CODE_SEGMENT;
-    codesize = WriteNovImage( file_pos, TRUE );       // TRUE = do code.
-    header->codeImageSize = codesize;
-    file_pos += codesize;
-    header->dataImageOffset = file_pos;
-    Root->outfile->file_loc = file_pos;
-    Root->u.file_loc = file_pos;
-    Root->sect_addr.off = Groups->grp_addr.off;
-    Root->sect_addr.seg = DATA_SEGMENT;
-    header->dataImageSize = WriteNovImage( file_pos, FALSE );  // do data.
-    return( codesize + header->dataImageSize );
-}
-
-
 static unsigned_32 WriteNovImage( unsigned_32 file_pos, bool docode )
 /*******************************************************************/
 // Write a Novell image
@@ -467,6 +439,32 @@ static unsigned_32 WriteNovImage( unsigned_32 file_pos, bool docode )
     return( fnode->file_loc - file_pos );
 }
 
+static unsigned_32 WriteNovData( unsigned_32 file_pos, fixed_header * header )
+/****************************************************************************/
+// write both the code image and the data image.
+{
+    unsigned_32     codesize;
+
+    DEBUG(( DBG_BASE, "Writing data" ));
+    OrderGroups( CompareProtSegments );
+    CurrSect = Root;        // needed for WriteInfo.
+    Root->outfile->file_loc = file_pos;
+    Root->u.file_loc = file_pos;
+    Root->sect_addr.off = Groups->grp_addr.off;
+    Root->sect_addr.seg = CODE_SEGMENT;
+    codesize = WriteNovImage( file_pos, TRUE );       // TRUE = do code.
+    header->codeImageSize = codesize;
+    file_pos += codesize;
+    header->dataImageOffset = file_pos;
+    Root->outfile->file_loc = file_pos;
+    Root->u.file_loc = file_pos;
+    Root->sect_addr.off = Groups->grp_addr.off;
+    Root->sect_addr.seg = DATA_SEGMENT;
+    header->dataImageSize = WriteNovImage( file_pos, FALSE );  // do data.
+    return( codesize + header->dataImageSize );
+}
+
+
 static void NovNameWrite( char *name )
 /************************************/
 // write a name to the loadfile in the typical novell fashion
@@ -477,7 +475,7 @@ static void NovNameWrite( char *name )
         len = strlen( name );
     } else {
         len = 0;
-        name = &len;
+        name = (char *)&len;
     }
     WriteLoad( &len, sizeof( unsigned_8 ) );
     WriteLoad( name, len + 1 );
@@ -491,7 +489,7 @@ static int __min__(int a, int b)
         return( a );
 }
 
-extern void FiniNovellLoadFile( void )
+void FiniNovellLoadFile( void )
 /************************************/
 {
     unsigned_32         file_size;
@@ -599,10 +597,10 @@ extern void FiniNovellLoadFile( void )
     file_size += WriteSharedNLM( &ext_header, file_size );
     nov_header.debugInfoOffset = file_size;
     file_size += WriteNovDBI( &nov_header );
-    WriteDBI();
+    DBIWrite();
     memcpy( nov_header.signature, NLM_SIGNATURE, sizeof( NLM_SIGNATURE ) );
     nov_header.version = NLM_VERSION;
-    nov_header.moduleName[0] = len;
+    nov_header.moduleName[0] = (char)len;
     memcpy( &nov_header.moduleName[1], module_name, len );
     memset( &nov_header.moduleName[ len + 1 ], 0, NOV_MAX_MODNAME_LEN-len ); // zero rest.
     nov_header.uninitializedDataSize = 0; // MemorySize() - image_size;
@@ -646,7 +644,7 @@ extern void FiniNovellLoadFile( void )
     WriteLoad( &ext_header, sizeof( ext_header ) );
 }
 
-extern void AddNovImpReloc( symbol *sym, unsigned_32 offset, bool isrelative,
+void AddNovImpReloc( symbol *sym, unsigned_32 offset, bool isrelative,
                                                                  bool isdata )
 /****************************************************************************/
 // add a relocation to the import record.
@@ -711,7 +709,7 @@ extern void AddNovImpReloc( symbol *sym, unsigned_32 offset, bool isrelative,
     }
 }
 
-extern void FindExportedSyms( void )
+void FindExportedSyms( void )
 /**********************************/
 {
     name_list *     export;

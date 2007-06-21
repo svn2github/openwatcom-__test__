@@ -54,8 +54,9 @@
 #include "strtab.h"
 #include "carve.h"
 #include "permdata.h"
-#include "dbgcv.h"
+#include "dbgcomm.h"
 #include "dbgall.h"
+#include "dbgcv.h"
 #include "toc.h"
 #include "ring.h"
 #include "obj2supp.h"
@@ -90,7 +91,7 @@ static void             Relocate( save_fixup *save, fix_data *fix, frame_spec *t
 
 #define FIX_POINTER_MASK ( FIX_BASE | FIX_HIGH | FIX_OFFSET_MASK )
 
-extern void ResetObj2Supp( void )
+void ResetObj2Supp( void )
 /*******************************/
 {
     FixupOverflow = 0;
@@ -158,7 +159,7 @@ static void TraceFixup( fix_type type, frame_spec *targ )
     }
 }
 
-extern void RelocStartMod( void )
+void RelocStartMod( void )
 /*******************************/
 {
     LastSegData = NULL;
@@ -405,8 +406,8 @@ static void BuildReloc( save_fixup *save, frame_spec *targ, frame_spec *frame )
         fix.type |= FIX_ABS;
     }
     if( FmtData.type & MK_OVERLAYS ) {
-        if( ( (fix.type & FIX_REL) == 0 )
-            && ( targ->type == FIX_FRAME_EXT )
+        if( ( targ->type == FIX_FRAME_EXT )
+            && ( (fix.type & FIX_REL) == 0 || FmtData.u.dos.ovl_short ) 
             && targ->u.sym->u.d.ovlref
             && ( (targ->u.sym->u.d.ovlstate & OVL_VEC_MASK) == OVL_MAKE_VECTOR ) ) {
             // redirect target to appropriate vector entry
@@ -426,7 +427,7 @@ static void BuildReloc( save_fixup *save, frame_spec *targ, frame_spec *frame )
     Relocate( save, &fix, targ );
 }
 
-extern unsigned IncExecRelocs( void *_save )
+unsigned IncExecRelocs( void *_save )
 /******************************************/
 {
     save_fixup *save = _save;
@@ -479,7 +480,7 @@ static void FixFrameValue( frame_type type, void **target )
     }
 }
 
-extern unsigned RelocMarkSyms( void *_fix )
+unsigned RelocMarkSyms( void *_fix )
 /*****************************************/
 {
     save_fixup *fix = _fix;
@@ -508,11 +509,11 @@ extern unsigned RelocMarkSyms( void *_fix )
     return( CalcSavedFixSize( fix->flags ) );
 }
 
-static bool MemIsZero( char *mem, unsigned size )
-/***********************************************/
+static bool MemIsZero( unsigned_8 *mem, unsigned size )
+/*****************************************************/
 {
     while( size > 0 ) {
-        if( *mem != '\0' )
+        if( *mem != 0 )
             return( FALSE );
         mem++;
         size--;
@@ -520,14 +521,14 @@ static bool MemIsZero( char *mem, unsigned size )
     return( TRUE );
 }
 
-extern void StoreFixup( offset off, fix_type type, frame_spec *frame,
+void StoreFixup( offset off, fix_type type, frame_spec *frame,
                         frame_spec *targ, offset addend )
 /*******************************************************************/
 {
     save_fixup  save;
     fix_data    fix;
     unsigned    size;
-    char        buff[2 * sizeof( unsigned_32 )];
+    unsigned_8  buff[2 * sizeof( unsigned_32 )];
 
     if( LastSegData != CurrRec.seg ) {
         DbgAssert( CurrRec.seg != NULL );
@@ -574,7 +575,7 @@ extern void StoreFixup( offset off, fix_type type, frame_spec *frame,
     }
 }
 
-extern unsigned IncSaveRelocs( void *_save )
+unsigned IncSaveRelocs( void *_save )
 /******************************************/
 {
     save_fixup *save = _save;
@@ -931,8 +932,12 @@ static bool CheckSpecials( fix_data *fix, frame_spec *targ )
         if( fix->type & FIX_ABS ) {
             off -= FindGroup( fix->loc_addr.seg )->linear;
         }
-    } else {
+    } else if( !(FmtData.type & MK_DOS16M) ) {
         off = SUB_ADDR( fix->tgt_addr, fix->loc_addr );
+#ifdef _DOS16M
+    } else {
+        off = SUB_16M_ADDR( fix->tgt_addr, fix->loc_addr );
+#endif
     }
     fixsize = CalcFixupSize( fix->type );
     if ( !( fix->type & FIX_NOADJ ) ) {
@@ -1055,7 +1060,7 @@ static void PatchData( fix_data *fix )
         if( FmtData.type & MK_PROT_MODE ) {
             PUT_U16( data, 0 );
         }
-        if( FmtData.type & MK_PHAR_MULTISEG ) {
+        if( FmtData.type & ( MK_DOS16M | MK_PHAR_MULTISEG ) ) {
             PUT_U16( data, fix->tgt_addr.seg );
         } else if( fix->done || ( FmtData.type & ( MK_QNX | MK_DOS ) ) ) {
             if( isdbi && ( LinkFlags & CV_DBI_FLAG ) ) {    // FIXME
@@ -1623,7 +1628,7 @@ static void Relocate( save_fixup *save, fix_data *fix, frame_spec *targ )
 {
     int         shift;
     unsigned    datasize;
-    char        addbuf[MAX_ADDEND_SIZE + 2];
+    unsigned_8  addbuf[MAX_ADDEND_SIZE + 2];
 
     shift = 0;
     datasize = CalcFixupSize( fix->type );

@@ -29,6 +29,6 @@
 ****************************************************************************/
 
 
-#define _BANVER 1260
-#define _BANEXTRA 
+#define _BANVER     1270
+#define _BANEXTRA
 #define _BANEXSHORT

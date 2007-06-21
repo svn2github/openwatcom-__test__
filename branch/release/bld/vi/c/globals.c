@@ -55,7 +55,7 @@ char _NEAR * _NEAR EditOpts[] =  {
 int NumEditOpts = (sizeof( EditOpts )/sizeof( char _NEAR * ) );
 
 /* mouse data */
-#if !defined( __LINUX__ ) || defined( PREBUILD )
+#if !defined( __UNIX__ ) || defined( PREBUILD )
 int             MouseRow;
 int             MouseCol;
 int             MouseStatus;
@@ -80,7 +80,7 @@ int             HalfPageLines;
 char            *GrepDefault;
 int             LastEvent;
 int             StackK=MIN_STACK_K;
-char            SpinCount;
+int             SpinCount;
 char            _NEAR SpinData[]="Ä\\|/";
 char            ExitAttr=7;
 char            VideoPage;

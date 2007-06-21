@@ -33,7 +33,7 @@
 #include "uidef.h"
 #include "uiattrs.h"
 
-#if defined( __WATCOMC__ ) && (defined( __386__ ) || defined( M_I86 ))
+#if defined( __WATCOMC__ ) && defined( _M_IX86 )
    #define PROGRAM_VGA
 #endif
 
@@ -124,7 +124,7 @@ ATTR ui_vga_colour_attrs[] =
 #define C_CMENU     C_BLACK
 #define C_BACK      C_BLUE
 
-#ifdef UNIX
+#ifdef __UNIX__
     #define C_BRIGHT_WHITE_ON_WHITE C_BROWN
 #else
     #define C_BRIGHT_WHITE_ON_WHITE (BRIGHT | C_WHITE)

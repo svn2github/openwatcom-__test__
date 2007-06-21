@@ -158,6 +158,7 @@
 .dir maxerrors          opmaxerr.gml    all
 .dir messages           opmessag.gml    netware
 .dir mindata            opmindat.gml    pharlap
+.dir mixed1632          opmixed.gml     os2
 .dir modname            opmodnam.gml    os2 win16 win32
 .dir modfile            ldmodfil.gml    all
 .dir modtrace           ldmodtrc.gml    all
@@ -176,12 +177,13 @@
 .do end
 .dir norelocs           opnorelo.gml    qnx win32
 .dir nostdcall          opnostdc.gml    win32
+.dir nostub             opnostub.gml    os2 win16 win32
 .if '&overlay' eq 'yes' .do begin
 .dir novector           ldnovect.gml    dos
 .do end
-.dir objalign           opobjali.gml    win32
+.dir objalign           opobjali.gml    elf win32
 .dir oldlibrary         opoldlib.gml    os2 win16 win32
-.dir offset             opoffset.gml    os2 pharlap qnx win32
+.dir offset             opoffset.gml    elf os2 pharlap qnx win32
 .dir oneautodata        oponeaut.gml    os2 win16
 .dir option             ldoption.gml    all
 .dir optlib             ldoptlib.gml    all
@@ -204,7 +206,7 @@
 .dir reentrant          opreentr.gml    netware
 .dir reference          ldrefere.gml    all
 .dir resource           opresour.gml    os2 qnx win16 win32
-.dir runtime            ldruntim.gml    pharlap win32
+.dir runtime            ldruntim.gml    pharlap win32 elf
 .dir rwreloccheck       oprwrelo.gml    win16
 .dir screenname         opscreen.gml    netware
 .if '&overlay' eq 'yes' .do begin

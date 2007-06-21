@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Optimize x87 FPU instruction sequences. 
 *
 ****************************************************************************/
 
@@ -39,10 +38,12 @@
 #include "procdef.h"
 #include "addrname.h"
 #include "model.h"
-#include "sysmacro.h"
+#include "cgmem.h"
 #include "regset.h"
 #include "zoiks.h"
 #include "funits.h"
+#include "x87.h"
+
 
 extern  block           *HeadBlock;
 extern  block           *CurrBlock;
@@ -58,7 +59,6 @@ extern  int             FPRegNum(name*);
 extern  void            DoNothing(instruction*);
 extern  name            *AllocRegName(hw_reg_set);
 extern  void            BGDone(an);
-extern  bool            FPIsStack(name*);
 extern  bool            ReDefinedBy(instruction*,name*);
 extern  instruction     *MakeNary(opcode_defs,name*,name*,name*,type_class_def,type_class_def,int);
 extern  void            AddIns(instruction*);
@@ -264,7 +264,7 @@ static bool PushDelayedIfStackOperand( instruction *ins, pn parm, call_state *st
     while( --i >= 0 ) {
         if( FPIsStack( ins->operands[ i ] ) ) {
             parm->ins = PushDelayed( ins, addr, state );
-            // _Free( parm, sizeof( parm_node ) );
+            // CGFree( parm );
             return( TRUE );
         }
     }
@@ -290,7 +290,7 @@ static bool PushDelayedIfRedefinition( instruction *ins, pn parm, call_state *st
             while( --i >= 0 ) {
                 if( ReDefinedBy( next, ins->operands[ i ] ) ) {
                     parm->ins = PushDelayed( ins, parm->name, state );
-                    // _Free( parm, sizeof( parm_node ) );
+                    // CGFree( parm );
                     return( TRUE );
                 }
             }

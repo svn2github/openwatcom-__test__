@@ -111,6 +111,7 @@ extern bool     ProcFarCalls( void );
 extern bool     ProcNoFarCalls( void );
 
 extern bool     ProcStub( void );
+extern bool     ProcNoStub( void );
 extern bool     ProcVersion( void );
 extern bool     ProcImplib( void );
 extern bool     ProcImpFile( void );
@@ -134,5 +135,6 @@ extern bool     ProcOrdSegSegAdr( void );
 extern bool     ProcOrdSegOfsAdr( void );
 extern bool     ProcOrdSegCopy( void );
 extern bool     ProcOrdSegNoEmit( void );
+extern void     ResetCmdAll( void );
 
 extern sysblock *       FindSysBlock( char * );

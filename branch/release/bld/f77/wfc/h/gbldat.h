@@ -87,10 +87,10 @@ gbl_defn byte           ContType;       // type of continuation char
 
 gbl_defn char           *LibMember;     // name of library member
 gbl_defn unsigned_16    ISNNumber;      // ISN # only for FORTRAN statements;
-gbl_defn byte           *CmdPtr;        // pointer to command line
+gbl_defn char           *CmdPtr;        // pointer to command line
 gbl_defn uint           NumExtens;      // number of extens. during compilation
 gbl_defn uint           NumWarns;       // number of warnings during compilation
-gbl_defn byte           *SrcExtn;       // pointer to source file extension
+gbl_defn char           *SrcExtn;       // pointer to source file extension
 gbl_defn int            RetCode;        // return code for Main()
 
 
@@ -107,7 +107,7 @@ gbl_defn sym_id         IFList;         // start of intrinsic function list
 gbl_defn sym_id         CurrStruct;     // sym_id of structure being defined
 gbl_defn itnode         *FieldNode;     // I.T. node of current field
 
-gbl_defn pointer        ITPool;         // head of free list of I.T. nodes
+gbl_defn pointer        *ITPool;        // head of free list of I.T. nodes
 gbl_defn unsigned_32    CGOpts;         // code generator options
 gbl_defn unsigned_32    CPUOpts;        // code generator options (CPU target)
 gbl_defn unsigned_32    OZOpts;         // code generator options (optimizations)

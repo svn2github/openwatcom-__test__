@@ -170,11 +170,7 @@ extra_lib_flags_386 = -io -ii
 .c: ../../lib;../../lib/directx;../../lib/ddk;
 
 .def.lbc:
-!ifeq host_cpu 386
-        $(vi) -s ../../def2lbc.vi -p"$[@ $*"
-!else
-        $(vi) -s ../../def2lbcs.vi -p"$[@ $*"
-!endif
+        $(vi) -s ../../def2lbc.vi -p"$[@ $* $(host_cpu)"
 
 .lbc.lib:
         $(librarian) $(libflags) $@ @$<
@@ -224,7 +220,7 @@ vfw32.lbc: $(vfw32_libs)
         @%create $@
         @for %i in ($(vfw32_libs)) do @%append $@ @ %i
 
-uuid_objs = mshtml-u.obj msxml-uuid.obj unknwn-uuid.obj &
+uuid_objs = mshtml-uuid.obj msxml-uuid.obj unknwn-uuid.obj &
         servprov-uuid.obj oleidl-uuid.obj oleacc-uuid.obj ocidl-uuid.obj &
         objsafe-uuid.obj oaidl-uuid.obj docobj-uuid.obj comcat-uuid.obj &
         exdisp-uuid.obj mlang-uuid.obj objidl-uuid.obj cguid-uuid.obj &

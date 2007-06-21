@@ -106,7 +106,7 @@ static  char    *Temp_Link;         /* temporary linker directive file    */
                                     /* Temp_Link concurrent usages clash  */
 static  struct directives *Directive_List; /* linked list of directives   */
 static  char    *StackSize = NULL;  /* size of stack                      */
-static  char    DebugFlag = 0;      /* debug info wanted                  */
+static  int     DebugFlag = 0;      /* debug info wanted                  */
 static  char    Conventions;        /* 'r' for -3r or 's' for -3s         */
 static  char    Switch_Chars[4];    /* valid switch characters            */
 static  int     via_environment = FALSE;
@@ -807,6 +807,7 @@ static  int  CompLink( void )
     char        *cc_name;
     struct directives *d_list;
     char        errors_found;
+    void        *tmp_env;
 
     if( Flags.be_quiet ) {
         Fputnl( "option quiet", Fp );
@@ -884,6 +885,9 @@ static  int  CompLink( void )
         Fputnl( d_list->directive, Fp );
     }
 
+    tmp_env = NULL;
+    if( via_environment && strlen( CC_Opts ) >= 20 ) // 20 to allow wclxxxxx=y
+        tmp_env = makeTmpEnv( CC_Opts );
     errors_found = 0;                   /* 21-jan-92 */
     p = Files;
     while( *p != '\0' ) {
@@ -903,16 +907,11 @@ static  int  CompLink( void )
 
             if( !FileExtension( Word, OBJ_EXT ) &&  /* if not .obj or .o, compile */
                 !FileExtension( Word, OBJ_EXT_SECONDARY ) ) {
-                void    *tmp_env = NULL;
 
-                if( via_environment && strlen( CC_Opts ) >= 20 ) // 20 to allow wclxxxxx=y
-                    tmp_env = makeTmpEnv( CC_Opts );
                 if( !Flags.be_quiet )
                     PrintMsg( "       %s %s %s\n", cc_name, Word, CC_Opts );
                 fflush( NULL );
                 rc = spawnlp( P_WAIT, CC_Path, cc_name, Word, CC_Opts, NULL );
-                if( tmp_env )
-                    killTmpEnv( tmp_env );
                 if( rc != 0 ) {
                     if( (rc == -1) || (rc == 255) ) {
                         PrintMsg( WclMsgs[ UNABLE_TO_INVOKE_EXE ], CC_Path );
@@ -935,6 +934,8 @@ static  int  CompLink( void )
         }
         p = end;        /* get next filespec */
     }
+    if( tmp_env )
+        killTmpEnv( tmp_env );
     if( errors_found )  return( 1 );            /* 21-jan-92 */
     BuildLinkFile();
 

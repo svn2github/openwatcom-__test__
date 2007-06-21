@@ -220,6 +220,7 @@ int DoSignedOp( TREEPTR op1, TREEPTR tree, TREEPTR op2 )
     int_32          right;
     DATA_TYPE       const_type;
 
+    left = 0;
     const_type = tree->expr_type->decl_type;
     if( op1 != NULL ) {
         left = op1->op.long_value;
@@ -244,6 +245,10 @@ int DoSignedOp( TREEPTR op1, TREEPTR tree, TREEPTR op2 )
             break;
         case CC_LE:
             value = (left <= right);
+            break;
+        default:
+            assert( 0 );
+            value = 0;
             break;
         }
         const_type = TYPE_INT;
@@ -274,6 +279,7 @@ int DoUnSignedOp( TREEPTR op1, TREEPTR tree, TREEPTR op2 )
     uint_32         right;
     DATA_TYPE       const_type;
 
+    left = 0;
     const_type = tree->expr_type->decl_type;
     if( op1 != NULL ) {
         left = op1->op.ulong_value;
@@ -298,6 +304,10 @@ int DoUnSignedOp( TREEPTR op1, TREEPTR tree, TREEPTR op2 )
             break;
         case CC_LE:
             value = (left <= right);
+            break;
+        default:
+            assert( 0 );
+            value = 0;
             break;
         }
         const_type = TYPE_INT;
@@ -370,6 +380,7 @@ int64 LongValue64( TREEPTR leaf )
         break;
     case TYPE_FLOAT:
     case TYPE_DOUBLE:
+    case TYPE_LONG_DOUBLE:
         sign = TRUE;
         flt = leaf->op.float_value;
         if( flt->len == 0 ) {
@@ -379,12 +390,17 @@ int64 LongValue64( TREEPTR leaf )
         }
         CMemFree( flt );
 #ifdef _LONG_DOUBLE_
-        val32 = __LDI4( (long_double near *)&ld );
+        __LDI8( (long_double _WCNEAR *)&ld, (void _WCNEAR *)value.u._64 );
+        return( value );
+#elif defined(__WATCOM_INT64__) || defined(__GNUC__)
+        value.u._64[0] = (long long)ld.value;
+        return( value );
 #else
         val32 = ld.value;
 #endif
         break;
     default:
+        sign = FALSE;
         val32 = 0;
         break;
     }
@@ -541,12 +557,10 @@ void CastFloatValue( TREEPTR leaf, DATA_TYPE newtype )
         case TYPE_LONG64:
 #ifdef _LONG_DOUBLE_
             __I8LD( &leaf->op.long64_value, (long_double near *)&ld );
-#else
-            #if defined(__WATCOM_INT64__) || defined(__GNUC__)
+#elif defined(__WATCOM_INT64__) || defined(__GNUC__)
             ld.value = (double)leaf->op.ulong64_value.u._64[0];
-            #else
+#else
             ld.value = 0;//not implemented, issue a warning
-            #endif
 #endif
             break;
         default:
@@ -554,12 +568,10 @@ void CastFloatValue( TREEPTR leaf, DATA_TYPE newtype )
             if( leaf->op.const_type == TYPE_ULONG64 ) {
 #ifdef _LONG_DOUBLE_
                 __U8LD( &leaf->op.ulong64_value, (long_double near *)&ld );
-#else
-                #if defined(__WATCOM_INT64__) || defined(__GNUC__)
+#elif defined(__WATCOM_INT64__) || defined(__GNUC__)
                 ld.value = (double)leaf->op.ulong64_value.u._64[0];
-                #else
+#else
                 ld.value = 0;//not implemented, issue a warning
-                #endif
 #endif
             } else {
 #ifdef _LONG_DOUBLE_
@@ -684,6 +696,10 @@ int DoFloatOp( TREEPTR op1, TREEPTR tree, TREEPTR op2 )
             break;
         case CC_LE:
             value = (cond <= 0);
+            break;
+        default:
+            assert( 0 );
+            value = 0;
             break;
         }
         tree->op.opr = OPR_PUSHINT;
@@ -836,8 +852,8 @@ void CastConstValue( TREEPTR leaf, DATA_TYPE newtyp )
 
     oldtyp = leaf->op.const_type;
 
-    if( (newtyp == TYPE_DOUBLE || newtyp == TYPE_FLOAT)
-     && (oldtyp == TYPE_DOUBLE || oldtyp == TYPE_FLOAT) ) {
+    if( (newtyp == TYPE_DOUBLE || newtyp == TYPE_FLOAT || newtyp == TYPE_LONG_DOUBLE)
+     && (oldtyp == TYPE_DOUBLE || oldtyp == TYPE_FLOAT || oldtyp == TYPE_LONG_DOUBLE) ) {
         CastFloatValue( leaf, newtyp );  // float to float
         return;
     } else if( newtyp == TYPE_LONG64 || newtyp == TYPE_ULONG64 ) {
@@ -1107,6 +1123,8 @@ static void CheckOpndValues( TREEPTR tree )
     TREEPTR             opnd;
     arithmetic_type     con;
 
+    if( tree->checked ) return;
+
     switch( tree->op.opr ) {
     case OPR_LSHIFT:
     case OPR_RSHIFT:
@@ -1175,6 +1193,7 @@ static void CheckOpndValues( TREEPTR tree )
     default:
         break;
     }
+    tree->checked = TRUE;
 }
 
 

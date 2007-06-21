@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Instruction scheduling for x87 FPU.
 *
 ****************************************************************************/
 
@@ -33,13 +32,17 @@
 #include "standard.h"
 #include "coderep.h"
 #include "opcodes.h"
+#include "procdef.h"
+#include "addrname.h"
 #include "vergen.h"
 #include "pattern.h"
 #include "zoiks.h"
-#include "sysmacro.h"
+#include "cgmem.h"
 #include "gen8087.h"
 #include "model.h"
 #include "i87sched.h"
+#include "x87.h"
+
 
 extern  block   *HeadBlock;
 extern  int     Max87Stk;
@@ -58,7 +61,6 @@ extern  bool            ReDefinedBy(instruction*,name*);
 extern  name            *DeAlias(name*);
 extern  void            MoveEdge( block_edge *edge, block *new_dest );
 extern  block           *AddPreBlock( block *postblk );
-extern  bool            FPStackIns( instruction *ins );
 extern  void            RevCond( instruction * );
 extern  int             FPStkReq( instruction * );
 extern  bool            InsOrderDependant( instruction *, instruction * );
@@ -595,7 +597,7 @@ static  void    InitStackLocations( void ) {
     temp_entry  *temp;
     int         i,j;
 
-    _Alloc( STLocations, MaxSeq * sizeof( *STLocations ) );
+    STLocations = CGAlloc( MaxSeq * sizeof( *STLocations ) );
     for( i = 0; i < MaxSeq; ++i ) {
         for( j = VIRTUAL_0; j < VIRTUAL_NONE; ++j ) {
             RegLoc( i, j ) = ACTUAL_NONE;
@@ -610,7 +612,7 @@ static  void    InitStackLocations( void ) {
 static  void    FiniStackLocations( void ) {
 /**************************/
 
-    _Free( STLocations, MaxSeq * sizeof( st_seq ) );
+    CGFree( STLocations );
     STLocations = NULL;
 }
 
@@ -636,7 +638,7 @@ static  temp_entry      *AddTempEntry( name *op ) {
 
     temp = LookupTempEntry( op );
     if( temp == NULL ) {
-        _Alloc( temp, sizeof( *temp ) );
+        temp = CGAlloc( sizeof( *temp ) );
         temp->next = TempList;
         TempList = temp;
         temp->actual_op = op;
@@ -741,7 +743,7 @@ extern  void    FiniTempEntries( void ) {
     while( temp != NULL ) {
         junk = temp;
         temp = temp->next;
-        _Free( junk, sizeof( temp_entry ) );
+        CGFree( junk );
     }
     TempList = NULL;
 }
@@ -878,7 +880,7 @@ static  void    CacheTemps( block *blk ) {
             owner = &temp->next;
         } else {
             *owner = temp->next;
-            _Free( temp, sizeof( temp_entry ) );
+            CGFree( temp );
         }
     }
 }
@@ -907,8 +909,8 @@ extern  void    FPPreSched( block *blk ) {
     for( temp = TempList; temp != NULL; temp = temp->next ) {
         StackBetween( temp->first, temp->last, -1 );
     }
-    _Alloc( SeqCurDepth, MaxSeq * sizeof( *SeqCurDepth ) );
-    _Alloc( SeqMaxDepth, MaxSeq * sizeof( *SeqMaxDepth ) );
+    SeqCurDepth = CGAlloc( MaxSeq * sizeof( *SeqCurDepth ) );
+    SeqMaxDepth = CGAlloc( MaxSeq * sizeof( *SeqMaxDepth ) );
     for( i = 0; i < MaxSeq; ++i ) {
         SeqCurDepth[ i ] = SEQ_INIT_VALUE;
         SeqMaxDepth[ i ] = 0;
@@ -1038,8 +1040,8 @@ extern  void    FPPostSched( block *blk ) {
     int         virtual;
     temp_entry  *temp;
 
-    _Free( SeqCurDepth, MaxSeq * sizeof( *SeqCurDepth ) );
-    _Free( SeqMaxDepth, MaxSeq * sizeof( *SeqMaxDepth ) );
+    CGFree( SeqCurDepth );
+    CGFree( SeqMaxDepth );
     FiniTempEntries();
     InitStackLocations();
     InitTempEntries( blk );

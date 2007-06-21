@@ -84,7 +84,7 @@ static bool WriteBinSegGroup( group_entry *group )
 }
 
 
-extern void BinOutput( void )
+void BinOutput( void )
 /***************************/
 {
     outfilelist         *fnode;
@@ -135,7 +135,7 @@ extern void BinOutput( void )
             }
         }
     }
-    WriteDBI();
+    DBIWrite();
 }
 
 // The following routine generates Intel Hex records using data buffered in LineBuf.
@@ -305,7 +305,7 @@ static bool WriteHexCopyGroups( void *_seg, void *_info )
 }
 
 
-extern void HexOutput( void )
+void HexOutput( void )
 /***************************/
 {
     outfilelist         *fnode;
@@ -391,5 +391,5 @@ extern void HexOutput( void )
        WriteStart();
     }
     WriteLoad( ":00000001ff\r\n", 13 );
-    WriteDBI();
+    DBIWrite();
 }

@@ -88,6 +88,9 @@ is any of the following:
 .do end
 .note MAP[=map_file]
 .note MAXERRORS=n
+.if '&exeformat' eq 'os2' .do begin
+.note MIXED1632
+.do end
 .note MODNAME=module_name
 .note NAMELEN=n
 .if '&exeformat' eq 'os2' .do begin
@@ -101,6 +104,9 @@ is any of the following:
 .if '&exeformat' eq 'win nt' .do begin
 .note NORELOCS
 .note NOSTDCALL
+.do end
+.note NOSTUB
+.if '&exeformat' eq 'win nt' .do begin
 .note OBJALIGN=n
 .do end
 .if '&exeformat' eq 'os2' or '&exeformat' eq 'win nt' .do begin

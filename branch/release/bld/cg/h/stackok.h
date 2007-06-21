@@ -32,7 +32,7 @@
 #include "hostsys.h"
 
 
-#if defined(__386__) || defined(M_I86)
+#if defined( __WATCOMC__ ) && defined( _M_IX86 )
 
 #if defined(__386__)
     #define __AX eax
@@ -49,16 +49,16 @@
 #endif
 
 
-extern char near        *bp( void );
+extern byte near        *bp( void );
 #pragma aux bp = 0x89 0xe8 value [ __AX ];
 
-extern char near        *sp( void );
+extern byte near        *sp( void );
 #pragma aux sp = value [ __SP ];
 
-extern void             setsp( char near * );
+extern void             setsp( byte near * );
 #pragma aux setsp = 0x89 0xc4 parm [ __AX ] modify [ __SP ];
 
-extern void             setbp( char near * );
+extern void             setbp( byte near * );
 #pragma aux setbp = 0x89 0xc5 parm [ __AX ];
 
 #pragma aux SafeRecurse parm caller [ __AX __BX __CX __DX ]; /* just to be sure! */

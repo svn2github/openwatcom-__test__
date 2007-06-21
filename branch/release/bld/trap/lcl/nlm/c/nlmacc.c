@@ -532,7 +532,7 @@ static LONG DebugEntry( StackFrame *frame )
     msb         *m;
     struct LoadDefinitionStructure *load;
     int         exception_number;
-    char        *description;
+    BYTE        *description;
     long        error_code;
 
     exception_number = FieldExceptionNumber( frame );
@@ -688,7 +688,7 @@ static LONG DebugEntry( StackFrame *frame )
     }
     m->xnum = exception_number;
     m->errnum = error_code;
-    m->description = FieldExceptionDescription( frame );
+    m->description = (char *)FieldExceptionDescription( frame );
     SaveRegs( m->cpu );
     DumpRegs( m, "DebugEntry" );
     if( NPX() != X86_NO ) {
@@ -830,7 +830,7 @@ void BigKludge( msb *m )
     };
 #elif defined ( __NW30__ )
     static T_DebuggerStruct DbgStruct = {
-        NULL,
+        0,
         NULL,
         DebugEntry
     };
@@ -936,9 +936,9 @@ static int ReadMemory( addr48_ptr *addr, unsigned long req, void *buf )
 {
     if( MSB == NULL )
         return( -1 );
-    if( CValidatePointer( (char *)addr->offset ) == NULL )
+    if( CValidatePointer( (char *)addr->offset ) == 0 )
         return( -1 );
-    if( CValidatePointer( (char *)addr->offset+req-1 ) == NULL )
+    if( CValidatePointer( (char *)addr->offset + req - 1 ) == 0 )
         return( -1 );
     memcpy( buf, (void *)addr->offset, req );
     return( 0 );
@@ -948,9 +948,9 @@ static int WriteMemory( addr48_ptr *addr, unsigned long req, void *buf )
 {
     if( MSB == NULL )
         return( -1 );
-    if( CValidatePointer( (char *)addr->offset ) == NULL )
+    if( CValidatePointer( (char *)addr->offset ) == 0 )
         return( -1 );
-    if( CValidatePointer( (char *)addr->offset+req-1 ) == NULL )
+    if( CValidatePointer( (char *)addr->offset + req - 1 ) == 0 )
         return( -1 );
     memcpy( (void *)addr->offset, buf, req );
     return( 0 );
@@ -1211,7 +1211,7 @@ static void LoadHelper( void )
         WakeDebugger();
     } else {
         _DBG_EVENT(( "  Name is '%S'\r\n", NLMName ));
-        err = LoadModule( systemConsoleScreen, CmdLine, LO_DEBUG );
+        err = LoadModule( systemConsoleScreen, (BYTE *)CmdLine, LO_DEBUG );
         _DBG_EVENT(( "  Load ret code %d\r\n", err ));
         if( err != 0 ) {
             NLMState = NLM_NONE;

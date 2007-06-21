@@ -101,7 +101,7 @@
                 "       mov     al,0"\
                 "       mov     [ebx],al"\
                 parm caller [eax] [ebx] value [ebx];
-#elif defined( M_I86 )
+#elif defined( _M_I86 )
  char _WCNEAR *Fmt8Digits( unsigned long value, char *p );
  #pragma aux    Fmt8Digits = \
                 "       push    cx"\
@@ -563,6 +563,7 @@ nan_inf:
             text = (unsigned long *)buf;
             *text &= ~0x20202020;
         }
+        cvt->flags |= IS_INF_NAN;   /* may need special handling */
         cvt->n1 = 3;
         goto end_cvt;
     case __NONZERO:
@@ -635,7 +636,7 @@ nan_inf:
             n += cvt->scale;
         }
     } else {
-        n = cvt->ndigits + 3 + NDIG / 2;
+        n = cvt->ndigits + 4 + NDIG / 2;    // need at least this for rounding
     }
 
     maxsize = DBL_CVT_DIGITS;

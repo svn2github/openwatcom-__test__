@@ -39,7 +39,7 @@
 #include "mmemory.h"
 #include "mhash.h"
 #include "mmisc.h"
-#include "mpathgrp.h"
+#include "pathgrp.h"
 #include "mrcmsg.h"
 #include "msg.h"
 #include "msuffix.h"
@@ -98,7 +98,7 @@ STATIC BOOLEAN freeSuffix( void *node, void *ptr )
 }
 
 
-extern void ClearSuffixes( void )
+void ClearSuffixes( void )
 /********************************
  * clear all suffix definitions
  */
@@ -158,14 +158,14 @@ STATIC SUFFIX *findSuffixNode( const char *name, const char **p )
 #endif
 
 
-extern SUFFIX *FindSuffix( const char *name )
+SUFFIX *FindSuffix( const char *name )
 /*******************************************/
 {
     return( findSuffixNode( name, NULL ) );
 }
 
 
-extern BOOLEAN SufExists( const char *name )    /* with . */
+BOOLEAN SufExists( const char *name )    /* with . */
 /******************************************/
 {
     assert( name != NULL && name[0] == DOT );
@@ -195,7 +195,7 @@ STATIC void AddFrontSuffix( char const *name )
 }
 
 
-extern BOOLEAN SufBothExist( const char *sufsuf )   /* .src.dest */
+BOOLEAN SufBothExist( const char *sufsuf )   /* .src.dest */
 /************************************************
  *  for MS-Option it only checks if the dependent suffix is defined
  *  so no need for checking the target suffix if it exists
@@ -225,7 +225,7 @@ extern BOOLEAN SufBothExist( const char *sufsuf )   /* .src.dest */
 }
 
 
-extern void AddSuffix( char *name )
+void AddSuffix( char *name )
 /**********************************
  * pass name with leading .; adds name to suffix table and assigns id
  * retains use of name after call
@@ -298,7 +298,7 @@ STATIC void ringPath( PATHRING **pring, const char *path )
 }
 
 
-extern void SetSufPath( const char *name, const char *path )
+void SetSufPath( const char *name, const char *path )
 /**********************************************************/
 /* name with . */
 {
@@ -331,7 +331,7 @@ STATIC CREATOR *newCreator( void )
 }
 
 
-extern void AddCreator( const char *sufsuf )
+void AddCreator( const char *sufsuf )
 /*******************************************
  * add the creation .src.dest
  */
@@ -425,7 +425,7 @@ STATIC BOOLEAN printSuf( void *node, void *ptr )
 }
 
 
-extern void PrintSuffixes( void )
+void PrintSuffixes( void )
 /*******************************/
 {
     WalkHashTab( sufTab, printSuf, NULL );
@@ -486,7 +486,7 @@ STATIC RET_T tryPathRing( PATHRING **pring, char *buffer,
 }
 
 
-extern RET_T TrySufPath( char *buffer, const char *filename, TARGET **chktarg,
+RET_T TrySufPath( char *buffer, const char *filename, TARGET **chktarg,
     BOOLEAN tryenv )
 /*****************************************************************************
  * it is NOT necessary that filename != buffer
@@ -496,7 +496,7 @@ extern RET_T TrySufPath( char *buffer, const char *filename, TARGET **chktarg,
  * then buffer, and filename do not overlap
  */
 {
-    PGROUP      *pg;
+    PGROUP      pg;
     SUFFIX      *suffix;
     char        *env;
     PATHRING    *envpath;
@@ -515,15 +515,14 @@ extern RET_T TrySufPath( char *buffer, const char *filename, TARGET **chktarg,
     }
 
     /* split up filename */
-    pg = SplitPath( filename );
+    _splitpath2( filename, pg.buffer, &pg.drive, &pg.dir, &pg.fname, &pg.ext );
 
-    if( pg->drive[0] != NULLCHAR || isdirc( pg->dir[0] ) ) {
+    if( pg.drive[0] != NULLCHAR || isdirc( pg.dir[0] ) ) {
         /* is an absolute path name */
-        DropPGroup( pg );
         return( RET_ERROR );
     }
 
-    suffix = FindSuffix( pg->ext );
+    suffix = FindSuffix( pg.ext );
 
     ret = RET_ERROR;
 
@@ -545,24 +544,22 @@ extern RET_T TrySufPath( char *buffer, const char *filename, TARGET **chktarg,
             ringPath( &envpath, env );
 
             Glob.cachedir = FALSE;      /* never cache %path */
-            ret = tryPathRing( &envpath, buffer, pg->dir, pg->fname, pg->ext,
+            ret = tryPathRing( &envpath, buffer, pg.dir, pg.fname, pg.ext,
                 chktarg );
             Glob.cachedir = TRUE;
 
             freePathRing( envpath );
         }
     } else {
-        ret = tryPathRing( &suffix->pathring, buffer, pg->dir, pg->fname,
-            pg->ext, chktarg );
+        ret = tryPathRing( &suffix->pathring, buffer, pg.dir, pg.fname,
+            pg.ext, chktarg );
     }
-
-    DropPGroup( pg );
 
     return( ret );
 }
 
 
-extern void SuffixInit( void )
+void SuffixInit( void )
 /****************************/
 {
     sufTab = NewHashTab( HASH_PRIME );
@@ -571,7 +568,7 @@ extern void SuffixInit( void )
 }
 
 
-extern void SuffixFini( void )
+void SuffixFini( void )
 /****************************/
 {
 #ifdef DEVELOPMENT

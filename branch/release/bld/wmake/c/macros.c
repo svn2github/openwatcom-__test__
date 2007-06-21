@@ -50,7 +50,7 @@
 #include "mmemory.h"
 
 #include "mmisc.h"
-#include "mpathgrp.h"
+#include "pathgrp.h"
 #include "mpreproc.h"
 #include "mrcmsg.h"
 #include "msg.h"
@@ -131,13 +131,13 @@ static void massageDollarOctothorpe( char *p )
 }
 
 
-extern const char *procPath( const char *fullpath )
+const char *procPath( const char *fullpath )
 /**************************************************
  * process fullpath according to the form qualifier in CurAttr.num
  * returns: pointer to a static buffer
  */
 {
-    PGROUP  *pg;
+    PGROUP  pg;
     char    *current;
 
     if( fullpath == NULL ) {
@@ -146,27 +146,27 @@ extern const char *procPath( const char *fullpath )
 
     getDirBuf();
 
-    pg = SplitPath( fullpath );
+    _splitpath2( fullpath, pg.buffer, &pg.drive, &pg.dir, &pg.fname, &pg.ext );
 
     switch( CurAttr.num ) {
     case FORM_FULL:
-        _makepath( dirBuf, pg->drive, pg->dir, pg->fname, pg->ext );
+        _makepath( dirBuf, pg.drive, pg.dir, pg.fname, pg.ext );
         break;
 
     case FORM_NOEXT:
-        _makepath( dirBuf, pg->drive, pg->dir, pg->fname, NULL );
+        _makepath( dirBuf, pg.drive, pg.dir, pg.fname, NULL );
         break;
 
     case FORM_NOEXT_NOPATH:
-        _makepath( dirBuf, NULL, NULL, pg->fname, NULL );
+        _makepath( dirBuf, NULL, NULL, pg.fname, NULL );
         break;
 
     case FORM_NOPATH:
-        _makepath( dirBuf, NULL, NULL, pg->fname, pg->ext );
+        _makepath( dirBuf, NULL, NULL, pg.fname, pg.ext );
         break;
 
     case FORM_PATH:
-        _makepath( dirBuf, pg->drive, pg->dir, NULL, NULL );
+        _makepath( dirBuf, pg.drive, pg.dir, NULL, NULL );
         if( Glob.microsoft) {
             if( dirBuf[0] == NULLCHAR ) {
                 dirBuf[0] = '.';
@@ -184,13 +184,12 @@ extern const char *procPath( const char *fullpath )
         break;
 
     case FORM_EXT:
-        _makepath( dirBuf, NULL, NULL, NULL, pg->ext );
+        _makepath( dirBuf, NULL, NULL, NULL, pg.ext );
         break;
     default:
         dirBuf[0] = '\0';
     }
 
-    DropPGroup( pg );
     massageDollarOctothorpe( dirBuf );
     return( dirBuf );
 }
@@ -398,7 +397,7 @@ STATIC const char *GetMacroValueProcess( const char *name )
 #endif
 
 
-extern char *GetMacroValue( const char *name )
+char *GetMacroValue( const char *name )
 /*********************************************
  * Now we need to check for string substitution
  * $(MACRONAME:oldstring=newstring)
@@ -522,7 +521,7 @@ STATIC void addMacro( const char *name, char *value )
 #endif
 
 
-extern BOOLEAN IsMacroName( const char *inName )
+BOOLEAN IsMacroName( const char *inName )
 /***********************************************
  * returns: TRUE if name is a valid macro name, otherwise FALSE and print
  * an error message
@@ -556,7 +555,7 @@ extern BOOLEAN IsMacroName( const char *inName )
 #ifdef __WATCOMC__
 #pragma on (check_stack);
 #endif
-extern void UnDefMacro( const char *name )
+void UnDefMacro( const char *name )
 /*****************************************
  * pre:     IsMacroName( name ); getMacroNode( name ) != NULL
  * post:    MACRO node deallocated
@@ -589,7 +588,7 @@ extern void UnDefMacro( const char *name )
 #endif
 
 
-extern char *WrnGetMacroValue( const char *name )
+char *WrnGetMacroValue( const char *name )
 /***********************************************/
 {
     const char  *p;
@@ -607,7 +606,7 @@ extern char *WrnGetMacroValue( const char *name )
 }
 
 
-extern char *DeMacroSpecial( char *InString)
+char *DeMacroSpecial( char *InString)
 /*******************************************
  * This function is to specially handle the special macros
  * in the dependencies
@@ -974,7 +973,7 @@ STATIC char *deMacroText( int depth, TOKEN_T end1, TOKEN_T end2 )
 }
 
 
-extern char *ignoreWSDeMacro( BOOLEAN partDeMacro, BOOLEAN ForcedDeMacro )
+char *ignoreWSDeMacro( BOOLEAN partDeMacro, BOOLEAN ForcedDeMacro )
 /*************************************************************************
  * This is the same as deMacro except that we retain any leading or trailing
  * ws. Ws is quietly truncated from pathologically long lines.
@@ -1041,7 +1040,7 @@ extern char *ignoreWSDeMacro( BOOLEAN partDeMacro, BOOLEAN ForcedDeMacro )
 }
 
 
-extern char *DeMacro( TOKEN_T end1 )
+char *DeMacro( TOKEN_T end1 )
 /***********************************
  * same as deMacroText
  */
@@ -1110,7 +1109,7 @@ STATIC char *PartDeMacroProcess( void )
 }
 
 
-extern BOOLEAN ForceDeMacro ( void )
+BOOLEAN ForceDeMacro ( void )
 /***********************************
  * This function checks whether or not to deMacro the function later or not
  * because in Microsoft macros are expanded immediately and not after all
@@ -1123,7 +1122,7 @@ extern BOOLEAN ForceDeMacro ( void )
 }
 
 
-extern char *PartDeMacro( BOOLEAN ForcedDeMacro )
+char *PartDeMacro( BOOLEAN ForcedDeMacro )
 /************************************************
  * the addition of microsoft option needs this option
  * since MACROS are always fully expanded sequentially
@@ -1236,7 +1235,7 @@ STATIC char *DeMacroName( const char *text, const char *name )
 }
 
 
-extern void DefMacro( const char *name )
+void DefMacro( const char *name )
 /***************************************
  * define macro named name with the characters in the stream
  * post:    characters up to first EOL | STRM_END removed from stream;
@@ -1327,7 +1326,7 @@ static BOOLEAN printMac( const void *node, const void *ptr )
 }
 
 
-extern void PrintMacros( void )
+void PrintMacros( void )
 /*****************************/
 {
     WalkHashTab( macTab, (BOOLEAN (*)( void *, void * ))printMac, NULL );
@@ -1353,7 +1352,7 @@ STATIC void restoreEnvironment( void )
 #endif
 
 
-extern void MacroInit( void )
+void MacroInit( void )
 /***************************/
 {
     macTab = NewHashTab( HASH_PRIME );
@@ -1379,7 +1378,7 @@ STATIC BOOLEAN freeMacro( MACRO *mac, const void *ptr )
 #endif
 
 
-extern void MacroFini( void )
+void MacroFini( void )
 /***************************/
 {
 #ifndef NDEBUG

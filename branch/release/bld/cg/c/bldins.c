@@ -34,7 +34,7 @@
 #include "model.h"
 #include "coderep.h"
 #include "procdef.h"
-#include "sysmacro.h"
+#include "cgmem.h"
 #include "opcodes.h"
 #include "addrname.h"
 #include "memcheck.h"
@@ -47,7 +47,7 @@
 #include "addrfold.h"
 #include "bldins.h"
 
-extern  void            FPNotStack(name*);
+
 extern  an              MakeConst(pointer,type_def*);
 extern  uint            Length(char*);
 extern  an              MakeAddrName(cg_class,sym_handle,type_def*);
@@ -338,7 +338,7 @@ extern  bn      BGCompare( cg_op op, an left, an rite,
     ins = MakeCondition( op, newleft, newrite, 0, 1, TypeClass( tipe ) );
     AddIns( ins );
     GenBlock( CONDITIONAL, 2 );
-    _Alloc( new, sizeof( bool_node ) );
+    new = CGAlloc( sizeof( bool_node ) );
     AddTarget( NULL, FALSE );
     AddTarget( NULL, FALSE );
     new->format = NF_BOOL;
@@ -784,7 +784,7 @@ extern  void    BGTrash( an node ) {
 static  void    BoolFree( bn b ) {
 /********************************/
 
-    _Free( b, sizeof( bool_node ) );
+    CGFree( b );
 }
 
 

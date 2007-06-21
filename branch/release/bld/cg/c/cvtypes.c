@@ -33,7 +33,7 @@
 #include "string.h"
 #include "coderep.h"
 #include "cgdefs.h"
-#include "sysmacro.h"
+#include "cgmem.h"
 #include "symdbg.h"
 #include "model.h"
 #include "typedef.h"
@@ -90,7 +90,7 @@ static  void    BuffWrite( cv_out *out, void *to )
     int     len;
     seg_id  old;
 
-    len = (char *)to - out->beg;
+    len = (byte *)to - out->beg;
     old = SetOP( out->seg );
     DataBytes( len, out->beg );
     out->beg = to;
@@ -130,7 +130,7 @@ static  void  *AlignBuff( cv_out *out )
 {
     int     len;
     int     len4;
-    char    *ptr;
+    byte    *ptr;
 
     ptr = out->ptr;
     len = ptr - out->buff;
@@ -315,7 +315,7 @@ static lf_values   LFIntType( int size )
 extern void CVPutINum( cv_out *out, signed_32 num )
 /*************************************************/
 {
-    char       *ptr;
+    byte       *ptr;
 #define LC( what, to )   *((to *)&what)
     if( num >= 0 && num < 0x00008000 ){
         *((u2*)out->ptr) = num;  /* out num as is */
@@ -347,7 +347,7 @@ extern void CVPutINum( cv_out *out, signed_32 num )
 extern  void        CVPutINum64( cv_out *out, signed_64 val )
 /***********************************************************/
 {
-    char       *ptr;
+    byte       *ptr;
 #define LC( what, to )   *((to *)&what)
     if( val.u._32[I64HI32] == 0 || val.u._32[I64HI32] == -1 ) {
         CVPutINum( out, val.u._32[I64LO32] );
@@ -958,7 +958,7 @@ static  dbg_type    CVDimVarLU( array_list *ar )
         PutFld2( out, symref[0] );
         PutFld2( out, symref[1] );
         ar->list = dim->entry.next;
-        _Free( dim, sizeof( field_entry )  );
+        CGFree( dim  );
     }
     EndTypeString( out );
     return( ++TypeIdx );
@@ -989,7 +989,7 @@ static  dbg_type    CVDimConLU( array_list *ar )
 
         }
         ar->list = dim->entry.next;
-        _Free( dim, sizeof( field_entry )  );
+        CGFree( dim  );
     }
     EndTypeString( out );
     return( ++TypeIdx );
@@ -1604,7 +1604,7 @@ static int  MkFlist( struct_list *st )
             field_any       *curr;
 
             NewTypeString( out );
-            a_mlist = StartType( out, LFG_MLIST );
+            a_mlist = StartType( out, LFG_METHODLIST );
             for( ;; ) {
                 a_mlist->attr.s = 0; /* zero bits */
                 a_mlist->attr.f.access = WVCVAccess( field->method.attr );
@@ -1635,7 +1635,7 @@ static int  MkFlist( struct_list *st )
     while( field != NULL ) {
         old = field;
         field  = field->entry.next;
-        _Free( old, sizeof( field_entry ) );
+        CGFree( old );
     }
     return( count );
 }
@@ -1840,7 +1840,7 @@ extern  dbg_type    CVEndEnum( enum_list *en )
     while( cons != NULL ) {
         old = cons;
         cons = cons->next;
-        _Free( old, sizeof( const_entry ) + old->len );
+        CGFree( old );
     }
     return( headi );
 }
@@ -1870,7 +1870,7 @@ extern  dbg_type    CVEndProc( proc_list  *pr )
         PutFld2( out, parm->tipe );
         old = parm;
         parm = parm->next;
-        _Free( old, sizeof( parm_entry ) );
+        CGFree( old );
     }
     EndTypeString( out );
 #if _TARGET &( _TARG_IAPX86 | _TARG_80386 )

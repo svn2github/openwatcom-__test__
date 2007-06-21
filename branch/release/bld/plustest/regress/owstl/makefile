@@ -38,8 +38,9 @@ stack_axp=opt stack=16k
 # to update add test names here:
 template = &
         aaa$(ext)       &
-        alg01$(ext)     &
-        alg02$(ext)     &
+	algn01$(ext)    &
+	algm01$(ext)    &
+        algs01$(ext)    &
         bitset01$(ext)  &
         clib01$(ext)    &
         cmplx01$(ext)   &
@@ -61,6 +62,7 @@ template = &
         string01$(ext)  &
         string02$(ext)  &
         typetr01$(ext)  &
+        unoset01$(ext)  &
         util01$(ext)    &
         vector01$(ext)  
 

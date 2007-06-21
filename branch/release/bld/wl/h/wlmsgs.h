@@ -56,7 +56,7 @@
 #define    MSG_CANT_HAVE_START                   22 + MSG_BASE
 #define    MSG_NO_START_ADDR                     23 + MSG_BASE
 #define    MSG_NO_OVERLAY_LOADER                 24 + MSG_BASE
-#define    MSG_SHORT_VECT_RANGE                  25 + MSG_BASE
+#define    MSG_VECT_RANGE                        25 + MSG_BASE
 #define    MSG_RESERVED_SYM_DEFINED              26 + MSG_BASE
 #define    MSG_MULT_DEF                          27 + MSG_BASE
 #define    MSG_UNDEF_REF                         28 + MSG_BASE
@@ -246,9 +246,10 @@
 #define    MSG_FILE_TYPES_14                    266 + MSG_BASE
 #define    MSG_FILE_TYPES_15                    267 + MSG_BASE
 #define    MSG_FILE_TYPES_16                    268 + MSG_BASE
-#define    MSG_CREATE_TYPE_DLL                  269 + MSG_BASE
-#define    MSG_CREATE_TYPE_EXE                  270 + MSG_BASE
-#define    MSG_IS_A_EXE                         271 + MSG_BASE
+#define    MSG_FILE_TYPES_17                    269 + MSG_BASE
+#define    MSG_CREATE_TYPE_DLL                  270 + MSG_BASE
+#define    MSG_CREATE_TYPE_EXE                  271 + MSG_BASE
+#define    MSG_IS_A_EXE                         272 + MSG_BASE
 
 #define    MSG_MAP_BOX_GROUP                    276 + MSG_BASE
 #define    MSG_MAP_TITLE_GROUP_0                277 + MSG_BASE

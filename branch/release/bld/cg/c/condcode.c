@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Analyze and optimize conditionals.
 *
 ****************************************************************************/
 
@@ -34,14 +33,15 @@
 #include "coderep.h"
 #include "pattern.h"
 #include "opcodes.h"
-#include "sysmacro.h"
+#include "cgmem.h"
 #include "vergen.h"
 
 
-extern  name            *AllocIntConst(int);
-extern  void            DoNothing(instruction*);
-extern  bool            VolatileIns(instruction*);
+extern  name            *AllocIntConst( int );
+extern  void            DoNothing( instruction * );
+extern  bool            VolatileIns( instruction * );
 extern  void            ClearBlockBits( block_class );
+extern  bool            CondOverlaps( name *result, name *ccop );
 
 extern    block         *HeadBlock;
 
@@ -99,37 +99,6 @@ static  bool    UselessCompare( instruction *ins, cc_control *cc, name *zero )
     }
     return( FALSE );
 }
-
-
-static  bool    OverLap( name *result, name *ccop )
-/**************************************************
-    returns true if modifying "result" could cause "ccop" to be modified
-    as well.
-*/
-{
-    bool        overlap;
-    hw_reg_set  reg;
-
-    overlap = FALSE;
-    if( ccop == NULL ) {
-        overlap = TRUE;
-    } else if( result == ccop ) {
-        overlap = TRUE;
-    } else if( result->n.class == N_REGISTER ) {
-        reg = result->r.reg;
-        if( ccop->n.class == N_REGISTER ) {
-            if( HW_Ovlap( reg, ccop->r.reg ) ) {
-                overlap = TRUE;
-            }
-        } else if( ccop->n.class == N_INDEXED ) {
-            if( HW_Ovlap( reg, ccop->i.index->r.reg ) ) {
-                overlap = TRUE;
-            }
-        }
-    }
-    return( overlap );
-}
-
 
 static void DoMarkUsedCC( block *blk )
 /************************************/
@@ -205,17 +174,17 @@ static  bool    Traverse( block *blk, name *zero )
         if( VolatileIns( ins ) || cc_affect == NO_CC ) {
             cc->state = UNKNOWN_STATE;
         } else if( cc_affect == SETS_SC ) { /* sets SIGNED conditions */
-            #if _TARGET & _TARG_370
-                /* SETS_SC means ok for ==, != on 370 */
+#if _TARGET & _TARG_370
+            /* SETS_SC means ok for ==, != on 370 */
+            cc->state = EQUALITY_CONDITIONS_SET;
+#else
+            if( !_OpIsBit( ins->head.opcode ) &&
+                ( ins->ins_flags & INS_DEMOTED ) ) {
                 cc->state = EQUALITY_CONDITIONS_SET;
-            #else
-                if( !_OpIsBit( ins->head.opcode ) &&
-                    ( ins->ins_flags & INS_DEMOTED ) ) {
-                    cc->state = EQUALITY_CONDITIONS_SET;
-                } else {
-                    cc->state = SIGNED_CONDITIONS_SET;
-                }
-            #endif
+            } else {
+                cc->state = SIGNED_CONDITIONS_SET;
+            }
+#endif
             cc->result_op = ins->result;
             cc->op_type = ins->type_class;
             if( ins->head.opcode == OP_SUB ) {
@@ -265,13 +234,13 @@ static  bool    Traverse( block *blk, name *zero )
             }
         }                       /* for PRESERVE, do nothing*/
         if( ins->result != NULL ) {
-            if( OverLap( ins->result, cc->left_op )
-              || OverLap( ins->result, cc->right_op ) ) {
+            if( CondOverlaps( ins->result, cc->left_op )
+              || CondOverlaps( ins->result, cc->right_op ) ) {
                 cc->left_op = NULL;
                 cc->right_op = NULL;
             }
             if( cc_affect != SETS_CC && cc_affect != SETS_SC ) {
-                if( OverLap( ins->result, cc->result_op ) ) {
+                if( CondOverlaps( ins->result, cc->result_op ) ) {
                     cc->result_op = NULL;
                 }
             }
@@ -394,7 +363,7 @@ extern  void    Conditions( void )
 
     blk = HeadBlock;
     while( blk != NULL ) {
-        _Alloc( cc, sizeof( cc_control ) );
+        cc = CGAlloc( sizeof( cc_control ) );
         cc->state = UNKNOWN_STATE;
         cc->left_op = NULL;
         cc->right_op = NULL;
@@ -408,7 +377,7 @@ extern  void    Conditions( void )
     FlowConditions();
     blk = HeadBlock;
     while( blk != NULL ) {
-        _Free( blk->cc, sizeof( cc_control ) );
+        CGFree( blk->cc );
         blk = blk->next_block;
     }
 }

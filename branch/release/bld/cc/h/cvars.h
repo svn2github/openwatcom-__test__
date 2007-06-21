@@ -95,7 +95,6 @@ global  int     DebugFlag;
 global  TOKEN   CurToken;
 global  int     BadTokenInfo;
 global  int     TokenLen;
-global  int     MTokenLen;      /* macro token length */
 global  int     TokenLine;
 global  int     SrcFileLineNum; /* duplicate of SrcFile->src_line */
 global  int     TokenFno;
@@ -113,6 +112,7 @@ global  char    *ForceInclude;
 global  char    *AuxName;
 global  struct  fname_list *FNames;     /* list of file names processed */
 global  struct  rdir_list *RDirNames;  /* list of read only directorys */
+global  struct  ialias_list *IAliasNames;  /* list of include aliases */
 global  char    *ErrFName;      /* file name to be used in error message */
 global  unsigned ErrLine;       /* line number to be used in error msg */
 global  FILE    *ErrFile;       /* error file */
@@ -191,7 +191,7 @@ global  int      FunctionProfileSegment; /* segment for profiling data block */
 #endif
 
 global  int         MacroDepth;
-global  byte        *MacroPtr;
+global  char        *MacroPtr;
 global  MEPTR       NextMacro;
 global  MEPTR       UndefMacroList;
 global  MEPTR       *MacHash;       /* [ MACRO_HASH_SIZE ] */
@@ -458,6 +458,7 @@ extern  int     FListSrcQue(void);
 extern  void    SrcFileReadOnlyDir( char const *dir );
 extern  void    SrcFileReadOnlyFile( char const *file );
 extern  bool    SrcFileInRDir( FNAMEPTR flist );
+extern  void    SrcFileIncludeAlias( const char *alias_name, const char *real_name, int delimiter );
 extern  int     SrcFileTime(char const *,time_t *);
 extern  void    SetSrcFNameOnce( void );
 extern  void    GetNextToken(void);
@@ -565,11 +566,12 @@ extern  int     ParmsToBeReversed(int,struct aux_info *);
 extern  char    *SrcFullPath( char *, char const *, unsigned );
 
 //cfold.c
-extern  void CastFloatValue( TREEPTR leaf, DATA_TYPE newtype );
-extern  void CastConstValue(TREEPTR,DATA_TYPE);
-extern  void DoConstFold(TREEPTR);
-extern  void FoldExprTree(TREEPTR);
-extern  bool BoolConstExpr( void );
+extern  int64   LongValue64( TREEPTR leaf );
+extern  void    CastFloatValue( TREEPTR leaf, DATA_TYPE newtype );
+extern  void    CastConstValue(TREEPTR,DATA_TYPE);
+extern  void    DoConstFold(TREEPTR);
+extern  void    FoldExprTree(TREEPTR);
+extern  bool    BoolConstExpr( void );
 
 //cgen.c
 extern  void    DoCompile(void);
@@ -577,10 +579,8 @@ extern  void    EmitInit(void);
 extern  void    EmitAbort(void);
 extern  void    EmitStrPtr(STR_HANDLE,int);
 extern  int     EmitBytes(STR_HANDLE);
-extern  int     CGenType(TYPEPTR);
 extern  void    GenInLineFunc( SYM_HANDLE sym_handle );
 extern  bool    IsInLineFunc( SYM_HANDLE sym_handle );
-extern  int     PtrType( TYPEPTR typ, type_modifiers flags );
 
 extern  void    EmitDataQuads(void);            /* cgendata */
 extern  void    EmitZeros(unsigned long);       /* cgendata */
@@ -650,7 +650,7 @@ extern  TREEPTR InitAsgn( TYPEPTR,TREEPTR );
 extern  TREEPTR AsgnOp(TREEPTR,TOKEN,TREEPTR);
 extern  TREEPTR BinOp(TREEPTR,TOKEN,TREEPTR);
 extern  TREEPTR CnvOp(TREEPTR,TYPEPTR,int);
-extern  TREEPTR FlowOp(TREEPTR,int,TREEPTR);
+extern  TREEPTR FlowOp(TREEPTR,opr_code,TREEPTR);
 extern  TREEPTR IntOp(TREEPTR,TOKEN,TREEPTR);
 extern  TREEPTR RelOp(TREEPTR,TOKEN,TREEPTR);
 extern  TREEPTR ShiftOp(TREEPTR,TOKEN,TREEPTR);

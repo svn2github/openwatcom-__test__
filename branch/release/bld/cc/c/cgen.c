@@ -38,6 +38,7 @@
 #define BY_CLI
 #include "cgprotos.h"
 #include "feprotos.h"
+#include "cgen.h"
 
 local void      FreeExtVars( void );
 local void      FreeGblVars( SYM_HANDLE sym_handle );
@@ -45,7 +46,7 @@ local void      FreeLocalVars( SYM_HANDLE sym_list );
 static void     FreeTrySymBackInfo( void );
 static void     FreeTryTableBackHandles( void );
 static void     FreeTrySymBackInfo( void );
-local int       CodePtrType( type_modifiers flags );
+local cg_type   CodePtrType( type_modifiers flags );
 local int       DoFuncDefn( SYM_HANDLE funcsym_handle );
 static void     CallTryFini( void );
 local void      EmitSyms( void );
@@ -101,40 +102,10 @@ struct func_save {
 };
 
 /* matches table of type in ctypes.h */
-static  char    CGDataType[TYPE_LAST_ENTRY] = {
-    T_INT_1,        /* TYPE_CHAR */
-    T_UINT_1,       /* TYPE_UCHAR */
-    T_INT_2,        /* TYPE_SHORT */
-    T_UINT_2,       /* TYPE_USHORT */
-    T_INTEGER,      /* TYPE_INT */
-    TY_UNSIGNED,    /* TYPE_UINT */
-    T_INT_4,        /* TYPE_LONG */
-    T_UINT_4,       /* TYPE_ULONG */
-    T_INT_8,        /* TYPE_LONG64*/
-    T_UINT_8,       /* TYPE_ULONG64 */
-    T_SINGLE,       /* TYPE_FLOAT */
-    TY_DOUBLE,      /* TYPE_DOUBLE */
-    T_LONG_DOUBLE,  /* TYPE_LONG_DOUBLE */
-    T_FLOAT,        /* TYPE_FIMAGINARY */
-    T_DOUBLE,       /* TYPE_DIMAGINARY */
-    T_LONG_DOUBLE,  /* TYPE_LDIMAGINARY */
-    T_UINT_1,       /* TYPE_BOOL */
-    T_POINTER,      /* TYPE_POINTER */
-    T_POINTER,      /* TYPE_ARRAY */
-    T_POINTER,      /* TYPE_STRUCT */
-    T_POINTER,      /* TYPE_UNION */
-    TY_DEFAULT,     /* TYPE_FUNCTION */
-    TY_DEFAULT,     /* TYPE_FIELD */
-    T_INTEGER,      /* TYPE_VOID */
-    T_INTEGER,      /* TYPE_ENUM */
-    T_INTEGER,      /* TYPE_TYPEDEF */
-    T_INTEGER,      /* TYPE_UFIELD unsigned bit field */
-    T_INTEGER,      /* TYPE_DOT_DOT_DOT  for the ... in prototypes */
-    T_INTEGER,      /* TYPE_PLAIN_CHAR */
-    T_INTEGER,      /* TYPE_WCHAR L'c' - a wide character constant */
-    T_POINTER,      /* TYPE_FCOMPLEX */
-    T_POINTER,      /* TYPE_DCOMPLEX */
-    T_POINTER,      /* TYPE_LDCOMPLEX */
+static  char    CGDataType[] = {
+#undef  pick1
+#define pick1(enum,cgtype,x86asmtype,name,size) cgtype,
+#include "cdatatyp.h"
 };
 
 static  char    CGOperator[] = {
@@ -730,6 +701,8 @@ static cg_name PushConstant( OPNODE *node )
         name = CGFloat( flt_string, dtype );
         break;
     default:
+        assert( 0 );
+        name = NULL;
         break;
     }
     return( name );
@@ -1435,9 +1408,6 @@ void DoCompile( void )
     if( ! setjmp( env ) ) {
         Environment = &env;
         if( BEDLLLoad( NULL ) ) {
-#if ( _CPU == 8086 ) || ( _CPU == 386 )
-            BEMemInit(); // cg has a strange static var that doesn't get reset
-#endif
             if( ! CompFlags.zu_switch_used ) {
                 TargetSwitches &= ~ FLOATING_SS;
             }
@@ -1451,20 +1421,6 @@ void DoCompile( void )
 #endif
             cgi_info = BEInit( GenSwitches, TargetSwitches, OptSize, ProcRevision );
             if( cgi_info.success ) {
-#if 0
-                if( cgi_info.version.revision != II_REVISION ) WrongCodeGen();
-#if _CPU == 386
-                if( cgi_info.version.target != II_TARG_80386 ) WrongCodeGen();
-#elif _CPU == 370
-                if( cgi_info.version.target != II_TARG_370 ) WrongCodeGen();
-#elif _CPU == 8086
-                if( cgi_info.version.target != II_TARG_8086 ) WrongCodeGen();
-#elif _CPU == _AXP
-                if( cgi_info.version.target != II_TARG_AXP ) WrongCodeGen();
-#else
-#error "Undefined _CPU type"
-#endif
-#endif
 #if _CPU == 386
                 if( TargetSwitches & (P5_PROFILING | NEW_P5_PROFILING) ) {
                     FunctionProfileSegment = AddSegName( "TI", "DATA", SEGTYPE_INITFINI );
@@ -1587,7 +1543,7 @@ local int DoFuncDefn( SYM_HANDLE funcsym_handle )
 {
     int         parms_reversed;
     SYM_HANDLE  sym_handle;
-    int         ret_type;
+    cg_type     ret_type;
 
     SSVar = NULL;
     CurFunc = &CurFuncSym;
@@ -1665,7 +1621,7 @@ local int DoFuncDefn( SYM_HANDLE funcsym_handle )
 local void CDoParmDecl( SYMPTR sym, SYM_HANDLE sym_handle )
 {
     TYPEPTR typ;
-    int     dtype;
+    cg_type dtype;
 
     typ = sym->sym_type;
     SKIP_TYPEDEFS( typ );
@@ -1859,11 +1815,11 @@ local void FreeExtVars( void )                          /* 02-apr-92 */
     }
 }
 
-int CGenType( TYPEPTR typ )
+cg_type CGenType( TYPEPTR typ )
 {
-    int         dtype;
-    int         flags;
-    int         align;
+    cg_type         dtype;
+    type_modifiers  flags;
+    int             align;
 
     SKIP_TYPEDEFS( typ );
     switch( typ->decl_type ) {
@@ -1916,10 +1872,10 @@ int CGenType( TYPEPTR typ )
 }
 
 
-local int CodePtrType( type_modifiers flags )
+local cg_type CodePtrType( type_modifiers flags )
 {
 #if ( _CPU == 8086 ) || ( _CPU == 386 )
-    int         dtype;
+    cg_type     dtype;
 
     if( flags & FLAG_FAR ) {
         dtype = T_LONG_CODE_PTR;
@@ -1935,9 +1891,9 @@ local int CodePtrType( type_modifiers flags )
 }
 
 
-extern int PtrType( TYPEPTR typ, type_modifiers flags )
+extern cg_type PtrType( TYPEPTR typ, type_modifiers flags )
 {
-    int         dtype;
+    cg_type     dtype;
 
     SKIP_TYPEDEFS( typ );       /*03-dec-91*/
     if( typ->decl_type == TYPE_FUNCTION ) {

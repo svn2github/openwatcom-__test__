@@ -47,7 +47,8 @@ typedef enum exe_format {       // there is a corresp. table in MSG.C
     MK_PHAR_MULTISEG    = 0x00002000,
     MK_QNX_FLAT         = 0x00004000,
     MK_ELF              = 0x00008000,
-    MK_WIN_VXD          = 0x00010000
+    MK_WIN_VXD          = 0x00010000,
+    MK_DOS16M           = 0x00020000
 } exe_format;
 
 #define MK_DOS       (MK_OVERLAYS | MK_DOS_EXE | MK_COM)
@@ -60,7 +61,7 @@ typedef enum exe_format {       // there is a corresp. table in MSG.C
 #define MK_PHAR_LAP  (MK_PHAR_SIMPLE|MK_PHAR_FLAT|MK_PHAR_REX|MK_PHAR_MULTISEG)
 #define MK_QNX       (MK_QNX_16 | MK_QNX_FLAT)
 #define MK_386       (MK_PHAR_LAP | MK_NOVELL | MK_QNX|MK_OS2_LE|MK_OS2_LX|MK_PE|MK_ELF|MK_WIN_VXD)
-#define MK_286       (MK_DOS | MK_OS2_16BIT)
+#define MK_286       (MK_DOS | MK_OS2_16BIT | MK_DOS16M)
 /* MK_OS2_LE, MK_OS2_LX, MK_WIN_VXD and MK_PE are not treated as FLAT internally */
 #define MK_FLAT      (MK_PHAR_SIMPLE | MK_PHAR_FLAT | MK_PHAR_REX )
 #define MK_ALLOW_32  (MK_PHAR_LAP|MK_OS2_LE|MK_OS2_LX|MK_NOVELL|MK_QNX|MK_PE|MK_ELF|MK_WIN_VXD)
@@ -72,7 +73,7 @@ typedef enum exe_format {       // there is a corresp. table in MSG.C
 #define MK_IMPORTS   (MK_NOVELL | MK_OS2 | MK_PE | MK_ELF)
 #define MK_SPLIT_DATA (MK_ELF | MK_PE)
 #define MK_LINEARIZE (MK_ELF | MK_PE)
-#define MK_ALL       (0x0001FFFF)
+#define MK_ALL       (0x0003FFFF)
 
 #define IS_PPC_PE   ( LinkState & HAVE_PPC_CODE && FmtData.type & MK_PE )
 #define IS_PPC_OS2   0//( LinkState & HAVE_PPC_CODE && FmtData.type & MK_OS2 )
@@ -115,6 +116,8 @@ struct fmt_os2_data {
     unsigned            gen_int_relocs : 1;
     unsigned            gen_rel_relocs : 1;
     unsigned            is_private_dll : 1;
+    unsigned            no_stub        : 1;
+    unsigned            mixed1632      : 1;
 };
 
 // linker specific PE data
@@ -137,6 +140,19 @@ struct fmt_pe_data {
     unsigned            osv_specd : 1;      /* OS version specified? */
     unsigned            lnk_specd : 1;      /* Link version specified */
     unsigned            checksumfile : 1;   /* Create checksum for file? */
+};
+
+// structures used in processing DOS/16M load files.
+
+struct fmt_d16m_data {
+    unsigned_16     options;
+    unsigned_8      flags;                  // in load16m.h
+    unsigned_8      strategy;
+    unsigned_16     buffer;
+    unsigned_16     gdtsize;
+    unsigned_16     selstart;
+    unsigned_16     extended;
+    unsigned_16     datasize;
 };
 
 // stuff common to some file formats which have the concept of an export
@@ -201,6 +217,7 @@ struct fmt_data {
         struct  fmt_dos_data    dos;
         struct  fmt_os2_data    os2;
         struct  fmt_pe_data     pe;
+        struct	fmt_d16m_data	d16m;
         struct  fmt_phar_data   phar;
         struct  fmt_nov_data    nov;
         struct  fmt_qnx_data    qnx;
@@ -219,12 +236,12 @@ struct fmt_data {
     unsigned        minor;
     unsigned        def_seg_flags;
     unsigned        revision;
-    unsigned        Hshift;   // Corresponds to huge shift variable used by libr
+    unsigned        Hshift;     // Corresponds to huge shift variable used by libr
     unsigned        SegShift;   // 16 - HShift, used to convert a segment to an address
-    unsigned_32      SegMask;  // used to extract remainder for segment normalization
-    unsigned        HexSegShift; // shift to convert Intel Hex record segments to address
-    unsigned_32      output_offset;
-    char             FillChar;
+    unsigned_32     SegMask;    // used to extract remainder for segment normalization
+    unsigned        HexSegShift;// shift to convert Intel Hex record segments to address
+    unsigned_32     output_offset;
+    char            FillChar;
     unsigned        dll          : 1;
     unsigned        ver_specified: 1;
     unsigned        make_implib  : 1;
@@ -234,5 +251,5 @@ struct fmt_data {
     unsigned        output_raw   : 1;
     unsigned        output_hex   : 1;
     unsigned        output_hshift : 1; // Hexout uses HexSegShift (else uses SegShift)
-    unsigned        output_start : 1;  // If Hexout should provide a start record
+    unsigned        output_start  : 1; // If Hexout should provide a start record
 };

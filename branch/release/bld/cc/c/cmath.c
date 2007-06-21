@@ -416,7 +416,7 @@ static  char    Operator[] = {
     OPR_MOD_EQUAL,      /* T_PERCENT_EQUAL, */
 };
 
-int TokenToOperator( TOKEN token )
+opr_code TokenToOperator( TOKEN token )
 {
     return( Operator[ token ] );
 }
@@ -613,6 +613,10 @@ static cmp_result IsMeaninglessCompare( long val, int op1_type, int op2_type, in
         rev_ret = 1;
     case T_LE:
         rel = REL_LE;
+        break;
+    default:
+        assert( 0 );
+        rel = REL_EQ;
         break;
     }
     if( NumSign( op1_size ) && NumSign( op1_size ) != NumSign( result_size ) ) {
@@ -880,7 +884,7 @@ TREEPTR RelOp( TREEPTR op1, TOKEN opr, TREEPTR op2 )
 }
 
 
-TREEPTR FlowOp( TREEPTR op1, int opr, TREEPTR op2 )
+TREEPTR FlowOp( TREEPTR op1, opr_code opr, TREEPTR op2 )
 {
     TREEPTR     tree;
 
@@ -1556,9 +1560,9 @@ TREEPTR CnvOp( TREEPTR opnd, TYPEPTR newtyp, int cast_op )
 {
     TYPEPTR             typ;
     enum  conv_types    cnv;
-    enum ops            opr;
+    opr_code            opr;
     op_flags            flags;
-    type_modifiers      opnd_type;
+    DATA_TYPE           opnd_type;
 
     if( opnd->op.opr == OPR_ERROR ) return( opnd );
     SKIP_TYPEDEFS( newtyp );

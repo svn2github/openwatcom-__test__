@@ -32,7 +32,8 @@
 
 #include <string.h>
 #include "standard.h"
-#include "sysmacro.h"
+#include "cgdefs.h"
+#include "cgmem.h"
 #include "cg.h"
 #include "bckdef.h"
 #include "cgaux.h"
@@ -284,7 +285,7 @@ static unsigned GetNameIdx( char *name, char *suff, bool alloc )
     }
     if( !alloc )
         return( 0 );
-    _Alloc( curr, sizeof( *curr ) + name_len + suff_len );
+    curr = CGAlloc( sizeof( *curr ) + name_len + suff_len );
     *owner = curr;
     curr->next = NULL;
     curr->idx = ++NameIndex;
@@ -331,7 +332,7 @@ bool FreeObjCache( void )
     FlushNames();
     while( NameCache != NULL ) {
         tmp = NameCache->next;
-        _Free( NameCache, sizeof( *NameCache ) + NameCache->name[0] );
+        CGFree( NameCache );
         NameCache = tmp;
     }
     NameCacheDumped = NULL;
@@ -345,11 +346,11 @@ extern  void    DefSegment( seg_id id, seg_attr attr, char *str, uint align, boo
     segdef              **owner;
     seg_id              first_code;
 
-    _Alloc( new, sizeof( segdef ) );
+    new = CGAlloc( sizeof( segdef ) );
     new->id = id;
     new->attr = attr;
     new->align = align;
-    _Alloc( new->str, Length( str ) + 1 );
+    new->str = CGAlloc( Length( str ) + 1 );
     CopyStr( str, new->str );
     owner = &SegDefs;
     while( *owner != NULL ) {
@@ -882,8 +883,8 @@ static  void    DoSegment( segdef *seg, array_control *dgroup_def,
             DoASegDef( rec, use_16 );
         }
     }
-    _Free( seg->str, Length( seg->str ) + 1 );
-    _Free( seg, sizeof( segdef ) );
+    CGFree( seg->str );
+    CGFree( seg );
 }
 
 
@@ -1037,7 +1038,7 @@ static  void    DoASegDef( index_rec *rec, bool use_16 ) {
     object      *obj;
 
     use_16 = use_16;
-    _Alloc( obj, sizeof( object ) );
+    obj = CGAlloc( sizeof( object ) );
     rec->obj = obj;
     obj->index = rec->sidx;
     obj->start = rec->location;
@@ -1116,7 +1117,7 @@ static  void    OutGroup( int sidx, array_control *group_def, int *index_p ) {
 static  void    OutCGroup( int sidx ) {
 /*************************************/
 
-    char        out[ 4 ];
+    byte        out[ 4 ];
     int         i;
 
     out[ 0 ] = CodeGroupNIdx;
@@ -1338,7 +1339,7 @@ static  void    FiniTarg( void )
     }
     KillStatic( &obj->data );
     KillStatic( &obj->fixes );
-    _Free( obj, sizeof( object ) );
+    CGFree( obj );
 }
 
 static  void    DoPatch( patch *pat, offset lc ) {
@@ -1388,7 +1389,7 @@ static  void    FreeAbsPatch( abspatch *patch ) {
         owner = &(*owner)->link;
     }
     *owner = (*owner)->link;
-    _Free( patch, sizeof( abspatch ) );
+    CGFree( patch );
 }
 
 
@@ -1403,7 +1404,7 @@ static  void    FiniAbsPatches( void ) {
         DoPatch( &patch->pat, patch->value );
         junk = patch;
         patch = patch->link;
-        _Free( junk, sizeof( abspatch ) );
+        CGFree( junk );
     }
 }
 
@@ -1712,7 +1713,7 @@ extern  void    OutLabel( label_handle lbl ) {
                 cookie = FEAuxInfo( cookie, VIRT_FUNC_NEXT_REFERENCE );
             }
             next = curr->next;
-            _Free( curr, sizeof( virt_func_ref_list ) );
+            CGFree( curr );
         }
         CurrSeg->virt_func_refs = NULL;
     } else if( CurrSeg->prefix_comdat_state != PCS_OFF ) {
@@ -1758,7 +1759,7 @@ extern  void    OutLabel( label_handle lbl ) {
                         }
                     }
                     *owner = curr_pat->link;
-                    _Free( curr_pat, sizeof( temp_patch ) );
+                    CGFree( curr_pat );
                 } else {
                      owner = &curr_pat->link;
                 }
@@ -1827,7 +1828,7 @@ static  void    SetPatches( void ) {
         pat->attr = curr_pat->pat.attr;
         junk = curr_pat;
         curr_pat = curr_pat->link;
-        _Free( junk, sizeof( temp_patch ) );
+        CGFree( junk );
     }
 }
 
@@ -1898,7 +1899,7 @@ extern  void    OutPatch( label_handle lbl, patch_attr attr ) {
 
      /* careful, might be patching offset of seg:off*/
     CheckLEDataSize( 3*sizeof( offset ), TRUE );
-    _Alloc( pat, sizeof( temp_patch ));
+    pat = CGAlloc( sizeof( temp_patch ));
     obj = CurrSeg->obj;
     pat->link = obj->patches;
     pat->lbl = lbl;
@@ -1913,7 +1914,7 @@ extern  abspatch        *NewAbsPatch( void ) {
 
     abspatch    *new;
 
-    _Alloc( new, sizeof( *new ) );
+    new = CGAlloc( sizeof( *new ) );
     memset( new, 0, sizeof( *new ) );
     new->link = AbsPatches;
     AbsPatches = new;
@@ -3047,7 +3048,7 @@ static  array_control   *InitArray( int size, int starting, int increment ) {
 
     array_control       *res;
 
-    _Alloc( res, sizeof( array_control ) );
+    res = CGAlloc( sizeof( array_control ) );
     FillArray( res, size, starting, increment );
     return( res );
 }
@@ -3057,7 +3058,7 @@ static  void    FillArray( array_control *res, int size,
                            int starting, int increment ) {
 /********************************************************/
 
-    _Alloc( res->array, starting * size );
+    res->array = CGAlloc( starting * size );
     res->alloc = starting;
     res->used = 0;
     res->entry = size;
@@ -3080,12 +3081,12 @@ static  void    NeedMore( array_control *arr, int more ) {
                 break;
             }
         }
-        _Alloc( p, arr->entry * new );
+        p = CGAlloc( arr->entry * new );
         Copy( arr->array, p, arr->entry * arr->used );
         if( arr == Out ) {
             OutBuff = p;
         }
-        _Free( arr->array, arr->entry * arr->alloc );
+        CGFree( arr->array );
         arr->array = p;
         arr->alloc = new;
     }
@@ -3095,13 +3096,13 @@ static  void    KillArray( array_control *arr ) {
 /***********************************************/
 
     KillStatic( arr );
-    _Free( arr, sizeof( array_control ) );
+    CGFree( arr );
 }
 
 static  void    KillStatic( array_control *arr ) {
 /************************************************/
 
-    _Free( arr->array, arr->entry * arr->alloc );
+    CGFree( arr->array );
 }
 
 extern  seg_id  SetOP( seg_id seg ) {
@@ -3315,7 +3316,7 @@ extern void     TellObjVirtFuncRef( void *cookie ) {
     virt_func_ref_list  *new;
 
     old = SetOP( CodeSeg );
-    _Alloc( new, sizeof( virt_func_ref_list ) );
+    new = CGAlloc( sizeof( virt_func_ref_list ) );
     new->cookie = cookie;
     new->next = CurrSeg->virt_func_refs;
     CurrSeg->virt_func_refs = new;

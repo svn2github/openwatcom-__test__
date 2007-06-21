@@ -32,6 +32,7 @@
 #include "cvars.h"
 #include "cgswitch.h"
 #include "pragdefn.h"
+#include "i64.h"
 
 
 /*  return types from TypeCheck */
@@ -311,10 +312,9 @@ static cmp_type DoCompatibleType( TYPEPTR typ1, TYPEPTR typ2, int top_level,
     }
     if( typ1 != typ2 ) {    // if not equal see if diff by pointers
         if( typ1->decl_type == TYPE_VOID || typ2->decl_type == TYPE_VOID ) {
-        // allow  void ** with any **
+            // allow  void ** with any ** (but warn about it)
             if( top_level==1 || !CompFlags.strict_ANSI ) {
-                if ( voidptr_cmp == VC_WARN ||
-                     (top_level > 1 && !CompFlags.extensions_enabled) ) {
+                if ( voidptr_cmp == VC_WARN || (top_level > 1) ) {
                     CWarn1( WARN_PCTYPE_MISMATCH, ERR_PCTYPE_MISMATCH );
                 }
                 return( ret_val ); // void *  and  anything *
@@ -452,7 +452,7 @@ static cmp_type DoCompatibleType( TYPEPTR typ1, TYPEPTR typ2, int top_level,
     return( ret_val );
 }
 #define SUBNOT( a, b, on )  ( ( (a&on)|(b&on) )^(a&on) )
-static cmp_type CompatibleType( TYPEPTR typ1, TYPEPTR typ2, int assignment )
+static cmp_type CompatibleType( TYPEPTR typ1, TYPEPTR typ2, bool assignment, bool null_ptr  )
 {
     cmp_type         ret_val;
     cmp_type         ret_pq;
@@ -469,8 +469,10 @@ static cmp_type CompatibleType( TYPEPTR typ1, TYPEPTR typ2, int assignment )
     // top level pointer
         typ1_flags = typ1->u.p.decl_flags;
         typ2_flags = typ2->u.p.decl_flags;
-        if( assignment ) {
-            type_modifiers subnot;
+        // Special dispensation: assigning null pointer constant is allowed even
+        // when the pointer size doesn't match. Required for MS compatibility.
+        if( assignment && !null_ptr ) {
+            type_modifiers  subnot;
 
             subnot = SUBNOT( typ1_flags, typ2_flags, QUAL_FLAGS );
             if( subnot ) {  // allow void * =  unaligned *
@@ -510,7 +512,7 @@ static cmp_type CompatibleType( TYPEPTR typ1, TYPEPTR typ2, int assignment )
 
 void CompatiblePtrType( TYPEPTR typ1, TYPEPTR typ2 )
 {
-    switch( CompatibleType( typ1, typ2, 0 ) ) {
+    switch( CompatibleType( typ1, typ2, FALSE, FALSE ) ) {
     case PT:                                        /* 31-aug-89 */
     case PX:
         break;
@@ -537,6 +539,18 @@ void CompatiblePtrType( TYPEPTR typ1, TYPEPTR typ2 )
     case AC:
         break;
     }
+}
+
+static bool IsNullConst( TREEPTR tree )
+{
+    bool    rc = FALSE;
+
+    if( tree->op.opr == OPR_PUSHINT ) {
+        uint64  val64 = LongValue64( tree );
+
+        rc = !U64Test( &val64 );
+    }
+    return( rc );
 }
 
 static void CompareParms( TYPEPTR *master,
@@ -577,7 +591,7 @@ static void CompareParms( TYPEPTR *master,
         if( typ2 != NULL ) {
             /* check compatibility of parms */
             SetDiagType2 ( typ2, typ );
-            cmp = CompatibleType( typ, typ2, 1 );
+            cmp = CompatibleType( typ, typ2, TRUE, IsNullConst( *passed ) );
             switch( cmp ) {
             case NO:
             case PT:
@@ -805,10 +819,14 @@ void ParmAsgnCheck( TYPEPTR typ1, TREEPTR opnd2, int parm_num )
     TYPEPTR        typ2;
 
     if( opnd2->op.opr == OPR_ERROR ) return;
+
+    // Fold RHS expression so that we can properly check for null
+    // pointers or out of range constants
+    FoldExprTree( opnd2 );
     typ2 = opnd2->expr_type;
 
     SetDiagType2( typ2, typ1 );
-    switch( CompatibleType( typ1, typ2, 1 ) ) {
+    switch( CompatibleType( typ1, typ2, TRUE, IsNullConst( opnd2 ) ) ) {
     case NO:
         if( parm_num == 0 ) {
             CErr1( ERR_TYPE_MISMATCH );
@@ -892,7 +910,7 @@ void TernChk( TYPEPTR typ1, TYPEPTR typ2 )
 {
     cmp_type    cmp;
 
-    cmp = CompatibleType( typ1, typ2, 0 );
+    cmp = CompatibleType( typ1, typ2, FALSE, FALSE );
     switch( cmp ) {
     case NO:
         CErr1( ERR_TYPE_MISMATCH );

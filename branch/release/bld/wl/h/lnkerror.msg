@@ -44,8 +44,8 @@ pick(    MSG_NO_START_ADDR,     "no starting address found, using %a" ,
                     "開始アドレスが見つかりません.%aを開始アドレスとします" )
 pick(    MSG_NO_OVERLAY_LOADER,     "missing overlay loader" ,
                     "オーバレイ・ローダがありません" )
-pick(    MSG_SHORT_VECT_RANGE,      "short vector %d is out of range" ,
-                    "ショート・ベクタ %d が範囲外です" )
+pick(    MSG_VECT_RANGE,      "%s vector %d is out of range" ,
+                    "%s vector %d is out of range" )
 pick(    MSG_RESERVED_SYM_DEFINED,      "redefinition of reserved symbol %s" ,
                     "予約シンボル %s を再定義しました" )
 pick(    MSG_MULT_DEF,          "redefinition of %S ignored" ,
@@ -56,8 +56,8 @@ pick(    MSG_EARLY_EOF,         "premature end of file encountered" ,
                     "途中でＥＯＦを検出しました" )
 pick(    MSG_MULT_START_ADDRS,      "multiple starting addresses found" ,
                     "複数の開始アドレスを発見しました" )
-pick(    MSG_SEG_IN_TWO_GROUPS,     "segment %1 is in group %s and group %2" ,
-                    "セグメント %1 が %s グループと %2 グループの両方に存在します" )
+pick(    MSG_SEG_IN_TWO_GROUPS,     "segment %1 is in group %2 and group %3" ,
+                    "セグメント %1 が %2 グループと %3 グループの両方に存在します" )
 pick(    MSG_REC_NOT_DONE,      "record (type 0x%x) not processed" ,
                     "レコード (ﾀｲﾌﾟ0x%x) は処理されません" )
 pick(    MSG_DIRECTIVE_ERR,     "directive error near '%s'" ,

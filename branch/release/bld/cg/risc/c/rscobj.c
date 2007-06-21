@@ -33,13 +33,14 @@
 #include <assert.h>
 #include <string.h>
 #include "standard.h"
+#include "cgdefs.h"
 #include "coderep.h"
 #include "cgaux.h"
 #include "offset.h"
 #include "optopts.h"
 #include "optlbl.h"
 #include "ocentry.h"
-#include "sysmacro.h"
+#include "cgmem.h"
 #include "reloc.h"
 #include "cgswitch.h"
 #include "model.h"
@@ -53,8 +54,6 @@
 #include "axpencod.h"
 #include "feprotos.h"
 
-extern  pointer         CGAlloc( unsigned size );
-extern  void            CGFree( pointer );
 extern  void            CloseObj( void );
 extern  void            OpenObj( void );
 extern  void            PutObjBytes( const char *, uint );
@@ -136,7 +135,7 @@ extern section_def *AddSection( seg_id id ) {
     section_def         *new;
     unsigned            bucket;
 
-    _Alloc( new, sizeof( section_def ) );
+    new = CGAlloc( sizeof( section_def ) );
     bucket = id % N_SECTIONS;
     new->id = id;
     new->next = sectionDefs[ bucket ];
@@ -157,7 +156,7 @@ static void DeleteSections( void ) {
         if( sectionDefs[ bucket ] != NULL ) {
             for( ptr = sectionDefs[ bucket ]; ptr != NULL; ptr = next ) {
                 next = ptr->next;
-                _Free( ptr, sizeof( section_def ) );
+                CGFree( ptr );
             }
             sectionDefs[ bucket ] = NULL;
         }
@@ -495,7 +494,7 @@ extern  void    DefSegment( seg_id id, seg_attr attr, char *str, uint align, boo
         if( codeSection == BACKSEGS ) {
             codeSection = id;
             if( _IsModel( DBG_DF ) ) {
-                DFBegCCU( id, NULL );
+                DFBegCCU( id, 0 );
             }
         }
     } else if( attr & INIT ) {

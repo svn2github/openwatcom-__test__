@@ -24,8 +24,8 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Munge OMF objects into something resembling a sensible
+*               object format.
 *
 ****************************************************************************/
 
@@ -741,16 +741,16 @@ static orl_return       checkSegmentLength( omf_sec_handle sh, uint_32 max )
 }
 
 
-static omf_bytes        strNUpper( omf_bytes buffer, int len )
+static char             *strNUpper( char *str, int len )
 {
-    assert( buffer );
+    assert( str );
 
     len--;
     while( len >= 0 ) {
-        buffer[ len ] = toupper( buffer[ len ] );
+        str[ len ] = toupper( str[ len ] );
         len--;
     }
-    return( buffer );
+    return( str );
 }
 
 
@@ -815,6 +815,20 @@ static orl_sec_flags    getSegSecFlags( omf_file_handle ofh, omf_idx name,
     }
 
     return( flags );
+}
+
+
+static orl_return   OmfAddFileName( omf_file_handle ofh, char *name, unsigned int len )
+{
+    omf_symbol_handle   sym;
+    orl_return          err;
+
+    sym = newSymbol( ofh, ORL_SYM_TYPE_FILE, name, len );
+    if( sym == NULL ) {
+        return( ORL_OUT_OF_MEMORY );
+    }
+    err = addToSymbolTable( ofh, sym );
+    return( err );
 }
 
 
@@ -1127,7 +1141,7 @@ orl_return              OmfAddExtDef( omf_file_handle ofh, omf_bytes buffer,
     } else {
         styp |= ORL_SYM_TYPE_UNDEFINED;
     }
-    sym = newSymbol( ofh, styp, buffer, len );
+    sym = newSymbol( ofh, styp, (char *)buffer, len );
     if( !sym ) return( ORL_OUT_OF_MEMORY );
 
     sym->idx = ofh->extdefs->assoc.string.num + 1;
@@ -1174,10 +1188,13 @@ orl_return              OmfAddComDat( omf_file_handle ofh, int is32, int flags,
     if( err != ORL_OKAY ) return( err );
 
     if( align == -1 ) {
-        if( !seg ) return( ORL_ERROR );
-        sh = findSegment( ofh, seg );
-        if( !sh ) return( ORL_ERROR );
-        align = sh->assoc.seg.alignment;
+        if( seg ) {
+            sh = findSegment( ofh, seg );
+            if( !sh ) return( ORL_ERROR );
+            align = sh->assoc.seg.alignment;
+        } else {
+            align = 0;  /* Use default for kinda-broken objects */
+        }
     }
 
     if( flags & COMDAT_CONTINUE ) {
@@ -1288,21 +1305,14 @@ orl_return              OmfAddComDat( omf_file_handle ofh, int is32, int flags,
 }
 
 
-extern orl_return       OmfAddLineNum( omf_file_handle ofh, omf_idx seg,
-                                       omf_idx name, unsigned_16 line,
+extern orl_return       OmfAddLineNum( omf_sec_handle sh, unsigned_16 line,
                                        unsigned_32 offset )
 {
-    omf_sec_handle      sh;
-
-    assert( ofh );
-
-    sh = OmfFindSegOrComdat( ofh, seg, name );
-    if( !sh ) return( ORL_ERROR );
-
-    sh->assoc.seg.lines = checkArraySize( ofh, sh->assoc.seg.lines,
+    sh->assoc.seg.lines = checkArraySize( sh->omf_file_hnd, sh->assoc.seg.lines,
                                           sh->assoc.seg.num_lines, STD_INC,
                                           sizeof( orl_linnum ) );
-    if( !sh->assoc.seg.lines ) return( ORL_OUT_OF_MEMORY );
+    if( sh->assoc.seg.lines == NULL )
+        return( ORL_OUT_OF_MEMORY );
 
     sh->assoc.seg.lines[ sh->assoc.seg.num_lines ].linnum = line;
     sh->assoc.seg.lines[ sh->assoc.seg.num_lines ].off = offset;
@@ -1466,17 +1476,11 @@ orl_return              OmfAddGrpDef( omf_file_handle ofh, omf_idx name,
 orl_return      OmfModEnd( omf_file_handle ofh )
 {
     orl_return          err;
-    omf_symbol_handle   sym;
 
     assert( ofh );
 
     err = finishPrevWork( ofh );
-    if( err != ORL_OKAY ) return( err );
-
-    sym = newSymbol( ofh, ORL_SYM_TYPE_FILE, ofh->modname, ofh->modnamelen );
-    if( !sym ) return( ORL_OUT_OF_MEMORY );
-
-    return( addToSymbolTable( ofh, sym ) );
+    return( err );
 }
 
 
@@ -1589,4 +1593,22 @@ orl_return      OmfExportSegmentContents( omf_sec_handle sh )
         return( checkSegmentLength( sh, sh->size ) );
     }
     return( ORL_OKAY );
+}
+
+
+orl_return      OmfTheadr( omf_file_handle ofh )
+{
+    orl_return          err;
+    int                 len;
+    char                name[256];
+
+    err = finishPrevWork( ofh );
+    if( err != ORL_OKAY )
+        return( err );
+    len = ofh->parsebuf[0];
+    if( len > ofh->parselen )
+        return( ORL_ERROR );
+    memcpy( name, ofh->parsebuf + 1, len );
+    name[len] = 0;
+    return( OmfAddFileName( ofh, name, len ) );
 }

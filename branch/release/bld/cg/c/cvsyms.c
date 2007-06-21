@@ -36,7 +36,7 @@
 #include "pattern.h"
 #include "procdef.h"
 #include "cgdefs.h"
-#include "sysmacro.h"
+#include "cgmem.h"
 #include "symdbg.h"
 #include "model.h"
 #include "ocentry.h"
@@ -146,7 +146,7 @@ static  void    BuffWrite( cv_out *out, void *to )
     int     len;
     seg_id  old;
 
-    len = (char *)to - out->beg;
+    len = (byte *)to - out->beg;
     old = SetOP( out->seg );
     DataBytes( len, out->beg );
     out->beg = to;
@@ -187,7 +187,7 @@ static  void    EndSym( cv_out *out )
 {
     int         len;
     s_common    *com;
-    char        *ptr;
+    byte        *ptr;
 
     com = (s_common *) out->beg; /* assume ptr marks end of a sym */
     ptr = out->ptr;
@@ -615,12 +615,12 @@ static  void DumpParms( dbg_local *parm, dbg_local **locals )
                 }
             }
             DBLocFini( alt->loc );
-           _Free( alt, sizeof( dbg_local ) );
+           CGFree( alt );
         }
         DBLocFini( parm->loc );
         junk = parm;
         parm = parm->link;
-        _Free( junk, sizeof( dbg_local ) );
+        CGFree( junk );
     }
 //#if _TARGET & _TARG_AXP
 #if 0 // seems like it screws CVPACK on intel
@@ -695,19 +695,19 @@ extern  void    CVBlkBeg( dbg_block *blk, offset lc )
 {
     block_patch        *patch;
     dbg_patch_handle   *handle;
-    cv_out          out[1];
-    offset          start;
-    sym_handle      sym;
-    cs_block        *ptr;
-    char           *nm;
+    cv_out             out[1];
+    offset             start;
+    sym_handle         sym;
+    cs_block           *ptr;
+    byte               *nm;
 
 
-    _Alloc( patch, sizeof( block_patch ) );
+    patch = CGAlloc( sizeof( block_patch ) );
     blk->patches = patch;
     NewBuff( out, CVSyms );
     ptr = StartSym(  out, SG_BLOCK );
-    ptr->pParent = NULL;
-    ptr->pEnd = NULL;
+    ptr->pParent = 0;
+    ptr->pEnd = 0;
     ptr->length = 0;
     ptr->offset = 0;
     ptr->segment = 0;
@@ -739,14 +739,14 @@ extern  void    CVBlkEnd( dbg_block *blk, offset lc )
     here = AskBigLocation();
     SetBigLocation( handle->offset + offsetof( s_block, f.length ) );
     length = lc - blk->start;
-    DataBytes( sizeof( fsize ), (char *)&length );
+    DataBytes( sizeof( fsize ), (byte *)&length );
     SetBigLocation( here );
     SetOP( old );
     NewBuff( out, CVSyms );
     StartSym(  out, SG_END );
     EndSym( out );
     BuffEnd( out );
-   _Free( blk->patches, sizeof( block_patch ) );
+   CGFree( blk->patches );
 }
 
 extern  void    CVEpiBeg( dbg_rtn *blk, offset lc )
@@ -771,10 +771,10 @@ extern  void    CVRtnEnd( dbg_rtn *rtn, offset lc )
     here = AskBigLocation();
     SetBigLocation( handle->offset + offsetof( s_gproc, f.proc_length ) );
     proc_length = lc - rtn->blk->start;
-    DataBytes( sizeof( fsize ), (char *)&proc_length );
+    DataBytes( sizeof( fsize ), (byte *)&proc_length );
     SetBigLocation( handle->offset+ offsetof( s_gproc, f.debug_end ) );
     debug_end   = rtn->epi_start - rtn->blk->start;
-    DataBytes( sizeof( fsize ), (char*)&debug_end );
+    DataBytes( sizeof( fsize ), (byte *)&debug_end );
     SetBigLocation( here );
     SetOP( old );
     NewBuff( out, CVSyms );
@@ -817,7 +817,7 @@ static  void    DumpLocals( dbg_local *local )
         DBLocFini( local->loc );
         old = local;
         local = local->link;
-        _Free( old, sizeof( dbg_local ) );
+        CGFree( old );
     }
 
 }

@@ -32,6 +32,7 @@
 #include "linkstd.h"
 #include "alloc.h"
 #include "newmem.h"
+#include "dbgcomm.h"
 #include "dbgall.h"
 #include "dbgwat.h"
 #include "objpass2.h"
@@ -39,7 +40,7 @@
 #include "distrib.h"
 #include "overlays.h"
 
-extern void ProcAllSects( void (*rtn)( section * ) )
+void ProcAllSects( void (*rtn)( section * ) )
 /**************************************************/
 {
     rtn( Root );
@@ -48,7 +49,7 @@ extern void ProcAllSects( void (*rtn)( section * ) )
     }
 }
 
-extern void ProcAllOvl( void (*rtn)( section * ) )
+void ProcAllOvl( void (*rtn)( section * ) )
 /************************************************/
 {
     if( FmtData.type & MK_OVERLAYS ) {
@@ -56,7 +57,7 @@ extern void ProcAllOvl( void (*rtn)( section * ) )
     }
 }
 
-extern void ParmWalkAllSects( void (*rtn)( section *, void * ), void *parm )
+void ParmWalkAllSects( void (*rtn)( section *, void * ), void *parm )
 /**************************************************************************/
 {
     rtn( Root, parm );
@@ -65,7 +66,7 @@ extern void ParmWalkAllSects( void (*rtn)( section *, void * ), void *parm )
     }
 }
 
-extern void ParmWalkAllOvl( void (*rtn)( section *, void * ), void *parm )
+void ParmWalkAllOvl( void (*rtn)( section *, void * ), void *parm )
 /************************************************************************/
 {
     if( FmtData.type & MK_OVERLAYS ) {
@@ -82,7 +83,7 @@ static void NumASect( section *sect )
     sect->ovl_num = OvlNum++;
 }
 
-extern void NumberSections( void )
+void NumberSections( void )
 /********************************/
 {
     if( ( FmtData.type & MK_OVERLAYS ) && FmtData.u.dos.distribute ) {
@@ -93,13 +94,13 @@ extern void NumberSections( void )
     ProcAllOvl( &NumASect );
 }
 
-extern void FillOutFilePtrs( void )
+void FillOutFilePtrs( void )
 /*********************************/
 {
     ProcAllOvl( FillOutPtr );
 }
 
-extern void TryDefVector( symbol * sym )
+void TryDefVector( symbol * sym )
 /**************************************/
 {
     if( FmtData.type & MK_OVERLAYS ) {
@@ -111,7 +112,7 @@ extern void TryDefVector( symbol * sym )
     }
 }
 
-extern void TryUseVector( symbol * sym, extnode *newnode )
+void TryUseVector( symbol * sym, extnode *newnode )
 /********************************************************/
 {
     if( newnode != NULL ) {
@@ -122,7 +123,7 @@ extern void TryUseVector( symbol * sym, extnode *newnode )
     }
 }
 
-extern section * GetOvlSect( char *clname )
+section * GetOvlSect( char *clname )
 /*****************************************/
 /* Pick the right section for this segment, based on its class */
 {
@@ -143,7 +144,7 @@ static void PSection( section *sec )
     PModList( sec->mods );
 }
 
-extern void OvlPass2( void )
+void OvlPass2( void )
 /**************************/
 {
     if( FmtData.type & MK_OVERLAYS ) {
@@ -151,18 +152,3 @@ extern void OvlPass2( void )
         ProcAllOvl( PSection );
     }
 }
-
-#ifdef OVERLAY_VERSION1
-extern void TryGetVector( extnode *ext, thread *targ )
-/****************************************************/
-{
-    /* check if reference needs overlay vector */
-    if( ext->ovlref != 0 ) {
-        /* get address for overlay vector */
-        GetVecAddr2( ext->entry->u.d.ovlref, targ );
-        targ->flags |= TRD_DEFINED;
-    } else {
-        XSymAddr( ext->entry, targ );
-    }
-}
-#endif

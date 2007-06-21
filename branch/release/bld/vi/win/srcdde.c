@@ -140,7 +140,7 @@ bool RunDDECommand( int token, char *str, char *tmp1, long *result, vlist *vl )
         if( !GetDWORD( str, &hdl  ) ) {
             rc = ERR_INVALID_DDE;
         } else {
-            if( !DdeNameService( DDEInstId, hdl, NULL, DNS_REGISTER ) ) {
+            if( !DdeNameService( DDEInstId, hdl, (HSZ)NULL, DNS_REGISTER ) ) {
                 rc = ERR_DDE_FAIL;
             } else {
                 ServerCount++;
@@ -195,7 +195,7 @@ bool RunDDECommand( int token, char *str, char *tmp1, long *result, vlist *vl )
         }
         len = DdeGetData( data, NULL, 0, 0 );
         ptr = MemAlloc( len );
-        DdeGetData( data, ptr, len, 0 );
+        DdeGetData( data, (LPBYTE)ptr, len, 0 );
         VarAddStr( tmp1, ptr,  vl );
         MemFree( ptr );
 //      DdeFreeDataHandle( data );
@@ -219,9 +219,9 @@ bool RunDDECommand( int token, char *str, char *tmp1, long *result, vlist *vl )
             rc = ERR_INVALID_DDE;
             break;
         }
-        data = DdeCreateDataHandle( DDEInstId, tmp2, strlen( tmp2)+1,
+        data = DdeCreateDataHandle( DDEInstId, (LPBYTE)tmp2, strlen( tmp2 ) + 1,
                         0, hdl, ClipboardFormat, 0 );
-        if( data == NULL ) {
+        if( data == (HDDEDATA)NULL ) {
             rc = ERR_DDE_FAIL;
         } else {
             VarAddStr( tmp1, ltoa( (long) data, tmp2, 10 ), vl );
@@ -246,7 +246,7 @@ bool RunDDECommand( int token, char *str, char *tmp1, long *result, vlist *vl )
             break;
         }
         hconv = DdeConnect( DDEInstId, serverhdl, topichdl, NULL );
-        if( hconv == NULL ) {
+        if( hconv == (HDDEDATA)NULL ) {
             rc = ERR_DDE_FAIL;
         } else {
             VarAddStr( tmp1, ltoa( (long) hconv, tmp2, 10 ), vl );
@@ -283,12 +283,12 @@ bool RunDDECommand( int token, char *str, char *tmp1, long *result, vlist *vl )
         }
         data = DdeClientTransaction( NULL, 0, hconv, hdl, ClipboardFormat,
                                 XTYP_REQUEST, TIME_OUT, &dword );
-        if( data == NULL ) {
+        if( data == (HDDEDATA)NULL ) {
             rc = ERR_DDE_FAIL;
         } else {
             len = DdeGetData( data, NULL, 0, 0 )+1;
             ptr = MemAlloc( len );
-            DdeGetData( data, ptr, len, 0 );
+            DdeGetData( data, (LPBYTE)ptr, len, 0 );
             VarAddStr( tmp1, ptr,  vl );
             MemFree( ptr );
             DdeFreeDataHandle( data );
@@ -312,9 +312,9 @@ bool RunDDECommand( int token, char *str, char *tmp1, long *result, vlist *vl )
             rc = ERR_INVALID_DDE;
             break;
         }
-        data = DdeCreateDataHandle( DDEInstId, tmp1, strlen( tmp1 )+1,
+        data = DdeCreateDataHandle( DDEInstId, (LPBYTE)tmp1, strlen( tmp1 )+1,
                             0L, hdl, ClipboardFormat, 0 );
-        if( data == NULL ) {
+        if( data == (HDDEDATA)NULL ) {
             rc = ERR_DDE_FAIL;
         } else {
             DdeClientTransaction( (LPBYTE) data, -1, hconv, hdl,

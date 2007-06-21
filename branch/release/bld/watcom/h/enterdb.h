@@ -102,7 +102,7 @@ _WCRTDATA extern char volatile DEBUG_PRESENT_NAME;
 _WCRTDATA extern char volatile DEBUG_BREAK_ON_THROW_NAME;
 _WCRTDATA extern char volatile DEBUG_BREAK_ON_CATCH_NAME;
 
-#if defined( __WATCOMC__ )  &&  (defined(__386__) || defined(M_I86))
+#if defined( __WATCOMC__ ) && defined( _M_IX86 )
 
     extern void EnterDebugger( void );
     #pragma aux EnterDebugger = "int 3"
@@ -134,7 +134,7 @@ _WCRTDATA extern char volatile DEBUG_BREAK_ON_CATCH_NAME;
     #define EnterDebuggerWithMessage( s )       EnterDebugger()
     #endif
 
-#elif defined(__PPC__) || defined( UNIX ) || defined( MAC )
+#elif defined(__PPC__) || !defined( __WATCOMC__ ) || defined( MAC )
     /*
         This should be replaced when we have in-line assembly support
         in the compiler.

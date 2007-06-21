@@ -124,10 +124,8 @@ static virt_mem         CVBase;
 static unsigned         TempIndex;
 static cvlineinfo       LineInfo;
 
-static bool     CVStoreLines( segdata *, mod_entry * );
-static void     GenSrcModHeader( void );
 
-extern void CVInit( void )
+void CVInit( void )
 /************************/
 // called just after command file parsing
 {
@@ -136,7 +134,7 @@ extern void CVInit( void )
     TempIndex = 0;
 }
 
-extern void CVInitModule( mod_entry *obj )
+void CVInitModule( mod_entry *obj )
 /****************************************/
 // called before pass 1 is done on the module
 {
@@ -210,21 +208,19 @@ static void GenSubSection( sst sect, unsigned_32 size )
     }
 }
 
-extern void CVP1ModuleScanned( void )
+void CVP1ModuleScanned( void )
 /***********************************/
 {
 }
 
-static void CVAddLines( segdata * seg, void *line, unsigned size, bool is32bit )
-/******************************************************************************/
+static void CVAddLines( lineinfo *info )
+/**************************************/
 // called during pass 1 linnum processing
 {
-    seg = seg;
-    line = line;
-    CurrMod->d.cv->numlines += CalcLineQty( size, is32bit );
+    CurrMod->d.cv->numlines += DBICalcLineQty( info );
 }
 
-extern void CVP1ModuleFinished( mod_entry *obj )
+void CVP1ModuleFinished( mod_entry *obj )
 /**********************************************/
 // calculate size of the sstModule
 {
@@ -260,7 +256,7 @@ extern void CVP1ModuleFinished( mod_entry *obj )
     }
 }
 
-extern void CVAddModule( mod_entry *obj, section *sect )
+void CVAddModule( mod_entry *obj, section *sect )
 /******************************************************/
 // called just before publics have been assigned addresses between p1 & p2
 {
@@ -336,7 +332,52 @@ static void SortRelocs( void )
                 SwapRelocs, RelocCompare );
 }
 
-extern void CVGenModule( void )
+static void GenSrcModHeader( void )
+/*********************************/
+// emit header for line number information now that we know where everything
+// is.
+{
+    cheesy_module_header        mod_hdr;
+    cheesy_file_table           file_tbl;
+    cheesy_mapping_table        map_tbl;
+    unsigned                    adjust;
+    unsigned_32                 buff;
+
+    if( LineInfo.linestart == 0 )
+        return;
+    memset( &mod_hdr, 0, sizeof( mod_hdr ) );
+    mod_hdr.cFile = 1;
+    mod_hdr.cSeg = 1;
+    mod_hdr.range[0] = LineInfo.range;
+    mod_hdr.baseSrcFile[0] = sizeof( mod_hdr );
+    mod_hdr.seg[0] = LineInfo.seg;
+    mod_hdr.pad = 0;
+    PutInfo( LineInfo.linestart, &mod_hdr, sizeof( mod_hdr ) );
+    LineInfo.linestart += sizeof( mod_hdr );
+    file_tbl.cSeg = 1;
+    file_tbl.pad = 0;
+    file_tbl.range[0] = LineInfo.range;
+    file_tbl.name[0] = strlen( CurrMod->name );
+    file_tbl.baseSrcLn[0] = sizeof( mod_hdr ) +
+                    ROUND_UP( sizeof( file_tbl ) + file_tbl.name[0], 4 );
+    PutInfo( LineInfo.linestart, &file_tbl, sizeof( file_tbl ) );
+    LineInfo.linestart += sizeof( file_tbl );
+    PutInfo( LineInfo.linestart, CurrMod->name, file_tbl.name[0] );
+    LineInfo.linestart += file_tbl.name[0];
+    adjust = file_tbl.baseSrcLn[0] - sizeof( mod_hdr ) - sizeof( file_tbl )
+                - file_tbl.name[0];
+    if( adjust != 0 ) {
+        buff = 0;
+        PutInfo( LineInfo.linestart, &buff, adjust );
+        LineInfo.linestart += adjust;
+    }
+    map_tbl.Seg = mod_hdr.seg[0];
+    map_tbl.cPair = CurrMod->d.cv->numlines;
+    PutInfo( LineInfo.linestart, &map_tbl, sizeof( map_tbl ) );
+    memset( &LineInfo, 0, sizeof( LineInfo ) );
+}
+
+void CVGenModule( void )
 /*****************************/
 // generate an sstSrcModule
 {
@@ -346,7 +387,7 @@ extern void CVGenModule( void )
     GenSrcModHeader();
 }
 
-extern void CVAddLocal( unsigned_16 info, offset length )
+void CVAddLocal( unsigned_16 info, offset length )
 /*******************************************************/
 // called during pass 1 final segment processing.
 {
@@ -358,7 +399,7 @@ extern void CVAddLocal( unsigned_16 info, offset length )
     }
 }
 
-extern void CVAddGlobal( symbol *sym )
+void CVAddGlobal( symbol *sym )
 /************************************/
 // called during pass 1 symbol definition
 {
@@ -378,7 +419,7 @@ extern void CVAddGlobal( symbol *sym )
     }
 }
 
-extern void CVGenGlobal( symbol * sym, section *sect )
+void CVGenGlobal( symbol * sym, section *sect )
 /****************************************************/
 // called during symbol address calculation (between pass 1 & pass 2)
 // also called by loadpe between passes
@@ -426,53 +467,8 @@ extern void CVGenGlobal( symbol * sym, section *sect )
     }
 }
 
-static void GenSrcModHeader( void )
-/*********************************/
-// emit header for line number information now that we know where everything
-// is.
-{
-    cheesy_module_header        mod_hdr;
-    cheesy_file_table           file_tbl;
-    cheesy_mapping_table        map_tbl;
-    unsigned                    adjust;
-    unsigned_32                 buff;
-
-    if( LineInfo.linestart == 0 )
-        return;
-    memset( &mod_hdr, 0, sizeof( mod_hdr ) );
-    mod_hdr.cFile = 1;
-    mod_hdr.cSeg = 1;
-    mod_hdr.range[0] = LineInfo.range;
-    mod_hdr.baseSrcFile[0] = sizeof( mod_hdr );
-    mod_hdr.seg[0] = LineInfo.seg;
-    mod_hdr.pad = 0;
-    PutInfo( LineInfo.linestart, &mod_hdr, sizeof( mod_hdr ) );
-    LineInfo.linestart += sizeof( mod_hdr );
-    file_tbl.cSeg = 1;
-    file_tbl.pad = 0;
-    file_tbl.range[0] = LineInfo.range;
-    file_tbl.name[0] = strlen( CurrMod->name );
-    file_tbl.baseSrcLn[0] = sizeof( mod_hdr ) +
-                    ROUND_UP( sizeof( file_tbl ) + file_tbl.name[0], 4 );
-    PutInfo( LineInfo.linestart, &file_tbl, sizeof( file_tbl ) );
-    LineInfo.linestart += sizeof( file_tbl );
-    PutInfo( LineInfo.linestart, CurrMod->name, file_tbl.name[0] );
-    LineInfo.linestart += file_tbl.name[0];
-    adjust = file_tbl.baseSrcLn[0] - sizeof( mod_hdr ) - sizeof( file_tbl )
-                - file_tbl.name[0];
-    if( adjust != 0 ) {
-        buff = 0;
-        PutInfo( LineInfo.linestart, &buff, adjust );
-        LineInfo.linestart += adjust;
-    }
-    map_tbl.Seg = mod_hdr.seg[0];
-    map_tbl.cPair = CurrMod->d.cv->numlines;
-    PutInfo( LineInfo.linestart, &map_tbl, sizeof( map_tbl ) );
-    memset( &LineInfo, 0, sizeof( LineInfo ) );
-}
-
-extern void CVGenLines( segdata * seg, void *lines, unsigned size, bool is32bit )
-/*******************************************************************************/
+void CVGenLines( lineinfo *info )
+/*******************************/
 // called during pass 2 linnum processing
 {
     ln_off_pair UNALIGN *pair;
@@ -480,6 +476,11 @@ extern void CVGenLines( segdata * seg, void *lines, unsigned size, bool is32bit 
     unsigned_16         temp_num;
     offset              adjust;
     unsigned long       cvsize;
+    unsigned            size;
+    segdata             *seg;
+
+    seg = info->seg;
+    size = info->size & ~LINE_IS_32BIT;
 
     if( !( CurrMod->modinfo & DBI_LINE ) )
         return;
@@ -506,8 +507,8 @@ extern void CVGenLines( segdata * seg, void *lines, unsigned size, bool is32bit 
             LineInfo.range.end = adjust + seg->length;
         }
     }
-    pair = lines;
-    if( is32bit ) {
+    pair = (ln_off_pair *)info->data;
+    if( info->size & LINE_IS_32BIT ) {
         while( size > 0 ) {
             pair->_386.off += adjust;
             if( pair->_386.off < LineInfo.prevaddr ) {
@@ -562,7 +563,7 @@ static void CVAddAddrAdd( segdata *sdata, offset delta, offset size,
     SectAddrs[CVSECT_MODULE] += sizeof( cv_seginfo );
 }
 
-extern void CVAddAddrInfo( seg_leader *seg )
+void CVAddAddrInfo( seg_leader *seg )
 /******************************************/
 {
     if( !( seg->info & SEG_CODE ) )
@@ -592,7 +593,7 @@ static void CVGenAddrAdd( segdata *sdata, offset delta, offset size,
     info->offset = sdata->u.leader->seg_addr.off + delta;
 }
 
-extern void CVGenAddrInfo( seg_leader *seg )
+void CVGenAddrInfo( seg_leader *seg )
 /******************************************/
 {
     cv_seginfo          info;
@@ -602,7 +603,7 @@ extern void CVGenAddrInfo( seg_leader *seg )
     DBIAddrInfoScan( seg, CVGenAddrInit, CVGenAddrAdd, &info );
 }
 
-extern void CVDefClass( class_entry *class, unsigned_32 size )
+void CVDefClass( class_entry *class, unsigned_32 size )
 /************************************************************/
 {
     group_entry *group;
@@ -648,7 +649,7 @@ static bool DefLeader( void *_leader, void *group )
     return( FALSE );
 }
 
-extern void CVAddrStart( void )
+void CVAddrStart( void )
 /*****************************/
 {
     cv_subsection_directory dir;
@@ -693,7 +694,7 @@ extern void CVAddrStart( void )
     }
 }
 
-extern void CVFini( section *sect )
+void CVFini( section *sect )
 /*********************************/
 // called after pass 2 is finished, but before load file generation
 {
@@ -738,7 +739,7 @@ extern void CVFini( section *sect )
     }
 }
 
-extern void CVWriteDBI( void )
+void CVWrite( void )
 /****************************/
 // called during load file generation.  It is assumed that the loadfile is
 // positioned to the right spot.

@@ -218,6 +218,13 @@ typedef struct arcdata {
 
 #define DIST_ONLY_SIZE (2*sizeof(unsigned_16)+sizeof(dist_arc))
 
+typedef struct name_list {
+    struct name_list *  next;
+    unsigned            len;
+    unsigned_32         num;
+    char *              name;           // NYI: make this vbl length again.
+} name_list;
+
 typedef struct odbimodinfo      ODBIMODINFO;    // defd in dbg information hdrs
 typedef struct dwarfmodinfo     DWARFMODINFO;
 typedef struct cvmodinfo        CVMODINFO;
@@ -304,6 +311,7 @@ typedef struct group_entry {
     union {
         unsigned        qnxflags;       // QNX
         unsigned        miscflags;      // OS/2
+        segment         dos_segment;    // DOS/16M: DOS segment value
     } u;
     unsigned            num;
     unsigned            isfree : 1;
@@ -425,14 +433,14 @@ typedef struct segdata {
     } u;
     union {
         void *      refs;       // P1dce: list of other seg's this references
-        unsigned_16 frame;      // the frame of an absolute segment.
         signed_32   delta;      // P2: for calc'ing segment & symbol addrs
     } a;
     union {
-        mod_entry *     mod;      // P2CV&DW: pointer to defining module.
-        char *          clname;   // INC: class name for segment
+        mod_entry *     mod;    // P2CV&DW: pointer to defining module.
+        char *          clname; // INC: class name for segment
     } o;
     unsigned_32     addrinfo;   // P2VIDEO: offset into addrinfo of seg.
+    unsigned_16     frame;      // the frame of an absolute segment.
     unsigned        align       : 5;
     unsigned        select      : 3; // comdat: selection type
 
@@ -462,13 +470,6 @@ typedef struct node {
     void *      next;
     void *      entry;
 } node;
-
-typedef struct name_list {
-    struct name_list *  next;
-    unsigned            len;
-    unsigned_32         num;
-    char *              name;           // NYI: make this vbl length again.
-} name_list;
 
 typedef struct dll_sym_info {
     union {
@@ -513,9 +514,9 @@ typedef struct grpnode {
 } grpnode;
 
 typedef struct segnode {
-    SEGDATA *   entry;
-    void *      handle;   // ORL: handle for the segment.
-    char *      contents; // ORL: pointer to contents of segment.
+    SEGDATA     *entry;
+    void        *handle;      // ORL: handle for the segment.
+    unsigned_8  *contents;    // ORL: pointer to contents of segment.
     unsigned    info;
 } segnode;
 
@@ -525,10 +526,10 @@ typedef struct list_of_names {
 } list_of_names;
 
 typedef struct lobject_data {
-    segdata *           seg;
+    segdata             *seg;
     offset              obj_offset;     // pass 1: delta for fixup offsets
     targ_addr           addr;
-    char *              data;
+    unsigned_8          *data;
 } lobject_data;
 
 typedef struct {

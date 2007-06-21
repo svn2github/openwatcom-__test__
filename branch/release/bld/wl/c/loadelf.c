@@ -73,6 +73,7 @@ String table for sections
 #include "msg.h"
 #include "virtmem.h"
 #include "fileio.h"
+#include "dbgcomm.h"
 #include "dbgall.h"
 #include "dbgdwarf.h"
 #include "objcalc.h"
@@ -188,7 +189,7 @@ static void SetHeaders( ElfHdr *hdr )
     SeekLoad( hdr->curr_off );
 }
 
-extern unsigned GetElfHeaderSize( void )
+unsigned GetElfHeaderSize( void )
 /**************************************/
 {
     unsigned    size;
@@ -197,7 +198,7 @@ extern unsigned GetElfHeaderSize( void )
     return ROUND_UP( size, 0x100 );
 }
 
-extern void AddSecName( ElfHdr *hdr, Elf32_Shdr *sh, char *name )
+void AddSecName( ElfHdr *hdr, Elf32_Shdr *sh, char *name )
 /***************************************************************/
 {
     sh->sh_name = GetStringTableSize( &hdr->secstrtab );
@@ -351,7 +352,7 @@ static void WriteRelocsSections( ElfHdr *hdr )
     }
 }
 
-extern void FiniELFLoadFile( void )
+void FiniELFLoadFile( void )
 /*********************************/
 {
     ElfHdr      hdr;
@@ -367,7 +368,7 @@ extern void FiniELFLoadFile( void )
     WriteELFGroups( &hdr ); // Write out all groups
     WriteRelocsSections( &hdr );        // Relocations
     if( INJECT_DEBUG ) {                // Debug info
-        hdr.curr_off = DwarfElfWriteDBI( hdr.curr_off, &hdr.secstrtab,
+        hdr.curr_off = DwarfWriteElf( hdr.curr_off, &hdr.secstrtab,
                                 hdr.sh+hdr.i.dbgbegin );
     }
     if( ElfSymTab != NULL ) {           // Symbol tables
@@ -383,7 +384,7 @@ extern void FiniELFLoadFile( void )
     WriteLoad( hdr.sh, hdr.sh_size );
     hdr.curr_off += hdr.sh_size;
     if( !INJECT_DEBUG ) {
-        WriteDBI();
+        DBIWrite();
     }
     SeekLoad( 0 );
     WriteLoad( &hdr.eh, sizeof(Elf32_Ehdr) );
@@ -395,7 +396,7 @@ extern void FiniELFLoadFile( void )
     SeekLoad( hdr.curr_off );
 }
 
-extern void ChkElfData( void )
+void ChkElfData( void )
 /****************************/
 {
     group_entry *group;
@@ -429,7 +430,7 @@ extern void ChkElfData( void )
 
 }
 
-extern int FindElfSymIdx( symbol *sym )
+int FindElfSymIdx( symbol *sym )
 /*************************************/
 {
     return FindSymIdxElfSymTable( ElfSymTab, sym );

@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#if defined(M_I86) || defined(M_I386)
+#if defined( _M_IX86 ) && defined (__WATCOMC__)
 #include <i86.h>
 #endif
 #include "vi.h"
@@ -106,7 +106,7 @@ void WinGetFullPath( char *filename, char *full ){
     handle  = GlobalDosAlloc( FILENAME_MAX * 2 );
 
     // if( (handle == 8) || (handle == 7) ){
-    if( handle == NULL ){
+    if( handle ) {
         // corrupt or insufficient memory
         full = NULL;
         return;

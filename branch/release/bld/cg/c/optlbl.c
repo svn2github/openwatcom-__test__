@@ -114,7 +114,7 @@ extern  void    ChgLblRef( ins_entry *instr, code_lbl *new ) {
         for(;;) {
             curr = *owner;
             if( curr == instr ) break;
-            owner = &_LblRef( curr );
+            owner = (ins_entry **)&_LblRef( curr );
         }
         *owner = _LblRef( curr );
         _LblRef( curr ) = new->refs;
@@ -181,7 +181,7 @@ extern  ins_entry       *AliasLabels( ins_entry *oldlbl, ins_entry *newlbl ) {
             old_jmp = *owner;
             if( old_jmp == NULL ) break;
             _Label( old_jmp ) = new;
-            owner = &_LblRef( old_jmp );
+            owner = (ins_entry **)&_LblRef( old_jmp );
         }
         *owner = new->refs;
         new->refs = old->refs;
@@ -246,7 +246,7 @@ static  void    ScrapCodeLabel( code_lbl *lbl ) {
     *owner = lbl->lbl.link;
     redir = lbl->redirect;
     code = _TstStatus( lbl, CODELABEL );
-    _Free( lbl, sizeof( code_lbl ) );
+    CGFree( lbl );
     if( !code ) optreturnvoid;
     if( redir == NULL ) optreturnvoid;
     _ClrStatus( redir, REDIRECTION );

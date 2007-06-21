@@ -44,14 +44,14 @@ typedef int     direct_idx;     // directive index, such as segment index,
    Note that there is code that is dependent on the ordering
    of these model types. */
 typedef enum {
-    MOD_NONE,
-    MOD_TINY,
-    MOD_SMALL,
-    MOD_COMPACT,
-    MOD_FLAT,
-    MOD_MEDIUM,
-    MOD_LARGE,
-    MOD_HUGE,
+    MOD_NONE    = 0,
+    MOD_TINY    = 1,
+    MOD_SMALL   = 2,
+    MOD_COMPACT = 3,
+    MOD_MEDIUM  = 4,
+    MOD_LARGE   = 5,
+    MOD_HUGE    = 6,
+    MOD_FLAT    = 7,
 } mod_type;             // Memory model type
 
 typedef enum {
@@ -66,17 +66,6 @@ typedef enum {
     VIS_PUBLIC,
     VIS_EXPORT,
 } vis_type;             // Type of visibility for procedure
-
-typedef enum {
-    LANG_NONE,
-    LANG_BASIC,
-    LANG_FORTRAN,
-    LANG_PASCAL,
-    LANG_C,
-    LANG_WATCOM_C,
-    LANG_STDCALL,
-    LANG_SYSCALL
-} lang_type;            // Type of language specified in procedure defn
 
 typedef enum {
     OPSYS_DOS,
@@ -171,7 +160,7 @@ typedef struct {
 } comm_info;
 
 typedef struct {
-//    char              *string;        // string assigned to the symbol
+    unsigned            predef:1;       // whether it is predefined symbol
     unsigned            redefine:1;     // whether it is redefinable or not
     unsigned            expand_early:1; // if TRUE expand before parsing
     int                 count;          // number of tokens
@@ -197,8 +186,6 @@ typedef struct label_list {
 
 typedef struct {
     regs_list           *regslist;      // list of registers to be saved
-    vis_type            visibility;     // PUBLIC, PRIVATE or EXPORT
-    lang_type           langtype;       // language type
     label_list          *paralist;      // list of parameters
     label_list          *locallist;     // list of local variables
     int                 parasize;       // total no. of bytes used by parameters
@@ -206,6 +193,7 @@ typedef struct {
     memtype             mem_type;       // distance of procedure: near or far
     unsigned            is_vararg:1;    // if it has a vararg
     unsigned            pe_type:1;      // prolog/epilog code type 0:8086/186 1:286 and above
+    unsigned            export:1;       // EXPORT procedure
 } proc_info;
 
 typedef struct parm_list {
@@ -298,7 +286,6 @@ typedef struct {
     lang_type           langtype;        // language;
     os_type             ostype;          // operating system;
     unsigned            use32:1;         // If 32-bit segment is used
-    unsigned            init:1;
     unsigned            cmdline:1;
     unsigned            defUse32:1;      // default segment size 32-bit
     unsigned            mseg:1;          // mixed segments (16/32-bit)
@@ -323,7 +310,7 @@ enum assume_reg {
 
 extern module_info      ModuleInfo;
 
-#define IS_PROC_FAR()   ( ModuleInfo.model > MOD_FLAT )
+#define IS_PROC_FAR()   ( ModuleInfo.model == MOD_MEDIUM || ModuleInfo.model == MOD_LARGE || ModuleInfo.model == MOD_HUGE )
 
 extern seg_list         *CurrSeg;       // points to stack of opened segments
 
@@ -412,8 +399,8 @@ extern int              Comment( int, int ); /* handle COMMENT directives */
 
 extern int              AddAlias( int );
 extern void             FreeInfo( dir_node * );
-extern void             push( void **stack, void *elt );
-extern void             *pop( void **stack );
+extern void             push( void *stack, void *elt );
+extern void             *pop( void *stack );
 extern uint_32          GetCurrSegAlign( void );
 extern void             wipe_space( char *token );
 extern int              SetUse32Def( bool );

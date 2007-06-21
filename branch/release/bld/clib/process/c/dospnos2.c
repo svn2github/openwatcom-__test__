@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  OS/2 version of the spawn() worker routine.
 *
 ****************************************************************************/
 
@@ -43,7 +42,7 @@
 #define INCL_DOSSESMGR
 #define INCL_DOSQUEUES
 #define INCL_DOSMEMMGR
-#if defined( M_I86 )
+#if defined( _M_I86 )
  #define INCL_DOSINFOSEG
  #include "liballoc.h"
 #endif
@@ -148,7 +147,7 @@ int _dospawn( int mode, char *pgm, char *cmdline, char *envp, const char * const
             rc = DosExecPgm( NULL, 0, exec_flag,
                              cmdline, envp, &returncodes, pgm );
         } else {
-            termq = NULL;
+            termq = NULLHANDLE;
             related = SSF_RELATED_INDEPENDENT;
             makeqname( queuename, ppib->pib_ulpid, ptib->tib_ordinal );
             if( mode == P_WAIT ) {
@@ -185,7 +184,7 @@ int _dospawn( int mode, char *pgm, char *cmdline, char *envp, const char * const
                 rc = 0;
                 if( mode == P_WAIT ) {
                     DosReadQueue( termq, &request_data, &data_len,
-                                  &data_address, 0, DCWW_WAIT,
+                                  (PPVOID)&data_address, 0, DCWW_WAIT,
                                   &element_priority, 0 );
                     returncodes.codeResult = data_address[1];
                     DosFreeMem( data_address );
@@ -196,7 +195,7 @@ int _dospawn( int mode, char *pgm, char *cmdline, char *envp, const char * const
             }
         }
     }
-#elif defined( M_I86 )
+#elif defined( _M_I86 )
     {
         USHORT          app_type;
         SEL             sglobal;
@@ -270,7 +269,7 @@ int _dospawn( int mode, char *pgm, char *cmdline, char *envp, const char * const
                 #endif
             }
         } else {
-            termq = NULL;
+            termq = 0;
             related = 0; //SSF_RELATED_INDEPENDENT;
             makeqname( queuename, local->pidCurrent, local->tidCurrent );
             if( mode == P_WAIT ) {

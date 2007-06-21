@@ -372,7 +372,7 @@ unsigned_32 GetVariable( void )
             value           [dl] \
             modify          [ax dl];
         #define SPECIAL_CHKSUM
-    #elif defined( M_I86 )
+    #elif defined( _M_I86 )
         extern byte docksum( byte far *buf, unsigned_16 len );
         #pragma aux docksum = \
             0x1e            /* push ds */ \
@@ -461,7 +461,7 @@ char *GetLname( unsigned_16 idx ) {
             return( "" ); /* not found */
         }
     }
-    name = &(entry->Lname);
+    name = (char *)&(entry->Lname);
     return( name );
 }
 
@@ -563,7 +563,7 @@ char *GetXname( unsigned_16 idx ) {
             return( "" ); /* not found */
         }
     }
-    name = &(entry->Lname);
+    name = (char *)&(entry->Lname);
     return( name );
 }
 
@@ -763,6 +763,7 @@ void ProcFile( FILE *fp, bool is_intel )
     unsigned_32 total_padding;
     int         raw_dump;
     int         i;
+    int         first;
 
     IsPharLap = FALSE;
     IsMS386 = FALSE;
@@ -776,6 +777,7 @@ void ProcFile( FILE *fp, bool is_intel )
     Xnames = NULL;
     Segdefs = NULL;
     Grpdefs = NULL;
+    first = 1;
     for(;;) {
         raw_dump = DumpRaw;
         offset = ftell( fp );
@@ -816,7 +818,8 @@ void ProcFile( FILE *fp, bool is_intel )
                 ProcEndRec();
                 break;
             case CMD_THEADR:
-                ProcTHeadr();
+                ProcTHeadr( first );
+                first = 0;
                 break;
             case CMD_LHEADR:
                 ProcLHeadr();
@@ -834,6 +837,7 @@ void ProcFile( FILE *fp, bool is_intel )
                         fseek( fp, offset, SEEK_CUR );
                     }
                 }
+                first = 1;
                 break;
             case CMD_STATIC_EXTDEF:
                 /* fall through */

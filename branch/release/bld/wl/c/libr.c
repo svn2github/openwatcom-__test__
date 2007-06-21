@@ -24,16 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Search library files.
 *
 ****************************************************************************/
 
-
-/*
- *  LIB      : search library file.
- *
- */
 
 #include <stdlib.h>
 #include <string.h>
@@ -73,11 +67,11 @@ typedef union dict_entry {
 
 static  bool            OMFSearchExtLib( file_list *, char *, unsigned long * );
 static  bool            ARSearchExtLib( file_list *, char *, unsigned long * );
-static  unsigned_16     OMFCompName( char *, char *, unsigned_16 );
+static  unsigned_16     OMFCompName( const char *, const unsigned_8 *, unsigned_16 );
 static  void **         AllocDict( unsigned_16, unsigned_16 );
 static  void            SetDict( file_list *, unsigned_16 );
 
-#if (defined( __386__ ) || defined(M_I86)) && defined(__WATCOMC__)
+#if defined( _M_IX86 ) && defined(__WATCOMC__)
 #if defined( __386__ )
 #define DATA16   0x66
 #else
@@ -118,7 +112,7 @@ static void BadLibrary( file_list *list )
     LnkMsg( ERR+MSG_LIB_FILE_ATTR, NULL );
 }
 
-static unsigned_32 ReadBigEndian32( unsigned char *buf )
+static unsigned_32 ReadBigEndian32( unsigned_8 *buf )
 {
     unsigned_32 res = 0;
 
@@ -182,11 +176,11 @@ static bool ReadARDict( file_list *list, unsigned long *loc, unsigned *numdicts,
             dict = &list->u.dict->a;
             data = CachePermRead( list, *loc, size );
             if ( *numdicts == 1 ) {
-                num = ReadBigEndian32( data ); /* number of symbols */
+                num = ReadBigEndian32( (unsigned_8 *)data ); /* number of symbols */
                 data += sizeof(unsigned_32);
                 dict->filepostab = (unsigned_32 *) data;
                 for( index = 0; index < num; index++ ) {
-                    dict->filepostab[index] = ReadBigEndian32(data);
+                    dict->filepostab[index] = ReadBigEndian32( (unsigned_8 *)data );
                     data += sizeof(unsigned_32);
                 }
                 dict->num_entries = num;
@@ -242,7 +236,7 @@ static int ARComp( const void *index1, const void *index2 )
                    ARDict->fnametab[ *(unsigned_16 *)index2 ] );
 }
 
-extern int CheckLibraryType( file_list *list, unsigned long *loc, bool makedict)
+int CheckLibraryType( file_list *list, unsigned long *loc, bool makedict)
 /******************************************************************************/
 {
     lib_header *        omf_hdr;
@@ -363,7 +357,7 @@ extern int CheckLibraryType( file_list *list, unsigned long *loc, bool makedict)
     return reclength;
 }
 
-extern mod_entry * SearchLib( file_list *lib, char *name )
+mod_entry * SearchLib( file_list *lib, char *name )
 /********************************************************/
 /* Search the specified library file for the specified name & make a module */
 {
@@ -410,8 +404,8 @@ static void HashSymbol( hash_entry *hash, char *name )
     unsigned_16     minor_inc;
     unsigned_16     count;
     unsigned_16     curr;
-    unsigned char * leftptr;
-    unsigned char * rightptr;
+    char            *leftptr;
+    char            *rightptr;
 
     count = strlen( name );
     leftptr = name;
@@ -454,7 +448,7 @@ static bool OMFSearchExtLib( file_list *lib, char *name, unsigned long *off )
     unsigned_16     minor_count;
     unsigned_16     sector;
     hash_entry      hash;
-    omf_dict_entry *dict;
+    omf_dict_entry  *dict;
 
     dict = &lib->u.dict->o;
     major_count = dict->pages;
@@ -525,14 +519,14 @@ static void SetDict( file_list *lib, unsigned_16 dict_page )
         off = dict_page;
         off *= DIC_REC_SIZE;
         dictoff = dict->start + off;
-        dict->buffer = TokBuff;
+        dict->buffer = (byte *)TokBuff;
         QSeek( lib->file->handle, dictoff, lib->file->name );
         QRead( lib->file->handle, dict->buffer, DIC_REC_SIZE, lib->file->name );
         lib->file->currpos = dictoff + DIC_REC_SIZE;
     } else {
         bucket = dict_page / PAGES_IN_CACHE;
         residue = dict_page - bucket * PAGES_IN_CACHE;
-        dict->buffer = (char *)dict->cache[ bucket ] + residue * DIC_REC_SIZE;
+        dict->buffer = (unsigned_8 *)dict->cache[ bucket ] + residue * DIC_REC_SIZE;
     }
 }
 
@@ -576,7 +570,7 @@ static void ** AllocDict( unsigned_16 num_buckets, unsigned_16 residue )
 }
 
 
-extern bool DiscardDicts( void )
+bool DiscardDicts( void )
 /******************************/
 /* called when dictionaries forced out of dict memory */
 {
@@ -597,7 +591,7 @@ extern bool DiscardDicts( void )
 }
 
 
-extern void BurnLibs( void )
+void BurnLibs( void )
 /**************************/
 /* let dict memory know it's no longer needed */
 {
@@ -625,7 +619,8 @@ extern void BurnLibs( void )
     }
 }
 
-static unsigned_16 OMFCompName( char *name, char *buff, unsigned_16 index )
+static unsigned_16 OMFCompName( const char *name,
+                                const unsigned_8 *buff, unsigned_16 index )
 /*************************************************************************/
 /* Compare name. */
 {
@@ -694,7 +689,7 @@ static bool ARSearchExtLib( file_list *lib, char *name, unsigned long *off )
     return FALSE;
 }
 
-extern char *GetARName( ar_header *header, file_list *list )
+char *GetARName( ar_header *header, file_list *list )
 /**********************************************************/
 {
     char *              buf;
@@ -723,7 +718,7 @@ extern char *GetARName( ar_header *header, file_list *list )
     return( name );
 }
 
-extern unsigned long GetARValue( char *str, int max )
+unsigned long GetARValue( char *str, int max )
 /***************************************************/
 // get a numeric value from an ar_header
 {

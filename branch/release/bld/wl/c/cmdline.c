@@ -24,7 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  Command Line Parser
+* Description:  Command line parser.
 *
 ****************************************************************************/
 
@@ -41,6 +41,7 @@
 #include "cmdall.h"
 #include "cmdos2.h"
 #include "cmdqnx.h"
+#include "cmd16m.h"
 #include "cmdnov.h"
 #include "cmdelf.h"
 #include "cmdphar.h"
@@ -59,7 +60,6 @@
 unsigned int            Debug;
 #endif
 
-extern void             GetExtraCommands( void );
 static void             Crash( bool );
 static void             Help( void );
 static void             DoCmdParse( void );
@@ -69,6 +69,7 @@ static bool             ProcDosHelp( void );
 static bool             ProcOS2Help( void );
 static bool             ProcPharHelp( void );
 static bool             ProcNovellHelp( void );
+static bool             Proc16MHelp( void );
 static bool             ProcQNXHelp( void );
 static bool             ProcELFHelp( void );
 static bool             ProcWindowsHelp( void );
@@ -89,6 +90,9 @@ static  parse_entry   FormatHelp[] = {
 #endif
 #ifdef _NOVELL
     "NOVell",       ProcNovellHelp,         MK_ALL,     0,
+#endif
+#ifdef _DOS16M
+    "DOS16M",	    Proc16MHelp,	        MK_ALL,     0,
 #endif
 #ifdef _QNXLOAD
     "QNX",          ProcQNXHelp,            MK_ALL,     0,
@@ -111,13 +115,13 @@ static sysblock *       PrevCommand;
 
 #define INIT_FILE_NAME  "wlink.lnk"
 
-extern void InitCmdFile( void )
+void InitCmdFile( void )
 /******************************/
 {
     PrevCommand = NULL;
 }
 
-extern void SetSegMask(void)
+void SetSegMask(void)
 /***************************/
 {
    FmtData.SegShift = 16 - FmtData.Hshift;
@@ -148,7 +152,7 @@ static void ResetCmdFile( void )
     DBIFlag = 0;        /*  default is only global information */
 }
 
-extern void DoCmdFile( char *fname )
+void DoCmdFile( char *fname )
 /**********************************/
 /* start parsing the command */
 {
@@ -274,7 +278,7 @@ extern void DoCmdFile( char *fname )
     DBIInit();
 }
 
-extern char * GetNextLink( void )
+char * GetNextLink( void )
 /*******************************/
 {
     char *      cmd;
@@ -305,7 +309,7 @@ static struct extra_cmd_info ExtraCmds[] = {
         0,              "\0",           FALSE
 };
 
-extern void GetExtraCommands( void )
+void GetExtraCommands( void )
 /**********************************/
 {
     struct extra_cmd_info const        *cmd;
@@ -325,7 +329,7 @@ extern void GetExtraCommands( void )
 
 }
 
-extern void Syntax( void )
+void Syntax( void )
 /************************/
 {
     if( Token.this == NULL ) {
@@ -425,6 +429,9 @@ static void DisplayOptions( void )
 #ifdef _NOVELL
     WriteHelp( MSG_NOVELL_HELP_0, MSG_NOVELL_HELP_31, isout );
 #endif
+#ifdef _DOS16M
+    WriteHelp( MSG_DOS16_HELP_0, MSG_DOS16_HELP_15, isout );
+#endif
 #if defined( _QNXLOAD ) && !defined( __QNX__ )
     WriteHelp( MSG_QNX_HELP_0, MSG_QNX_HELP_15, isout );
 #endif
@@ -493,6 +500,15 @@ static bool ProcNovellHelp( void )
     WriteGenHelp();
     WriteHelp( MSG_NOVELL_HELP_0, MSG_NOVELL_HELP_31,
                                                 CmdFlags & CF_TO_STDOUT );
+    return( TRUE );
+}
+#endif
+#ifdef _DOS16M
+static bool Proc16MHelp( void )
+/*****************************/
+{
+    WriteGenHelp();
+    WriteHelp( MSG_DOS16_HELP_0, MSG_DOS16_HELP_15, CmdFlags & CF_TO_STDOUT );
     return( TRUE );
 }
 #endif
@@ -567,7 +583,7 @@ static void WriteMsg( char msg_buffer[] )
     WriteNLStdOut();
 }
 
-extern void FreePaths( void )
+void FreePaths( void )
 /***************************/
 // Free paths & filenames.
 {
@@ -579,7 +595,7 @@ extern void FreePaths( void )
     }
 }
 
-extern void Burn( void )
+void Burn( void )
 /**********************/
 // necessary to split this out from Ignite() for the workframe options
 // processor.
@@ -601,7 +617,7 @@ extern void Burn( void )
     BurnUtils();
 }
 
-extern void Ignite( void )
+void Ignite( void )
 /************************/
 /* free local structures */
 {
@@ -609,7 +625,7 @@ extern void Ignite( void )
     Burn();
 }
 
-extern void SetFormat( void )
+void SetFormat( void )
 /***************************/
 // do final processing now that the executable format has been decided.
 {
@@ -653,6 +669,9 @@ struct select_format {
 
 static struct select_format PossibleFmt[] = {
     MK_DOS,         "LIBDOS",       NULL,           NULL,
+#ifdef _DOS16M
+    MK_DOS16M,	    "LIBDOS16M",    SetD16MFmt,     NULL,
+#endif
 #ifdef _QNXLOAD
     MK_QNX,         "LIBQNX",       SetQNXFmt,      FreeQNXFmt,
 #endif
@@ -676,7 +695,7 @@ static struct select_format PossibleFmt[] = {
     0 };
 
 
-extern void AddFmtLibPaths( void )
+void AddFmtLibPaths( void )
 /********************************/
 {
     struct select_format const *check;
@@ -701,7 +720,7 @@ static void InitFmt( void (*set)(void) )
     LinkState |= FMT_INITIALIZED;
 }
 
-extern bool HintFormat( exe_format hint )
+bool HintFormat( exe_format hint )
 /***************************************/
 {
     struct select_format const *check;
@@ -736,7 +755,7 @@ extern bool HintFormat( exe_format hint )
     return( TRUE );
 }
 
-extern void DecideFormat( void )
+void DecideFormat( void )
 /******************************/
 {
     exe_format  possible;
@@ -756,7 +775,7 @@ extern void DecideFormat( void )
     }
 }
 
-extern void FreeFormatStuff()
+void FreeFormatStuff()
 /***************************/
 {
     struct select_format const *check;
@@ -773,7 +792,7 @@ extern void FreeFormatStuff()
     if( check->free_func != NULL ) check->free_func();
 }
 
-extern void AddCommentLib( char *ptr, int len, unsigned char priority )
+void AddCommentLib( char *ptr, int len, unsigned char priority )
 /*********************************************************************/
 //  Add a library from a comment record.
 {
@@ -790,7 +809,7 @@ extern void AddCommentLib( char *ptr, int len, unsigned char priority )
 // we don't need these next two when under workframe
 #ifndef APP
 
-extern void AddLibPaths( char *name, int len, bool add_to_front )
+void AddLibPaths( char *name, int len, bool add_to_front )
 /***************************************************************/
 {
     path_entry         *newpath;
@@ -819,7 +838,7 @@ extern void AddLibPaths( char *name, int len, bool add_to_front )
     }
 }
 
-extern void AddEnvPaths( char *envname )
+void AddEnvPaths( char *envname )
 /**************************************/
 {
     char * const        val = GetEnvString( envname );
@@ -832,7 +851,7 @@ extern void AddEnvPaths( char *envname )
 
 #endif
 
-extern void ExecSystem( char *name )
+void ExecSystem( char *name )
 /**********************************/
 /* run a system block with the given name (only called once!)
  * (this is called after the parser has already been stopped */
@@ -880,21 +899,21 @@ static void CleanSystemList( bool check )
     }
 }
 
-extern void PruneSystemList( void )
+void PruneSystemList( void )
 /*********************************/
 /* delete all system blocks except for the "286" and "386" records */
 {
     CleanSystemList( TRUE );
 }
 
-extern void BurnSystemList( void )
+void BurnSystemList( void )
 /********************************/
 /* delete everything in the system list */
 {
     CleanSystemList( FALSE );
 }
 
-extern bool ProcImport( void )
+bool ProcImport( void )
 /****************************/
 {
 #if defined( _OS2) || defined( _ELF ) || defined( _NOVELL )
@@ -913,7 +932,7 @@ extern bool ProcImport( void )
 }
 
 #if defined(_OS2) || defined(_NOVELL)
-extern bool ProcExport( void )
+bool ProcExport( void )
 /****************************/
 {
 #ifdef _OS2
@@ -929,8 +948,8 @@ extern bool ProcExport( void )
 }
 #endif
 
-#if defined( _QNXLOAD ) || defined( _OS2 ) || defined( _ELF )
-extern bool ProcNoRelocs( void )
+#if defined( _DOS16M ) || defined( _QNXLOAD ) || defined( _OS2 ) || defined( _ELF )
+bool ProcNoRelocs( void )
 /******************************/
 {
 #if defined( _QNXLOAD )
@@ -943,6 +962,11 @@ extern bool ProcNoRelocs( void )
         return( ProcPENoRelocs() );
     }
 #endif
+#ifdef _DOS16M
+    if( HintFormat( MK_DOS16M ) ) {
+        return( Proc16MNoRelocs() );
+    }
+#endif
 #if defined( _ELF )
     if( HintFormat( MK_ELF ) ) {
         return( ProcELFNoRelocs() );
@@ -953,7 +977,7 @@ extern bool ProcNoRelocs( void )
 #endif
 
 #if defined(_OS2) || defined(_QNXLOAD)
-extern bool ProcSegment( void )
+bool ProcSegment( void )
 /*****************************/
 {
 #ifdef _OS2
@@ -970,7 +994,7 @@ extern bool ProcSegment( void )
 }
 #endif
 
-extern bool ProcAlignment( void )
+bool ProcAlignment( void )
 /*******************************/
 {
 #if defined( _OS2 ) || defined( _ELF )
@@ -983,7 +1007,7 @@ extern bool ProcAlignment( void )
     return( TRUE );
 }
 
-extern bool ProcHeapSize( void )
+bool ProcHeapSize( void )
 /******************************/
 {
 #if defined( __QNX__ )
@@ -1006,7 +1030,7 @@ extern bool ProcHeapSize( void )
 
 #ifndef APP
 #if defined(_PHARLAP) || defined(_QNXLOAD) || defined(_OS2)
-extern bool ProcOffset( void )
+bool ProcOffset( void )
 /****************************/
 {
     if( !GetLong( &FmtData.base ) ) return( FALSE );
@@ -1021,7 +1045,7 @@ extern bool ProcOffset( void )
 #endif
 
 #ifdef _INT_DEBUG
-extern bool ProcXDbg( void )
+bool ProcXDbg( void )
 /**************************/
 /* process DEBUG command */
 {
@@ -1042,7 +1066,7 @@ extern bool ProcXDbg( void )
     }
 }
 
-extern bool ProcIntDbg( void )
+bool ProcIntDbg( void )
 /****************************/
 {
     LinkState |= INTERNAL_DEBUG;

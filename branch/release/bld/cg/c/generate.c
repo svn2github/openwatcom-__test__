@@ -30,18 +30,20 @@
 
 
 #include "standard.h"
+#include "cgdefs.h"
 #include "model.h"
 #include "coderep.h"
 #include "procdef.h"
 #include "conflict.h"
-#include "sysmacro.h"
 #include "memcheck.h"
 #include "opcodes.h"
 #include "typedef.h"
 #include "ptrint.h"
 #include "feprotos.h"
-
 #include "addrcnst.h"
+#include "addrname.h"
+#include "x87.h"
+
 
 extern  void            FreeAName( name * );
 extern  instruction*    MakeNop( void );
@@ -92,7 +94,6 @@ extern  void            MakeConflicts( void );
 extern  void            MakeLiveInfo( void );
 extern  void            LiveInfoUpdate( void );
 extern  int             ExpandOps( bool );
-extern  void            FPRegAlloc( void );
 extern  void            FixIndex( void );
 extern  void            FixSegments( void );
 extern  void            FixMemRefs( void );
@@ -100,16 +101,12 @@ extern  bool            RegAlloc( bool );
 extern  void            LoopRegInvariant( void );
 extern  void            Score( void );
 extern  void            MergeIndex( void );
-extern  void            FPExpand( void );
-extern  void            FPOptimize( void );
-extern  void            FPParms( void );
 extern  void            ScoreInit( void );
 extern  void            ScoreFini( void );
 extern  type_class_def  TypeClass( type_def * );
 extern  void            TypeInit( void );
 extern  void            TypeFini( void );
 extern  void            ObjInit( void );
-extern  void            InitFP( void );
 extern  void            ObjFini( void );
 extern  void            AbortObj( void );
 extern  void            FlushOpt( void );
@@ -341,8 +338,8 @@ static  void            PostOptimize( void )
         // they're moving RISCified pair.
         LdStCompress();
         // Reuse registers freed by deriscifier
-        // Score();
-        // DeadInstructions(); // cleanup junk after Score()
+        Score();
+        DeadInstructions(); // cleanup junk after Score()
         if( !BlockByBlock ) LoopRegInvariant();
     #if !(_TARGET & _TARG_RISC)
         // Get rid of remaining unused conditions on register level.

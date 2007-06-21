@@ -34,14 +34,16 @@
 #include "mcache.h"
 #include "msysdep.h"
 #include "mautodep.h"
+
+#ifndef BOOTSTRAP
 #include "autodep.h"
+
+#include "wresset2.h"
 
 typedef struct res_info {
     DepInfo *first;
     DepInfo *curr;
 }           res_info;
-
-extern long FileShift;
 
 static res_info ResInfo;
 
@@ -116,3 +118,5 @@ const auto_dep_info RESAutoDepInfo = {
     RESFiniFile,
     NULL
 };
+
+#endif

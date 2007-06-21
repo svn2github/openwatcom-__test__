@@ -53,7 +53,7 @@
 #   include "mupdate.h"
 #   include "mvecstr.h"
 #   include "msysdep.h"
-#if defined( M_I86 ) || defined( M_I386 )
+#if defined( _M_IX86 )
 #   include "tinyio.h"
 #endif
 #else
@@ -96,14 +96,14 @@ const char FAR *BuiltIns = {
     "__QNX__=\n"
     "__UNIX__=\n"
 
-#elif defined( __LINUX__ )
+#elif defined( __LINUX__ ) || defined( __linux__ )
     "__LINUX__=\n"
     "__UNIX__=\n"
-    #if defined(__386__)
+    #if defined(__386__) || defined(__i386__)
         "__LINUX386__=\n"
-    #elif defined(__PPC__)
+    #elif defined(__PPC__) || defined(__ppc__) || defined(__powerpc__)
         "__LINUXPPC__=\n"
-    #elif defined(__MIPS__)
+    #elif defined(__MIPS__)  || defined(__mips__)
         "__LINUXMIPS__=\n"
     #else
         #error Unknown CPU architecture

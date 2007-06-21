@@ -99,14 +99,14 @@ static uint_8 *DecodeLEB128( const uint_8 *input, uint_32 *value )
     return( (uint_8 *)input );
 }
 //TODO: check stack bounds
-static void DoLocExpr( char             *p,
+static void DoLocExpr( unsigned_8       *p,
                        int              length,
                        int              addr_size,
                        dr_loc_callbck   *callbck,
                        void             *d,
                        dr_handle        var )
 {
-    char            *end;
+    unsigned_8      *end;
     dw_op           op;
     dw_locop_op     opr;
     uint_32         op1;
@@ -445,9 +445,9 @@ static dr_handle SearchLocList( uint_32 start, uint_32 context,
     dr_handle   p;
 
     p =  DWRCurrNode->sections[DR_DEBUG_LOC].base;
-    if( p == NULL ){
+    if( p == 0 ) {
         DWREXCEPT( DREXCEP_BAD_DBG_INFO );
-        return( NULL );
+        return( 0 );
     }
     p += start;
     for( ;; ) {
@@ -456,7 +456,7 @@ static dr_handle SearchLocList( uint_32 start, uint_32 context,
         high = ReadVWord( p, addr_size );
         p+= addr_size;
         if( low == high && low == 0 ) {
-            p = NULL;
+            p = 0;
             break;
         }
         if( low <= context && context < high ) break;
@@ -476,8 +476,8 @@ static int DWRLocExpr( dr_handle        var,
 {
     unsigned    form;
     uint_32     size;
-    char        loc_buff[256];
-    char        *expr;
+    uint_8      loc_buff[256];
+    uint_8      *expr;
     int         ret;
     dr_handle   loclist;
     uint_32     context;
@@ -514,7 +514,7 @@ static int DWRLocExpr( dr_handle        var,
             }
             loclist =  DWRVMReadDWord( info );
             info = SearchLocList( loclist, context, addr_size );
-            if( info == NULL ) {
+            if( info == 0 ) {
                 ret = FALSE;
                 goto exit;
             }
@@ -661,7 +661,7 @@ extern dr_handle DRStringLengthAT( dr_handle str )
     if( DWRScanForAttrib( &abbrev, &str, DW_AT_string_length ) != 0 ) {
          return( str );
     } else {
-         return( NULL );
+         return( 0 );
     }
 }
 
