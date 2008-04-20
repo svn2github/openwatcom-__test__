@@ -24,37 +24,18 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Declaration of include aliasing functions.
 *
 ****************************************************************************/
 
 
-#include "plusplus.h"
-#include "preproc.h"
+#ifndef _IALIAS_H
+#define _IALIAS_H
 
-static time_t timeOfDay;
-static const char * const Months[] = {
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-};
+extern void IAliasInit( void );
+extern void IAliasFini( void );
+extern const char *IAliasLookup( const char *filename, int delimiter );
+extern void IAliasAdd( const char *alias_name, const char *real_name, int delimiter );
 
+#endif
 
-void TimeInit( void )
-/*******************/
-{
-    struct tm *tod;
-
-    timeOfDay = time( NULL );
-    tod = localtime( &timeOfDay );
-    sprintf( __Time, "%.2d:%.2d:%.2d", tod->tm_hour, tod->tm_min,
-                                    tod->tm_sec );
-    sprintf( __Date, "%3s %2d %d", Months[ tod->tm_mon ],
-                            tod->tm_mday, tod->tm_year + 1900 );
-}
-
-time_t TimeOfCompilation( void )
-/******************************/
-{
-    return( timeOfDay );
-}

@@ -24,37 +24,19 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Compiler configuration for 16-bit x86 target.
 *
 ****************************************************************************/
 
 
-#include "plusplus.h"
-#include "preproc.h"
+/*  size of data types on target machine */
 
-static time_t timeOfDay;
-static const char * const Months[] = {
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-};
+#ifndef _TARGET_INCLUDED
+#define _TARGET_INCLUDED
+#include "target16.h"
+#include "targdef.h"
 
+// target
+#define _CPU            8086
 
-void TimeInit( void )
-/*******************/
-{
-    struct tm *tod;
-
-    timeOfDay = time( NULL );
-    tod = localtime( &timeOfDay );
-    sprintf( __Time, "%.2d:%.2d:%.2d", tod->tm_hour, tod->tm_min,
-                                    tod->tm_sec );
-    sprintf( __Date, "%3s %2d %d", Months[ tod->tm_mon ],
-                            tod->tm_mday, tod->tm_year + 1900 );
-}
-
-time_t TimeOfCompilation( void )
-/******************************/
-{
-    return( timeOfDay );
-}
+#endif
