@@ -141,13 +141,13 @@ _WCRTDATA extern const char _WCDATA _IsTable[257];
 :endsegment
 #endif
 
+#define iscsym        __iscsym
+#define iscsymf       __iscsymf
+
 :segment CNAME
 :include cplusepi.sp
-:endsegment
-
-:: This #endif closes the #ifdef __cplusplus in ctype.h
-:segment !CNAME
-#endif
+:elsesegment
+#endif /* __cplusplus not defined */
 :endsegment
 
 #endif

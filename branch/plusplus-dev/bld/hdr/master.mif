@@ -4,6 +4,7 @@ proj_name=hdr
 
 splice = wsplice -i.. -k$(system) $(options) ../common.sp $[@ $^@
 psplice = wsplice -i.. -k$(system) $(options) $(options_$^&) ../common.sp $[@ $^@
+csplice = wsplice -i.. -k$(system) $(options) $(options_c_$^&) ../common.sp $[@ $^@
 
 .EXTENSIONS
 .EXTENSIONS : .h .hpp .cnv .mh .mhp
@@ -59,6 +60,7 @@ common_no_ext = &
         queue &
         random &
         set &
+        slist &
         sstream &
         stack &
         stdexcep &
@@ -80,6 +82,7 @@ common = &
         _comdef.h &
         _hash.h &
         _ialias.h &
+        _meta.h &
         _rbtree.h &
         _strdef.h &
         alloca.h &
@@ -96,6 +99,7 @@ common = &
         fcntl.h &
         fenv.h &
         float.h &
+        fnmatch.h &
         fstream.h &
         generic.h &
         graph.h &
@@ -196,7 +200,6 @@ QNX_files = &
         dir.h &
         dirent.h &
         form.h &
-        fnmatch.h &
         ftw.h &
         grp.h &
         libc.h &
@@ -315,7 +318,7 @@ all : $($(system)_files) .symbolic
         $(splice)
 
 .mh.h:
-        $(splice)
+        $(csplice)
 
 .mh.cnv:
         $(splice)
@@ -382,6 +385,23 @@ options_streambu = -kCNAME
 options_string   = -kCPPSTRING
 options_strstrea = -kCNAME
 options_typeinfo = -kCNAME
+
+#
+# Special case for included C++ cname style headers
+#   for optimize C++ declaration out of C part
+#
+options_c_ctype   = -kCONLY
+options_c_locale  = -kCONLY
+options_c_math    = -kCONLY
+options_c_signal  = -kCONLY
+options_c_stdarg  = -kCONLY
+options_c_stddef  = -kCONLY
+options_c_stdio   = -kCONLY
+options_c_stdlib  = -kCONLY
+options_c_string  = -kCONLY
+options_c_time    = -kCONLY
+options_c_wchar   = -kCONLY
+options_c_wctype  = -kCONLY
 
 clean: .SYMBOLIC
       rm -f *.h sys/*.h *.hpp common.cnv $(common_no_ext)

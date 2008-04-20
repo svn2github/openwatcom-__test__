@@ -63,11 +63,15 @@ using std::ptrdiff_t;
 :include saferepi.sp
 :endsegment
 
-#ifdef __cplusplus
+:segment CNAME
 #define offsetof(__typ,__id) __offsetof(__typ,__id)
-#else
-#define offsetof(__typ,__id) ((size_t)&(((__typ*)0)->__id))
-#endif
+:elsesegment
+:: Use subtraction so that the result before cast is of ptrdiff_t type;
+:: without this, we have a problem in environments where size_t is
+:: not large enough for far pointers
+#define offsetof(__typ,__id) ((size_t)((char *)&(((__typ*)0)->__id) - (char *)0))
+:endsegment
+
 :segment QNX | LINUX
 #if defined(__386__)
  _WCRTLINK extern int *__threadid(void); /* pointer to thread id */
@@ -89,11 +93,8 @@ using std::ptrdiff_t;
 
 :segment CNAME
 :include cplusepi.sp
-:endsegment
-
-:: This #endif closes the #ifdef __cplusplus in stddef.h
-:segment !CNAME
-#endif
+:elsesegment
+#endif /* __cplusplus not defined */
 :endsegment
 
 #endif

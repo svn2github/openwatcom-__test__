@@ -116,12 +116,17 @@ _WCRTLINK extern int      iswblank( wint_t __wc );
 :endsegment
 
 :segment CNAME
-:include cplusepi.sp
+_WCRTLINK extern int      __iswcsymf( std::wint_t __wc );
+_WCRTLINK extern int      __iswcsym( std::wint_t __wc );
+:elsesegment
+_WCRTLINK extern int      __iswcsymf( wint_t __wc );
+_WCRTLINK extern int      __iswcsym( wint_t __wc );
 :endsegment
 
-:: This #endif closes the #ifdef __cplusplus in wctype.h
-:segment !CNAME
-#endif
+:segment CNAME
+:include cplusepi.sp
+:elsesegment
+#endif /* __cplusplus not defined */
 :endsegment
 
 #endif
