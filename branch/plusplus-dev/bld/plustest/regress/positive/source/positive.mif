@@ -104,10 +104,10 @@ no_br_except30 = no
 opt_assert1 = -za0x
 opt_cdisp13 = -xr
 opt_cltemp17 = -za0x
-opt_cmdln01 = /d+XXX=0+1
-opt_cmdln02 = /d+ /dXXX=0+1
-opt_cmdln03 = /dX /DXX /uXX /DXXX /uXXX /UXXX /dXXX /DXXXX /uXXXX /DXXXX /uXXXX
-opt_cmdln04 = /dCMDMAC -DCMD1= /DCMD2$#
+opt_cmdln01 = -d+XXX=0+1
+opt_cmdln02 = -d+ -dXXX=0+1
+opt_cmdln03 = -dX -DXX -uXX -DXXX -uXXX -UXXX -dXXX -DXXXX -uXXXX -DXXXX -uXXXX
+opt_cmdln04 = -dCMDMAC -DCMD1= -DCMD2$#
 !ifndef %plustest_old_compiler
 opt_cmdln05 = -dXN2=2 -dXS1="a-/ b"-dXN1=2 -dXS2#"a-/ b"
 !endif
@@ -139,6 +139,8 @@ opt_pch19 = -fhq -dAFS_CM
 opt_pch20 = -fhq -dAFS_CM
 opt_pch21 = -fhq -dAFS_CM
 opt_pp08 = -w0
+opt_prag02 = -fhq
+opt_prag03 = -fhq
 opt_rtti02 = -xr
 opt_rtti03 = -xr
 opt_rtti04 = -xr
@@ -758,6 +760,9 @@ positive_tests = &
     pp36.$(ext) &
     pp37.$(ext) &
     prag01.$(ext) &
+    prag02.$(ext) &
+    prag03.$(ext) &
+    prag04.$(ext) &
     quest01.$(ext) &
     quest02.$(ext) &
     quest03.$(ext) &
