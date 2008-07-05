@@ -11,7 +11,7 @@
 #define _CSTDINT_INCLUDED
 
 #ifndef __cplusplus
-#error The header cstdlib requires C++
+#error The header cstdint requires C++
 #endif
 :elsesegment
 #ifndef _STDINT_H_INCLUDED
