@@ -24,23 +24,14 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  File I/O routines
 *
 ****************************************************************************/
 
-
 #include "ftnstd.h"
-#include "fio.h"
-#include "posio.h"
-
-extern  void            ChopFile(b_file *);
-extern  void            IOOk(b_file *);
-
+#include "ftextfun.h"
 
 void    FTruncate( b_file *io ) {
-//===============================
-
 // Truncate a file.
 
     IOOk( io );

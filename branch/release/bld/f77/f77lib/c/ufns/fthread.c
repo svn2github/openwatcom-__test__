@@ -46,7 +46,7 @@ extern  void            R_TrapInit(void);
 extern  void            R_TrapFini(void);
 extern  unsigned        RTSysInit(void);
 extern  void            __InitFThreadData(fthread_data *);
-extern  unsigned        __InitFThreadProcessing(void);
+extern  int             __InitFThreadProcessing(void);
 extern  void            __FiniFThreadProcessing(void);
 
 typedef struct {
@@ -55,10 +55,14 @@ typedef struct {
 } thread_info;
 
 static  beginner        *__BeginThread;
-static  void            (*__EndThread)(void);
-static  int             (*__InitDataThread)(void *);
-static  bool            ThreadsInitialized;
+static  ender           *__EndThread;
+static  initializer     *__InitDataThread;
 
+beginner        FBeginThread;
+ender           FEndThread;
+initializer     FInitDataThread;
+
+static  bool            ThreadsInitialized;
 
 static  unsigned  InitFThreads( void ) {
 //================================
@@ -130,15 +134,15 @@ int FBeginThread( void (*rtn)(void *), void *stack, unsigned stk_size, void *arg
 }
 
 
-void    FEndThread( void ) {
-//====================
+void FEndThread( void ) {
+//=======================
 
     Suicide();
 }
 
 
-int     FInitDataThread( void *td ) {
-//===================================
+int  FInitDataThread( void *td ) {
+//================================
 
     __InitFThreadData( (fthread_data *)((char *)td + __FThreadDataOffset) );
     return( __InitDataThread( td ) );
@@ -151,16 +155,11 @@ int     FInitDataThread( void *td ) {
 int     fortran BEGINTHREAD( void (*rtn)(void *), unsigned long *stk_size ) {
 //===========================================================================
 
-#if defined( __386__ ) || defined( __AXP__ ) || defined( __PPC__ )
-  #ifdef __NT__
+#ifdef __NT__
     return( (int)_beginthread( rtn, *stk_size, NULL ) );
-  #else
-    return( _beginthread( rtn, NULL, *stk_size, NULL ) );
-  #endif
 #else
     return( _beginthread( rtn, NULL, *stk_size, NULL ) );
 #endif
-
 }
 
 

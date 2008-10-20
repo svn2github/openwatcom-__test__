@@ -33,16 +33,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "wpatchio.h"
-
-#if defined( __QNX__ )
-    #include <unistd.h>
-#else
-    #include <io.h>
-#endif
-#include <fcntl.h>
 
 #include "bdiff.h"
+#include "wpatchio.h"
+#include "wpatch.h"
+
+#include <unistd.h>
+#include <fcntl.h>
+
 //#include "exeform.h"
 
 #include "watcom.h"
@@ -118,7 +116,7 @@ extern void     Execute( byte * );
 extern void     GetMsg( char *, int );
 extern void     FileCheck( int fd, char *name );
 extern void     SeekCheck( long pos, char *name );
-extern  void        MsgPrintf( int resourceid, va_list arglist );
+extern void     MsgPrintf( int resourceid, va_list arglist );
 
 #define MAX_DIFF        (1L<<17)
 #define MIN_DIFF        (1L<<7)
@@ -169,6 +167,8 @@ static char LevelBuff[64];
 static foff SyncOld = (foff)-1;
 static foff SyncNew = (foff)-1;
 
+/* Forward declarations */
+void SortHoleArray( void );
 
 /*
  * Utility routines
@@ -329,20 +329,6 @@ void AddSimilar( foff old_start, foff new_start, foff size )
     AddRegion( &SimilarRegions, old_start, new_start, size );
 }
 
-void AddSimilarDiff( foff old_start, foff new_start, foff size )
-{
-    if( SimilarRegions != NULL ) {
-        if( old_start+size < EndOld && new_start+size < EndNew ) {
-            if( SimilarRegions->new_start >= ( new_start + size ) ) {
-                AddDiff( new_start + size,
-                     SimilarRegions->new_start - ( new_start + size ) );
-            }
-        }
-    }
-    AddSimilar( old_start, new_start, size );
-}
-
-
 void AddDiff( foff new_start, foff size )
 {
     if( size == 0 ) return;
@@ -359,6 +345,21 @@ void AddDiff( foff new_start, foff size )
     NumDiffs++;
     AddRegion( &DiffRegions, -1, new_start, size );
 }
+
+
+void AddSimilarDiff( foff old_start, foff new_start, foff size )
+{
+    if( SimilarRegions != NULL ) {
+        if( old_start+size < EndOld && new_start+size < EndNew ) {
+            if( SimilarRegions->new_start >= ( new_start + size ) ) {
+                AddDiff( new_start + size,
+                     SimilarRegions->new_start - ( new_start + size ) );
+            }
+        }
+    }
+    AddSimilar( old_start, new_start, size );
+}
+
 
 
 void AddHole( foff old_start, foff new_start )
@@ -492,7 +493,7 @@ int AreasAreSimilar( foff_diff adjust, foff_diff backup_amt )
 }
 
 
-static void CheckSyncPoint()
+static void CheckSyncPoint( void )
 {
     if( SyncOld == (foff)-1 ) return;
     if( SaveOld >= OldFile+SyncOld && OldCurr < OldFile+SyncOld ||
@@ -510,7 +511,7 @@ int ReSync( void )
 
     foff_diff   i;
     foff_diff   backup;
-    char        j;
+    unsigned    j;
     char        *spin = "-\\|/";
 
     SaveOld = OldCurr; SaveNew = NewCurr;
@@ -521,15 +522,15 @@ int ReSync( void )
         ++j; j &= 3;
         for( i = 0; i <= backup; ++i ) {
             if( AreasAreSimilar( i, backup ) ) {
-        CheckSyncPoint();
-        return( 1 );
-        }
+                CheckSyncPoint();
+                return( 1 );
+            }
         }
         for( i = -1; i >= -backup; --i ) {
             if( AreasAreSimilar( i, backup ) ) {
-        CheckSyncPoint();
-        return( 1 );
-        }
+                CheckSyncPoint();
+                return( 1 );
+            }
         }
     }
     return( 0 );
@@ -565,7 +566,7 @@ int TryBackingUp( int backup )
 }
 
 
-void FindRegions()
+void FindRegions( void )
 {
     /*
      * classify the differences between the two files into regions;
@@ -1086,7 +1087,7 @@ void VerifyCorrect( char *name )
     if( real_new != NULL ) {
         if( memcmp( real_new, NewFile, EndNew ) != 0 ) {
             offset = 0;
-            for(;;) {
+            for( ;; ) {
                 if( *real_new != *NewFile ) {
                     PatchError( ERR_PATCH_BUNGLED, offset, *real_new, *NewFile );
                 }
@@ -1102,8 +1103,8 @@ void VerifyCorrect( char *name )
 
 int HoleCompare( const void *_h1, const void *_h2 )
 {
-    region *h1 = _h1;
-    region *h2 = _h2;
+    const region    *h1 = _h1;
+    const region    *h2 = _h2;
 
     if( h1->diff < h2->diff ) return( -1 );
     if( h1->diff > h2->diff ) return( 1 );
@@ -1112,6 +1113,19 @@ int HoleCompare( const void *_h1, const void *_h2 )
     return( 0 );
 }
 
+
+void CheckPatch( int size )
+{
+    byte *oldpatch;
+
+    if( CurrPatch - PatchFile + size >= PatchSize ) {
+    oldpatch = PatchFile;
+    PatchSize += 10*1024;
+    PatchFile = _reallocate( PatchFile, PatchSize );
+    NotNull( PatchFile, "patch file" );
+    CurrPatch = PatchFile + ( CurrPatch - oldpatch );
+    }
+}
 
 #define OutPatch( val, type ) {CheckPatch( sizeof(type) );*(type*)CurrPatch=(val);CurrPatch+=sizeof(type);}
 
@@ -1159,10 +1173,10 @@ void OutStr( char *str )
 
 #define MIN_ITERS (sizeof(patch_cmd)+sizeof(hole)+sizeof(foff)+sizeof(foff))
 
-int FOffCompare( const void *h1, const void *h2 )
+int FOffCompare( const void *_h1, const void *_h2 )
 {
-    region *h1 = _h1;
-    region *h2 = _h2;
+    const region    *h1 = _h1;
+    const region    *h2 = _h2;
 
     if( h1->new_start < h2->new_start ) return( -1 );
     if( h1->new_start > h2->new_start ) return( 1 );
@@ -1171,8 +1185,8 @@ int FOffCompare( const void *h1, const void *h2 )
 
 #define RUN_SIZE 5
 
-long HolesToDiffs() {
-
+long HolesToDiffs( void ) 
+{
     /* Find runs of holes which would be cheaper to represent as differences */
 
     region      *curr;
@@ -1346,8 +1360,8 @@ void ProcessHoleArray( int write_holes )
     }
 }
 
-void WriteSimilars() {
-
+void WriteSimilars( void ) 
+{
     /* write similar regions out to the patch file */
 
     region      *curr;
@@ -1364,8 +1378,8 @@ void WriteSimilars() {
     }
 }
 
-void WriteDiffs() {
-
+void WriteDiffs( void )
+{
     /* write difference regions out to the patch file */
 
     region      *curr;
@@ -1399,7 +1413,7 @@ void AddLevel( char *name )
 }
 
 
-void WriteLevel()
+void WriteLevel( void )
 {
     char *buff;
     int         size;
@@ -1416,7 +1430,7 @@ void WriteLevel()
     }
 }
 
-foff Sum()
+foff Sum( void )
 {
     foff        sum;
     foff        i;
@@ -1432,7 +1446,7 @@ foff Sum()
 }
 
 
-void CopyComment()
+void CopyComment( void )
 {
     int         fd;
     foff        size;
@@ -1452,19 +1466,6 @@ void CopyComment()
         close( fd );
         comment[ size ] = '\0';
         OutStr( comment );
-    }
-}
-
-void CheckPatch( int size )
-{
-    byte *oldpatch;
-
-    if( CurrPatch - PatchFile + size >= PatchSize ) {
-    oldpatch = PatchFile;
-    PatchSize += 10*1024;
-    PatchFile = _reallocate( PatchFile, PatchSize );
-    NotNull( PatchFile, "patch file" );
-    CurrPatch = PatchFile + ( CurrPatch - oldpatch );
     }
 }
 
@@ -1504,7 +1505,7 @@ void WritePatchFile( char *name )
 }
 
 
-void MakeHoleArray(void)
+void MakeHoleArray( void )
 {
     region      *reg;
     region      *new_hole;
@@ -1524,13 +1525,13 @@ void MakeHoleArray(void)
     HoleRegions = reg;
 }
 
-void SortHoleArray()
+void SortHoleArray( void )
 {
     qsort( HoleArray, NumHoles, sizeof( region ), HoleCompare );
 }
 
 
-void FreeHoleArray()
+void FreeHoleArray( void )
 {
     if( NumHoles != 0 ) {
         _free( HoleArray );
@@ -1552,7 +1553,7 @@ foff FindSyncString( byte *file, foff end )
     return( -1 );
 }
 
-void ScanSyncString()
+void ScanSyncString( void )
 {
     if( SyncString == NULL ) return;
     SyncOld = FindSyncString( OldFile, EndOld );
@@ -1644,9 +1645,9 @@ int DoBdiff( char *srcPath, char *tgtPath, char *name )
  * For debugging purposes only (In debugger issue "CALL DUMP" command)
  */
 
-void dump(void)
+void dump( void )
 {
-    region *reg;
+    region  *reg;
 
     printf( "        Similarities\n"
             "        ============\n" );

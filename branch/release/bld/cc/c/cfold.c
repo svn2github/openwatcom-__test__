@@ -314,7 +314,7 @@ int DoUnSignedOp( TREEPTR op1, TREEPTR tree, TREEPTR op2 )
         tree->op.long_value = (target_int)value;
     } else {
         value = DoOp32( left, tree->op.opr, right, FALSE );
-        if( const_type == TYPE_ULONG ) {
+        if( const_type == TYPE_ULONG || const_type == TYPE_POINTER ) {
             tree->op.long_value = value;
         } else {
             tree->op.long_value = (target_uint)value;
@@ -889,6 +889,9 @@ void CastConstValue( TREEPTR leaf, DATA_TYPE newtyp )
         case TYPE_ULONG:
             leaf->op.ulong_value = (target_ulong)val32;
             break;
+        case TYPE_POINTER:
+            leaf->op.ulong_value = (target_ulong)val32;
+            break;
         case TYPE_FLOAT:
         case TYPE_DOUBLE:
         case TYPE_LONG_DOUBLE:
@@ -902,6 +905,18 @@ void CastConstValue( TREEPTR leaf, DATA_TYPE newtyp )
     leaf->op.const_type = newtyp;
 }
 
+void CastConstNode( TREEPTR leaf, TYPEPTR newtyp )
+{
+    CastConstValue( leaf, newtyp->decl_type );
+    if( newtyp->decl_type == TYPE_POINTER ) {
+        leaf->op.flags = OpFlags( newtyp->u.p.decl_flags );
+        // This really ought to be in CastConstValue, but that
+        // function can't figure out the exact pointer size
+        if ( TypeSize( newtyp ) == sizeof( target_ushort ) ) {
+            leaf->op.ulong_value = (target_ushort)leaf->op.ulong_value;
+        }
+    }
+}
 
 static bool IsConstantZero( TREEPTR tree )
 {
@@ -1005,7 +1020,7 @@ static bool FoldableTree( TREEPTR tree )
         opnd = tree->right;
         if( opnd->op.opr == OPR_PUSHINT || opnd->op.opr == OPR_PUSHFLOAT ) {
             typ = tree->expr_type;
-            CastConstValue( opnd, typ->decl_type );
+            CastConstNode( opnd, typ );
             *tree = *opnd;
             tree->expr_type = typ;
             opnd->op.opr = OPR_NOP;
@@ -1015,8 +1030,7 @@ static bool FoldableTree( TREEPTR tree )
     case OPR_RETURN:
         opnd = tree->right;
         if( opnd->op.opr == OPR_PUSHINT || opnd->op.opr == OPR_PUSHFLOAT ) {
-            typ = tree->expr_type;
-            CastConstValue( opnd, typ->decl_type );
+            CastConstNode( opnd, tree->expr_type );
         }
         break;
     case OPR_COMMA:
@@ -1138,6 +1152,7 @@ static void CheckOpndValues( TREEPTR tree )
             opnd = tree->right;
             r_type = opnd->expr_type;
             con = ArithmeticType( r_type->decl_type );
+
             // shift arguments undergo integral promotion; 'char c = 1 << 10;'
             // is not undefined, though it will overflow
             max_shift = max( SizeOfArg( tree->left->expr_type ),
@@ -1187,6 +1202,43 @@ static void CheckOpndValues( TREEPTR tree )
                 CWarn1( WARN_SHIFT_AMOUNT_NEGATIVE, ERR_SHIFT_AMOUNT_NEGATIVE );
             } else if( shift_too_big ) {
                 CWarn1( WARN_SHIFT_AMOUNT_TOO_BIG, ERR_SHIFT_AMOUNT_TOO_BIG );
+            }
+        }
+        break;
+    case OPR_DIV:
+    case OPR_MOD:
+        if( ConstantLeaf( tree->right ) ) {
+            bool    zero_divisor = FALSE;
+
+            opnd = tree->right;
+            r_type = opnd->expr_type;
+            con = ArithmeticType( r_type->decl_type );
+
+            switch( con ) {
+            case SIGNED_INT:
+            case UNSIGNED_INT:
+                if( opnd->op.long_value == 0 )
+                    zero_divisor = TRUE;
+                break;
+            case SIGNED_INT64:
+            case UNSIGNED_INT64: {
+                uint64      right;
+
+                right = LongValue64( opnd );
+                if( U64Test( &right ) == 0 )
+                    zero_divisor = TRUE;
+                break;
+                }
+            case FLOATING:
+                // Should we warn here? Floating-point division by zero is
+                // not necessarily undefined...
+                break;
+            default:
+                // Not supposed to happen?
+                break;
+            }
+            if( zero_divisor ) {
+                CWarn1( WARN_DIV_BY_ZERO, ERR_DIV_BY_ZERO );
             }
         }
         break;

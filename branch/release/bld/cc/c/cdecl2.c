@@ -157,12 +157,12 @@ local SYM_HANDLE FuncDecl( SYMPTR sym, stg_classes stg_class, decl_state *state 
     SYM_HANDLE          sym_handle;
     SYM_HANDLE          old_sym_handle;
     SYM_ENTRY           old_sym;
-    struct enum_info    ei;
     SYM_ENTRY           sym_typedef;
     TYPEPTR             old_typ;
     SYM_NAMEPTR         sym_name;
     char                *name;
     int                 sym_len;
+    ENUMPTR             ep;
 
     PrevProtoType = NULL;                               /* 12-may-91 */
     // Warn if assuming 'int' return type - should be an error in strict C99 mode
@@ -181,9 +181,11 @@ local SYM_HANDLE FuncDecl( SYMPTR sym, stg_classes stg_class, decl_state *state 
     }
     old_sym_handle = SymLook( sym->info.hash_value, sym->name );
     if( old_sym_handle == 0 ) {
-        EnumLookup( sym->info.hash_value, sym->name, &ei ); /* 22-dec-88 */
-        if( ei.level >= 0 ) {       /* if enum was found */
+        ep = EnumLookup( sym->info.hash_value, sym->name );
+        if( ep != NULL ) {
+            SetDiagEnum( ep );
             CErr2p( ERR_SYM_ALREADY_DEFINED, sym->name );
+            SetDiagPop();
         }
         sym_handle = SymAddL0( sym->info.hash_value, sym );
     } else {
@@ -212,8 +214,7 @@ local SYM_HANDLE FuncDecl( SYMPTR sym, stg_classes stg_class, decl_state *state 
                         CMemFree( name );
                     }
                     old_sym.sym_type = sym->sym_type;
-                    old_sym.d.defn_line = sym->d.defn_line;
-                    old_sym.defn_file_index = sym->defn_file_index;
+                    old_sym.src_loc = sym->src_loc;
                 }
             }
             // check lang flags to make sure no one saw an incompatible prototype; if
@@ -652,7 +653,6 @@ int DeclList( SYM_HANDLE *sym_head )
     decl_state          state;
     SYM_HANDLE          sym_handle;
     SYM_HANDLE          prevsym_handle;
-    unsigned            line_num;
     auto SYM_ENTRY      sym;
     auto SYM_ENTRY      prevsym;
     decl_info           info;
@@ -672,7 +672,6 @@ int DeclList( SYM_HANDLE *sym_head )
                     NextToken();
                 }
                 if( CurToken == T_EOF ) return( 0 );
-                line_num = TokenLine;
                 FullDeclSpecifier( &info );
                 if( info.stg != SC_NULL  ||  info.typ != NULL ) break;
                 if( SymLevel != 0 ) return( 0 );
@@ -781,7 +780,6 @@ int LoopDecl( SYM_HANDLE *sym_head )
     decl_state          state;
     SYM_HANDLE          sym_handle;
     SYM_HANDLE          prevsym_handle;
-    unsigned            line_num;
     SYM_ENTRY           sym;
     SYM_ENTRY           prevsym;
     decl_info           info;
@@ -790,7 +788,6 @@ int LoopDecl( SYM_HANDLE *sym_head )
     prevsym_handle = 0;
     *sym_head = 0;
     if( CurToken == T_EOF ) return( 0 );
-    line_num = TokenLine;
     FullDeclSpecifier( &info );
     if( info.stg == SC_NULL  &&  info.typ == NULL ) {
         return( 0 );    /* No declaration-specifiers, get outta here */

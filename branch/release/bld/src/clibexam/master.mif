@@ -251,6 +251,7 @@ _memavl.exe &
 _memmax.exe &
 _searche.exe &
 _splitp2.exe &
+chdrive.exe &
 ftime.exe &
 getdiskf.exe &
 getdrive.exe &
@@ -543,6 +544,7 @@ ctime_s.exe &
 dirname.exe &
 exit.exe &
 ffs.exe &
+fnmatch.exe &
 getcmd.exe &
 getenv.exe &
 getenv_s.exe &

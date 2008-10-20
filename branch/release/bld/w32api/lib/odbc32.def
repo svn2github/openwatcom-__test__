@@ -1,31 +1,7 @@
-LIBRARY ODBC32.dll
+LIBRARY ODBC32.DLL
 EXPORTS
-CloseODBCPerfData@0
-CollectODBCPerfData@16
-CursorLibLockDbc@8
-CursorLibLockDesc@8
-CursorLibLockStmt@8
-CursorLibTransact@12
-LockHandle@12
-MpHeapAlloc
-MpHeapCompact
-MpHeapCreate
-MpHeapDestroy
-MpHeapFree
-MpHeapReAlloc
-MpHeapSize
-MpHeapValidate
 ODBCGetTryWaitValue@0
-ODBCInternalConnectW@36
-ODBCQualifyFileDSNW@4
 ODBCSetTryWaitValue@4
-ODBCSharedPerfMon
-ODBCSharedTraceFlag
-ODBCSharedVSFlag
-OpenODBCPerfData@4
-PostComponentError@4
-PostODBCComponentError@4
-PostODBCError@16
 SQLAllocConnect@8
 SQLAllocEnv@4
 SQLAllocHandle@12
@@ -46,7 +22,6 @@ SQLColAttributeW@28
 SQLColAttributes@28
 SQLColAttributesA@28
 SQLColAttributesW@28
-SQLColumnPrivileges@36
 SQLColumnPrivilegesA@36
 SQLColumnPrivilegesW@36
 SQLColumns@36
@@ -63,6 +38,7 @@ SQLDescribeCol@36
 SQLDescribeColA@36
 SQLDescribeColW@36
 SQLDescribeParam@24
+SQLDescribeParamA@24
 SQLDisconnect@4
 SQLDriverConnect@32
 SQLDriverConnectA@32
@@ -119,6 +95,7 @@ SQLGetStmtAttr@20
 SQLGetStmtAttrA@20
 SQLGetStmtAttrW@20
 SQLGetStmtOption@12
+SQLGetStmtOptionA@12
 SQLGetTypeInfo@8
 SQLGetTypeInfoA@8
 SQLGetTypeInfoW@8
@@ -154,7 +131,6 @@ SQLSetCursorName@12
 SQLSetCursorNameA@12
 SQLSetCursorNameW@12
 SQLSetDescField@20
-SQLSetDescFieldA@20
 SQLSetDescFieldW@20
 SQLSetDescRec@40
 SQLSetEnvAttr@16
@@ -163,8 +139,8 @@ SQLSetPos@16
 SQLSetScrollOptions@16
 SQLSetStmtAttr@16
 SQLSetStmtAttrA@16
-SQLSetStmtAttrW@16
 SQLSetStmtOption@12
+SQLSetStmtOptionA@12
 SQLSpecialColumns@40
 SQLSpecialColumnsA@40
 SQLSpecialColumnsW@40
@@ -178,8 +154,4 @@ SQLTables@36
 SQLTablesA@36
 SQLTablesW@36
 SQLTransact@12
-SearchStatusCode@8
-VFreeErrors@4
-VRetrieveDriverErrorsRowCol@24
-ValidateErrorQueue@8
-g_hHeapMalloc
+

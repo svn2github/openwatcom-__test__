@@ -42,6 +42,7 @@
 #include "message.h"
 #include "optparse.h"
 #include "parse.h"
+#include "pathconv.h"
 #include "translat.h"
 #include "system.h"
 
@@ -122,6 +123,7 @@ static int compile( const OPT_STORAGE *cmdOpts, CmdLine *compCmdLine )
     char                drive[_MAX_DRIVE];
     char                dir[_MAX_DIR];
     char                fname[_MAX_FNAME];
+    char                ext[_MAX_EXT];
     char                fullPath[_MAX_PATH];
     int                 count;
 
@@ -139,8 +141,8 @@ static int compile( const OPT_STORAGE *cmdOpts, CmdLine *compCmdLine )
             compiler = C_COMPILER;
             AppendCmdLine( cloneCmdLine, CL_C_PROGNAME_SECTION, compiler );
             AppendCmdLine( cloneCmdLine, CL_C_FILENAMES_SECTION, filename );
-            if (!cmdOpts->nowopts) {
-                AppendCmdLine(cloneCmdLine, CL_C_OPTS_SECTION, "-aa");
+            if( !cmdOpts->nowopts ) {
+                AppendCmdLine( cloneCmdLine, CL_C_OPTS_SECTION, "-aa" );
             }
             args = MergeCmdLine( cloneCmdLine, CL_C_PROGNAME_SECTION,
                                  CL_C_MACROS_SECTION, CL_C_OPTS_SECTION,
@@ -162,7 +164,8 @@ static int compile( const OPT_STORAGE *cmdOpts, CmdLine *compCmdLine )
         }
 
         /*** Spawn the compiler ***/
-        fprintf( stderr, "%s\n", filename ); /* print name of file we're compiling */
+        _splitpath( filename, drive, dir, fname, ext );
+        fprintf( stderr, "%s%s\n", fname, ext ); /* print name of file we're compiling */
         if( cmdOpts->showwopts ) {
             for( count=0; args[count]!=NULL; count++ ) {
                 fprintf( stderr, "%s ", args[count] );
@@ -180,10 +183,13 @@ static int compile( const OPT_STORAGE *cmdOpts, CmdLine *compCmdLine )
             }
         }
 
-        /*** Add the object file to the linker list ***/
-        _splitpath( filename, drive, dir, fname, NULL );
-        _makepath( fullPath, drive, dir, fname, ".obj" );
-        AddFile( TYPE_OBJ_FILE, fullPath );
+        /*** Add the object file to the linker list, observe -Fo ***/
+        if( cmdOpts->Fo ) {
+            AddFile( TYPE_OBJ_FILE, PathConvert( cmdOpts->Fo_value->data, '"' ) );
+        } else {
+            _makepath( fullPath, NULL, NULL, fname, ".obj" );
+            AddFile( TYPE_OBJ_FILE, fullPath );
+        }
 
         /*** Prepare for the next iteration ***/
         DestroyCmdLine( cloneCmdLine );

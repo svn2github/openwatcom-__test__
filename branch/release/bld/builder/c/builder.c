@@ -56,7 +56,7 @@ static char        Line[MAX_LINE];
 static char        ProcLine[MAX_LINE];
 static unsigned    VerbLevel;
 static bool        UndefWarn;
-static bool        StopOnError;
+static bool        IgnoreErrors;
 static unsigned    ParmCount;
 static unsigned    LogBackup;
 
@@ -141,7 +141,7 @@ static char **getvalue( char **argv, char *buff )
 
 static void Usage( void )
 {
-    printf( "Usage: builder [-c <ctl>] [-l <log>] [-b <bak>] [-s] [-v] [-u] [-q] [--] <parm>\n" );
+    printf( "Usage: builder [-c <ctl>] [-l <log>] [-b <bak>] [-i] [-v] [-u] [-q] [--] <parm>\n" );
     printf( "    See builder.doc for more information\n" );
     exit( 0 );
 }
@@ -175,8 +175,8 @@ static void ProcessOptions( char *argv[] )
                     Fatal( "-b value is exceeds maximum of %d\n", MAX_BACKUP );
                 }
                 break;
-            case 's':
-                StopOnError = TRUE;
+            case 'i':
+                IgnoreErrors = TRUE;
                 break;
             case 'v':
                 ++VerbLevel;
@@ -485,7 +485,7 @@ static void ProcessCtlFile( const char *name )
             /* a directive */
             p = FirstWord( p + 1 );
             if( stricmp( p, "INCLUDE" ) == 0 ) {
-                if( IncludeStk->skipping == 0 ) {
+                if( !IncludeStk->skipping && !IncludeStk->ifdefskipping ) {
                     PushInclude( NextWord( p ) );
                 }
             }
@@ -534,13 +534,13 @@ static void ProcessCtlFile( const char *name )
                     Log( FALSE, "+++<%s>+++\n", p );
                 }
                 strcpy( Line, p );
-                res = RunIt( p );
+                res = RunIt( p, IgnoreErrors );
                 if( res != 0 ) {
                     if( !logit ) {
                         Log( FALSE, "<%s> => ", Line );
                     }
                     Log( FALSE, "non-zero return: %d\n", res );
-                    if( StopOnError ) {
+                    if( !IgnoreErrors ) {
                         Fatal( "Build failed\n" );
                     }
                 }

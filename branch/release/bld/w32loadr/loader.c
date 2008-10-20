@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Loader for OSI executables.
 *
 ****************************************************************************/
 
@@ -361,6 +360,13 @@ int Init32BitTask( char *file )
         PrintMsg( PickMsg( LOADER_NOT_ENOUGH_MEMORY ) );
         return( LOADER_NOT_ENOUGH_MEMORY );
     }
+#ifdef __NT__
+    {
+    DWORD   old_flags;
+    /* Adjust page protection to allow code execution. Required for DEP-enabled systems. */
+    VirtualProtect( (LPVOID)BaseAddr, w32_hdr->memory_size, PAGE_EXECUTE_READWRITE, &old_flags );
+    }
+#endif
     CodeLoadAddr = BaseAddr;
     load_addr = CodeLoadAddr;
     CodeEntryPoint = w32_hdr->initial_EIP + CodeLoadAddr;
@@ -432,24 +438,6 @@ typedef struct SysERegRec {
                            PVOID);
 } SYSEREGREC;
 
-void Fatal( char *what, PCONTEXTRECORD p )
-{
-    tiny_ret_t  rc;
-
-    DumpContext( what, p );
-    rc = TinyCreate( "_watcom_.dmp", 0 );
-    if( TINY_OK( rc ) ) {
-        MsgFileHandle = TINY_INFO( rc );
-        PrintMsg( "Program: %s\r\n", ProgramName );
-        PrintMsg( "CmdLine: %s\r\n", ProgramArgs );
-        DumpContext( what, p );
-        DumpEnvironment();
-        TinyClose( MsgFileHandle );
-        MsgFileHandle = 1;
-    }
-    DosExit( EXIT_PROCESS, 8 );
-}
-
 void DumpContext( char *what, PCONTEXTRECORD p )
 {
     int                 i;
@@ -478,6 +466,24 @@ void DumpContext( char *what, PCONTEXTRECORD p )
         i++;
     }
     PrintMsg( "\r\n" );
+}
+
+void Fatal( char *what, PCONTEXTRECORD p )
+{
+    tiny_ret_t  rc;
+
+    DumpContext( what, p );
+    rc = TinyCreate( "_watcom_.dmp", 0 );
+    if( TINY_OK( rc ) ) {
+        MsgFileHandle = TINY_INFO( rc );
+        PrintMsg( "Program: %s\r\n", ProgramName );
+        PrintMsg( "CmdLine: %s\r\n", ProgramArgs );
+        DumpContext( what, p );
+        DumpEnvironment();
+        TinyClose( MsgFileHandle );
+        MsgFileHandle = 1;
+    }
+    DosExit( EXIT_PROCESS, 8 );
 }
 
 ULONG _cdecl ExceptRoutine( PEXCEPTIONREPORTRECORD report,
@@ -602,25 +608,6 @@ typedef struct _REGISTRATION_RECORD {
     void                        *RegistrationRecordFilter;
 } REGISTRATION_RECORD;
 
-
-void Fatal( char *what, PCONTEXT p )
-{
-    tiny_ret_t  rc;
-
-    DumpContext( what, p );
-    rc = TinyCreate( "_watcom_.dmp", 0 );
-    if( TINY_OK( rc ) ) {
-        MsgFileHandle = TINY_INFO( rc );
-        PrintMsg( "Program: %s\r\n", ProgramName );
-        PrintMsg( "CmdLine: %s\r\n", ProgramArgs );
-        DumpContext( what, p );
-        DumpEnvironment();
-        TinyClose( MsgFileHandle );
-        MsgFileHandle = 1;
-    }
-    ExitProcess( 8 );
-}
-
 void DumpContext( char *what, PCONTEXT p )
 {
     int                 i;
@@ -649,6 +636,24 @@ void DumpContext( char *what, PCONTEXT p )
         i++;
     }
     PrintMsg( "\r\n" );
+}
+
+void Fatal( char *what, PCONTEXT p )
+{
+    tiny_ret_t  rc;
+
+    DumpContext( what, p );
+    rc = TinyCreate( "_watcom_.dmp", 0 );
+    if( TINY_OK( rc ) ) {
+        MsgFileHandle = TINY_INFO( rc );
+        PrintMsg( "Program: %s\r\n", ProgramName );
+        PrintMsg( "CmdLine: %s\r\n", ProgramArgs );
+        DumpContext( what, p );
+        DumpEnvironment();
+        TinyClose( MsgFileHandle );
+        MsgFileHandle = 1;
+    }
+    ExitProcess( 8 );
 }
 
 int __stdcall __ExceptionFilter( LPEXCEPTION_RECORD ex,
@@ -882,9 +887,12 @@ void main( void ) {}
 
 #include <string.h>
 
+#if defined(__DOS4G) || defined(__CAUSEWAY)
+ #include "dpmi.h"
+#endif
+
 #ifdef __DOS4G
  #include "dginfo.gh"
- #include "dpmi.h"
 char DOS4GOPTIONS[] =
         "[dos4g-global]\n"
         "Include=OSIOPTS.INI\n"
@@ -934,7 +942,7 @@ int __checkIsDBCS( void )
         }
     }
     return( 0 );
-#elif defined(__DOS4G)
+#elif defined(__DOS4G) || defined(__CAUSEWAY)
     unsigned short  *leadBytes;
     rm_call_struct  dblock;
 

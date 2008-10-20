@@ -28,8 +28,9 @@
 *
 ****************************************************************************/
 
-
 #include "ftnstd.h"
+#include "ftextfun.h"
+#include "ftextvar.h"
 #include "rundat.h"
 #include "pgmacc.h"
 #include "errcod.h"
@@ -42,29 +43,13 @@
 #include <string.h>
 #include <ctype.h>
 
-extern  void            Drop(char);
-extern  void            SendStr(char PGM *,uint);
-extern  void            SendWSLStr(char *);
-extern  void            SendEOR(void);
-extern  void            NextRec(void);
-extern  void            DoFreeIn(void);
-extern  void            CheckEor(void);
-extern  void            Blanks(void);
-extern  void            BumpComma(void);
-extern  void            IOErr(uint,...);
-extern  int             Spawn(void (*)( void ));
-extern  void            Suicide(void);
-extern  bool            DoSubscript(act_dim_list *,intstar4 *,intstar4 *);
-extern  bool            DoSubstring(intstar4,intstar4,uint);
-extern  intstar4        GetNum(void);
-extern  char            *JmpBlanks(char *);
-
-extern  void            (* const __FAR OutRtn[])( void );
-extern  const byte __FAR        SizeVars[];
-
 static  unsigned_32     NmlInCount;
 static  PTYPE           NmlInType;
 static  void            PGM *NmlInAddr;
+
+/* Forward declarations */
+static  void    NmlIn( void );
+static  void    NmlOut( void );
 
 
 char            *Scanner( void ) {

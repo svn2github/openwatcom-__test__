@@ -1,3 +1,4 @@
+wasmtest_name = diag
 
 dis_objs = &
 callimpl.dis &
@@ -22,9 +23,11 @@ diag04.obj &
 diag05.obj &
 diag06.obj &
 diag07.obj &
-error.obj &
+error1.obj &
+extern1.obj &
 include.obj &
-irp.obj
+irp.obj &
+cpureq.obj
 
 asm_flags_diag01 = -4s
 asm_flags_diag02 = -3

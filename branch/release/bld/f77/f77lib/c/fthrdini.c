@@ -30,6 +30,8 @@
 
 
 #include "ftnstd.h"
+#include "ftextfun.h"
+#include "ftextvar.h"
 #include "fthread.h"
 #include "errcod.h"
 
@@ -51,7 +53,7 @@ extern int              CloseLocalSemaphore( long );
 
 #include <windows.h>
 
-extern  void            __InitFThreadData(fthread_data *);
+//extern  void            __InitFThreadData(fthread_data *);
 
 HANDLE                  __fio_sem;
 
@@ -61,17 +63,8 @@ HANDLE                  __fio_sem;
 
 #endif
 
-extern  void            (*_AccessFIO)(void);
-extern  void            (*_ReleaseFIO)(void);
-extern  void            (*_PartialReleaseFIO)(void);
-extern  void            __AccessFIO(void);
-extern  void            __ReleaseFIO(void);
-extern  void            __PartialReleaseFIO(void);
-extern  void            __InitMultiThreadIO(void);
-
-
-unsigned        __InitFThreadProcessing( void ) {
-//===============================================
+int     __InitFThreadProcessing( void ) {
+//=======================================
 
 // Setup for multiple threads.
 
@@ -90,7 +83,6 @@ unsigned        __InitFThreadProcessing( void ) {
     __InitMultiThreadIO();
     return( 0 );
 }
-
 
 void            __FiniFThreadProcessing( void ) {
 //===============================================

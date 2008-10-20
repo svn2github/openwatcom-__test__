@@ -52,8 +52,8 @@
 #include "ring.h"
 #include "loadnov.h"
 
-char *          SymFileName;
-group_entry *   DBIGroups;
+char            *SymFileName;
+group_entry     *DBIGroups;
 
 void ResetDBI( void )
 /**************************/
@@ -117,7 +117,7 @@ void DBIP1Source( byte *buff, byte *endbuff )
     }
 }
 
-section * DBIGetSect( char *clname )
+section *DBIGetSect( char *clname )
 /*****************************************/
 {
     if( ( stricmp( clname, _MSTypeClass ) == 0 )
@@ -194,12 +194,12 @@ static bool MSSkip( void )
     }
 }
 
-bool DBISkip( unsigned_16 info )
+bool DBISkip( seg_leader *seg )
 /*************************************/
 // returns TRUE we should skip processing this segment because we are
 // ignoring debugging information
 {
-    switch( info ) {
+    switch( seg->dbgtype ) {
     case MS_TYPE:
         return( !( CurrMod->modinfo & DBI_TYPE ) || MSSkip() );
     case MS_LOCAL:
@@ -211,11 +211,11 @@ bool DBISkip( unsigned_16 info )
     }
 }
 
-bool DBINoReloc( unsigned_16 info )
+bool DBINoReloc( seg_leader *seg )
 /****************************************/
 // called to see if we should handle a relocation specially.
 {
-    return( info != NOT_DEBUGGING_INFO );
+    return( IS_DBG_INFO( seg ) );
 }
 
 static void AddNovGlobals( mod_entry *mod )
@@ -257,15 +257,15 @@ void DBIPreAddrCalc( void )
 void DBIAddrInfoScan( seg_leader *seg,
                          void (*initfn)( segdata *, void * ),
                          void (*addfn)( segdata *, offset, offset, void *, bool ),
-                         void * cookie )
+                         void *cookie )
 /********************************************************************************/
 {
-    segdata *   prev;
-    segdata *   curr;
+    segdata     *prev;
+    segdata     *curr;
     offset      size;
     bool        isnewmod;
 
-    if( seg->dbgtype != NOT_DEBUGGING_INFO )
+    if( IS_DBG_INFO( seg ) )
         return;
     if( ( seg->class->flags & ( CLASS_STACK | CLASS_IDATA ) )
         && ( FmtData.dll || ( FmtData.type & MK_PE ) ) )
@@ -369,14 +369,14 @@ void DBIDefClass( class_entry *cl, unsigned_32 size )
     }
 }
 
-void DBIAddLocal( unsigned_16 info, offset length )
+void DBIAddLocal( seg_leader *seg, offset length )
 /********************************************************/
 // called during pass 1 final segment processing.
 {
     if( LinkFlags & OLD_DBI_FLAG ) {
-        ODBIAddLocal( info, length );
+        ODBIAddLocal( seg, length );
     } else if( LinkFlags & CV_DBI_FLAG ) {
-        CVAddLocal( info, length );
+        CVAddLocal( seg, length );
     }
 }
 
@@ -388,7 +388,7 @@ void DBIModGlobal( void *_sym )
     if( !IS_SYM_ALIAS( sym ) && !( sym->info & SYM_DEAD ) ) {
         if( IS_SYM_IMPORTED( sym )
             || ( sym->p.seg != NULL )
-                && ( sym->p.seg->u.leader->dbgtype == NOT_DEBUGGING_INFO )
+                && !IS_DBG_INFO( sym->p.seg->u.leader )
                 && !sym->p.seg->isabs ) {
             DBIAddGlobal( sym );
         }
@@ -408,7 +408,7 @@ void DBIAddGlobal( symbol *sym )
     }
 }
 
-void DBIGenGlobal( symbol * sym, section *sect )
+void DBIGenGlobal( symbol *sym, section *sect )
 /*****************************************************/
 // called during symbol address calculation (between pass 1 & pass 2)
 // also called by loadpe between passes
@@ -432,7 +432,7 @@ void DBIAddLines( segdata *seg, void *line, unsigned size, bool is32bit )
 /******************************************************************************/
 // called during pass 1 linnum processing
 {
-    lineinfo *  info;
+    lineinfo    *info;
 
     _PermAlloc( info, sizeof( lineinfo ) + size - 1 );
     info->seg = seg;
@@ -493,10 +493,10 @@ void DBIAddrStart( void )
     if( LinkFlags & CV_DBI_FLAG ) {
         CVAddrStart();
     }
-    ProcAllSects( DBIAddrSectStart );
+    WalkAllSects( DBIAddrSectStart );
 }
 
-void DBIAddrSectStart( section * sect )
+void DBIAddrSectStart( section *sect )
 /********************************************/
 // called for each section after address calculation is done.
 {
@@ -557,6 +557,14 @@ void DBIWrite( void )
 
     if( !( LinkFlags & ANY_DBI_FLAG ) )
         return;
+    if( LinkFlags & CV_DBI_FLAG ) {
+        // write DEBUG_TYPE_MISC: name of file containing the debug info
+        if( SymFileName != NULL ) {
+            CVWriteDebugTypeMisc( SymFileName );
+        } else {
+            CVWriteDebugTypeMisc( Root->outfile->fname );
+        }
+    }
     if( SymFileName != NULL ) {
         InitBuffFile( &symfile, SymFileName, FALSE );
         OpenBuffFile( &symfile );

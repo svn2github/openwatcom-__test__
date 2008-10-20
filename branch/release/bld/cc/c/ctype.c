@@ -1314,34 +1314,25 @@ local void CheckBitfieldType( TYPEPTR typ )
 
 void VfyNewSym( int hash_value, char *name )
 {
-    int         enum_var;
     SYM_HANDLE  sym_handle;
-    auto SYM_ENTRY sym;
-    auto struct enum_info ei;
-    int         do_diag_pop = 0;
+    SYM_ENTRY   sym;
+    ENUMPTR     ep;
 
-    enum_var = EnumLookup( hash_value, name, &ei );
-    if( enum_var ) {
-        if( ei.level != SymLevel )
-            enum_var = 0;
-        // Unfortunately we don't seem to have any easy way
-        // to diagnose where an enum was defined
+    ep = EnumLookup( hash_value, name );
+    if( ep != NULL && ep->parent->level == SymLevel ) {
+        SetDiagEnum( ep );
+        CErr2p( ERR_SYM_ALREADY_DEFINED, name );
+        SetDiagPop();
     }
     sym_handle = SymLook( hash_value, name );
     if( sym_handle != 0 ) {
         SymGet( &sym, sym_handle );
-        if( sym.level != SymLevel )
-            sym_handle = 0;
-        else {
+        if( sym.level == SymLevel ) {
             SetDiagSymbol( &sym, sym_handle );
-            ++do_diag_pop;
+            CErr2p( ERR_SYM_ALREADY_DEFINED, name );
+            SetDiagPop();
         }
     }
-    if( sym_handle != 0  ||  enum_var != 0 ) {
-        CErr2p( ERR_SYM_ALREADY_DEFINED, name );
-    }
-    while( do_diag_pop-- )
-        SetDiagPop();
 }
 
 
@@ -1597,6 +1588,38 @@ unsigned long TypeSizeEx( TYPEPTR typ, unsigned long *pFieldWidth )
     return( size );
 }
 
+/* Return an integer type of specified size, or NULL in case of failure. 
+ * The type will be signed if 'sign' is TRUE. The type will have exactly
+ * requested size if 'exact' is true, or the next larger type will be
+ * returned (eg. 64-bit integer if 6 byte size is requested).
+ */
+TYPEPTR GetIntTypeBySize( unsigned long size, bool sign, bool exact )
+{
+    static const DATA_TYPE  s_types[] = { TYPE_CHAR, TYPE_SHORT, TYPE_INT, TYPE_LONG, TYPE_LONG64 };
+    static const DATA_TYPE  u_types[] = { TYPE_UCHAR, TYPE_USHORT, TYPE_UINT, TYPE_ULONG, TYPE_ULONG64 };
+    const DATA_TYPE         *type_list;
+    DATA_TYPE               type_id;
+    TYPEPTR                 typ = NULL;
+    unsigned                i;
+
+    /* Make sure the types are laid out the way we expect */
+    assert( TYPE_CHAR == 0 );
+    assert( TYPE_FLOAT == TYPE_ULONG64 + 1 );
+
+    if( size ) {
+        type_list = sign ? s_types : u_types;
+        for( i = 0; i < sizeof( s_types ) / sizeof( s_types[0] ); ++i ) {
+            type_id = type_list[ i ];
+            if( size == CTypeSizes[ type_id ]
+              || ( !exact && size < CTypeSizes[ type_id ] ) ) {
+                typ = GetType( type_id );
+                assert( typ );
+                break;
+            }
+        }
+    }
+    return( typ );
+}
 
 void TypesPurge( void )
 {

@@ -635,7 +635,7 @@ local FIELDPTR InitBitField( FIELDPTR field )
     uint64              value64;
     unsigned long       bit_value;
     unsigned long       offset;
-    int                 token;
+    TOKEN               token;
     int                 is64bit;
 
     token = CurToken;
@@ -890,7 +890,7 @@ local void InitUnion( TYPEPTR typ, TYPEPTR ctyp )
 
 void InitSymData( TYPEPTR typ, TYPEPTR ctyp, int level )
 {
-    int                 token;
+    TOKEN               token;
     unsigned long       size;
 
     SKIP_TYPEDEFS( typ );
@@ -1267,7 +1267,7 @@ local void InitStructVar( unsigned base, SYMPTR sym, SYM_HANDLE sym_handle, TYPE
     TREEPTR     opnd;
     TREEPTR     value;
     FIELDPTR    field;
-    int         token;
+    TOKEN       token;
 
     for( field = typ->u.tag->u.field_list; field; ) {
         token = CurToken;
@@ -1360,7 +1360,7 @@ local void InitArrayVar( SYMPTR sym, SYM_HANDLE sym_handle, TYPEPTR typ )
     SYM_ENTRY   sym2;
     TREEPTR     opnd;
     TREEPTR     value;
-    int         token;
+    TOKEN       token;
 
     typ2 = typ->object;
     SKIP_TYPEDEFS( typ2 );
@@ -1513,8 +1513,7 @@ void VarDeclEquals( SYMPTR sym, SYM_HANDLE sym_handle )
         CompFlags.initializing_data = 0;
     } else {
         SymReplace( sym, sym_handle );          /* 31-aug-88 */
-        SrcLineNum = TokenLine;                 /* 15-mar-88 */
-        SrcFno   = TokenFno;
+        SrcLoc = TokenLoc;
         typ = sym->sym_type;
         SKIP_TYPEDEFS( typ );
         /* 07-jun-89  check for { before checking for array,struct

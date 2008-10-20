@@ -294,13 +294,13 @@ TREEPTR LongLeaf( target_long value )
     return( leaf );
 }
 
-local TREEPTR EnumLeaf( struct enum_info *eip )
+local TREEPTR EnumLeaf( ENUMPTR ep )
 {
     DATA_TYPE   decl_type;
     TREEPTR     leaf;
 
     leaf = LeafNode( OPR_PUSHINT );
-    decl_type = eip->parent->sym_type->object->decl_type;
+    decl_type = ep->parent->sym_type->object->decl_type;
     switch( decl_type ) {
     case TYPE_CHAR:
     case TYPE_UCHAR:
@@ -312,11 +312,11 @@ local TREEPTR EnumLeaf( struct enum_info *eip )
     case TYPE_UINT:
     case TYPE_LONG:
     case TYPE_ULONG:
-        leaf->op.long_value = eip->value.u._32[L];
+        leaf->op.long_value = ep->value.u._32[L];
         break;
     case TYPE_LONG64:
     case TYPE_ULONG64:
-        leaf->op.long64_value = eip->value;
+        leaf->op.long64_value = ep->value;
         break;
     }
     leaf->op.const_type = decl_type;
@@ -347,22 +347,22 @@ TREEPTR SymLeaf( void )
     int         hash;
     TREEPTR     tree;
     SYM_ENTRY   sym;
-    struct enum_info ei;
+    ENUMPTR     ep;
 
     if( CurToken == T_SAVED_ID ) {
         CurToken = LAToken;
         hash = SavedHash;
-        EnumLookup( hash, SavedId, &ei );       /* 12-sep-88 */
+        ep = EnumLookup( hash, SavedId );       /* 12-sep-88 */
         sym_handle = SymLook( hash, SavedId );
         if( sym_handle == 0 ) {
-            if( ei.level >= 0 ) {               /* if enum was found */
-                return( EnumLeaf( &ei ) );
+            if( ep != NULL ) {               /* if enum was found */
+                return( EnumLeaf( ep ) );
             }
             SymCreate( &sym, SavedId );
         } else {
             SymGet( &sym, sym_handle );
-            if( ei.level > (int)sym.level )
-                return( EnumLeaf( &ei ) );
+            if( ep != NULL && ep->parent->level > sym.level )
+                return( EnumLeaf( ep ) );
             /* 12-dec-88 */
             if( sym.stg_class == SC_EXTERN  &&  sym.level > 0 ) {
                 sym0_handle = Sym0Look( hash, SavedId );
@@ -378,19 +378,19 @@ TREEPTR SymLeaf( void )
         }
     } else {
         hash = HashValue;
-        EnumLookup( hash, Buffer, &ei );        /* 12-sep-88 */
+        ep = EnumLookup( hash, Buffer );        /* 12-sep-88 */
         sym_handle = SymLook( hash, Buffer );
         if( sym_handle == 0 ) {
-            if( ei.level >= 0 ) {               /* if enum was found */
+            if( ep != NULL ) {               /* if enum was found */
                 NextToken();
-                return( EnumLeaf( &ei ) );
+                return( EnumLeaf( ep ) );
             }
             SymCreate( &sym, Buffer );
         } else {
             SymGet( &sym, sym_handle );
-            if( ei.level > (int)sym.level ) {
+            if( ep != NULL && ep->parent->level > sym.level ) {
                 NextToken();
-                return( EnumLeaf( &ei ) );
+                return( EnumLeaf( ep ) );
             }
             /* 12-dec-88 */
             if( sym.stg_class == SC_EXTERN  &&  sym.level > 0 ) {
@@ -414,13 +414,8 @@ TREEPTR SymLeaf( void )
     if( sym_handle == 0 ) {
         if( CurToken == T_LEFT_PAREN ) {
             sym.stg_class = SC_FORWARD;     /* indicate forward decl */
-            if( !CompFlags.extensions_enabled ) {
-                /* Warn about unprototyped function here, but only in ISO mode.
-                 * In extensions mode, forward declarations are OK. If no prototype
-                 * is ever found, we'll warn later in csym.c.
-                 */
-                CWarn( WARN_ASSUMED_IMPORT, ERR_ASSUMED_IMPORT, sym.name );
-            }
+            /* Warn about unprototyped function */
+            CWarn( WARN_ASSUMED_IMPORT, ERR_ASSUMED_IMPORT, sym.name );
             sym_handle = SymAddL0( hash, &sym ); /* add symbol to level 0 */
             sym.flags |= SYM_FUNCTION;
             sym.sym_type = FuncNode( GetType( TYPE_INT ), 0, NULL );
@@ -1831,8 +1826,7 @@ local void AddCallNode( TREEPTR tree )
         new = CMemAlloc( sizeof( call_list ) );
         new->next = NULL;
         new->callnode = tree;
-        new->source_fno = SrcFno;
-        new->srclinenum = SrcLineNum;
+        new->src_loc = SrcLoc;
         *LastCallLnk = new;
         LastCallLnk =  &new->next;
     }
@@ -2225,7 +2219,7 @@ local TREEPTR GenFuncCall( TREEPTR last_parm )
     }
     tree = CallNode( functree, tree, func_result );
     if( ! DeadCode ) {                          /* 09-apr-93 */
-        if( functree->op.opr == OPR_PUSHADDR ) {
+        if( functree->op.opr == OPR_FUNCNAME ) {
             CompFlags.pending_dead_code |=
                         FunctionAborts( &sym, functree->op.sym_handle );
         }

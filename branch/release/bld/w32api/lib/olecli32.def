@@ -10,7 +10,7 @@ OleCreateFromClip@28
 OleCreateFromFile@36
 OleCreateFromTemplate@32
 OleCreateInvisible@36
-OleCreateLinkFromClip@28
+OleCreateLinkFromClip@32
 OleCreateLinkFromFile@40
 OleDelete@4
 OleDraw@20
@@ -38,7 +38,7 @@ OleQueryReleaseStatus@4
 OleQuerySize@8
 OleQueryType@8
 OleReconnect@4
-OleRegisterClientDoc@16
+OleRegisterClientDoc@8
 OleRelease@4
 OleRename@8
 OleRenameClientDoc@8
@@ -50,8 +50,9 @@ OleSavedClientDoc@4
 OleSetBounds@8
 OleSetColorScheme@8
 OleSetData@12
-OleSetHostNames@12
 OleSetLinkUpdateOptions@8
+OleSetHostNames@12
 OleSetTargetDevice@8
 OleUnlockServer@4
 OleUpdate@4
+

@@ -1,4 +1,4 @@
-LIBRARY wtsapi32.dll
+LIBRARY WTSAPI32.DLL
 EXPORTS
 WTSCloseServer@4
 WTSDisconnectSession@12
@@ -18,6 +18,7 @@ WTSQueryUserConfigA@20
 WTSQueryUserConfigW@20
 WTSQueryUserToken@8
 WTSRegisterSessionNotification@8
+WTSRegisterSessionNotificationEx@12
 WTSSendMessageA@40
 WTSSendMessageW@40
 WTSSetUserConfigA@20
@@ -25,11 +26,13 @@ WTSSetUserConfigW@20
 WTSShutdownSystem@8
 WTSTerminateProcess@12
 WTSUnRegisterSessionNotification@4
+WTSUnRegisterSessionNotificationEx@8
 WTSVirtualChannelClose@4
 WTSVirtualChannelOpen@12
 WTSVirtualChannelPurgeInput@4
 WTSVirtualChannelPurgeOutput@4
 WTSVirtualChannelQuery@16
 WTSVirtualChannelRead@20
-WTSVirtualChannelWrite@16	
+WTSVirtualChannelWrite@16
 WTSWaitSystemEvent@12
+

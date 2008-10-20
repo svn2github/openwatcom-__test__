@@ -39,11 +39,10 @@
 #include "fmthdr.h"
 #include "cg.h"
 #include "emitobj.h"
-
-//=================== Back End Code Generation Routines ====================
-
-extern  void            DGLabel(back_handle);
-extern  void            DGIBytes(unsigned long, byte);
+#include "cgdefs.h"
+#include "cgswitch.h"
+#define  BY_CLI
+#include "cgprotos.h"
 
 //=========================================================================
 

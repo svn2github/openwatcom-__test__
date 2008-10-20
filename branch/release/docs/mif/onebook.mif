@@ -18,14 +18,6 @@ LOWERC=ren
 docsrc_dir=..$(SL)doc
 bldsrc_dir=..$(SL)..$(SL)bld
 
-#
-# output directories for online help header files:
-#
-guitools_dir_nt = $(guitools_dir)$(SL)win95
-guitools_dir_win = $(guitools_dir)$(SL)win
-guitools_dir_os2 = $(guitools_dir)$(SL)os2
-guitools_dir_dos = $(guitools_dir)$(SL)ib
-
 !include ../mif/depends.mif
 !include ../mif/books.mif
 
@@ -48,14 +40,19 @@ optfile_wgml=wgmlopts.tmp
 optfile_whpcvt=whpcopts.tmp
 vi_script_nt=crtcnt.tmp
 gml_lib=..$(SL)gml$(SL)syslib
+dosemu_wgml_batch=wgml.bat
 
 #
 # define target and platform help compilers
 #
 hc_nt = $(%WIN95HC)
-hc_wat = whc
+hc_win = whc
 hc_os2 = $(%OS2HC)
 hc_dos = hcdos
+!ifdef %GHOSTSCRIPT
+hc_pdf = ps2pdf12 
+!endif
+
 
 #
 # define what should be build
@@ -63,24 +60,26 @@ hc_dos = hcdos
 #
 
 !ifeq header 1
-dep_nt = $(guitools_dir_nt)/$(hbook).h
+dep_nt = $(hbook).h
 !else ifneq hc_nt
-dep_nt = $(guitools_dir_nt)/$(hbook).h $(hbook).hlp $(hbook).cnt
+dep_nt = $(hbook).h $(hbook).hlp $(hbook).cnt
 !endif
 !ifeq header 1
-dep_win = $(guitools_dir_win)/$(hbook).h
+dep_win = $(hbook).h
 !else ifneq hc_win
-dep_win = $(guitools_dir_win)/$(hbook).h $(hbook).hlp
+dep_win = $(hbook).h $(hbook).hlp
 !endif
 !ifeq header 1
-dep_os2 = $(guitools_dir_os2)/$(hbook).h
+dep_os2 = $(hbook).h
 !else ifneq hc_os2
-dep_os2 = $(guitools_dir_os2)/$(hbook).h $(hbook).inf $(hbook).hlp
+dep_os2 = $(hbook).h $(hbook).inf $(hbook).hlp
 !endif
-dep_dos = $(guitools_dir_dos)/$(hbook).h $(hbook).ihp
+dep_dos = $(hbook).h $(hbook).ihp
 dep_html = $(hbook).html
 dep_ps = $(hbook).ps
+!ifdef hc_pdf
 dep_pdf = $(hbook).pdf
+!endif
 
 #
 # There should be settings for supported building platforms
@@ -98,7 +97,7 @@ wgml = $(%DOC_ROOT)\gml\dos\wgml
 OS2_TK = dummy
 
 !else ifeq %build_platform linux386
-wgml = wgml
+wgml = dosemu -dumb $(dosemu_wgml_batch)
 OS2_TK = dummy
 
 !else
@@ -179,7 +178,7 @@ $(hbook).rtf $(hbook).cn1 $(hbook).h $(hbook).hh : $(book_objs) $(proj_objs)
 .EXTENSIONS: .hlp .hpj .rtf
 
 $(hbook).hlp : $(hbook).hpj $(hbook).rtf $(hbook).hh
-    $(hc_wat) $(hbook).hpj
+    $(hc_win) $(hbook).hpj
 
 $(hbook).hpj : $(proj_objs)
     @%make compile_hpj_win
@@ -214,7 +213,7 @@ $(hbook).ib $(hbook).h : $(book_objs) $(proj_objs)
 
 $(hbook).html $(hbook).h : $(book_objs) $(proj_objs)
 !ifdef book_bmroot
-    $(CPYCMD) $(book_bmroot)$(SL)*.bmp $^: > $(nulldevice)
+    $(CPYCMD) $(book_bmroot)$(SL)*.bmp $^:. > $(nulldevice)
 !endif
     @%make compile_gml_to_xxx
 
@@ -229,9 +228,9 @@ $(hbook).html $(hbook).h : $(book_objs) $(proj_objs)
 .EXTENSIONS: .ps .bmp
 
 $(hbook).ps : $(book_objs) $(book_objs_ps) $(proj_objs)
-    @set GMLINC=$(book_incs);$(whelp_incs);$(gml_incs)
+    @set GMLINC=$(book_incs);$(gml_incs);$(whelp_incs)
 !ifeq docs_verbose 1
-    @echo GMLINC=$(book_incs);$(whelp_incs);$(gml_incs)
+    @echo GMLINC=$(book_incs);$(gml_incs);$(whelp_incs)
 !endif
     %make prepare_wgml_opts
     -$(wgml) "$(book_src) ( file $(optfile_wgml)"
@@ -259,7 +258,10 @@ $(hbook).ps : $(book_objs) $(proj_objs)
     cd ../pdf
 
 $(hbook).pdf : $(hbook).ps
-    -ps2pdf12 -r600 $[@ $(hbook).pdf
+    @set OWDOCS_OLD_PATH=$(%PATH)
+    @set PATH=$(%GHOSTSCRIPT)
+    -$(hc_pdf) -r600 $[@ $(hbook).pdf
+    @set PATH=$(%OWDOCS_OLD_PATH)
 
 ####################################################
 #
@@ -288,14 +290,6 @@ $(hbook).ipf $(hbook).h : $(book_objs) $(proj_objs)
     @%make compile_gml_to_xxx
 
 !endif
-
-####################################################
-#
-# generate online help header file
-#
-####################################################
-$(guitools_dir_$(dotarget))$(SL)$(hbook).h: $(hbook).h
-    $(CPYCMD) $(hbook).h $@ > $(nulldevice)
 
 ####################################################
 #
@@ -347,6 +341,9 @@ prepare_whpcvt_opts : .PROCEDURE
 #
 ####################################################
 prepare_wgml_opts : .PROCEDURE
+!ifeq %build_platform linux386
+    %make $(dosemu_wgml_batch)
+!endif
     @%create $(optfile_wgml)
 #---------------------------------------
 # settings for Post Script documentation
@@ -355,19 +352,20 @@ prepare_wgml_opts : .PROCEDURE
 #
 # layout setting
 #
-!ifeq hbook c_readme
-    @%append $(optfile_wgml) ( file nn7x9ps
-!else ifeq hbook f77lr
+!ifeq hbook f77lr
     @%append $(optfile_wgml) ( file nbpsshad
-!else ifeq hbook cgdoc
-    @%append $(optfile_wgml) ( file cgdps
-!else ifeq hbook wddoc
-    @%append $(optfile_wgml) ( file nb7x9psn
+!else ifeq hbook clr
+    @%append $(optfile_wgml) ( file nbpsshad
 !else ifeq hbook wgmlref
     @%append $(optfile_wgml) ( file wbrfman
 !else
     @%append $(optfile_wgml) ( file nb7x9ps
 !endif
+#
+# change output format to 8.5x11i
+# remove it if you want old 7x9i format
+#
+    @%append $(optfile_wgml) ( lay to85x11
 #
 # number of passes
 #
@@ -378,6 +376,8 @@ prepare_wgml_opts : .PROCEDURE
 !else ifeq hbook guitool
     @%append $(optfile_wgml) ( passes 3
 !else ifeq hbook wd
+    @%append $(optfile_wgml) ( passes 3
+!else ifeq hbook trap
     @%append $(optfile_wgml) ( passes 3
 !else ifeq hbook lguide
     @%append $(optfile_wgml) ( passes 3
@@ -391,21 +391,14 @@ prepare_wgml_opts : .PROCEDURE
 #
 # output format
 #
-!ifeq hbook pguide
     @%append $(optfile_wgml) ( output (t:100)$(hbook)
-!else ifeq hbook fpguide
-    @%append $(optfile_wgml) ( output (t:100)$(hbook)
-!else ifeq hbook guitool
-    @%append $(optfile_wgml) ( output (t:100)$(hbook)
-!else
-    @%append $(optfile_wgml) ( output (t:80)$(hbook)
-!endif
 #
 # common setting
 #
     @%append $(optfile_wgml) ( cpinch 10
     @%append $(optfile_wgml) ( index
     @%append $(optfile_wgml) ( setsymbol dotarget $(dotarget)
+    @%append $(optfile_wgml) ( setsymbol book_ver $(%BLD_VER_STR)
 # add default windowing for NT
 #    @%append $(optfile_wgml) ( setsymbol defwinnt 1
 # add default windowing for OS/2
@@ -528,7 +521,7 @@ compile_hpj_nt : .PROCEDURE
     @%append $^@ REPORT=Yes
     @%append $^@ CONTENTS=table_of_contents
     @%append $^@ TITLE=$(book_title) Help
-    @%append $^@ COPYRIGHT=Copyright © 1996 Sybase, Inc. and its subsidiaries. All rights reserved. %date
+    @%append $^@ COPYRIGHT=Copyright 1996 Sybase, Inc. and its subsidiaries. All rights reserved. %date
 !ifdef book_bmroot
     @%append $^@ BMROOT=$(book_bmroot)
 !else
@@ -586,6 +579,16 @@ prepare_vi_script_cp: .PROCEDURE
     @%append $(vi_script_nt) execute /^1\ndd
     @%append $(vi_script_nt) w! $^@
     @%append $(vi_script_nt) q!
+
+#-------------------------------------------------------
+# create DOSEMU batch file to run wgml utility
+#-------------------------------------------------------
+$(dosemu_wgml_batch): $(__MAKEFILES__)
+    @%create $@
+    @%append $@ unix -s GMLLIB
+    @%append $@ unix -s GMLINC
+    @%append $@ ..\gml\dos\wgml.exe "%1 %2 %3 %4 %5 %6 %7 %8"
+    @%append $@ exitemu
 
 ####################################################
 

@@ -74,22 +74,38 @@
 #include "objstrip.h"
 #include "symtab.h"
 #include "omfreloc.h"
-#include "ovlsupp.h"
+#include "overlays.h"
 #include "wcomdef.h"
 #include "objomf.h"
 #include "wlink.h"
+#ifndef __WATCOMC__
+    #include "clibext.h"
+#endif
 
 static void     PreAddrCalcFormatSpec( void );
 static void     PostAddrCalcFormatSpec( void );
 static void     DoDefaultSystem( void );
 static void     FindLibPaths( void );
 static void     ResetMisc( void );
+static void     ResetSubSystems( void );
+static void     DoLink( char * );
+static void     CleanSubSystems( void );
+
+#ifdef _INT_DEBUG
+/*
+ *  I have temporarily left these as extern as they are internal data. On the final pass, either find
+ *  a library header that defines these or create one!
+ */
+extern char     *_edata;
+extern char     *_end;
+#endif
+
+static char     *ArgSave;
 
 // Not sure what this is for - doesn't seem to be referenced
 //extern int              __nheapblk;
 
 #if !defined( _DLLHOST )           // it's the standalone linker
-
 int main( int argc, char ** argv )
 /***************************************/
 {
@@ -97,25 +113,14 @@ int main( int argc, char ** argv )
     argv = argv;
 #ifndef __WATCOMC__
     _argv = argv;
+    _argc = argc;
 #endif
     InitSubSystems();
     LinkMainLine( NULL );
     FiniSubSystems();
-    return (LinkState & LINK_ERROR) ? 1 : 0;
+    return( (LinkState & LINK_ERROR) ? 1 : 0 );
 }
-
 #endif
-
-#ifdef _INT_DEBUG
-/*
- *  I have temporarily left these as extern as they are internal data. On the final pass, either find
- *  a library header that defines these or create one!
- */
-extern char *   _edata;
-extern char *   _end;
-#endif
-
-static char *   ArgSave;
 
 static void LinkMeBaby( void )
 /****************************/
@@ -156,7 +161,7 @@ void InitSubSystems( void )
     InitCmdFile();
 }
 
-void ResetSubSystems( void )
+static void ResetSubSystems( void )
 /*********************************/
 {
     ResetPermData();
@@ -186,7 +191,7 @@ void ResetSubSystems( void )
     ResetToc();
 }
 
-void CleanSubSystems( void )
+static void CleanSubSystems( void )
 /*********************************/
 {
     if( MapFile != NIL_HANDLE ) {
@@ -220,7 +225,7 @@ void FiniSubSystems( void )
     LnkMemFini();
 }
 
-void DoLink( char * cmdline )
+static void DoLink( char *cmdline )
 /**********************************/
 // cmdline is only used when we are running under watfor.
 {
@@ -321,7 +326,7 @@ static void PostAddrCalcFormatSpec( void )
     }
 #endif
 #ifdef _QNXLOAD
-     else if( FmtData.type & MK_QNX ) {
+    else if( FmtData.type & MK_QNX ) {
         SetQNXSegFlags();
     }
 #endif

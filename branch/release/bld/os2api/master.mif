@@ -38,7 +38,7 @@ headers386 =                 &
         bseord.h             &
         bsesub.h             &
         bsexcpt.h            &
-	callconv.h           &
+        callconv.h           &
         codec.h              &
         dive.h               &
         driver.h             &
@@ -202,7 +202,7 @@ componentsrexx =     &
 
 componentsmmpm2 =    &
         dive.lbc     &
-	mciapi.lbc   &
+        mciapi.lbc   &
         mdm.lbc      &
         mmio.lbc     &
         sw.lbc
@@ -220,7 +220,7 @@ incldir = incl32
 libdir = lib386
 !endif
 
-extra_lib_flags = -io -ii -p=32
+extra_lib_flags = -io -ii
 
 all : $(dirs) $(headers) $(libs) .SYMBOLIC
 
@@ -228,13 +228,13 @@ all : $(dirs) $(headers) $(libs) .SYMBOLIC
 .mh: ../$(incldir)
 
 .def.lbc:
-        $(vi) -s ../def2lbc.vi -p"$*" ../$(libdir)/$[.
+        sed -f ../def2lbc.sed ../$(libdir)/$[. > $@
 
 .lbc.lib:
-        $(librarian) $(libflags) $@ @$<
+        $(librarian) $(libflags) @$<
 
 .obj.lib:
-        $(librarian) $(libflags) $@ $<
+        $(librarian) $(libflags) $<
 
 .mh.h:
         $(splice)
@@ -261,34 +261,38 @@ all : $(dirs) $(headers) $(libs) .SYMBOLIC
         $(splice)
 
 os2.lib: lib286.lbc msgseg.obj
-        $(librarian) $(libflags) $@ @$[@ +$]@
+        $(librarian) $(libflags) @$[@ +$]@
 
 lib286.lbc: $(components286)
-        cat $< > $@
+        %create $@
+        @for %f in ($<) do cat %f >> $@
 
 os2386.lib: lib386.lbc msgseg32.obj
-        $(librarian) $(libflags) $@ @$[@ +$]@
+        $(librarian) $(libflags) @$[@ +$]@
 
 lib386.lbc: $(components386)
-        cat $< > $@
+        %create $@
+        @for %f in ($<) do cat %f >> $@
 
 rexx.lib: rexxall.lbc
-        $(librarian) $(libflags) $@ @$<
+        $(librarian) $(libflags) @$<
 
 rexxall.lbc: $(componentsrexx)
-        cat $< > $@
+        %create $@
+        @for %f in ($<) do cat %f >> $@
 
 mmpm2.lib: mmpm2all.lbc
-        $(librarian) $(libflags) $@ @$<
+        $(librarian) $(libflags) @$<
 
 mmpm2all.lbc: $(componentsmmpm2)
-        cat $< > $@
+        %create $@
+        @for %f in ($<) do cat %f >> $@
 
 libuls.lib: libuni.lbc
-        $(librarian) $(libflags) $@ @$<
+        $(librarian) $(libflags) @$<
 
 libconv.lib: uconv.lbc
-        $(librarian) $(libflags) $@ @$<
+        $(librarian) $(libflags) @$<
 
 !ifeq host_cpu 386
 $(dirs386):
@@ -297,7 +301,7 @@ $(dirs386):
 
 clean : .SYMBOLIC
         rm -f *.h
-	rm -f *.lbc
+        rm -f *.lbc
         rm -f *.lib
         rm -f *.obj
         rm -f arpa/*.h

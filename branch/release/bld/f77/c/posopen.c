@@ -28,9 +28,9 @@
 *
 ****************************************************************************/
 
-
 #include "ftnstd.h"
-#include "fio.h"
+#include "ftextfun.h"
+#include "ftextvar.h"
 #include "posio.h"
 
 #if defined( __RT__ )
@@ -47,32 +47,18 @@
 
 #endif
 
-extern  void            FSetErr(int,b_file *);
-extern  void            FSetSysErr(b_file *);
-extern  void            IOOk(b_file *);
-extern  int             FSetCC(b_file *,char,char **);
-extern  int             SysWrite(b_file *,char *,uint);
-extern  int             FlushBuffer(b_file *);
-extern  bool            __DevicesCC(void);
+/* Forward declarations */
+static  void    ChkRedirection( b_file *fp );
 
-extern  b_file          *FStdIn;
-extern  b_file          *FStdOut;
-extern  b_file          *FStdErr;
-
-static  int             IOBufferSize = { IO_BUFFER };
+static  int     IOBufferSize = { IO_BUFFER };
 
 #define PERMS   (S_IROTH | S_IWOTH | S_IRGRP | S_IWGRP | S_IRUSR | S_IWUSR)
 
-
 void    InitStd( void ) {
-//=================
-
 // Initialize standard i/o.
-
 #if ! defined( __UNIX__ )
     // don't call setmode() since we don't want to affect higher level
     // i/o so that if C function gets called, printf() works ok
-
 // There is no __GetIOMode in the C runtime!
 #define __GetIOMode  __IOMode
 
@@ -93,14 +79,10 @@ void    InitStd( void ) {
 #endif
 }
 
-
 #if defined( __RT__ )
 
 static  void    ChkRedirection( b_file *fp ) {
-//============================================
-
 // Check for redirection of standard i/o devices.
-
     struct stat         info;
 
     if( fstat( fp->handle, &info ) == -1 ) return;
@@ -111,22 +93,15 @@ static  void    ChkRedirection( b_file *fp ) {
 
 #endif
 
-
 void    SetIOBufferSize( uint buff_size ) {
-//=========================================
-
     if( buff_size < MIN_BUFFER ) {
         buff_size = MIN_BUFFER;
     }
     IOBufferSize = buff_size;
 }
 
-
 b_file  *_AllocFile( int h, f_attrs attrs, long int fpos ) {
-//==========================================================
-
 // Allocate file structure.
-
     b_file      *io;
     struct stat info;
     int         buff_size;
@@ -173,12 +148,8 @@ b_file  *_AllocFile( int h, f_attrs attrs, long int fpos ) {
     return( io );
 }
 
-
 b_file  *Openf( char *f, f_attrs attrs ) {
-//========================================
-
 // Open a file.
-
     int         retc;
     long int    fpos;
     int         share;
@@ -221,12 +192,8 @@ b_file  *Openf( char *f, f_attrs attrs ) {
     return( _AllocFile( retc, attrs, fpos ) );
 }
 
-
 void    Closef( b_file *io ) {
-//============================
-
 // Close a file.
-
     uint        cc_len;
     char        *cc;
 

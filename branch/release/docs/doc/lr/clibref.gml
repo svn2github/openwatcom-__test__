@@ -1,7 +1,3 @@
-.if &e'&volm eq 0 .do begin
-.   .sr volm="Volume 1"
-.do end
-.sr vol2="ltoa.gml"
 .if '&machsys' eq 'DOS' .do begin
 .   .sr isbn=""
 .do end
@@ -11,7 +7,6 @@
 .el .if '&machsys' eq 'QNX' .do begin
 .   .sr isbn="1-55094-xxx-y"
 .   .sr forw="for QNX"
-.   .sr vol2="putw.gml"
 .do end
 .el .if '&machsys' eq 'TEST' .do begin
 .   .sr isbn="11.0-Alpha"
@@ -33,22 +28,20 @@
 .*
 :GDOC.
 .*
-:FRONTM.
-.*
 .if &e'&dohelp eq 0 .do begin
+.*
+:FRONTM.
 :TITLEP.
 :TITLE stitle="Library Reference".&company C Library Reference
 .if &e'&forw eq 1 .do begin
 :TITLE.&forw.
 .do end
-:TITLE.&volm.
 .if '&machsys' eq 'NEC' .do begin
 :TITLE.Supplement
 :TITLE.Japanese DBCS Support
 .do end
 :INCLUDE file='DOCTITLE'.
 :eTITLEP.
-.if '&volm' eq 'Volume 2' .me
 :ABSTRACT.
 :INCLUDE file='COPYRITE'.
 :INCLUDE file='DISCLAIM'.
@@ -69,7 +62,7 @@
 :include file='&book..kw'
 .do end
 .*
-.sepsect &company C Library Reference &volm.
+.sepsect &company C Library Reference
 :INCLUDE file='CLIBINDX'.
 .if '&machsys' ne 'TEST' .do begin
 :INCLUDE file='CLIBOVER'.

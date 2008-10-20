@@ -1,5 +1,5 @@
 proj_name       = ziplib
-orl_autodepends = .autodepend
+ziplib_autodepends = .autodepend
 
 !include cproj.mif
 !include defrule.mif
@@ -55,4 +55,4 @@ objs = &
 $(proj_name).lib : $(objs)
         @%create $^&.lbc
         @for %i in ($(objs)) do @%append $^&.lbc +%i
-        $(librarian) $(libflags) $^@ @$^&.lbc
+        $(librarian) $(libflags) @$^&.lbc

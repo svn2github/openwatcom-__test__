@@ -12,8 +12,6 @@ wlink_autodepends = .AUTODEPEND
 # get rid of the -zc
 suppress_zc = 1
 
-wlink_nosymfile = 1
-
 !include cproj.mif
 !include defrule.mif
 !include deftarg.mif
@@ -42,9 +40,7 @@ inc_dirs = -I. -I"../h"
 ################
 # c flags stuff
 
-force_include = -fi
 !ifeq bootstrap 1
-force_include = -include
 comp_objs_exe += clibext.obj
 !endif
 
@@ -77,7 +73,7 @@ extra_c_flags_demangle   = -I"$(lib_misc_dir)/h"
 extra_c_flags_dllentry   = -bd
 extra_c_flags_idedrv     = -DCHAIN_CALLBACK
 extra_c_flags_msg        = -I"$(lib_misc_dir)/h"
-extra_c_flags_rcstr      = -DINSIDE_WLINK -I"$(wrc_dir)/h" -I"$(wres_dir)/h" -I"$(watcom_dir)/h" $(force_include)"../h/wlrcmem.h"
+extra_c_flags_rcstr      = -DINSIDE_WLINK -I"$(wrc_dir)/h" -I"$(wres_dir)/h" -I"$(watcom_dir)/h"
 extra_c_flags_exerespe   = -DINSIDE_WLINK -I"$(wrc_dir)/h" -I"$(wres_dir)/h" -I"$(watcom_dir)/h"
 extra_c_flags_sharedio   = -DINSIDE_WLINK -I"$(wrc_dir)/h" -I"$(wres_dir)/h" -I"$(watcom_dir)/h"
 extra_c_flags_stidedrv   = -DSTATIC_LINKAGE -I"$(watcom_dir)/c"
@@ -87,21 +83,16 @@ extra_c_flags_mem        = $(trmem_cover_cflags)
 #####################
 # linker .EXE options
 
-extra_l_flags     = op map, noredefs, symfile
-
+extra_l_flags     = op map, noredefs
 extra_l_flags_qnx = op res=wlink.u, st=24k, off=32k
 
 #####################
 # linker .DLL options
 
-!ifeq release 0
-extra_l_flags_dll = OPTION map, noredefs
-!else
-extra_l_flags_dll = OPTION map, noredefs, symfile
-!endif
-extra_l_flags_dll_nt = initinstance terminstance op modname='wlink.dll'
-extra_l_flags_dll_nt += reference __DLLstart_ op offset=0x69c00000
-extra_l_flags_dll_os2 = initinstance terminstance op modname='wlink'
+extra_l_flags_dll     = op map, noredefs
+extra_l_flags_dll_nt  = initinstance terminstance op modname='wlinkd.dll'
+extra_l_flags_dll_nt  += reference __DLLstart_ op offset=0x69c00000
+extra_l_flags_dll_os2 = initinstance terminstance op modname='wlinkd'
 
 xlibs = $(wres_lib) $(dwarf_dw_lib) $(orl_lib)
 
@@ -126,7 +117,7 @@ rc_objs = version.rc
 
 !ifdef wlink_dll
 
-wl.exe : $(drv_objs) wlink.lib drv.lnk
+wl.exe : $(drv_objs) wlinkd.lib drv.lnk
     $(linker) name $@ @drv.lnk
 
 !else
@@ -138,23 +129,22 @@ wl.exe : wlink.res $(comp_objs_exe) $(xlibs) exe.lnk
     $(linker) name $@ @exe.lnk
 !endif
     wstrip -q -a -r $@ . wlink.res
-
 !endif
 
-wl.dll : wlink.res $(comp_objs_dll) $(xlibs) $(rc_objs) dll.lnk
+wld.dll : wlink.res $(comp_objs_dll) $(xlibs) $(rc_objs) dll.lnk
     $(linker) name $@ @dll.lnk
 !ifdef build_rc_$(host_os)_$(host_cpu)
     $(rc) -bt=$(build_rc_$(host_os)_$(host_cpu)) $(inc_path) version.rc $@
 !endif
     wstrip -q -a -r $@ . wlink.res
 
-wlink.lib : wl.dll
-    $(librarian) $(libflags) $@ +$<
+wlinkd.lib : wld.dll
+    $(librarian) $(libflags) +$<
 
 drv.lnk: $(__MAKEFILES__)
     @%write $@ $(lflags)
     @for %i in ($(drv_objs)) do @%append $@ file %i
-    @%append $@ lib wlink.lib
+    @%append $@ lib wlinkd.lib
 
 exe.lnk: $(__MAKEFILES__)
     @%write $@ $(lflags)
@@ -183,7 +173,7 @@ patch_level=0
 !endif
 
 version.rc : ./genverrc.exe ../h/wlver.rc $(fe_misc_dir)/c/genverrc.c
-        $[@ ../h/wlver.rc version.rc $$ wlink.dll $(patch_level)
+        $[@ ../h/wlver.rc version.rc $$ wlink $(patch_level)
 
 wlink.res : rcmsg.gh ../h/wlink.msg ../h/lnkerror.rc ../h/wlnkmsg.h ../h/lnkerror.msg ../h/wlink.rc
         $(rc_aui) $(extra_rc_flags) -I"$(wrc_dir)/h" $]@ -fo=$@

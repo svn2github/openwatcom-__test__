@@ -1,4 +1,4 @@
-LIBRARY Kernel32.dll
+LIBRARY TH32.DLL
 EXPORTS
 CreateToolhelp32Snapshot@8
 Heap32First@12

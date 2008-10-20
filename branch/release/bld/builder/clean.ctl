@@ -15,7 +15,6 @@ cdsay .
     rm -f <OWBINDIR>/cdsay
     rm -f <OWBINDIR>/sweep
     rm -f <OWBINDIR>/wsplice
-    rm -f <OWBINDIR>/wdiff
     rm -f <OWBINDIR>/comstrip
     rm -f <OWBINDIR>/wgrep
     rm -f <OWBINDIR>/wtouch
@@ -31,6 +30,8 @@ cdsay .
     rm -f <OWBINDIR>/wtouch.exe
     rm -f <OWBINDIR>/wmake.exe
     rm -f <OWBINDIR>/rm.exe
+    rm -f <OWBINDIR>/awk.exe
+    rm -f <OWBINDIR>/sed.exe
 
 [ BLOCK . . ]
 #============

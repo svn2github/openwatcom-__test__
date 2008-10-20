@@ -1,12 +1,12 @@
-LIBRARY RPCNS4.dll
+LIBRARY RPCNS4.DLL
 EXPORTS
-I_GetDefaultEntrySyntax@0
 I_RpcNsGetBuffer@4
 I_RpcNsRaiseException@8
 I_RpcNsSendReceive@8
 I_RpcReBindBuffer@4
-RpcIfIdVectorFree@4
 RpcNsBindingExportA@20
+RpcNsBindingExportPnPA@16
+RpcNsBindingExportPnPW@16
 RpcNsBindingExportW@20
 RpcNsBindingImportBeginA@20
 RpcNsBindingImportBeginW@20
@@ -18,6 +18,8 @@ RpcNsBindingLookupDone@4
 RpcNsBindingLookupNext@8
 RpcNsBindingSelect@8
 RpcNsBindingUnexportA@16
+RpcNsBindingUnexportPnPA@16
+RpcNsBindingUnexportPnPW@16
 RpcNsBindingUnexportW@16
 RpcNsEntryExpandNameA@12
 RpcNsEntryExpandNameW@12
@@ -25,7 +27,7 @@ RpcNsEntryObjectInqBeginA@12
 RpcNsEntryObjectInqBeginW@12
 RpcNsEntryObjectInqDone@4
 RpcNsEntryObjectInqNext@8
-RpcNsGroupDeleteA@8
+RpoNsGroupDeleteA@8
 RpcNsGroupDeleteW@8
 RpcNsGroupMbrAddA@16
 RpcNsGroupMbrAddW@16
@@ -58,3 +60,4 @@ RpcNsProfileEltInqNextA@20
 RpcNsProfileEltInqNextW@20
 RpcNsProfileEltRemoveA@20
 RpcNsProfileEltRemoveW@20
+

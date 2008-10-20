@@ -23,8 +23,8 @@ are closed.
 If the parent process of the calling process is executing a
 .kw wait
 or
-.kw waitpid,
-it is notified of the calling process's termination and the low order
+.kw waitpid
+, it is notified of the calling process's termination and the low order
 8 bits of
 .arg status
 are made available to it.
@@ -126,7 +126,7 @@ void main( int argc, char *argv[] )
     _exit( EXIT_SUCCESS );
 }
 .exmp end
-.class POSIX 1003.1
-.np
-_Exit is ISO C99
+.class begin POSIX 1003.1
+.br _Exit is ISO C99
+.class end
 .system

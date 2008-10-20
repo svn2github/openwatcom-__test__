@@ -24,9 +24,10 @@
 *
 *  ========================================================================
 *
-* Description:  *nix specific functions for builder
+* Description:  UNIX specific functions for builder.
 *
 ****************************************************************************/
+
 
 #include <unistd.h>
 #include <string.h>
@@ -40,6 +41,7 @@ void SysInit( int argc, char *argv[] )
 {
     argc = argc;
     argv = argv;
+    setenv( "BLD_HOST", "UNIX", 1 );
 }
 
 unsigned SysRunCommandPipe( const char *cmd, int *readpipe )
@@ -52,6 +54,8 @@ unsigned SysRunCommandPipe( const char *cmd, int *readpipe )
     int         i = 0;
 
     while( sp != NULL ) {
+        while( *sp != '\0' && *sp == ' ' )
+            ++sp;
         argv[i++] = sp;
         sp = strchr( sp, ' ' );
         if( sp != NULL ) {

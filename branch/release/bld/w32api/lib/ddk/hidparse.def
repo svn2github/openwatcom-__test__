@@ -1,9 +1,7 @@
-LIBRARY hidparse.sys
+LIBRARY HIDPARSE.SYS
 EXPORTS
-;HidP_FreeCollectionDescription
-;HidP_GetButtonCaps
+HidP_GetButtonCaps@16
 HidP_GetCaps@8
-;HidP_GetCollectionDescription
 HidP_GetData@24
 HidP_GetExtendedAttributes@20
 HidP_GetLinkCollectionNodes@12
@@ -14,7 +12,7 @@ HidP_GetUsageValue@32
 HidP_GetUsageValueArray@36
 HidP_GetUsages@32
 HidP_GetUsagesEx@28
-;HidP_GetValueCaps
+HidP_GetValueCaps@16
 HidP_InitializeReportForID@20
 HidP_MaxDataListLength@8
 HidP_MaxUsageListLength@12
@@ -23,10 +21,7 @@ HidP_SetScaledUsageValue@32
 HidP_SetUsageValue@32
 HidP_SetUsageValueArray@36
 HidP_SetUsages@32
-;HidP_SysPowerCaps
-;HidP_SysPowerEvent
 HidP_TranslateUsageAndPagesToI8042ScanCodes@24
-HidP_TranslateUsagesToI8042ScanCodes@24
 HidP_UnsetUsages@32
 HidP_UsageAndPageListDifference@20
 HidP_UsageListDifference@20

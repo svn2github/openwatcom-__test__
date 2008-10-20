@@ -24,23 +24,15 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  File I/O routines
 *
 ****************************************************************************/
 
-
 #include "ftnstd.h"
-#include "fio.h"
+#include "ftextfun.h"
 #include "posio.h"
 
-extern  void            IOOk(b_file *);
-extern  int             SysSeek(b_file *,long int,int);
-
-
 void    FRewind( b_file *io ) {
-//=============================
-
 // Rewind a file.
 
     IOOk( io );

@@ -24,11 +24,12 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  File I/O types & modes definitions
 *
 ****************************************************************************/
 
+#ifndef _F77_FIO_H
+#define _F77_FIO_H 1
 
 typedef unsigned_16     f_attrs;        // file attributes
 
@@ -47,7 +48,8 @@ typedef struct a_file {                 // file with no buffered i/o
 #endif
 
 typedef struct b_file {                 // file with buffered i/o
-    unsigned_16 attrs;                  // file attributes
+    f_attrs     attrs;                  // file attributes
+    /* unsigned_16 attrs;                  // file attributes */
     int         handle;                 // DOS handle
     int         stat;                   // error status
     long int    phys_offset;            // physical offset in file
@@ -97,3 +99,5 @@ typedef struct b_file {                 // file with buffered i/o
 #define CTRL_Z  0x1a                    // Ctrl/Z character (EOF marker)
 
 #define READ_ERROR      ((uint)-1)      // read error indicator
+
+#endif

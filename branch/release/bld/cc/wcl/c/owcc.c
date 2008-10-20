@@ -59,10 +59,15 @@
 #endif
 
 #define DIS         "wdis"
-#define CC          "wcc386"          /* Open Watcom C compiler          */
-#define CCXX        "wpp386"          /* Open Watcom C++ compiler        */
+#if defined( _M_I86 )
+#define CC          "wcc"             /* Open Watcom C compiler (16-bit)   */
+#define CCXX        "wpp"             /* Open Watcom C++ compiler (16-bit) */
+#else
+#define CC          "wcc386"          /* Open Watcom C compiler (32-bit)   */
+#define CCXX        "wpp386"          /* Open Watcom C++ compiler (32-bit) */
+#endif
 #define WCLENV      "OWCC"
-#define _NAME_      "C/C++32 "
+#define _NAME_      "C/C++ "
 
 #ifdef __UNIX__
 #define PATH_SEP_STR "/"
@@ -394,7 +399,11 @@ static  int  Parse( int argc, char **argv )
     Flags.link_for_dos = 0;
     Flags.link_for_os2 = 0;
     Flags.windows      = 0;
+#if defined( _M_I86 )
+    Flags.is32bit      = 0;
+#else
     Flags.is32bit      = 1;
+#endif
     Flags.math_8087    = 1;
     Flags.keep_exename = 0;
     Flags.want_errfile = 0;
@@ -416,7 +425,6 @@ static  int  Parse( int argc, char **argv )
                         EnglishHelp )) != -1 ) {
 
         char    *Word = "";
-        int     i;
         int     found_mapping = FALSE;
 
         for( i = 0; i < sizeof( mappings ) / sizeof( mappings[0] ); i++ ) {
@@ -1027,7 +1035,6 @@ static  int  CompLink( void )
         p = end;        /* get next filespec */
     }
     if( errors_found ) {
-        puts( "" );
         return( 1 );            /* 21-jan-92 */
     }
     BuildLinkFile();
@@ -1045,11 +1052,13 @@ static  int  CompLink( void )
             } else {
                 PrintMsg( WclMsgs[ LINKER_RETURNED_A_BAD_STATUS ] );
             }
-            puts( "" );
             return( 2 );        /* return 2 to show Temp_File already closed */
         }
         if( Flags.do_cvpack ) {
             FindPath( "cvpack" EXE_EXT, PathBuffer );
+            if( !Flags.be_quiet ) {
+                puts( "" );
+            }
             fflush( NULL );
             rc = spawnlp( P_WAIT, PathBuffer, "cvpack", Exe_Name, NULL );
             if( rc != 0 ) {

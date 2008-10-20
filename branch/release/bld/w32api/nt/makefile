@@ -1,13 +1,10 @@
-#pmake: build os_nt cpu_386 cpu_axp cpu_ppc
+#pmake/50: build os_nt cpu_386
 
-additional_cleanup = include/*.h include/GL/*.h include/ddk/*.h include/directx/*.h
+host_os       = nt
 
-!include cproj.mif
-!include deftarg.mif
+proj_name     = base
+root_dir      = ..
+include_dir   = $(root_dir)/include
+what_to_build = headers
 
-all: .symbolic
-        @for %i in (../include/*.h) do @wmake -h -f ../fix/new_h.mif file=%i
-        @for %i in (../include/GL/*.h) do @wmake -h -f ../fix/new_h.mif file=%i
-        @for %i in (../include/ddk/*.h) do @wmake -h -f ../fix/new_h.mif file=%i
-        @for %i in (../include/directx/*.h) do @wmake -h -f ../fix/new_h.mif file=%i
-        $(vi) -s ../fix/fix_h.vi
+!include ../master.mif

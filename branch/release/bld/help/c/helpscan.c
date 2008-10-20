@@ -32,35 +32,38 @@
 #include <stdio.h>
 #include <string.h>
 #include "uidef.h"
+#include "help.h"
 #include "helpscan.h"
 #include "helpchar.h"
 #include "helpmem.h"
 
-static  char    specialChars[] = { HELP_ESCAPE,
-                                   GOOFY_HYPERLINK,
-                                   FAKE_RIGHT_ARROW,
-                                   FAKE_LEFT_ARROW,
-                                   '<',
-                                   '>',
-                                   '{',
-                                   '}',
-                                   '\0'
-                                 };
+static  unsigned char   specialChars[] = {
+    HELP_ESCAPE,
+    GOOFY_HYPERLINK,
+    FAKE_RIGHT_ARROW,
+    FAKE_LEFT_ARROW,
+    '<',
+    '>',
+    '{',
+    '}',
+    '\0'
+};
 
-static  char    specialHyperChars[] = { HELP_ESCAPE,
-                                        GOOFY_HYPERLINK,
-                                        HYPER_TOPIC,
-                                        '<',
-                                        '>',
-                                        '{',
-                                        '}',
-                                        '\0'
-                                 };
+static  unsigned char   specialHyperChars[] = {
+    HELP_ESCAPE,
+    GOOFY_HYPERLINK,
+    HYPER_TOPIC,
+    '<',
+    '>',
+    '{',
+    '}',
+    '\0'
+};
 
 static unsigned scanHyperLink( char *line, TokenType *type,
                                HyperLinkInfo *info )
 {
-    char                endchar;
+    unsigned char       endchar;
     char                *cur;
     char                *topic;
     char                *hfname;
@@ -75,17 +78,17 @@ static unsigned scanHyperLink( char *line, TokenType *type,
     cnt = 0;
     chktopic = FALSE;
     chkhfname = FALSE;
-    if( *cur == GOOFY_HYPERLINK ) {
+    if( *(unsigned char *)cur == GOOFY_HYPERLINK ) {
         *type = TK_GOOFY_LINK;
         endchar = GOOFY_HYPERLINK;
     } else {
         *type = TK_PLAIN_LINK;
         endchar = '>';
     }
-    cur ++;
+    ++cur;
     topic = cur;
     for( ;; ) {
-        switch( *cur ) {
+        switch( *(unsigned char *)cur ) {
         case HELP_ESCAPE:
             if( cnt == TEXT_BLOCK_SIZE ) {
                 cnt = 0;
@@ -109,7 +112,7 @@ static unsigned scanHyperLink( char *line, TokenType *type,
             }
             /* fall through */
         case GOOFY_HYPERLINK:
-            if( *cur == endchar ) {
+            if( *(unsigned char *)cur == endchar ) {
                 info->topic = topic;
                 block->cnt = cnt;
                 if( chkhfname ) {
@@ -133,7 +136,8 @@ static unsigned scanHyperLink( char *line, TokenType *type,
                 hfname = cur;
                 chkhfname = TRUE;
             }
-            while( (*cur != endchar) && (*cur != HYPER_TOPIC) ) {
+            while( (*(unsigned char *)cur != endchar)
+	      && (*(unsigned char *)cur != HYPER_TOPIC) ) {
                 if( *cur == HELP_ESCAPE ) cur++;
                 cur++;
             }
@@ -147,7 +151,7 @@ static unsigned scanHyperLink( char *line, TokenType *type,
             }
             block->info[cnt].str = cur;
             block->info[cnt].type = TT_PLAIN;
-            block->info[cnt].len = strcspn( cur, specialHyperChars );
+            block->info[cnt].len = strcspn( cur, (char *)specialHyperChars );
             cur += block->info[cnt].len;
             cnt ++;
             break;
@@ -166,20 +170,19 @@ void freeHyperlinkInfo( TextInfoBlock *cur )
     }
 }
 
-bool ScanLine( char *line, void (*cb)(), void *info )
+bool ScanLine( char *line, ScanCBfunc *cb, void *info )
 {
     char                *cur;
-    TextInfo            textinfo;
-    HyperLinkInfo       hyperlink;
+    Info                tinfo;
     TokenType           type;
     bool                newfile;
 
     cur = line;
     newfile = FALSE;
     for( ;; ) {
-        switch( *cur ) {
+        switch( *(unsigned char *)cur ) {
         case HELP_ESCAPE:
-            textinfo.str = cur;
+            tinfo.u.text.str = cur;
             cur ++;
             switch( *cur ) {
             case H_UNDERLINE:
@@ -187,16 +190,16 @@ bool ScanLine( char *line, void (*cb)(), void *info )
             case H_BOLD:
             case H_BOLD_END:
                 cur++;
-                textinfo.type = TT_CTRL_SEQ;
-                textinfo.len = 2;
+                tinfo.u.text.type = TT_CTRL_SEQ;
+                tinfo.u.text.len = 2;
                 break;
             default:
                 cur++;
-                textinfo.type = TT_ESC_SEQ;
-                textinfo.len = 2;
+                tinfo.u.text.type = TT_ESC_SEQ;
+                tinfo.u.text.len = 2;
                 break;
             }
-            cb( TK_TEXT, &textinfo, info );
+            cb( TK_TEXT, &tinfo, info );
             break;
         case '{':
         case '>':
@@ -215,42 +218,42 @@ bool ScanLine( char *line, void (*cb)(), void *info )
             }
             /* fall through */
         case GOOFY_HYPERLINK:
-            cur += scanHyperLink( cur, &type, &hyperlink );
-            if( hyperlink.hfname_len != 0 ) {
+            cur += scanHyperLink( cur, &type, &tinfo.u.link );
+            if( tinfo.u.link.hfname_len != 0 ) {
                 newfile = TRUE;
             }
-            cb( type, &hyperlink, info );
-            if( hyperlink.block1.next != NULL ) {
-                freeHyperlinkInfo( hyperlink.block1.next );
+            cb( type, &tinfo, info );
+            if( tinfo.u.link.block1.next != NULL ) {
+                freeHyperlinkInfo( tinfo.u.link.block1.next );
             }
             break;
         case FAKE_RIGHT_ARROW:
-            textinfo.str = cur;
-            textinfo.type = TT_RIGHT_ARROW;
-            textinfo.len = 1;
-            cb( TK_TEXT, &textinfo, info );
+            tinfo.u.text.str = cur;
+            tinfo.u.text.type = TT_RIGHT_ARROW;
+            tinfo.u.text.len = 1;
+            cb( TK_TEXT, &tinfo, info );
             cur++;
             break;
         case FAKE_LEFT_ARROW:
-            textinfo.str = cur;
-            textinfo.type = TT_LEFT_ARROW;
-            textinfo.len = 1;
-            cb( TK_TEXT, &textinfo, info );
+            tinfo.u.text.str = cur;
+            tinfo.u.text.type = TT_LEFT_ARROW;
+            tinfo.u.text.len = 1;
+            cb( TK_TEXT, &tinfo, info );
             cur++;
             break;
         case '\0':
-            textinfo.str = cur;
-            textinfo.type = TT_END_OF_LINE;
-            textinfo.len = 1;
-            cb( TK_TEXT, &textinfo, info );
+            tinfo.u.text.str = cur;
+            tinfo.u.text.type = TT_END_OF_LINE;
+            tinfo.u.text.len = 1;
+            cb( TK_TEXT, &tinfo, info );
             return( newfile );
             break;
         default:
-            textinfo.str = cur;
-            textinfo.type = TT_PLAIN;
-            textinfo.len = strcspn( cur, specialChars );
-            cur += textinfo.len;
-            cb( TK_TEXT, &textinfo, info );
+            tinfo.u.text.str = cur;
+            tinfo.u.text.type = TT_PLAIN;
+            tinfo.u.text.len = strcspn( cur, (char *)specialChars );
+            cur += tinfo.u.text.len;
+            cb( TK_TEXT, &tinfo, info );
             break;
         }
     }

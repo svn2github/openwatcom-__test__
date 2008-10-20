@@ -1,4 +1,4 @@
-LIBRARY mscms.dll
+LIBRARY MSCMS.DLL
 EXPORTS
 AssociateColorProfileWithDeviceA@12
 AssociateColorProfileWithDeviceW@12
@@ -10,7 +10,7 @@ ConvertIndexToColorName@16
 CreateColorTransformA@16
 CreateColorTransformW@16
 CreateDeviceLinkProfile@28
-CreateMultiProfileTransform@24
+CreateMultiPlatformTransform@24
 CreateProfileFromLogColorSpaceA@8
 CreateProfileFromLogColorSpaceW@8
 DeleteColorTransform@4
@@ -45,11 +45,28 @@ SetColorProfileElement@20
 SetColorProfileElementReference@12
 SetColorProfileElementSize@12
 SetColorProfileHeader@8
-SetStandardColorSpaceProfileA@12
-SetStandardColorSpaceProfileW@12
-TranslateBitmapBits@44
+SetStandardColorSpaceBufferA@12
+SetStandardColorSpaceBufferW@12
+TransformBitmapBits@44
 TranslateColors@24
 UninstallColorProfileA@12
 UninstallColorProfileW@12
 UnregisterCMMA@8
 UnregisterCMMW@8
+WcsAssociateColorProfileWithDevice@12
+WcsCheckColors@28
+WcsCreateIccProfile@8
+WcsDisassociateColorProfileFromDevice@12
+WcsEnumColorProfiles@20
+WcsEnumColorProfilesSize@12
+WcsGetDefaultColorProfile@28
+WcsGetDefaultColorProfileSize@24
+WcsGetDefaultRenderingIntent@8
+WcsGetUsePerUserProfiles@12
+WcsOpenColorProfileA@28
+WcsOpenColorProfileW@28
+WcsSetDefaultColorProfile@24
+WcsSetDefaultRenderingIntent@8
+WcsSetUsePerUserProfiles@12
+WcsTranslateColors@40
+

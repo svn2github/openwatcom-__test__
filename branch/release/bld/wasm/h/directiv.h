@@ -77,16 +77,13 @@ enum {
     TAB_FIRST = 0,
     TAB_SEG = TAB_FIRST,  // order seg, grp, lname is important
     TAB_GRP,
-    TAB_PUB,
     TAB_LIB,
     TAB_EXT,
     TAB_CONST,
     TAB_PROC,
     TAB_MACRO,
-    TAB_LNAME,
     TAB_CLASS_LNAME,
     TAB_STRUCT,
-    TAB_GLOBAL,
     TAB_LAST,
     TAB_COMM             // TAB_COMM is not included in tables, it is assigned to TAB_EXT
 };                       // tables for definitions
@@ -128,43 +125,48 @@ typedef struct seg_list {
 } seg_list;
 
 typedef struct {
-    direct_idx          idx;            // its group index
+    direct_idx          idx;            // group lname/order index
     seg_list            *seglist;       // list of segments in the group
     uint                numseg;         // number of segments in the group
-    direct_idx          lname_idx;
 } grp_info;
 
 typedef struct {
-    obj_rec             *segrec;
+    direct_idx          idx;            // segment lname/order index
     struct asm_sym      *group;         // its group
     uint_32             start_loc;      // starting offset of current ledata or lidata
-    unsigned            readonly:1;     // if the segment is readonly
-    unsigned            ignore:1;       // ignore this if the seg is redefined
+    unsigned            readonly    :1; // if the segment is readonly
+    unsigned            ignore      :1; // ignore this if the seg is redefined
+    unsigned            align       :4; // align field (enum segdef_align_values)
+    unsigned            combine     :4; // combine field (values in pcobj.h)
+    unsigned            use_32      :1; // 32-bit segment
     seg_type            iscode;         // segment is belonging to "CODE" or 'DATA' class
-    direct_idx          lname_idx;
     uint_32             current_loc;    // current offset in current ledata or lidata
+    uint_32             length;         // segment length
+    uint_16             abs_frame;      // frame for absolute segment
+    struct asm_sym      *class_name;    // segment class name (lname)
 } seg_info;
 
 typedef struct {
-    uint                idx;            // external definition index
-    unsigned            use32:1;
-    unsigned            comm:1;
+    direct_idx          idx;            // external definition index
+    unsigned            use32       :1;
+    unsigned            comm        :1;
+    unsigned            global      :1;
 } ext_info;
 
 typedef struct {
-    uint                idx;            // external definition index
-    unsigned            use32:1;
-    unsigned            comm:1;
+    direct_idx          idx;            // external definition index
+    unsigned            use32       :1;
+    unsigned            comm        :1;
     unsigned long       size;
     uint                distance;
 } comm_info;
 
 typedef struct {
-    unsigned            predef:1;       // whether it is predefined symbol
-    unsigned            redefine:1;     // whether it is redefinable or not
+    unsigned            predef      :1; // whether it is predefined symbol
+    unsigned            redefine    :1; // whether it is redefinable or not
     unsigned            expand_early:1; // if TRUE expand before parsing
     int                 count;          // number of tokens
-    struct asm_tok      *data;          // array of asm_tok's to replace symbol
+    asm_tok             *data;          // array of asm_tok's to replace symbol
 } const_info;
 
 typedef struct regs_list {
@@ -179,9 +181,9 @@ typedef struct label_list {
     int                 size;           // size of parameter
     int                 factor;         // for local var only
     union {
-        unsigned        is_vararg:1;    // if it is a vararg
+        unsigned        is_vararg   :1; // if it is a vararg
         int             count;          // number of element in this label
-    };
+    } u;
 } label_list;
 
 typedef struct {
@@ -191,9 +193,9 @@ typedef struct {
     int                 parasize;       // total no. of bytes used by parameters
     int                 localsize;      // total no. of bytes used by local variables
     memtype             mem_type;       // distance of procedure: near or far
-    unsigned            is_vararg:1;    // if it has a vararg
-    unsigned            pe_type:1;      // prolog/epilog code type 0:8086/186 1:286 and above
-    unsigned            export:1;       // EXPORT procedure
+    unsigned            is_vararg   :1; // if it has a vararg
+    unsigned            pe_type     :1; // prolog/epilog code type 0:8086/186 1:286 and above
+    unsigned            export      :1; // EXPORT procedure
 } proc_info;
 
 typedef struct parm_list {
@@ -278,18 +280,17 @@ typedef struct a_definition_struct {
 } a_definition_struct;
 
 extern a_definition_struct      Definition;
-extern uint                     LnamesIdx;      // Number of LNAMES definition
 
 typedef struct {
     dist_type           distance;        // stack distance;
     mod_type            model;           // memory model;
     lang_type           langtype;        // language;
     os_type             ostype;          // operating system;
-    unsigned            use32:1;         // If 32-bit segment is used
-    unsigned            cmdline:1;
-    unsigned            defUse32:1;      // default segment size 32-bit
-    unsigned            mseg:1;          // mixed segments (16/32-bit)
-    unsigned            flat_idx;        // index of FLAT group
+    unsigned            use32       :1;  // If 32-bit segment is used
+    unsigned            cmdline     :1;
+    unsigned            defUse32    :1;  // default segment size 32-bit
+    unsigned            mseg        :1;  // mixed segments (16/32-bit)
+    struct asm_sym      *flat_grp;       // FLAT group symbol
     char                name[_MAX_FNAME];// name of module
     const FNAME         *srcfile;
 } module_info;                           // Information about the module
@@ -317,38 +318,22 @@ extern seg_list         *CurrSeg;       // points to stack of opened segments
 /*---------------------------------------------------------------------------*/
 
 extern dir_node         *dir_insert( const char *, int );
+extern void             dir_to_sym( dir_node * );
 extern void             dir_change( dir_node *, int );
 
-extern void             IdxInit( void );
-/* Initialize all the index variables */
-
-extern direct_idx       GetLnameIdx( char * );
-
-extern direct_idx       LnameInsert( char * );  // Insert a lname
 extern uint_32          GetCurrAddr( void );    // Get offset from current segment
 
 extern dir_node         *GetCurrSeg( void );
 /* Get current segment; NULL means none */
 
-extern uint             GetGrpIdx( struct asm_sym * );
-/* get symbol's group index, from the symbol itself or from the symbol's segment */
-
-extern uint             GetSegIdx( struct asm_sym * );
-/* get symbol's segment index, from the symbol itself */
-
-extern uint             GetExtIdx( struct asm_sym * );
-/* Get the index of an extrn defn */
-
-extern int              GlobalDef( int );       // define an global symbol
-extern int              ExtDef( int );          // define an external symbol
+extern int              ExtDef( int, bool );    // define an global or external symbol
 extern int              CommDef( int );         // define an communal symbol
-extern struct asm_sym   *MakeExtern( char *name, memtype type, bool already_defd );
 extern int              PubDef( int );          // define a public symbol
 extern int              GrpDef( int );          // define a group
 extern int              SegDef( int );          // open or close a segment
 extern int              SetCurrSeg( int );      // open or close a segment in
                                                 // the second pass
-extern int              ProcDef( int );         // define a procedure
+extern int              ProcDef( int, bool );   // define a procedure
 extern int              LocalDef( int );        // define local variables to procedure
 extern int              ProcEnd( int );         // end a procedure
 extern int              Ret( int, int, int );   // emit return statement from procedure

@@ -24,25 +24,15 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  double-byte character processing utilities
 *
 ****************************************************************************/
 
-
-//
-// DBCSUTIL     : double-byte character processing utilities
-//
-
 #include "ftnstd.h"
-#include "csetinfo.h"
-
-extern  character_set           CharSetInfo;
-
+#include "ftextfun.h"
+#include "ftextvar.h"
 
 int     ExtractText( char *string, int len ) {
-//============================================
-
 // Given a string of text, extract as much text as possible up to a maximum
 // of "len" bytes so that we don't split double-byte characters.
 

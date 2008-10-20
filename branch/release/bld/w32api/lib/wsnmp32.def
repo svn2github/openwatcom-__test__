@@ -1,7 +1,8 @@
-LIBRARY wsnmp32.dll
+LIBRARY WSNMP32.DLL
 EXPORTS
 SnmpCancelMsg@8
 SnmpCleanup@0
+SnmpCleanupEx@0
 SnmpClose@4
 SnmpContextToStr@8
 SnmpCountVbl@4
@@ -28,6 +29,7 @@ SnmpGetTranslateMode@4
 SnmpGetVb@16
 SnmpGetVendorInfo@4
 SnmpListen@8
+SnmpListenEx@12
 SnmpOidCompare@16
 SnmpOidCopy@8
 SnmpOidToStr@12
@@ -43,6 +45,8 @@ SnmpSetTimeout@8
 SnmpSetTranslateMode@4
 SnmpSetVb@16
 SnmpStartup@20
+SnmpStartupEx@20
 SnmpStrToContext@8
 SnmpStrToEntity@8
 SnmpStrToOid@8
+

@@ -7,15 +7,15 @@ int _stat( const char *path, struct _stat *buf );
 .ixfunc2 '&FileOp' &_func
 .do end
 int _stati64( const char *path, struct _stati64 *buf );
-.ixfunc2 '&FileOp' &_func
+.ixfunc2 '&FileOp' &_func64
 .if &'length(&wfunc.) ne 0 .do begin
 int _wstat( const wchar_t *path, struct _stat *buf );
 .ixfunc2 '&FileOp' &wfunc
 .ixfunc2 '&Wide' &wfunc
 .do end
 int _wstati64( const wchar_t *path, struct _stati64 *buf );
-.ixfunc2 '&FileOp' &wfunc.i64
-.ixfunc2 '&Wide' &wfunc.i64
+.ixfunc2 '&FileOp' &wfunc64
+.ixfunc2 '&Wide' &wfunc64
 int lstat( const char *path, struct stat *buf );
 .ixfunc2 '&FileOp' l&func
 .funcend
@@ -33,16 +33,16 @@ The &_func function is identical to &func..
 Use &_func for ANSI/ISO naming conventions.
 .do end
 The
-.kw _fstati64,
-.kw _wfstat,
+.kw _stati64,
+.kw _wstat,
 and
-.kw _wfstati64
+.kw _wstati64
 functions differ from &func in the type of structure that they are
 asked to fill in.
 The
-.kw _wfstat
+.kw _wstat
 and
-.kw _wfstati64
+.kw _wstati64
 functions deal with wide character strings.
 The differences in the structures are described above.
 The
@@ -90,9 +90,7 @@ void main()
     }
 }
 .exmp end
-.class POSIX
-.if &'length(&_func.) ne 0 .do begin
-.np
-&_func conforms to ANSI/ISO naming conventions
-.do end
+.class begin POSIX
+.ansiname &_func
+.class end
 .system

@@ -1267,7 +1267,7 @@ static void genAutoStaticInit(  // generate code to copy array into auto
     SYMBOL dst,                 // - destination auto var
     SYMBOL src )                // - source static var
 {
-    unsigned type_refno;
+    cg_type type_refno;
     cg_name d1;
     cg_name s1;
     cg_name e1;
@@ -1285,7 +1285,6 @@ static void emitProfilingData(
     FN_CTL* fctl,               // - function information
     SYMBOL sym )                // - function symbol
 {
-    char *fn_name;
     size_t len;
     uint_16 old_seg;
     back_handle fnh;
@@ -1297,8 +1296,6 @@ static void emitProfilingData(
             return;
         }
         FormatSym( sym, &data );
-        fn_name = data.buf;
-        len = strlen( fn_name ) + 1;
         old_seg = BESetSeg( SEG_PROF_REF );
         DbgVerify( 0 == ( 3 & DGTell() ), "P5 segment out of wack" );
         fnh = BENewBack( 0 );
@@ -1307,7 +1304,8 @@ static void emitProfilingData(
         DGInteger( -1,  T_INTEGER );
         DGInteger( 0,   T_INTEGER );
         DGInteger( 0,   T_INTEGER );
-        DGBytes( len, fn_name );
+        len = VbufLen( &data ) + 1;
+        DGBytes( len, VbufString( &data ) );
         len &= 0x03;
         if( len ) {
             DGIBytes( 4 - len, 0 );

@@ -414,10 +414,8 @@ _WCRTLINK extern size_t  strnlen_s( const char *__s, size_t __maxsize );
 
 :segment CNAME
 :include cplusepi.sp
-:endsegment
-
-:segment !CNAME
-#endif /* __cplusplus */
+:elsesegment
+#endif /* __cplusplus not defined */
 :endsegment
 
 #endif
@@ -939,7 +937,7 @@ namespace std {
   // *************************
   template< class CharT, class Traits, class Allocator >
   inline
-  basic_string< CharT, Traits, Allocator >::iterator
+  typename basic_string< CharT, Traits, Allocator >::iterator
     basic_string< CharT, Traits, Allocator >::insert( iterator p, CharT c )
   {
     return( insert_helper( p, 1, c ) );

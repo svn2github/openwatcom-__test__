@@ -24,59 +24,19 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Run-time FORMAT initialization routines
 *
 ****************************************************************************/
 
-
-//
-// RFMTINIT     : Run-time FORMAT initialization routines
-//
-
 #include "ftnstd.h"
+#include "ftextfun.h"
+#include "ftextvar.h"
 #include "rundat.h"
 #include "format.h"
 #include "fmtdef.h"
 #include "fmtdat.h"
 #include "rtenv.h"
 #include "fmttab.h"
-
-extern  void            SetFmt(char PGM *);
-extern  void            R_FEmInit(void);
-extern  void            R_FEmEnd(void);
-extern  void            R_FDoSpec(void);
-
-extern const FmtElements RFmtStruct;
-
-
-void    FmtAScan( char PGM *array, long int num_elts, int elt_size,
-                  uint extend_format ) {
-//=================================================================
-
-// Encode format specification from a character array.
-
-    string      scb;
-
-    _SetIOCB();
-    scb.strptr = array;
-    scb.len = num_elts * elt_size;
-    FmtScan( &scb, extend_format );
-  }
-
-
-void    FmtScan( string *fmt, uint extend_format ) {
-//==================================================
-
-    _SetIOCB();
-    if( extend_format ) {
-        IOCB->flags |= IOF_EXTEND_FORMAT;
-    }
-    FInit( fmt );
-    R_FDoSpec();
-    FFinish();
-}
-
 
 static  void    FInit( string *fmt ) {
 //====================================
@@ -99,3 +59,33 @@ static  void    FFinish( void ) {
     R_FEmEnd();
     SetFmt( &FmtBuff[ 0 ] );
 }
+
+
+void    FmtScan( string *fmt, uint extend_format ) {
+//==================================================
+
+    _SetIOCB();
+    if( extend_format ) {
+        IOCB->flags |= IOF_EXTEND_FORMAT;
+    }
+    FInit( fmt );
+    R_FDoSpec();
+    FFinish();
+}
+
+
+void    FmtAScan( char PGM *array, long int num_elts, int elt_size,
+                  uint extend_format ) {
+//=================================================================
+
+// Encode format specification from a character array.
+
+    string      scb;
+
+    _SetIOCB();
+    scb.strptr = array;
+    scb.len = num_elts * elt_size;
+    FmtScan( &scb, extend_format );
+}
+
+

@@ -29,8 +29,6 @@
 ****************************************************************************/
 
 
-#define ENUM_HANDLE     ENUMPTR
-
 typedef char    *SYM_NAMEPTR;
 
 #include "cg.h"
@@ -302,10 +300,14 @@ typedef struct incfile {
     char            filename[1];
 } INCFILE;
 
+typedef struct source_loc {
+    unsigned        fno;
+    unsigned        line;
+} source_loc;
+
 typedef struct xref_entry {
     struct xref_entry       *next_xref;
-    unsigned                linenum;
-    unsigned                filenum;
+    source_loc              src_loc;
 } XREF_ENTRY, *XREFPTR;
 
 extern  XREFPTR NewXref( XREFPTR );
@@ -321,9 +323,9 @@ struct sym_hash_entry {   /* SYMBOL TABLE structure */
     };
     SYM_HANDLE      handle;
 #if defined(  __386__ )
-    char            level;
+    unsigned char   level;
 #else
-    unsigned        level;
+    int             level;
 #endif
     char            name[1];
 };
@@ -338,11 +340,7 @@ typedef struct symtab_entry {           /* SYMBOL TABLE structure */
         int             sym_type_index;     /* for pre-compiled header */
     };
     SYM_HANDLE          handle;
-    unsigned short      defn_file_index;    /* file this symbol is defined in */
-    union {
-        int             defn_line;          /* line number sym is defined on */
-        int             index;              /* symbol index in object file */
-    } d;
+    source_loc          src_loc;
     union {
         BACK_HANDLE     backinfo;
         int             hash_value;
@@ -367,7 +365,11 @@ typedef struct symtab_entry {           /* SYMBOL TABLE structure */
                                              * perhaps stored in 'info' union. */
     type_modifiers  attrib;   /* LANG_CDECL, _PASCAL, _FORTRAN */
     sym_flags       flags;
+#if defined(  __386__ )
     unsigned char   level;
+#else
+    int             level;
+#endif
     struct {
         unsigned char stg_class  : 3;
         unsigned char declspec   : 2;
@@ -408,23 +410,18 @@ typedef struct field_entry {
 #define FIELD_HASH_SIZE SYM_HASH_SIZE
 
 typedef struct enum_entry {
-    struct  enum_entry *next_enum;  /* used in hash table */
-    struct  enum_entry *thread;     /* list belonging to same enum */
+    struct enum_entry   *next_enum;     /* used in hash table */
+    struct enum_entry   *thread;        /* list belonging to same enum */
     XREFPTR xref;
     union {
-        struct tag_entry *parent;
-        int  enum_len;              /* for pre-compiled header */
+        struct tag_entry    *parent;
+        int                 enum_len;   /* for pre-compiled header */
     };
-    int     hash;
-    uint64  value;
-    char    name[1];
+    int         hash;
+    uint64      value;
+    source_loc  src_loc;
+    char        name[1];
 } ENUMDEFN, *ENUMPTR;
-
-typedef struct enum_info {          /* used to obtain info about an ENUM */
-    struct tag_entry    *parent;
-    int                 level;
-    uint64              value;
-} ENUM_INFO;
 
 typedef struct tag_entry {
     struct tag_entry *next_tag;
@@ -444,11 +441,11 @@ typedef struct tag_entry {
     };
 #if defined( __386__ )
     unsigned short  hash;           /* hash value for tag */
-    char            level;
+    unsigned char   level;
     unsigned char   alignment;      /* alignment required */
 #else
     unsigned        hash;
-    unsigned        level;
+    int             level;
     unsigned        alignment;
 #endif
     union   {
@@ -722,6 +719,5 @@ enum {
 typedef struct call_list {
     struct call_list    *next;
     TREEPTR             callnode;
-    unsigned            source_fno;     // OPR_STMT
-    int                 srclinenum;     // OPR_STMT, and OPR_NOP for callnode
+    source_loc          src_loc;
 } call_list;

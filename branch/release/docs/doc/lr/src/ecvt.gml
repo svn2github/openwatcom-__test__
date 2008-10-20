@@ -1,4 +1,4 @@
-.func ecvt _ecvt _uecvt
+.func ecvt _ecvt _wecvt
 #include <stdlib.h>
 char *ecvt( double value,
             int ndigits,
@@ -80,9 +80,7 @@ void main()
 .exmp output
 str=123457, dec=3, sign=0
 .exmp end
-.class WATCOM
-.if &'length(&_func.) ne 0 .do begin
-.np
-&_func conforms to ANSI/ISO naming conventions
-.do end
+.class begin WATCOM
+.ansiname &_func
+.class end
 .system

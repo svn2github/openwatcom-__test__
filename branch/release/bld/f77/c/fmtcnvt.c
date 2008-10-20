@@ -24,17 +24,12 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  integer and floating point conversion routines
 *
 ****************************************************************************/
 
-
-//
-// FMTCNVT      : integer and floating point conversion routines
-//
-
 #include "ftnstd.h"
+#include "ftextfun.h"
 #include "intcnv.h"
 #include "fltcnv.h"
 
@@ -44,16 +39,14 @@
 #include <errno.h>
 #include <float.h>
 
-extern  bool            MulIOFlo(intstar4 *,intstar4 *);
-extern  bool            AddIOFlo(intstar4 *,intstar4 *);
-
+/* Forward declarations */
+static  void    AddDig( canon_form *canon, char ch );
+static  int     Digits( canon_form *canon, char *field, char *stop,
+                        int decimals, bool blanks, byte flag );
 
 int     FmtS2I( char *str, int len, bool blanks, intstar4 *value, bool stop_ok,
                 int *width ) {
-//============================
-
 // Convert a FORTRAN I format string to an integer.
-
     char        ch;
     bool        sign;
     char        *strend;
@@ -122,12 +115,9 @@ int     FmtS2I( char *str, int len, bool blanks, intstar4 *value, bool stop_ok,
     return( status );
 }
 
-
 int     FmtS2F( char *field, int width, int decimals, bool blanks,
                 int scale, int prec, extended *result, bool stop_ok,
                 int *new_width, bool extend_flt ) {
-//=================================================
-
 // Format a string to floating point representation.
 
     char        *stop;
@@ -276,14 +266,10 @@ int     FmtS2F( char *field, int width, int decimals, bool blanks,
     return( FLT_OK );
 }
 
-
 static  int     Digits( canon_form *canon, char *field, char *stop,
                         int decimals, bool blanks, byte flag ) {
-//==============================================================
-
 // Collect digits to the left or right of the decimal point. Take blanks
 // into consideration. Set "canon->exp" accordingly.
-
     int         count;
     char        ch;
 
@@ -329,12 +315,8 @@ static  int     Digits( canon_form *canon, char *field, char *stop,
     return( count );
 }
 
-
 static  void    AddDig( canon_form *canon, char ch ) {
-//====================================================
-
 // Add a significant digit to mantissa.
-
     int         col;
 
     col = canon->col;

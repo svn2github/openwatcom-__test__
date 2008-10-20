@@ -1,26 +1,25 @@
 proj_name = builder
 
+additional_cleanup= proctab.c ytab.h awk.c
+
 !include cproj.mif
 !include defrule.mif
 !include deftarg.mif
 
+all : cdsay.exe sweep.exe wsplice.exe comstrip.exe &
 !ifndef __UNIX__
-rm_exe = rm.exe
+    diff.exe awk.exe sed.exe &
 !endif
-
-!ifdef bootstrap
-all : cdsay.exe sweep.exe wsplice.exe diff.exe comstrip.exe
-!else
-all : langdat.exe mksetup.exe cdsay.exe sweep.exe wsplice.exe diff.exe &
-!ifdef __UNIX__
-        runasdos.exe &
+!ifndef bootstrap
+    langdat.exe mksetup.exe wgrep.exe builder.exe &
+!ifndef __UNIX__
+    rm.exe
 !endif
-        comstrip.exe $(rm_exe) builder.exe wgrep.exe
 !endif
 
 inc_dirs = -I"../../pmake" -I"../../posix/h"
 
-.c : ../c;../../pmake;../../posix/src/rm;../../posix/misc
+.c : ../c;../../pmake;../../posix/src/rm;../../posix/src/sed;../../posix/misc
 
 sys_dos   = sys.obj sysdos.obj sysdoscd.obj
 sys_os2   = sys.obj sysos2.obj sysdoscd.obj
@@ -36,17 +35,35 @@ builder.exe : clibext.obj
 sweep.exe : sweep.obj clibext.obj
 wsplice.exe : wsplice.obj clibext.obj
 diff.exe : diff.obj clibext.obj
+!else ifndef __UNIX__
+inc_dirs += -I$(awk_dir)
+.c : $(awk_dir)
+# -pil is temporary fix for OW C compiler
+extra_c_flags += -pil
+
+sed.exe : sed.obj sedcomp.obj
+
+awk.exe : awk.obj b.obj parse.obj proctab.obj tran.obj lib.obj run.obj lex.obj ytab.obj pfileio.obj
+
+proctab.c : maketab.exe
+        copy $(awk_dir)\ytab.h ytab.h > nul
+        $[@ >proctab.c
+
+awk.c :
+        copy $(awk_dir)\main.c awk.c > nul
 !endif
 
 !ifdef __MSDOS__
 __DOS__=1
 !endif
 
-!ifndef bootstrap
-builder.exe : builder.obj
+builder.exe : builder.obj utils.obj $(sys_$(host_os)) runit.obj pmake.obj equals.obj
         $(cl) $(clflags) $<
 !ifndef __$(host_os)__                  # Don't copy unless host_os=build_os
-!else ifndef __UNIX__                   # Avoid "text file busy".
+!else ifndef %LOGFNAME                  # Don't copy unless build outside builder
+!ifdef __UNIX__
+        cp   $^. $(%OWBINDIR)/$^&       # Remove .exe from working name
+!else
         copy $^. $(%OWBINDIR) > nul     # MS-influenced command noisy
 !endif
 !endif
@@ -60,14 +77,7 @@ builder.exe : builder.obj
         copy $^. $(%OWBINDIR) > nul     # MS-influenced command noisy
 !endif
 
-# runasdos will run itself under dosemu. Copy once for each program that still
-# exists only as dos version.
-runasdos.exe: runasdos.obj
-        $(cl) $(clflags) $<
-        cp   $^. $(%OWBINDIR)/wgml
-
 cdsay.exe : cdsay.obj equals.obj
-builder.exe : builder.obj utils.obj $(sys_$(host_os)) runit.obj pmake.obj equals.obj
 langdat.exe : langdat.obj utils.obj $(sys_$(host_os))
 rm.exe: rm.obj getopt.obj quit.obj lineprt.obj alloc.obj filerx.obj &
         regexp.obj fnlower.obj die.obj isdotdot.obj

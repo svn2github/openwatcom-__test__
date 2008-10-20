@@ -44,6 +44,7 @@
 #include "extfunc.h"
 #include "mthread.h"
 #include "seterrno.h"
+#include "cthread.h"
 
 // TODO: Implement this for Linux!
 //static int begin_thread_helper( void *ptr )

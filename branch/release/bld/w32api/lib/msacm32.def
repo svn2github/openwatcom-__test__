@@ -1,6 +1,5 @@
 LIBRARY MSACM32.DLL
 EXPORTS
-XRegThunkEntry@36
 acmDriverAddA@20
 acmDriverAddW@20
 acmDriverClose@8
@@ -34,7 +33,6 @@ acmFormatTagDetailsW@12
 acmFormatTagEnumA@20
 acmFormatTagEnumW@20
 acmGetVersion@0
-acmMessage32@24
 acmMetrics@12
 acmStreamClose@8
 acmStreamConvert@12
@@ -44,3 +42,4 @@ acmStreamPrepareHeader@12
 acmStreamReset@8
 acmStreamSize@16
 acmStreamUnprepareHeader@12
+

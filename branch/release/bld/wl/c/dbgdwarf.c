@@ -226,7 +226,7 @@ static void DwarfAddLines( lineinfo *info )
 {
     ln_off_pair UNALIGN *lineptr;
     unsigned_32         dwsize;
-    char                buff[ 3 + 2 * MAX_LEB128 ];
+    uint_8              buff[ 3 + 2 * MAX_LEB128 ];
     dw_linenum_delta    linedelta;
     dw_addr_delta       addrdelta;
     ln_off_386          prevline;
@@ -390,9 +390,9 @@ void DwarfAddModule( mod_entry *mod, section *sect )
             mod->d.d->dasi.addr += 1;
             buff = alloca( namelen + 3 );
             memcpy( &buff[0], mod->name, namelen );
-            buff[namelen + 1] = 0;          // no directory index
-            buff[namelen + 2] = 0;          // no time
-            buff[namelen + 3] = 0;          // no length
+            buff[namelen + 0] = 0;          // no directory index
+            buff[namelen + 1] = 0;          // no time
+            buff[namelen + 2] = 0;          // no length
             PutInfo( mod->d.d->dasi.addr, buff, namelen + 3 );
             mod->d.d->dasi.addr += namelen + 3;
             zero = 0;                       // no more file names
@@ -532,7 +532,7 @@ void DwarfGenLines( lineinfo *info )
     virt_mem            vmem_addr;
     ln_off_386          prevline;
     offset              off;
-    char                buff[ 3 + 2 * MAX_LEB128 ];
+    uint_8              buff[ 3 + 2 * MAX_LEB128 ];
     unsigned            size;
     segdata             *seg;
 

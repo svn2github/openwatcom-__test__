@@ -312,7 +312,7 @@ static void CheckRWData( frame_spec *targ, targ_addr *addr )
         && IsReadOnly( LastSegData ) ) {
         if( ( !IS_SYM_IMPORTED( targ->u.sym ) )
             && ( !IsReadOnly( GetFrameSegData( targ ) ) ) ) {
-            if( CurrRec.seg->u.leader->dbgtype == NOT_DEBUGGING_INFO ) {
+            if( !IS_DBG_INFO( CurrRec.seg->u.leader ) ) {
                 if( targ->type == TARGET_SEGWD ) {
                     sym.name = targ->u.sdata->u.leader->segname;
                     LnkMsg( LOC+WRN+MSG_RELOC_TO_RWDATA_SEG, "aS", addr, &sym );
@@ -382,21 +382,10 @@ static void BuildReloc( save_fixup *save, frame_spec *targ, frame_spec *frame )
         }
     }
     if( !fix.imported ) {
-        if( ( (save->flags & FIX_OFFSET_MASK) > FIX_OFFSET_16 )
-            || ( fix.ffix != FFIX_NOT_A_FLOAT ) ) {
-
-            /***************************************************************/
-            /*  fix bug #630 fixup is applied to non first segment of grp  */
-            /*  recalculate offset from start of group                     */
-            /***************************************************************/
-
-            if( faddr.seg < fix.tgt_addr.seg ) {
-                ConvertToFrame( &fix.tgt_addr, faddr.seg );
-            }
-            fix.tgt_addr.seg = faddr.seg;
-
+        if( fix.ffix == FFIX_NOT_A_FLOAT ) {
+            ConvertToFrame( &fix.tgt_addr, faddr.seg, (save->flags & (FIX_OFFSET_8 | FIX_OFFSET_16)) );
         } else {
-            ConvertToFrame( &fix.tgt_addr, faddr.seg );
+            fix.tgt_addr.seg = faddr.seg;
         }
     }
     if( (save->flags & (FIX_OFFSET_MASK | FIX_HIGH)) == FIX_HIGH_OFFSET_16 ) {
@@ -966,7 +955,7 @@ static offset FindRealAddr( fix_data *fix )
     bool        dbiflat;
 
     off = fix->tgt_addr.off;
-    dbiflat = DBINoReloc( CurrRec.seg->u.leader->dbgtype );
+    dbiflat = DBINoReloc( CurrRec.seg->u.leader );
     if( ( fix->type & FIX_ABS )
         || dbiflat && !( CurrMod->modinfo & MOD_FLATTEN_DBI ) ) {
         return( off );
@@ -1030,7 +1019,7 @@ static void PatchData( fix_data *fix )
         fix->additive = TRUE;
     if( fix->type & FIX_REL )
         return;
-    isdbi = DBINoReloc( CurrRec.seg->u.leader->dbgtype );
+    isdbi = DBINoReloc( CurrRec.seg->u.leader );
     if( fix->imported ) {
         if( isdbi ) {
             fix->tgt_addr.off = 0;      // crazy person has imports in the dbi
@@ -1065,6 +1054,9 @@ static void PatchData( fix_data *fix )
         } else if( fix->done || ( FmtData.type & ( MK_QNX | MK_DOS ) ) ) {
             if( isdbi && ( LinkFlags & CV_DBI_FLAG ) ) {    // FIXME
                 segval = FindGroupIdx( fix->tgt_addr.seg );
+            } else if( fix->type & FIX_ABS ) {
+                /* MASM 5.1 stuffs abs seg length in displacement; ignore it like LINK. */
+                segval = fix->tgt_addr.seg;
             } else {
                 segval = GET_U16( data ) + fix->tgt_addr.seg;
             }
@@ -1126,7 +1118,7 @@ static bool FarCallOpt( fix_data *fix )
         return( FALSE );
     if( fix->loc_addr.seg != fix->tgt_addr.seg )
         return( FALSE );
-    if( !CurrRec.seg->canfarcall )
+    if( !(CurrRec.seg->canfarcall || CurrRec.seg->iscode) )
         return( FALSE );
     code = fix->data - 1;
     instruction = GET_U8( code );
@@ -1254,15 +1246,13 @@ static void FmtReloc( fix_data *fix, frame_spec *tthread )
         return;
     ftype = fix->type & ( FIX_OFFSET_MASK | FIX_BASE );
     if( (FmtData.type & (MK_PHAR_SIMPLE | MK_PHAR_FLAT))
-        || ((FmtData.type & (MK_NOVELL | MK_ELF))
-            && (LinkState & HAVE_I86_CODE) && (ftype != FIX_OFFSET_32))
-        || ((FmtData.type & MK_ELF) && !(LinkState & HAVE_I86_CODE)
-            && ((ftype & FIX_BASE) || (ftype == FIX_OFFSET_8)
-            || (ftype == FIX_HIGH_OFFSET_8)))
-        || ((FmtData.type & MK_PE) && ((ftype & FIX_BASE)
-            || (ftype == FIX_OFFSET_8) || (ftype == FIX_HIGH_OFFSET_8)))
-        || ((FmtData.type & MK_PHAR_REX) && (ftype != FIX_OFFSET_16)
-            && (ftype != FIX_OFFSET_32)) ) {
+        || (FmtData.type & (MK_NOVELL | MK_ELF))
+            && (LinkState & HAVE_I86_CODE) && (ftype != FIX_OFFSET_32)
+        || (FmtData.type & MK_ELF) && !(LinkState & HAVE_I86_CODE)
+            && (ftype & (FIX_BASE | FIX_OFFSET_8))
+        || (FmtData.type & MK_PE) && (ftype & (FIX_BASE | FIX_OFFSET_8))
+        || (FmtData.type & MK_PHAR_REX) && (ftype != FIX_OFFSET_16)
+            && (ftype != FIX_OFFSET_32) ) {
         LnkMsg( LOC+ERR+MSG_INVALID_FLAT_RELOC, "a", &fix->loc_addr );
         return;
     }

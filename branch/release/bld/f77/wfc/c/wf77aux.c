@@ -41,6 +41,7 @@
 #include "fmemmgr.h"
 #include "ferror.h"
 #include "inout.h"
+#include "cspawn.h"
 
 #if _INTEL_CPU
   #include "asminlin.h"
@@ -57,9 +58,7 @@
 
 extern  int             KwLookUp(char **,int,char *,int,int);
 extern  int             MkHexConst(char *,char *,int);
-extern  void            Suicide(void);
 extern  char            *SkipBlanks(char *);
-extern  int             Spawn(void (*)(void));
 extern  aux_info        *AuxLookupName(char *,int);
 extern  sym_id          SymFind(char *,uint);
 extern  void            FreeChain(void *);
@@ -235,6 +234,32 @@ aux_info                *AuxInfo;
 aux_info                FortranInfo;
 aux_info                ProgramInfo;
 dep_info                *DependencyInfo;
+
+/* Forward declarations */
+static  void    FreeAuxEntry( aux_info *aux );
+static  void    FreeAuxElements( aux_info *aux );
+static  void    FreeArgList( aux_info *aux );
+static  void    ScanToken( void );
+static  void    ScanFnToken( void );
+static  void    SymbolId( void );
+static  void    TokUpper( void );
+static  void    ReqToken( char *tok );
+static  void    AliasName( void );
+static  void    SymbolName( void );
+static  void    ProcessAlias( void );
+static  void    DupCallBytes( aux_info *dst, aux_info *src );
+static  void    ObjectName( void );
+static  void    GetParmInfo( void );
+static  void    GetByteSeq( void );
+static  void    GetRetInfo( void );
+static  void    GetSaveInfo( void );
+static  void    GetArgList( void );
+static  void    GetSTRetInfo( void );
+static  void    DupParmInfo( aux_info *dst, aux_info *src );
+static  void    DupObjectName( aux_info *dst, aux_info *src );
+static  void    DupArgInfo( aux_info *dst, aux_info *src );
+void    CopyAuxInfo( aux_info *dst, aux_info *src );
+void    DoPragma( char *ptr );
 
 
 void            InitAuxInfo( void ) {
@@ -819,10 +844,10 @@ void    DoPragma( char *ptr ) {
     TokEnd = ptr;
     ScanToken();
     for(;;) {
-        status = Spawn( &Pragma );
+        status = CSpawn( &Pragma );
         if( status != 0 ) {
             if( ProgSw & PS_FATAL_ERROR ) {
-                Suicide();
+                CSuicide();
             }
             AsmSymFini();
             break;
@@ -897,7 +922,7 @@ static  void    ScanToken( void ) {
                     ++ptr;
                 } else {
                     Error( PR_BAD_CONTINUATION );
-                    Suicide();
+                    CSuicide();
                 }
                 ptr = SkipBlanks( ptr );
                 TokStart = ptr;
@@ -978,7 +1003,7 @@ static  void    ReqToken( char *tok ) {
     if( !RecToken( tok ) ) {
         *TokEnd = NULLCHAR;
         Error( PR_BAD_SYNTAX, tok, TokStart );
-        Suicide();
+        CSuicide();
     }
 }
 
@@ -1159,7 +1184,7 @@ static  void            SymbolId( void ) {
     ptr = TokStart;
     if( ( isalpha( *ptr ) == 0 ) && ( *ptr != '$' ) && ( *ptr != '_' ) ) {
         Error( PR_SYMBOL_NAME );
-        Suicide();
+        CSuicide();
     }
     for(;;) {
         ptr++;
@@ -1167,7 +1192,7 @@ static  void            SymbolId( void ) {
             break;
         if( ( isalnum( *ptr ) == 0 ) && ( *ptr != '$' ) && ( *ptr != '_' ) ) {
             Error( PR_SYMBOL_NAME );
-            Suicide();
+            CSuicide();
         }
     }
 }
@@ -1182,9 +1207,9 @@ static  void            ObjectName( void ) {
     if( *TokStart != '"' )
         return;
     if( TokStart == TokEnd - sizeof( char ) )
-        Suicide();
+        CSuicide();
     if( *(TokEnd - sizeof( char )) != '"' )
-        Suicide();
+        CSuicide();
     obj_len = TokEnd - TokStart - 2*sizeof( char );
     name = FMemAlloc( obj_len + sizeof( char ) );
     if( CurrAux->objname != DefaultInfo.objname ) {
@@ -1293,7 +1318,7 @@ static  void    InsertFixups( unsigned char *buff, unsigned i ) {
             }
             if( dst > &temp[ MAXIMUM_BYTESEQ ] ) {
                 Error( PR_BYTE_SEQ_LIMIT );
-                Suicide();
+                CSuicide();
             }
         }
         buff = temp;
@@ -1390,9 +1415,9 @@ static  void    GetByteSeq( void ) {
     for(;;) {
         if( *TokStart == '"' ) {
             if( TokStart == TokEnd - sizeof( char ) )
-                Suicide();
+                CSuicide();
             if( *(TokEnd - sizeof( char )) != '"' )
-                Suicide();
+                CSuicide();
             *(char *)(TokEnd - sizeof( char )) = NULLCHAR;
             AsmCodeAddress = seq_len;
             AsmCodeBuffer = buff;
@@ -1401,7 +1426,7 @@ static  void    GetByteSeq( void ) {
                 seq_len = AsmCodeAddress;
             } else {
                 Error( PR_BYTE_SEQ_LIMIT );
-                Suicide();
+                CSuicide();
             }
             ScanToken();
         } else if( RecToken( "FLOAT" ) ) {
@@ -1416,14 +1441,14 @@ static  void    GetByteSeq( void ) {
             len = MkHexConst( ptr, ptr, TokEnd - TokStart - 1 );
             if( len == 0 ) {
                 Error( PR_BAD_BYTE_SEQ );
-                Suicide();
+                CSuicide();
             }
             if( seq_len + len <= MAXIMUM_BYTESEQ ) {
                 memcpy( buff + seq_len, ptr, len );
                 seq_len += len;
             } else {
                 Error( PR_BYTE_SEQ_LIMIT );
-                Suicide();
+                CSuicide();
             }
             ScanToken();
         }
@@ -1565,7 +1590,7 @@ static  void    GetArgList( void ) {
                     pass_info |= ARG_SIZE_8;
                 } else {
                     Error( PR_BAD_PARM_SIZE );
-                    Suicide();
+                    CSuicide();
                 }
 #if ( _CPU == 8086 || _CPU == 386 )
             } else if( RecToken( "FAR" ) ) {
@@ -1615,7 +1640,7 @@ static  void    GetArgList( void ) {
 #endif
         } else {
             Error( PR_BAD_PARM_ATTR );
-            Suicide();
+            CSuicide();
         }
         arg = FMemAlloc( sizeof( pass_by ) );
         arg->link = NULL;

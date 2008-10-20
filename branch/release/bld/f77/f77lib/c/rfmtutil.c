@@ -30,6 +30,7 @@
 
 
 #include "ftnstd.h"
+#include "ftextfun.h"
 #include "rundat.h"
 #include "errcod.h"
 #include "fmtdef.h"
@@ -46,24 +47,12 @@
 #include <limits.h>
 #include <string.h>
 
-extern  void            SendEOR(void);
-extern  void            SendStr(char PGM *,uint);
-extern  void            SendChar(char,int);
-extern  void            Drop(char);
-extern  void            NextRec(void);
-extern  void            IOErr(int,...);
-extern  void            R_F2F(extended,char *,int,int,bool,int);
-extern  void            R_F2E(extended,char *,int,int,bool,int,int,char);
-extern  int             FmtS2I(char *,int,bool,intstar4 *,bool,int *);
-extern  int             FmtS2F(char *,int,int,bool,int,int,extended *,bool,int *,bool);
-extern  void            *RChkAlloc(uint);
-extern  void            SetMaxPrec(int);
-extern  void            BToHS(char *,int,char *);
-extern  byte            Hex(byte);
-extern  void            CheckCCtrl(void);
-extern  void            R_FmtLog(uint);
-extern  bool            __AllowCommaSep(void);
-
+/* Forward declarations */
+static  void    HexFlip( char *src, int len );
+static  void    OutInt( uint width, uint min );
+void    ChkBuffLen( uint width );
+void    R_FOHex( void );
+    
 #if defined( _M_IX86 ) || defined( __AXP__ ) || defined( __PPC__ )
 
 extern  const double __FAR      P1d100;
@@ -171,13 +160,6 @@ void    R_ChkRecLen( void ) {
 }
 
 
-void    R_FOStr( void ) {
-//=================
-
-    FOString( IOCB->fmtptr->fmt4.fld1 );
-}
-
-
 uint    GetLen( void ) {
 //================
 
@@ -219,6 +201,13 @@ void    FOString( uint width ) {
     } else {
         SendStrRtn( (char *)&IORslt, width );
     }
+}
+
+
+void    R_FOStr( void ) {
+//=================
+
+    FOString( IOCB->fmtptr->fmt4.fld1 );
 }
 
 
@@ -627,13 +616,6 @@ void    R_FIHex( void ) {
 }
 
 
-void    R_FOHex( void ) {
-//=================
-
-    FOHex( IOCB->fmtptr->fmt1.fld1 );
-}
-
-
 void    FOHex( uint width ) {
 //===========================
 
@@ -703,6 +685,13 @@ void    FOHex( uint width ) {
             RMemFree( buff );
         }
     }
+}
+
+
+void    R_FOHex( void ) {
+//=================
+
+    FOHex( IOCB->fmtptr->fmt1.fld1 );
 }
 
 
@@ -856,6 +845,7 @@ static  int     Div10L( double val ) {
 
     int         retn;
 
+       //  check for a NaN or Inf value
     unsigned short int * ui = (unsigned short int *) & val;
     if ( (ui [3] & 0x7FF0) == 0x7FF0 ) {    /* NaN or Inf */
         return( INT_MAX );
@@ -932,7 +922,10 @@ void    R_FOG( void ) {
             } else {
                 logval = Div10X( absvalue );
             }
-            if( ( absvalue < 0.1 ) || ( logval >= dec ) ) {
+               //  use E format if less than 0.1 unless value is zero
+               //  use E format if there are more digits than the width
+            if( (( absvalue < 0.1 ) || ( logval >= dec )) &&
+                 ( value != 0.0 ) ) {
                 ch = 'E';
                 if( exp == 0 ) { // if Gw.d
 #if defined( _M_IX86 ) || defined( __AXP__ ) || defined( __PPC__ )

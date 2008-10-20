@@ -54,7 +54,6 @@
 #include <time.h>
 
 extern  void            BISetSrcFile( void );
-extern  void            Suicide(void);
 extern  void            PrtOptions(void);
 extern  lib_handle      IncSearch(char *);
 extern  int             LibRead(lib_handle);
@@ -76,10 +75,7 @@ extern  void            SDInitIO(void);
 extern  void            MsgFormat(char *,char *,...);
 extern  int             CopyMaxStr(char *,char *,int);
 extern  int             MakeName(char *,char *,char *);
-#if _EDITOR == _ON
-extern  bool            SDIsInternal(file_handle);
-extern  file_handle     EdOpenf(char *,int);
-#endif
+extern  void            AddDependencyInfo(source_t *);
 
 extern  char            FFCtrlSeq[];
 extern  char            SkipCtrlSeq[];
@@ -128,6 +124,19 @@ static int            ErrCursor;      // offset into "ErrBuff"
 static char           *TermBuff;      // terminal file buffer
 static file_handle    TermFile;       // file pointer for terminal
 static int            TermCursor;     // offset into "TermBuff"
+
+/* Forward declarations */
+static  void    SendRec( void );
+static  void    SetCtrlSeq( void );
+static  void    PutLst( char *string );
+static  void    ChkErrErr( void );
+static  void    ErrOut( char *string );
+static  void    ErrNL( void );
+static  void    ChkLstErr( void );
+static  void    Erase( char *extn );
+static  void    SendBuff( char *str, char *buff, int buff_size, int *cursor,
+                          file_handle fp, void (*err_rtn)( void ) );
+
 
 //========================================================================
 //
@@ -192,7 +201,7 @@ void    FiniComIO( void ) {
 
 
 void    OpenSrc( void ) {
-//=================
+//=======================
 
     file_handle fp;
     char        err_msg[ERR_BUFF_SIZE+1];
@@ -201,40 +210,15 @@ void    OpenSrc( void ) {
 
     erase_err = ErrFile == NULL;
     SDInitAttr();
-#if _EDITOR == _ON
-    fp = NULL;
-    if( SrcExtn == ForExtn ) {
-        // try editor buffer without file extension
-        fp = EdOpenf( SrcName, READ_FILE );
-    }
+    MakeName( SrcName, SrcExtn, bld_name );
+    fp = SDOpen( bld_name, READ_FILE );
     if( fp != NULL ) {
-        SrcExtn = NULL;
-        SrcInclude( SrcName );
+        SrcInclude( bld_name );
         CurrFile->fileptr = fp;
     } else {
-        // try editor buffer with file extension
-        MakeName( SrcName, SrcExtn, bld_name );
-        fp = EdOpenf( bld_name, READ_FILE );
-        if( fp != NULL ) {
-            SrcInclude( bld_name );
-            CurrFile->fileptr = fp;
-        } else {
-            // try file called <include_name>.FOR.
-#else
-            MakeName( SrcName, SrcExtn, bld_name );
-#endif
-            fp = SDOpen( bld_name, READ_FILE );
-            if( fp != NULL ) {
-                SrcInclude( bld_name );
-                CurrFile->fileptr = fp;
-            } else {
-                SDError( NULL, err_msg );
-                InfoError( SM_OPENING_FILE, bld_name, err_msg );
-            }
-#if _EDITOR == _ON
-        }
+        SDError( NULL, err_msg );
+        InfoError( SM_OPENING_FILE, bld_name, err_msg );
     }
-#endif
     if( erase_err ) {
         CloseErr();
         Erase( ErrExtn );
@@ -243,7 +227,7 @@ void    OpenSrc( void ) {
 
 
 void    IOPurge( void ) {
-//=================
+//=======================
 
 // make sure all the input files are closed
 
@@ -254,7 +238,7 @@ void    IOPurge( void ) {
 
 
 static  uint    SrcRead( void ) {
-//=========================
+//===============================
 
     uint        len;
     file_handle fp;
@@ -283,7 +267,7 @@ static  uint    SrcRead( void ) {
 
 
 void    ReadSrc( void ) {
-//=================
+//=======================
 
     uint        len;
 
@@ -335,51 +319,33 @@ void    Include( char *inc_name ) {
     SDInitAttr();
     CopyMaxStr( inc_name, bld_name, MAX_FILE );
     MakeName( bld_name, SDSrcExtn( bld_name ), bld_name );
-    if( AlreadyOpen( inc_name ) ) return;
-    if( AlreadyOpen( bld_name ) ) return;
-#if _EDITOR == _ON
-    fp = EdOpenf( inc_name, READ_FILE );
+    if( AlreadyOpen( inc_name ) )
+        return;
+    if( AlreadyOpen( bld_name ) )
+        return;
+    // try file called <include_name>.FOR.
+    fp = SDOpen( bld_name, READ_FILE );
     if( fp != NULL ) {
-        SrcInclude( inc_name );
+        SrcInclude( bld_name );
         CurrFile->fileptr = fp;
-    } else {   // guess editor buffer <include_name>.FOR.
-        fp = EdOpenf( bld_name, READ_FILE );
+    } else {
+        // get error message before next i/o
+        SDError( NULL, err_msg );
+        // try library
+        fp = IncSearch( inc_name );
         if( fp != NULL ) {
-            SrcInclude( bld_name );
+            // SrcInclude( inc_name ) now done in LIBSUPP
             CurrFile->fileptr = fp;
+            CurrFile->flags |= INC_LIB_MEMBER;
         } else {
-#endif
-            // try file called <include_name>.FOR.
-            fp = SDOpen( bld_name, READ_FILE );
-            if( fp != NULL ) {
-                SrcInclude( bld_name );
-                CurrFile->fileptr = fp;
-            } else {
-                // get error message before next i/o
-                SDError( NULL, err_msg );
-                // try library
-                fp = IncSearch( inc_name );
-                if( fp != NULL ) {
-                    // SrcInclude( inc_name ) now done in LIBSUPP
-                    CurrFile->fileptr = fp;
-                    CurrFile->flags |= INC_LIB_MEMBER;
-                } else {
-                    // could not open include file
-                    InfoError( SM_OPENING_FILE, bld_name, err_msg );
-                }
-            }
-#if _EDITOR == _ON
+            // could not open include file
+            InfoError( SM_OPENING_FILE, bld_name, err_msg );
         }
     }
-#endif
     // clear RetCode so that we don't get "file not found" returned
     // because we could not open include file
     RetCode = _SUCCESSFUL;
-    {
-        extern  void    AddDependencyInfo(source_t *);
-
-        AddDependencyInfo( CurrFile );
-    }
+    AddDependencyInfo( CurrFile );
 }
 
 
@@ -426,7 +392,7 @@ void    SrcInclude( char *name ) {
 
 
 void    Conclude( void ) {
-//==================
+//========================
 
     source_t    *old;
 
@@ -478,7 +444,7 @@ static  file_handle Open( char *fn, char *extn, int mode ) {
 
 
 void    OpenErr( void ) {
-//=================
+//=======================
 
     if( ( Options & OPT_ERRFILE ) &&
         ( ( ProgSw & PS_ERR_OPEN_TRIED ) == 0 ) ) {
@@ -515,7 +481,7 @@ void    PrintErr( char *string ) {
 
 
 static  bool    ErrToTerm( void ) {
-//===========================
+//=================================
 
     if( ( Options & OPT_TERM ) == 0 ) return( FALSE );
     if( ( Options & OPT_TYPE ) &&
@@ -525,7 +491,7 @@ static  bool    ErrToTerm( void ) {
 
 
 void    PrtErrNL( void ) {
-//==================
+//========================
 
     if( ErrToTerm() ) {
         TOutNL( "" );
@@ -546,7 +512,7 @@ void    JustErr( char *string ) {
 
 
 static  void    ErrNL( void ) {
-//=======================
+//=============================
 
     if( ErrFile != NULL ) {
         SDWrite( ErrFile, ErrBuff, ErrCursor );
@@ -557,7 +523,7 @@ static  void    ErrNL( void ) {
 
 
 static  void    ChkErrErr( void ) {
-//===========================
+//=================================
 
     char        msg[81];
     char        fnbuff[MAX_FILE+1];
@@ -593,7 +559,7 @@ static  void    ErrOut( char *string ) {
 
 
 void    CloseErr( void ) {
-//==================
+//========================
 
     if( ErrFile == NULL ) return;
     SDClose( ErrFile );
@@ -612,8 +578,7 @@ void    CloseErr( void ) {
 
 
 static  void    ChkTermErr( void ) {
-//============================
-
+//==================================
 }
 
 
@@ -678,21 +643,21 @@ static  void    OpenListingFile( bool reopen ) {
 
 
 void    OpenLst( void ) {
-//=================
+//=======================
 
     OpenListingFile( FALSE );
 }
 
 
 void    ReOpenLst( void ) {
-//===================
+//=========================
 
     OpenListingFile( TRUE );
 }
 
 
 void    ChkPntLst( void ) {
-//===================
+//=========================
 
     if( ListFlag & LF_QUIET ) {
         ListFlag &= ~LF_STMT_LISTED;
@@ -703,7 +668,7 @@ void    ChkPntLst( void ) {
 
 
 bool    WasStmtListed( void ) {
-//=======================
+//=============================
 
     return( ( ListFlag & LF_STMT_LISTED ) != 0 );
 }
@@ -747,7 +712,7 @@ void    GetMoreInfo( char *buff ) {
 
 
 void    PrtBanner( void ) {
-//===================
+//=========================
 
     char        banner[LIST_BUFF_SIZE+1];
 
@@ -817,7 +782,7 @@ void    PrtLst( char *string ) {
 
 
 void    CloseLst( void ) {
-//==================
+//========================
 
     if( ListFile == NULL ) return;
     SDClose( ListFile );
@@ -840,14 +805,14 @@ void    LFEndSrc( void ) {
 
 
 void    LFNewPage( void ) {
-//===================
+//=========================
 
     ListFlag |= LF_PAGE_FLAG;
 }
 
 
 void    LFSkip( void ) {
-//================
+//======================
 
     ListFlag |= LF_SKIP_FLAG;
     if( ( ListFlag & LF_QUIET ) == 0 ) {
@@ -883,7 +848,7 @@ static  void    PutLst( char *string ) {
 
 
 static  void    SetCtrlSeq( void ) {
-//============================
+//==================================
 
     char        *ctrlseq;
 
@@ -908,7 +873,7 @@ static  void    SetCtrlSeq( void ) {
 
 
 static  void    SendRec( void ) {
-//=========================
+//===============================
 
     if( ListFile != NULL ) {
         SDWrite( ListFile, ListBuff, ListCursor );
@@ -920,7 +885,7 @@ static  void    SendRec( void ) {
 
 
 static  void    ChkLstErr( void ) {
-//===========================
+//=================================
 
     char        msg[81];
     char        fnbuff[MAX_FILE+1];

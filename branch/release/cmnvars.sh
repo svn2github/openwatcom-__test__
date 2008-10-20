@@ -5,8 +5,8 @@
 #       the end.
 
 # Set the version numbers
-export BLD_VER=17
-export BLD_VER_STR=1.7
+export BLD_VER=18
+export BLD_VER_STR=1.8
 
 # Set up default path information variable
 [ -n "$DEFPATH" ] || export DEFPATH=$PATH
@@ -19,7 +19,7 @@ export DEVDIR=$OWROOT/bld
 # Subdirectory to be used for bootstrapping/prebuild binaries
 export OWBINDIR=$DEVDIR/build/binl
 export DISTROOT=$OWROOT/distrib
-export RELROOT=$OWROOT
+export RELROOT=$OWROOT/rel2
 export DWATCOM=$WATCOM
 export DOC_ROOT=$OWROOT/docs
 export INCLUDE=$WATCOM/lh

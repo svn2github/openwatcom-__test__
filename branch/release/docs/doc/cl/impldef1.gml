@@ -525,6 +525,7 @@ huge       is pointer offset (low-order order 2 bytes, offset in
 .keep end
 .keep begin
 .pp
+.cp 13
 &wc286. conversion of integer to pointer:
 .if &e'&nobox eq 0 .do begin
 .boxdef
@@ -773,12 +774,9 @@ enumeration type (6.5.2.2).
 .bigdesc
 .pp
 By default, &wcboth. will use the smallest integer type that
-can accommodate all values in the enumeration.
+can accommodate all values in the enumeration. The first appropriate type
+will be chosen according to the following table:
 .keep begin
-.pp
-&wc286. and
-&wc386. will choose the first appropriate
-type from the following table:
 ..sk 1 c
 ..im enumtab
 .keep end

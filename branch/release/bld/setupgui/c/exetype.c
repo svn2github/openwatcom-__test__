@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Determine the type of an executable.
 *
 ****************************************************************************/
 
@@ -45,8 +44,8 @@
 int main( int argc, char *argv[] )
 {
     char                *pattern;
-    char                dir[ _MAX_DIR ];
-    char                drive[ _MAX_DRIVE ];
+    char                dir[_MAX_DIR];
+    char                drive[_MAX_DRIVE];
     DIR                 *dirp;
     struct dirent       *direntp;
 
@@ -54,7 +53,7 @@ int main( int argc, char *argv[] )
         printf( "Usage: EXETYPE file-pattern\n" );
         return( 1 );
     }
-    pattern = argv[ 1 ];
+    pattern = argv[1];
     dirp = opendir( pattern );
     if( dirp == NULL ) {
         printf( "No files found matching '%s'\n", pattern );
@@ -76,7 +75,7 @@ int main( int argc, char *argv[] )
 static void CheckFile( char *fname, char *drive, char *dir )
 {
     int                 ok;
-    char                path[ _MAX_PATH ];
+    char                path[_MAX_PATH];
     char                exe_type[3];
 
     _makepath( path, drive, dir, fname, NULL );
@@ -98,7 +97,7 @@ int ExeType( char *fname, char *exe_type )
     int                 len;
     unsigned long       offset;
     dos_exe_header      exe_header;
-    char                local_type[ 3 ];
+    char                local_type[3];
 
     fp = open( fname, O_RDONLY + O_BINARY, 0 );
     if( fp == -1 ) {
@@ -136,16 +135,17 @@ int ExeType( char *fname, char *exe_type )
         close( fp );
         return( TRUE );
     }
-    local_type[ 2 ] = '\0';
-    if( stricmp( local_type, "PE" ) == 0 ) {            // Windows NT
+    local_type[2] = '\0';
+    if( strcmp( local_type, "PE" ) == 0 ) {             // Windows NT
         strcpy( exe_type, local_type );
-    } else if( stricmp( local_type, "NE" ) == 0 ) {     // Windows
+    } else if( strcmp( local_type, "NE" ) == 0 ) {      // Windows or OS/2 1.x
         strcpy( exe_type, local_type );
-    } else if( stricmp( local_type, "LE" ) == 0 ) {     // DOS4G
+    } else if( strcmp( local_type, "LE" ) == 0 ) {      // DOS/4G
         strcpy( exe_type, local_type );
-    } else if( stricmp( local_type, "LX" ) == 0 ) {     // OS2 2.0
+    } else if( strcmp( local_type, "LX" ) == 0 ) {      // OS/2 2.x
         strcpy( exe_type, local_type );
     }
     close( fp );
     return( TRUE );
 }
+

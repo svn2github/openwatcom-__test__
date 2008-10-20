@@ -31,7 +31,7 @@
 
 #include "cvars.h"
 #include "cgswitch.h"
-
+#include "pragdefn.h"
 
 extern  void    CSegFree( SEGADDR_T );
 extern  TREEPTR CurFuncNode;
@@ -270,10 +270,7 @@ void SymCreate( SYMPTR sym, char *id )
     memset( sym, 0, sizeof( SYM_ENTRY ) );
     sym->name = CMemAlloc( strlen( id ) + 1 );
     strcpy( sym->name, id );
-    if( SrcFile != NULL ) {     /* 26-feb-90: could be at end-of-file */
-        sym->defn_file_index = SrcFile->src_flist->index; /* 21-dec-93 */
-    }
-    sym->d.defn_line = TokenLine;
+    sym->src_loc = TokenLoc;
 }
 
 
@@ -410,7 +407,7 @@ SYM_HANDLE SymAdd( int h, SYMPTR sym )
     head = &HashTab[ h ];               /* add name to head of list */
     for( ;; ) {
         if( *head == NULL ) break;
-        if( ((*head)->level & 0x7F) <= SymLevel ) break;
+        if( (*head)->level <= SymLevel ) break;
         head = &(*head)->next_sym;
     }
     hsym->next_sym = *head;     /* add name to head of list */
@@ -530,7 +527,7 @@ local void ChkReference( SYM_ENTRY *sym, SYM_NAMEPTR name )
         if( sym->stg_class != SC_EXTERN ) {
             if( !(sym->flags & SYM_REFERENCED) ) {
                 if( !(sym->flags & SYM_IGNORE_UNREFERENCE) ) {  /*25-apr-91*/
-                    SetSymLoc( sym );
+                    SetErrLoc( &sym->src_loc );
                     if( sym->is_parm ) {
                         CWarn( WARN_PARM_NOT_REFERENCED,
                                 ERR_PARM_NOT_REFERENCED, name );
@@ -542,7 +539,7 @@ local void ChkReference( SYM_ENTRY *sym, SYM_NAMEPTR name )
             } else if( ! (sym->flags & SYM_ASSIGNED) ) {
                 if( sym->sym_type->decl_type != TYPE_ARRAY
                 &&  sym->stg_class != SC_STATIC ) {         /* 06-aug-90 */
-                    SetSymLoc( sym );
+                    SetErrLoc( &sym->src_loc );
                     CWarn( WARN_SYM_NOT_ASSIGNED,
                             ERR_SYM_NOT_ASSIGNED, name );
                 }
@@ -569,7 +566,7 @@ local void ChkIncomplete( SYM_ENTRY *sym, SYM_NAMEPTR name )
             if( SizeOfArg( typ ) == 0  &&  typ->decl_type != TYPE_FUNCTION
             &&  typ->decl_type != TYPE_DOT_DOT_DOT ) {
                 if( !(sym->stg_class == SC_EXTERN) ) {
-                    SetSymLoc( sym );
+                    SetErrLoc( &sym->src_loc );
                     CErr( ERR_INCOMPLETE_TYPE, name );
                 }
             }
@@ -584,7 +581,7 @@ local void ChkDefined( SYM_ENTRY *sym, SYM_NAMEPTR name )
         if( sym->stg_class == SC_STATIC ) {
             if( !(sym->flags & SYM_REFERENCED) ) {
                 if( !(sym->flags & SYM_IGNORE_UNREFERENCE) ) {  /*14-may-91*/
-                    SetSymLoc( sym );
+                    SetErrLoc( &sym->src_loc );
                     CWarn( WARN_SYM_NOT_REFERENCED,
                             ERR_SYM_NOT_REFERENCED, name );
                 }
@@ -594,18 +591,15 @@ local void ChkDefined( SYM_ENTRY *sym, SYM_NAMEPTR name )
         if( sym->flags & SYM_REFERENCED ) {     /* 28-apr-88 AFS */
             if( sym->stg_class == SC_STATIC ) {
                 if( sym->flags & SYM_FUNCTION ) {
-                    SetSymLoc( sym );
-                    CErr( ERR_FUNCTION_NOT_DEFINED, name );
+                    /* Check to see if we have a matching aux entry with code attached */
+                    struct aux_entry * paux = AuxLookup( name );
+                    if( !paux || !paux->info || !paux->info->code ) {
+                        SetErrLoc( &sym->src_loc );
+                        CErr( ERR_FUNCTION_NOT_DEFINED, name );
+                    }
                 }
             } else if( sym->stg_class == SC_FORWARD ) {
-                SetSymLoc( sym );                       /* 03-jun-91 */
                 sym->stg_class = SC_EXTERN;
-                if( CompFlags.extensions_enabled ) {
-                    /* No prototype ever found. In ISO mode, we already warned
-                     * in cexpr.c when unprototyped function was first seen.
-                     */
-                    CWarn( WARN_ASSUMED_IMPORT, ERR_ASSUMED_IMPORT, name );
-                }
             }
         }
     }
@@ -660,7 +654,7 @@ local void ChkExtName( struct xlist **link, SYM_ENTRY *sym,
         int cmp;
         cmp =  strcmp( new->xname, curr->xname );
         if( cmp == 0 ){
-            SetSymLoc( sym );
+            SetErrLoc( &sym->src_loc );
             CErr( ERR_DUPLICATE_ID, name, new->xname );
             CMemFree( new );
             return;
@@ -759,7 +753,7 @@ local SYM_HASHPTR GetSymList( void )                    /* 25-jun-92 */
     sym_list = NULL;
     for( i=0; i < SYM_HASH_SIZE; i++ ) {
         for( hsym = HashTab[i]; hsym; hsym = next_hsymptr ) {
-            if( (hsym->level & 0x7F) != SymLevel ) break;
+            if( hsym->level != SymLevel ) break;
             next_hsymptr = hsym->next_sym;
             hsym->next_sym = sym_list;
             sym_list = hsym;
@@ -1100,8 +1094,7 @@ XREFPTR NewXref( XREFPTR next_xref )
 
     xref = (XREFPTR)CMemAlloc( sizeof( XREF_ENTRY ) );
     xref->next_xref = next_xref;
-    xref->linenum = TokenLine;
-    xref->filenum = SrcFno;
+    xref->src_loc = TokenLoc;
     return( xref );
 }
 

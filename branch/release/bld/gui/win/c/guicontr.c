@@ -428,7 +428,7 @@ WPI_MRESULT CALLBACK GUIGroupBoxFunc( HWND hwnd, WPI_MSG message, WPI_PARAM1 wpa
     case WM_ERASEBKGND:
         hdc = _wpi_getpres( hwnd );
         _wpi_getupdaterect( hwnd, &rect );
-        _wpi_fillrect( hdc, &rect, NULLHANDLE, wnd->bk_brush );
+        _wpi_fillrect( hdc, &rect, (WPI_COLOUR)0, wnd->bk_brush );
         _wpi_releasepres( hwnd, hdc );
         break;
     }
@@ -557,6 +557,9 @@ LONG GUISetControlStyle( gui_control_info *info )
     case GUI_EDIT_MLE:
         if( info->style & GUI_CONTROL_READONLY ) {
             ret_style |= ES_READONLY;
+        }
+        if( info->style & GUI_CONTROL_BORDER ) {
+            ret_style |= WS_BORDER;
         }
         break;
 #endif

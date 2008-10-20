@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Internal routines and data types used by setup program.
 *
 ****************************************************************************/
 
@@ -102,6 +101,7 @@ extern gui_window       *MainWnd;
 #define WIDTH  1000
 #define HEIGHT 1100
 
+extern bool             SetupPreInit( void );
 extern bool             SetupInit( void );
 extern void             SetupFini( void );
 extern void             SetupError( char * );
@@ -120,8 +120,12 @@ extern bool             IsNLMNewerThanExistingNLM(char *name);
 extern bool             CreatePMInfo( bool );
 extern bool             ModifyConfiguration( void );
 extern bool             ModifyAutoExec( void );
+#if defined( __NT__ ) || defined( __WINDOWS__ )
+extern bool             GenerateBatchFile( bool );
+#endif
 #if defined( __NT__ )
 extern bool             GetRegString( HKEY, char *, char *, char *, DWORD );
+extern bool             ModifyRegAssoc( bool );
 #endif
 extern long             GetODBCUsage( void );
 extern void             SetODBCUsage( long );

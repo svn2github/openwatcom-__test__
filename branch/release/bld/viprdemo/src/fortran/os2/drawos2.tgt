@@ -314,8 +314,8 @@ o????Path for include files:
 1
 74
 WString
-55
-"../;$(%watcom)/src/fortran/os2;$(%watcom)/src/fortran"
+53
+..\;$(%WATCOM)\src\fortran\os2;$(%WATCOM)\src\fortran
 0
 75
 MCState
@@ -511,7 +511,7 @@ WString
 119
 WString
 35
-../.. $(%watcom)/h $(%watcom)/h/os2
+..\.. $(%WATCOM)\h $(%WATCOM)\h\os2
 0
 120
 WVList

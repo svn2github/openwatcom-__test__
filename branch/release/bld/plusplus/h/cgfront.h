@@ -398,9 +398,6 @@ void CgFrontDbgLine(            // SET LINE FOR DEBUGGING
 void CgFrontFileScope(          // SET FILE SCOPE
     SCOPE file_scope )          // - file scope
 ;
-void CgFrontResetDefaultCodeSeg(// RESET DEFAULT CODE SEG TO DEFAULT NAME
-    void )
-;
 void CgFrontRetnOptEnd(         // COMPLETE BRACKETTING FOR RETURN OPT.
     void )
 ;
@@ -1127,7 +1124,10 @@ boolean NodeIsUnaryOp(          // TEST IF UNARY OPERATION OF GIVEN TYPE
     CGOP operation )            // - operation
 ;
 #endif
-boolean NodeIsZeroConstant(     // TEST IF A ZERO INTEGER CONSTANT
+boolean NodeIsZeroConstant(     // TEST IF A ZERO CONSTANT
+    PTREE node )                // - node
+;
+boolean NodeIsZeroIntConstant(  // TEST IF A ZERO INTEGER CONSTANT
     PTREE node )                // - node
 ;
 PTREE NodeLvExtract             // EXTRACT LVALUE, IF POSSIBLE

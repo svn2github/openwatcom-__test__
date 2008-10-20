@@ -85,7 +85,7 @@ char *DbgSymNameFull(           // GET FULL SYMBOL NAME
         name_ptr = "**NULL**";
     } else {
         FormatSym( sym, &vbuf );
-        stpcpy( name, vbuf.buf );
+        stpcpy( name, VbufString( &vbuf ) );
         VbufFree( &vbuf );
         name_ptr = name;
     }
@@ -168,71 +168,73 @@ void DumpMacPush(               // DUMP PUSH OF MACRO
 
 
 void DumpMDefn(                 // DUMP MACRO DEFINITION
-    char *p )                   // - definition
-    {
-        int c;
+    char *pdef )                // - definition
+{
+    int             c;
+    unsigned char   *p = (unsigned char *)pdef;
 
-        for(; p;) {
-            if( *p == 0 ) break;
+    if( p == NULL )
+        return;
+    for( ; *p != '\0'; ) {
+        switch( *p ) {
+        case T_CONSTANT:
+            ++p;
             switch( *p ) {
-            case T_CONSTANT:
-                ++p;
-                switch( *p ) {
-                  case TYP_FLOAT :
-                  case TYP_DOUBLE :
-                  case TYP_LONG_DOUBLE :
-                    break;
-                  case TYP_CHAR:
-                  case TYP_SCHAR:
-                  case TYP_UCHAR:
-                  case TYP_WCHAR:
-                  case TYP_SSHORT:
-                  case TYP_USHORT:
-                  case TYP_SINT:
-                  case TYP_UINT:
-                    p += sizeof( target_int );
-                    break;
-                  default:
-                    p += sizeof( target_long );
-                }
-            case T_ID:
-                ++p;
-                for(;;) {
-                    c = *p++;
-                    if( c == '\0' ) break;
-                    putchar( c );
-                }
-                continue;
-            case T_STRING:
-                ++p;
-                putchar( '\"' );
-                for(;;) {
-                    c = *p++;
-                    if( c == '\0' ) break;
-                    putchar( c );
-                }
-                putchar( '\"' );
-                continue;
-            case T_WHITE_SPACE:
-                ++p;
-                putchar( ' ' );
-                continue;
-            case T_BAD_CHAR:
-                ++p;
-                putchar( *p++ );
-                continue;
-            case T_MACRO_PARM:
-                ++p;
-                printf( "parm#%c", '1' + *p++ );
-                continue;
+            case TYP_FLOAT :
+            case TYP_DOUBLE :
+            case TYP_LONG_DOUBLE :
+                break;
+            case TYP_CHAR:
+            case TYP_SCHAR:
+            case TYP_UCHAR:
+            case TYP_WCHAR:
+            case TYP_SSHORT:
+            case TYP_USHORT:
+            case TYP_SINT:
+            case TYP_UINT:
+                p += sizeof( target_int );
+                break;
             default:
-                printf( "%s", Tokens[ *(unsigned char *)p ] );
-                ++p;
-                continue;
+                p += sizeof( target_long );
             }
+        case T_ID:
+            ++p;
+            for( ;; ) {
+                c = *p++;
+                if( c == '\0' ) break;
+                putchar( c );
+            }
+            continue;
+        case T_STRING:
+            ++p;
+            putchar( '\"' );
+            for( ;; ) {
+                c = *p++;
+                if( c == '\0' ) break;
+                putchar( c );
+            }
+            putchar( '\"' );
+            continue;
+        case T_WHITE_SPACE:
+            ++p;
+            putchar( ' ' );
+            continue;
+        case T_BAD_CHAR:
+            ++p;
+            putchar( *p++ );
+            continue;
+        case T_MACRO_PARM:
+            ++p;
+            printf( "parm#%c", '1' + *p++ );
+            continue;
+        default:
+            printf( "%s", Tokens[ *p ] );
+            ++p;
+            continue;
         }
-        putchar( '\n' );
     }
+    putchar( '\n' );
+}
 
 
 char *DbgOperator(              // GET CGOP NAME
@@ -331,8 +333,8 @@ void DumpCgFront(               // DUMP GENERATED CODE
               , disk_blk, offset
               , opcode
               , uvalue
-              , fmt_prefix.buf
-              , fmt_suffix.buf );
+              , VbufString( &fmt_prefix )
+              , VbufString( &fmt_suffix ) );
         VbufFree( &fmt_prefix );
         VbufFree( &fmt_suffix );
       } break;
@@ -408,7 +410,7 @@ void DumpCgFront(               // DUMP GENERATED CODE
     }
 }
 
-static void dumpTemplateInfo( TEMPLATE_INFO *tinfo )
+void DumpTemplateInfo( TEMPLATE_INFO *tinfo )
 {
     TEMPLATE_SPECIALIZATION *tprimary;
     VBUF prefix, suffix;
@@ -424,11 +426,11 @@ static void dumpTemplateInfo( TEMPLATE_INFO *tinfo )
           , tprimary->defn
           , tprimary->num_args
           );
-    printf( "  " );
+    printf( "      %s", tinfo->sym->name->name );
     delim = '<';
     for( i = 0; i < tprimary->num_args; ++i ) {
         FormatType( tprimary->type_list[i], &prefix, &suffix );
-        printf( "%c %s<id> %s", delim, prefix.buf, suffix.buf );
+        printf( "%c %s<id> %s", delim, VbufString( &prefix ), VbufString( &suffix ) );
         VbufFree( &prefix );
         VbufFree( &suffix );
         delim = ',';
@@ -503,7 +505,7 @@ void DumpSymbol(                // DUMP SYMBOL ENTRY
               , sym->flag
               , sym->flag2
               , sym->segid
-              , vbuf.buf
+              , VbufString( &vbuf )
               );
         if( sym->sym_type != NULL ) {
             DumpFullType( sym->sym_type );
@@ -514,7 +516,7 @@ void DumpSymbol(                // DUMP SYMBOL ENTRY
         }
         switch( sym->id ) {
         case SC_CLASS_TEMPLATE:
-            dumpTemplateInfo( sym->u.tinfo );
+            DumpTemplateInfo( sym->u.tinfo );
             break;
         case SC_NAMESPACE:
             dumpNameSpaceInfo( sym->u.ns );
@@ -673,6 +675,7 @@ void DumpClassInfo(             // DUMP CLASSINFO
             " needs_assign" F_HEX_2
                             F_NL "  "
             " defined"      F_HEX_2
+            " opened"       F_HEX_2
             " unnamed"      F_HEX_2
             " anonymous"    F_HEX_2
             " corrupted"    F_HEX_2
@@ -733,6 +736,7 @@ void DumpClassInfo(             // DUMP CLASSINFO
           , ci->needs_vdtor
           , ci->needs_assign
           , ci->defined
+          , ci->opened
           , ci->unnamed
           , ci->anonymous
           , ci->corrupted
@@ -778,7 +782,7 @@ void PrintFullType(             // PRINT FULL TYPE INFORMATION
     VBUF prefix, suffix;
 
     FormatType( tp, &prefix, &suffix );
-    printf( "     Type[%x]: %s<id> %s" F_EOL, tp, prefix.buf, suffix.buf );
+    printf( "     Type[%x]: %s<id> %s" F_EOL, tp, VbufString( &prefix ), VbufString( &suffix ) );
     VbufFree( &prefix );
     VbufFree( &suffix );
 }
@@ -862,14 +866,25 @@ static void dumpFriendRef(      // DUMP REFERENCE TO FRIEND SCOPE
     void *_fr )                 // - the reference
 {
     FRIEND *fr = _fr;
-    printf( "   FRIEND"     F_BADDR
-            " next"         F_PTR
-            " sym"          F_PTR
-            F_EOL
-          , fr
-          , fr->next
-          , fr->sym
-          );
+    if( FriendIsType( fr ) ) {
+        printf( "   FRIEND"     F_BADDR
+                " next"         F_PTR
+                " type"         F_PTR
+                F_EOL
+              , fr
+              , fr->next
+              , FriendGetType( fr )
+              );
+    } else {
+        printf( "   FRIEND"     F_BADDR
+                " next"         F_PTR
+                " sym"          F_PTR
+                F_EOL
+              , fr
+              , fr->next
+              , FriendGetSymbol( fr )
+              );
+    }
 }
 
 
@@ -960,7 +975,7 @@ static void dumpFriend(         // DUMP A FRIEND SCOPE
     void *_fr )                 // - symbol for the friend scope
 {
     FRIEND *fr = _fr;
-    dump_sym_scope( fr->sym );
+    dump_sym_scope( fr->u.sym );
 }
 
 
@@ -1497,6 +1512,23 @@ void DbgGenned(                 // INDICATE SYMBOL GENERATED
         }
     }
 }
+
+
+void DumpTemplateSpecialization(// DUMP A TEMPLATE SPECIALIZATION
+    TEMPLATE_SPECIALIZATION *tspec )// - template specialization
+{
+    TEMPLATE_INFO *tinfo = tspec->tinfo;
+    VBUF vbuf;                  // - variable-sized buffer
+
+    FormatTemplateSpecialization( tspec, &vbuf );
+    printf( "    TEMPLATE_SPECIALIZATION" F_BADDR
+            " tinfo"        F_BADDR
+                            F_EOL
+            , tspec, tinfo );
+    printf( "      %s\n", VbufString( &vbuf ) );
+    VbufFree( &vbuf );
+}
+
 
 static void init(               // INITIALIZATION
     INITFINI* defn )            // - definition

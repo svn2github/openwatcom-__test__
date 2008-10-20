@@ -29,13 +29,31 @@
 ****************************************************************************/
 
 
-#include <wlib.h>
+#include "wlib.h"
+
+#if defined( INCL_MSGTEXT )
+
+#undef pick
+#define pick( code, e_msg, j_msg ) e_msg,
+
+static char *msg_text_array[] = {
+    #include "wlib.msg"
+};
+
+void InitMsg( void ) {}
+
+void MsgGet( int resourceid, char *buffer )
+{
+    strcpy( buffer, msg_text_array[ resourceid ] );
+}
+
+void FiniMsg( void ) {}
+
+#else
+
 #include <wresset2.h>   /* for FileShift */
 
-jmp_buf Env;
-
 #define NIL_HANDLE      ((int)-1)
-#define NULLCHAR        '\0'
 
 static  HANDLE_INFO     hInstance = { 0 };
 static  int             Res_Flag;
@@ -84,8 +102,8 @@ void InitMsg( void )
 void MsgGet( int resourceid, char *buffer )
 {
     if( LoadString( &hInstance, resourceid + MsgShift,
-                (LPSTR) buffer, 128 ) != 0 ) {
-        buffer[0] = '\0';
+                (LPSTR)buffer, 128 ) != 0 ) {
+        buffer[ 0 ] = '\0';
     }
 }
 
@@ -99,3 +117,4 @@ void FiniMsg( void )
         }
     }
 }
+#endif

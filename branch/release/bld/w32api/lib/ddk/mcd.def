@@ -1,7 +1,7 @@
-LIBRARY mcd.sys
+LIBRARY MCD.SYS
 EXPORTS
 ChangerClassAllocatePool@8
-ChangerClassDebugPrint@8
+ChangerClassDebugPrint
 ChangerClassFreePool@4
 ChangerClassInitialize@12
 ChangerClassSendSrbSynchronous@20

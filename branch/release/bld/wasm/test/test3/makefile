@@ -1,3 +1,4 @@
+wasmtest_name = test3
 
 dis_objs = &
 3dnow.dis &
@@ -16,6 +17,9 @@ dgroup.dis &
 dsxfork.dis &
 dsxhdlr.dis &
 expr01.dis &
+extern1.dis &
+extern2.dis &
+extern3.dis &
 extprocf.dis &
 extprocn.dis &
 indirect.dis &

@@ -90,14 +90,13 @@ global  char    *PCH_FileName;  // name to use for pre-compiled header
 global  INCFILE *IncFileList;   // list of primary include files for PCH
 global  SYMPTR  *PCH_SymArray;  // array of symbol table pointers from PCH
 global  int     PCH_MaxSymHandle;// number of symbols in PCH_SymArray
-global  char    *ScanCharPtr;   // used by character scanning routines
 global  int     DebugFlag;
 global  TOKEN   CurToken;
 global  int     BadTokenInfo;
 global  int     TokenLen;
-global  int     TokenLine;
-global  int     SrcFileLineNum; /* duplicate of SrcFile->src_line */
-global  int     TokenFno;
+global  source_loc TokenLoc;
+global  source_loc SrcFileLoc;  /* duplicate of SrcFile->src_line */
+global  source_loc CommentLoc;
 global  int     CurrChar;
 global  DATA_TYPE  ConstType;
 global  unsigned long Constant;
@@ -113,20 +112,17 @@ global  char    *AuxName;
 global  struct  fname_list *FNames;     /* list of file names processed */
 global  struct  rdir_list *RDirNames;  /* list of read only directorys */
 global  struct  ialias_list *IAliasNames;  /* list of include aliases */
-global  char    *ErrFName;      /* file name to be used in error message */
-global  unsigned ErrLine;       /* line number to be used in error msg */
 global  FILE    *ErrFile;       /* error file */
 global  FILE    *DefFile;       /* output for func prototypes */
 global  FILE    *CppFile;       /* output for preprocessor */
 global  FILE    *DepFile;       /* make style auto depend file */
 global  struct  cpp_info *CppStack; /* #if structure control stack */
 global  char    *HFileList;     /* list of path names to try for H files */
-global  int     SrcLineNum;
-global  int     SrcFno;
-global  int     SrcLineCount;   /* # of lines in primary source file */
-global  int     IncLineCount;   /* # of lines in all included files  */
-global  int     ErrCount;       /* total # of errors encountered     */
-global  int     WngCount;       /* total # of warnings encountered   */
+global  source_loc SrcLoc;
+global  unsigned SrcLineCount;   /* # of lines in primary source file */
+global  unsigned IncLineCount;   /* # of lines in all included files  */
+global  unsigned ErrCount;       /* total # of errors encountered     */
+global  unsigned WngCount;       /* total # of warnings encountered   */
 global  int     WngLevel;       /* warning severity level */
 global  int     TypeCount;      /* total # of type nodes allocated   */
 global  int     GblSymCount;    /* total # of global symbols */
@@ -144,16 +140,14 @@ global  int     HashValue;      /* hash value for identifier */
 global  int     MacHashValue;   /* hash value for macro name */
 global  char    *SavedId;       /* saved id when doing look ahead */
 global  int     SavedHash;      /* hash value for saved id */
-global  int     SavedTokenLine; /* value of TokenLine when id saved */
-global  int     SavedTokenFno;  /* value of TokenFno when id saved */
-global  int     LAToken;        /* look ahead token */
+global  source_loc SavedTokenLoc; /* value of TokenLine when id saved */
+global  TOKEN   LAToken;        /* look ahead token */
 global  LABELPTR LabelHead;     /* list of all labels defined in function */
 global  TAGPTR  TagHead;        /* list of all struct, union, enum tags */
 global  TAGPTR  DeadTags;       /* list of all tags that are out of scope */
 global  TYPEPTR TypeHead;       /* list of all type nodes allocated */
 global  TYPEPTR FuncTypeHead[ MAX_PARM_LIST_HASH_SIZE + 1 ];
 global  TYPEPTR VoidParmList[2];/* function with void parm */
-global  char    *SymLoc;        /* file name with defn of symbol */
 global  PARMPTR ParmList;       /* list of parms for function */
 global  SYM_HANDLE GlobalSym;   /* global symbol table list head */
 #if _CPU == 386
@@ -212,7 +206,7 @@ global  unsigned      ProcRevision;   /* processor revision for c.g. */
 global  char    *GenCodeGroup;        /* pointer to code group name */
 global  int     ProEpiDataSize;       /* data to be alloc'd for pro/epi hook */
 global  int     Toggles;              /* global toggle flags */
-global  int     ErrLimit;
+global  unsigned ErrLimit;
 
 global  unsigned DataThreshold; /* sizeof(obj) > this ==> separate segment */
 global  unsigned Inline_Threshold;      /* -oe=num for function inlining */
@@ -265,7 +259,7 @@ global  int     OptSize;        /* 100 => make pgm small as possible */
 global  char    __Time[10];     /* "HH:MM:SS" for __TIME__ macro */
 global  char    __Date[12];     /* "MMM DD YYYY" for __DATE__ macro */
 
-global  char    *MsgFlags;      /* Bit mask of disabled messages */
+global  unsigned char   *MsgFlags;      /* Bit mask of disabled messages */
 
 global  struct macro_seg_list {
     struct macro_seg_list *next;
@@ -288,6 +282,14 @@ global  struct library_list {
     char                    prio;
     char                    name[1];
 } *HeadLibs;
+
+global  struct alias_list {
+    struct  alias_list      *next;
+    const char              *name;  /* one of 'name', 'a_sym' is valid */
+    SYM_HANDLE              a_sym;
+    const char              *subst;
+    SYM_HANDLE              s_sym;  /* one of 'subst', 's_sym' is valid */
+} *AliasHead;
 
 global  SYMPTR  CurFunc;        /* current function being worked on */
 global  SYM_ENTRY CurFuncSym;   /* for contents of current function symbol */
@@ -505,7 +507,7 @@ extern  SEGADDR_T AccessSegment(struct seg_info *);     /* cems */
 extern  SEGADDR_T AllocSegment(struct seg_info *);      /* cems */
 
 extern  TYPEPTR EnumDecl(int);                  /* cenum */
-extern  int     EnumLookup(int,char *,ENUM_INFO *); /* cenum */
+extern  ENUMPTR EnumLookup(int,char *);         /* cenum */
 extern  void    EnumInit(void);                 /* cenum */
 extern  void    FreeEnums(void);                /* cenum */
 
@@ -514,9 +516,8 @@ extern  void    CErr1(int);
 extern  void    CErr2(int,int);
 extern  void    CErr2p(int,char *);
 extern  void    CErr(int,...);
-extern  void    SetErrLoc(char *,unsigned);
-extern  void    SetErrLocFno( unsigned findex, unsigned line_num );
-extern  void    SetSymLoc(SYMPTR);
+extern  void    SetErrLoc(source_loc *);
+extern  void    InitErrLoc(void);
 extern  void    CWarn1(int,int);
 extern  void    CWarn2(int,int,int);
 extern  void    CWarn(int,int,...);
@@ -526,6 +527,7 @@ extern  void    CSuicide(void);
 extern  void    OpenErrFile(void);
 extern  void    FmtCMsg( char *buff, cmsg_info *info );
 extern  void    SetDiagSymbol(SYMPTR sym, SYM_HANDLE handle);
+extern  void    SetDiagEnum(ENUMPTR);
 extern  void    SetDiagType1(TYPEPTR typ_source);
 extern  void    SetDiagType2(TYPEPTR typ_source, TYPEPTR typ_target);
 extern  void    SetDiagPop(void);
@@ -569,6 +571,7 @@ extern  char    *SrcFullPath( char *, char const *, unsigned );
 extern  int64   LongValue64( TREEPTR leaf );
 extern  void    CastFloatValue( TREEPTR leaf, DATA_TYPE newtype );
 extern  void    CastConstValue(TREEPTR,DATA_TYPE);
+extern  void    CastConstNode( TREEPTR leaf, TYPEPTR newtyp );
 extern  void    DoConstFold(TREEPTR);
 extern  void    FoldExprTree(TREEPTR);
 extern  bool    BoolConstExpr( void );
@@ -628,7 +631,7 @@ extern  void    GetMacroToken(void);
 extern  int     SpecialMacro(MEPTR);
 extern  void    DoMacroExpansion(void);
 //cmac2.c
-extern  int     ChkControl(void);
+extern  TOKEN   ChkControl(void);
 extern  bool    MacroDel( char *name );
 extern  void    CppStackInit( void );
 extern  void    CppStackFini(void);
@@ -722,16 +725,15 @@ extern  int     CalcHash( const char *, int );  /* cscan */
 extern  unsigned hashpjw( const char * );       /* cscan */
 extern  int     ESCChar( int, const char **, char * );  /* cscan */
 extern  void    SkipAhead( void );              /* cscan */
-extern  int     ScanSlash( void );              /* cscan */
-extern  int     ScanToken( void );              /* cscan */
+extern  TOKEN   ScanToken( void );              /* cscan */
 extern  void    ReScanInit( char * );           /* cscan */
 extern  int     ReScanBuffer( void );           /* cscan */
 extern  int     ReScanToken( void );            /* cscan */
 extern  char    *ReScanPos( void );             /* cscan */
-extern  int     KwLookup( const char *, int );  /* cscan */
-extern  int     IdLookup( const char *, int );  /* cscan */
-extern  int     NextToken( void );              /* cscan */
-extern  int     PPNextToken( void );            /* cscan */
+extern  TOKEN   KwLookup( const char *, int );  /* cscan */
+extern  TOKEN   IdLookup( const char *, int );  /* cscan */
+extern  TOKEN   NextToken( void );              /* cscan */
+extern  TOKEN   PPNextToken( void );            /* cscan */
 
 extern  unsigned long SizeOfArg(TYPEPTR);       /* csizeof */
 
@@ -747,7 +749,7 @@ extern  void    StmtInit( void );               /* cstmt */
 
 extern  void    FreeLiteral(STRING_LITERAL *);  /* cstring */
 extern  STRING_LITERAL  *GetLiteral(void);      /* cstring */
-extern  void    LoadUnicodeTable(long);         /* cstring */
+extern  void    LoadUnicodeTable(unsigned);     /* cstring */
 extern  void    StringInit(void);               /* cstring */
 extern  TREEPTR StringLeaf(int);                /* cstring */
 
@@ -797,8 +799,8 @@ extern  TAGPTR  NullTag(void);
 extern  TAGPTR  TagLookup(void);
 extern  void    FreeTags(void);
 extern  unsigned long TypeSize(TYPEPTR);
-/* CarlYoung 31-Oct-03 */
 extern  unsigned long TypeSizeEx( TYPEPTR, unsigned long * pFieldWidth );
+extern  TYPEPTR GetIntTypeBySize( unsigned long size, bool sign, bool exact );
 extern  TAGPTR  VfyNewTag( TAGPTR, int );
 extern  void    VfyNewSym( int, char * );
 extern  unsigned GetTypeAlignment( TYPEPTR );

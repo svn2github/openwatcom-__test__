@@ -24,39 +24,31 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Process FORMAT specificaitons
 *
 ****************************************************************************/
 
-
-//
-// RFMTEMIT     : Process FORMAT specificaitons
-//
-
 #include "ftnstd.h"
+#include "ftextfun.h"
 #include "format.h"
 #include "errcod.h"
 #include "rundat.h"
 #include "fmtdef.h"
 #include "fmtdat.h"
 
-extern  void            RTErr(int,...);
-
-
 void    R_FEmInit( void ) {
 //===================
 
 }
 
+void    CheckHole( uint size ) {
+//==============================
 
-void    R_FEmEnd( void ) {
-//==================
-
-    R_FEmCode( END_FORMAT );
-    R_FEmNum( (char PGM *)(IOCB->fmtptr) - Fmt_revert.rt );
+    if( IOCB->fmtlen < size ) {
+        RTErr( FM_TOO_LARGE );
+    }
+    IOCB->fmtlen -= size;
 }
-
 
 void    R_FEmCode( int code ) {
 //=============================
@@ -73,7 +65,6 @@ void    R_FEmCode( int code ) {
     IOCB->fmtptr = (fmt_desc PGM *)((byte PGM *)IOCB->fmtptr + 1);
 }
 
-
 void    R_FEmChar( char PGM *cur_char_ptr ) {
 //===========================================
 
@@ -81,7 +72,6 @@ void    R_FEmChar( char PGM *cur_char_ptr ) {
     *(char PGM *)IOCB->fmtptr = *cur_char_ptr;
     IOCB->fmtptr = (fmt_desc PGM *)((char PGM *)IOCB->fmtptr + 1);
 }
-
 
 void    R_FEmNum( int num ) {
 //===========================
@@ -91,6 +81,12 @@ void    R_FEmNum( int num ) {
     IOCB->fmtptr = (fmt_desc PGM *)((int PGM *)IOCB->fmtptr + 1);
 }
 
+void    R_FEmEnd( void ) {
+//==================
+
+    R_FEmCode( END_FORMAT );
+    R_FEmNum( (char PGM *)(IOCB->fmtptr) - Fmt_revert.rt );
+}
 
 void    R_FEmByte( int signed_num ) {
 //=============================
@@ -104,14 +100,4 @@ void    R_FEmByte( int signed_num ) {
         *(byte PGM *)IOCB->fmtptr = num;
         IOCB->fmtptr = (fmt_desc PGM *)((byte PGM *)IOCB->fmtptr + 1);
     }
-}
-
-
-void    CheckHole( uint size ) {
-//==============================
-
-    if( IOCB->fmtlen < size ) {
-        RTErr( FM_TOO_LARGE );
-    }
-    IOCB->fmtlen -= size;
 }

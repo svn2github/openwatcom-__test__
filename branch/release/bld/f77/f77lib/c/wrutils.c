@@ -24,15 +24,9 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Run-time utilities for WRITE
 *
 ****************************************************************************/
-
-
-//
-// WRUTILS      : Run-time utilities for WRITE
-//
 
 #include <string.h>
 #include <stdlib.h>
@@ -40,7 +34,6 @@
 #include "ftnstd.h"
 #include "rundat.h"
 #include "errcod.h"
-#include "rtflags.h"
 #include "csetinfo.h"
 
 extern  void            IOErr(int,...);
@@ -54,6 +47,12 @@ extern  void            UpdateRecNum(ftnfile *);
 
 extern  char            NormalCtrlSeq[];
 extern  character_set   CharSetInfo;
+
+/* Forward declarations */
+void    SendEOR( void );
+void    SendWSLStr( char *str );
+void    SendChar( char ch, int rep );
+void    Drop( char ch );
 
 
 void    F_SendData( char *str, uint width ) {

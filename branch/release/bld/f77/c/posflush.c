@@ -24,28 +24,16 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  POSIX level i/o support
 *
 ****************************************************************************/
 
-
-//
-// POSFLUSH     : POSIX level i/o support
-//
-
 #include "ftnstd.h"
-#include "fio.h"
+#include "ftextfun.h"
 #include "posio.h"
 
-extern  uint            writebytes(b_file *,char *,uint);
-
-
 int     FlushBuffer( b_file *io ) {
-//=================================
-
 // Flush i/o buffer.
-
     uint        amt;
     int         bytes_written;
     int         rc;

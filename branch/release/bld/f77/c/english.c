@@ -24,19 +24,13 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  English character set support
 *
 ****************************************************************************/
 
-
-//
-// ENGLISH      : English character set support
-//
-
 #include "ftnstd.h"
+#include "ftextvar.h"
 #include "scan.h"
-#include "csetinfo.h"
 
 // Modified:    By:             Reason:
 // --------     ---             -------
@@ -225,12 +219,7 @@ static const byte __FAR CharSet[] = {
 
 #endif
 
-extern  character_set           CharSetInfo;
-
-
 static  int     ExtractText( char *string, int len ) {
-//====================================================
-
 // Given a string of text, extract as much text as possible up to a maximum
 // of "len" bytes so that we don't split double-byte characters.
 
@@ -240,8 +229,6 @@ static  int     ExtractText( char *string, int len ) {
 
 
 static  bool    IsDoubleByteBlank( char *ptr ) {
-//==============================================
-
 // Determine if character is a double-byte blank character.
 
     ptr = ptr;
@@ -250,8 +237,6 @@ static  bool    IsDoubleByteBlank( char *ptr ) {
 
 
 static  bool    IsDoubleByteChar( char ch ) {
-//===========================================
-
 // Determine if character is a double-byte character.
 
     ch = ch;
@@ -260,8 +245,6 @@ static  bool    IsDoubleByteChar( char ch ) {
 
 
 static  int     CharacterWidth( char PGM *ptr ) {
-//===============================================
-
 // Determine character width.
 
     ptr = ptr;
@@ -270,8 +253,6 @@ static  int     CharacterWidth( char PGM *ptr ) {
 
 
 static  bool    IsForeign( char ch ) {
-//====================================
-
 // Determine if character is a foreign character (i.e. non-ASCII).
 
     ch = ch;
@@ -280,8 +261,6 @@ static  bool    IsForeign( char ch ) {
 
 
 void    __UseEnglishCharSet( void ) {
-//=============================
-
     CharSetInfo.extract_text = &ExtractText;
     CharSetInfo.is_double_byte_blank = &IsDoubleByteBlank;
     CharSetInfo.is_double_byte_char = &IsDoubleByteChar;

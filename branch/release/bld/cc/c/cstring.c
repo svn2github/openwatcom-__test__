@@ -53,12 +53,8 @@ static int OpenUnicodeFile( char *filename )
     int         handle;
     char        fullpath[ _MAX_PATH ];
 
-#if defined(__UNIX__)
-#if defined(__WATCOMC__)
+#if defined(__QNX__)
     _searchenv( filename, "ETC_PATH", fullpath );
-#else
-    fullpath[0] = '\0';
-#endif
     if( fullpath[0] == '\0' ) {
         #define ETC "/etc/"
         strcpy( fullpath, ETC );
@@ -86,12 +82,16 @@ static void ReadUnicodeFile( int handle )
     }
 }
 
-void LoadUnicodeTable( long codePage )
+void LoadUnicodeTable( unsigned codePage )
 {
     int         handle;
-    char        filename[8+1+3+1];
+    char        filename[ 20 ];
 
-    sprintf( filename, "unicode.%3.3ld", codePage );
+    sprintf( filename, "unicode.%3.3u", codePage );
+    if( filename[ 11 ] != '\0' ) {
+        filename[ 7 ] = filename[ 8 ];
+        filename[ 8 ] = '.';
+    }
     handle = OpenUnicodeFile( filename );
     if( handle != -1 ) {
         ReadUnicodeFile( handle );

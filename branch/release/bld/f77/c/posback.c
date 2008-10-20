@@ -24,23 +24,17 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  File I/O "move back" routines
 *
 ****************************************************************************/
 
-
 #include "ftnstd.h"
-#include "fio.h"
+#include "ftextfun.h"
+#include "ftextvar.h"
 #include "posio.h"
 
-extern  void            IOOk(b_file *);
-extern  int             SysSeek(b_file *,long int,int);
-extern  uint            SysRead(b_file *,char *,int);
-extern  long int        CurrFileOffset(b_file *);
 
 #define NO_CHAR         0xffff
-
 
 static  uint    GetPrevChar( b_file *io ) {
 //=========================================

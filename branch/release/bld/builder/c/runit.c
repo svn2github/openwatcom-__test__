@@ -49,36 +49,84 @@
 
 #ifdef __UNIX__
 
-int __fnmatch( const char *pattern, const char *string )
+static int __fnmatch( char *pattern, char *string )
+/*************************************************/
 {
-    if( *string == 0 ) {
-        while( *pattern == '*' )
-            ++pattern;
-        return( ( *pattern == 0 ) ? 1 : 0 );
+    char    *p;
+    int     len;
+    int     star_char;
+    int     i;
+
+    /*
+     * check pattern section with wildcard characters
+     */
+    star_char = 0;
+    while( ( *pattern == '*' ) || ( *pattern == '?' ) ) {
+        if( *pattern == '?' ) {
+            if( *string == 0 ) {
+                return( 0 );
+            }
+            string++;
+        } else {
+            star_char = 1;
+        }
+        pattern++;
     }
-    switch( *pattern ) {
-    case '*':
-        if( *string == '.' ) {
-            return( __fnmatch( pattern + 1, string ) );
-        } else if( __fnmatch( pattern + 1, string ) ) {
+    if( *pattern == 0 ) {
+        if( ( *string == 0 ) || star_char ) {
             return( 1 );
         } else {
-            return( __fnmatch( pattern, string + 1 ) );
-        }
-    case '?':
-        if( ( *string == 0 ) || ( *string == '.' ) ) {
             return( 0 );
-        } else {
-            return( __fnmatch( pattern + 1, string + 1 ) );
         }
-    case 0:
-        return( *string == 0 );
-    default:
-        if( *pattern != *string ) {
-            return( 0 );
+    }
+    /*
+     * check pattern section with exact match
+     * ( all characters except wildcards )
+     */
+    p = pattern;
+    len = 0;
+    do {
+        if( star_char ) {
+            if( string[ len ] == 0 ) {
+                return( 0 );
+            }
+            len++;
         } else {
-            return( __fnmatch( pattern + 1, string + 1 ) );
+            if( *pattern != *string ) {
+                return( 0 );
+            }
+            string++;
         }
+        pattern++;
+    } while( *pattern && ( *pattern != '*' ) && ( *pattern != '?' ) );
+    if( star_char == 0 ) {
+        /*
+         * match is OK, try next pattern section
+         */
+        return( __fnmatch( pattern, string ) );
+    } else {
+        /*
+         * star pattern section, try locate exact match
+         */
+        while( *string ) {
+            if( *p == *string ) {
+                for( i = 1; i < len; i++ ) {
+                    if( *( p + i ) != *( string + i ) ) {
+                        break;
+                    }
+                }
+                if( i == len ) {
+                    /*
+                     * if rest doesn't match, find next occurence
+                     */
+                    if( __fnmatch( pattern, string + len ) ) {
+                        return( 1 );
+                    }
+                }
+            }
+            string++;
+        }
+        return( 0 );
     }
 }
 
@@ -100,11 +148,15 @@ static unsigned ProcSet( char *cmd )
         return( 1 );
     *rep++ = '\0';
     if( *rep == '\0' ) {
-        rep = NULL;             // get rid of the variable! Needed by Optima!
+        rep = NULL;     /* Delete the environment variable! */
     }
 #ifdef __WATCOMC__
-    // We don't have unsetenv(), but our setenv() is extended vs. POSIX 
-    return( setenv( var, rep, 1 ) );
+    /* We don't have unsetenv(), but our setenv() is extended vs. POSIX */
+    if( rep == NULL ) {
+        setenv( var, NULL, 1 );
+        return( 0 );
+    } else
+        return( setenv( var, rep, 1 ) );
 #else
     if( rep == NULL ) {
         unsetenv( var );
@@ -277,8 +329,13 @@ static copy_entry *BuildList( char *src, char *dst, bool test_abit )
 }
 
 static int mkdir_nested( char *path )
+/***********************************/
 {
+#ifdef __UNIX__
     struct stat sb;
+#else
+    unsigned    attr;
+#endif
     char        pathname[ FILENAME_MAX ];
     char        *p;
     char        *end;
@@ -289,7 +346,7 @@ static int mkdir_nested( char *path )
 
 #ifndef __UNIX__
     /* special case for drive letters */
-    if( p[0] && p[1] && p[1] == ':' ) {
+    if( p[0] && p[1] == ':' ) {
         p += 2;
     }
 #endif
@@ -304,7 +361,11 @@ static int mkdir_nested( char *path )
         *p = '\0';
 
         /* check if pathname exists */
+#ifdef __UNIX__
         if( stat( pathname, &sb ) == -1 ) {
+#else
+        if( _dos_getfileattr( pathname, &attr ) != 0 ) {
+#endif
             int rc;
 
 #ifdef __UNIX__
@@ -318,7 +379,11 @@ static int mkdir_nested( char *path )
             }
         } else {
             /* make sure it really is a directory */
+#ifdef __UNIX__
             if( !S_ISDIR( sb.st_mode ) ) {
+#else
+            if( (attr & _A_SUBDIR) == 0 ) {
+#endif
                 Log( FALSE, "Can not create directory '%s': file with the same name already exists\n", pathname );
                 return( -1 );
             }
@@ -476,7 +541,7 @@ void PMakeOutput( char *str )
     Log( FALSE, "%s\n", str );
 }
 
-static unsigned DoPMake( pmake_data *data )
+static unsigned DoPMake( pmake_data *data, bool ignore_errors )
 {
     pmake_list  *curr;
     unsigned    res;
@@ -484,20 +549,31 @@ static unsigned DoPMake( pmake_data *data )
 
     for( curr = data->dir_list; curr != NULL; curr = curr->next ) {
         res = SysChdir( curr->dir_name );
-        if( res != 0 )
-            return( res );
+        if( res != 0 ) {
+            if( ignore_errors ) {
+                Log( FALSE, "non-zero return: %d\n", res );
+                continue;
+            } else {
+                return( res );
+            }
+        }
         getcwd( IncludeStk->cwd, sizeof( IncludeStk->cwd ) );
         if( data->display )
             LogDir( IncludeStk->cwd );
         PMakeCommand( data, cmd );
         res = SysRunCommand( cmd );
-        if( res != 0 )
-            return( res );
+        if( res != 0 ) {
+            if( ignore_errors ) {
+                Log( FALSE, "non-zero return: %d\n", res );
+            } else {
+                return( res );
+            }
+        }
     }
     return( 0 );
 }
 
-static unsigned ProcPMake( char *cmd )
+static unsigned ProcPMake( char *cmd, bool ignore_errors )
 {
     pmake_data  *data;
     unsigned    res;
@@ -511,14 +587,14 @@ static unsigned ProcPMake( char *cmd )
         return( 2 );
     }
     strcpy( save, IncludeStk->cwd );
-    res = DoPMake( data );
+    res = DoPMake( data, ignore_errors );
     SysChdir( save );
     getcwd( IncludeStk->cwd, sizeof( IncludeStk->cwd ) );
     PMakeCleanup( data );
     return( res );
 }
 
-unsigned RunIt( char *cmd )
+unsigned RunIt( char *cmd, bool ignore_errors )
 {
     unsigned    res;
 
@@ -540,6 +616,9 @@ unsigned RunIt( char *cmd )
         res = ProcSet( SkipBlanks( cmd + sizeof( "SET" ) ) );
     } else if( BUILTIN( "ECHO" ) ) {
         Log( Quiet, "%s\n", SkipBlanks( cmd + sizeof( "ECHO" ) ) );
+    } else if( BUILTIN( "ERROR" ) ) {
+        Log( Quiet, "%s\n", SkipBlanks( cmd + sizeof( "ERROR" ) ) );
+        res = 1;
     } else if( BUILTIN( "COPY" ) ) {
         res = ProcCopy( SkipBlanks( cmd + sizeof( "COPY" ) ), FALSE, FALSE );
     } else if( BUILTIN( "ACOPY" ) ) {
@@ -551,7 +630,7 @@ unsigned RunIt( char *cmd )
     } else if( BUILTIN( "MKDIR" ) ) {
         res = ProcMkdir( SkipBlanks( cmd + sizeof( "MKDIR" ) ) );
     } else if( BUILTIN( "PMAKE" ) ) {
-        res = ProcPMake( SkipBlanks( cmd + sizeof( "PMAKE" ) ) );
+        res = ProcPMake( SkipBlanks( cmd + sizeof( "PMAKE" ) ), ignore_errors );
     } else {
         res = SysRunCommand( cmd );
     }

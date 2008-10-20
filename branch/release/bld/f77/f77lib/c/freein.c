@@ -24,17 +24,12 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Free-format input
 *
 ****************************************************************************/
 
-
-//
-// FREEIN       : Free-format input
-//
-
 #include "ftnstd.h"
+#include "ftextfun.h"
 #include "rundat.h"
 #include "errcod.h"
 #include "intcnv.h"
@@ -44,13 +39,20 @@
 
 #include <ctype.h>
 
-extern  void            IOErr(int,...);
-extern  void            NextRec(void);
-extern  int             FmtS2F(char *,int,int,bool,int,int,extended *,bool,int *,bool);
-extern  int             FmtS2I(char *,int,bool,intstar4 *,bool,int *);
-extern  char            *JmpBlanks(char *);
-extern  void            Suicide(void);
-extern  void            ArrayIOType(void);
+/* Forward declarations */
+static  void    RptNum( void );
+static  void    InNumber( void );
+static  void    InString( void );
+static  void    GetInt( intstar4 *result );
+static  void    GetFloat( extended *result, int prec );
+static  void    GetString( void );
+static  void    InCplx( void );
+static  void    InLog( void );
+static  void    FreeIOErr( uint err );
+
+void    BumpComma( void );
+void    Blanks( void );
+void    CheckEor( void );
 
 
 static  char    *GetDelim( char *start, char *buff_end ) {
@@ -111,14 +113,6 @@ static  void    FreeIOType( void ) {
         return;
     }
     IOCB->typ = IOTypeRtn();
-}
-
-
-void    FreeIn( void ) {
-//================
-
-    NextRec();
-    DoFreeIn();
 }
 
 
@@ -198,6 +192,14 @@ void    DoFreeIn( void ) {
             }
         }
     }
+}
+
+
+void    FreeIn( void ) {
+//================
+
+    NextRec();
+    DoFreeIn();
 }
 
 

@@ -152,6 +152,9 @@ stkdepth_dir    = $(dev_dir)/stkdepth
 !ifndef wasm_dir
 wasm_dir        = $(dev_dir)/wasm
 !endif
+!ifndef wasmtest_dir
+wasmtest_dir    = $(dev_dir)/wasm/test
+!endif
 !ifndef hdr_dir
 hdr_dir         = $(dev_dir)/hdr
 !endif
@@ -193,9 +196,6 @@ batch_dir       = $(dev_dir)/idebatch
 !endif
 !ifndef editdll_dir
 editdll_dir     = $(dev_dir)/editdll
-!endif
-!ifndef guitools_dir
-guitools_dir    = $(dev_dir)/online/hlp
 !endif
 !ifndef gui_dir
 gui_dir         = $(dev_dir)/gui
@@ -266,6 +266,9 @@ help_dir        = $(dev_dir)/help
 !ifndef wv_dir
 wv_dir          = $(dev_dir)/wv
 !endif
+!ifndef cw_dir
+cw_dir          = $(dev_dir)/causeway
+!endif
 !ifndef pil_dir
 pil_dir         = $(dev_dir)/pil
 !endif
@@ -310,6 +313,9 @@ libzip_dir      = $(contrib_dir)/libzip
 !endif
 !ifndef zlib_dir
 zlib_dir        = $(contrib_dir)/zlib
+!endif
+!ifndef awk_dir
+awk_dir         = $(contrib_dir)/awk
 !endif
 
 !else
@@ -467,6 +473,9 @@ stkdepth_dir    = $(dev_dir)\stkdepth
 !ifndef wasm_dir
 wasm_dir        = $(dev_dir)\wasm
 !endif
+!ifndef wasmtest_dir
+wasmtest_dir    = $(dev_dir)\wasm\test
+!endif
 !ifndef hdr_dir
 hdr_dir         = $(dev_dir)\hdr
 !endif
@@ -508,9 +517,6 @@ batch_dir       = $(dev_dir)\idebatch
 !endif
 !ifndef editdll_dir
 editdll_dir     = $(dev_dir)\editdll
-!endif
-!ifndef guitools_dir
-guitools_dir    = $(dev_dir)\online\hlp
 !endif
 !ifndef gui_dir
 gui_dir         = $(dev_dir)\gui
@@ -620,11 +626,17 @@ debugger_dir    = $(dev_dir)\debugger
 !ifndef re2c_dir
 re2c_dir        = $(dev_dir)\re2c
 !endif
+!ifndef cw_dir
+cw_dir          = $(dev_dir)\causeway
+!endif
 !ifndef libzip_dir
 libzip_dir      = $(contrib_dir)\libzip
 !endif
 !ifndef zlib_dir
 zlib_dir        = $(contrib_dir)\zlib
+!endif
+!ifndef awk_dir
+awk_dir         = $(contrib_dir)\awk
 !endif
 
 !endif

@@ -6,6 +6,8 @@ set PROJDIR=<CWD>
 [ INCLUDE <OWROOT>/bat/master.ctl ]
 
 set OWLINUXBUILD=bootstrap
+set WLINK_LNK=bootstrp.lnk
+
 # compiled using GNU make + gcc + ar
 [ INCLUDE <DEVDIR>/wmake/prereq.ctl ]
 [ INCLUDE <DEVDIR>/builder/lang.ctl ]
@@ -36,6 +38,7 @@ set OWLINUXBUILD=bootstrap
 [ INCLUDE <DEVDIR>/owl/lang.ctl ]
 [ INCLUDE <DEVDIR>/dwarf/lang.ctl ]
 [ INCLUDE <DEVDIR>/re2c/prereq.ctl ]
+[ INCLUDE <DEVDIR>/sdk/rc/wres/prereq.ctl ]
 [ INCLUDE <DEVDIR>/as/lang.ctl ]
 [ INCLUDE <DEVDIR>/cg/lang.ctl ]
 [ INCLUDE <DEVDIR>/cc/lang.ctl ]
@@ -52,6 +55,7 @@ set OWLINUXBUILD=bootstrap
 
 [ BLOCK . . ]
 set OWLINUXBUILD=normal
+set WLINK_LNK=
 
 # create full-featured wmake...
 
@@ -62,7 +66,6 @@ set OWLINUXBUILD=normal
 # all is ready to do everything else now
 
 [ BLOCK <1> clean ]
-    rm -rf <DEVDIR>/clib/<OBJDIR>
     rm -rf <DEVDIR>/builder/<OBJDIR>
     rm -rf <DEVDIR>/pmake/<OBJDIR>
     rm -rf <DEVDIR>/yacc/<OBJDIR>
@@ -91,7 +94,6 @@ set OWLINUXBUILD=normal
     rm -f <OWBINDIR>/wpp
     rm -f <OWBINDIR>/wmake
     rm -f <OWBINDIR>/wgml
-    rm -f <OWBINDIR>/parsedlg
     rm -f <OWBINDIR>/diff
     rm -f <OWBINDIR>/builder
     

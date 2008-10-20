@@ -1,5 +1,4 @@
 .func ultoa _ultoa _ultow _ultou
-.funcw _ultow
 #include <stdlib.h>
 char *ultoa( unsigned long int value,
              char *buffer,
@@ -92,9 +91,7 @@ void main()
 14 491b
 16 31dd
 .exmp end
-.class WATCOM
-.if &'length(&_func.) ne 0 .do begin
-.np
-&_func conforms to ANSI/ISO naming conventions
-.do end
+.class begin WATCOM
+.ansiname &_func
+.class end
 .system

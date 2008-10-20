@@ -35,12 +35,10 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <ctype.h>
 
 #if defined(__UNIX__)
     #include <dirent.h>
-    #include <unistd.h>
     #include <sys/stat.h>
     #include <fcntl.h>
 #if defined(__QNX__)
@@ -61,8 +59,16 @@
 #define __set_errno( err ) errno = (err)
 
 char **_argv;
+int  _argc;
 
-static const char __Alphabet[];
+/****************************************************************************
+*
+* Description:  Shared alphabet array for conversion of integers to ASCII.
+*
+****************************************************************************/
+
+static const char __Alphabet[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+
 
 char *utoa( unsigned value, char *buffer, int radix )
 {
@@ -141,14 +147,6 @@ char *ltoa( long value, char *buffer, int radix )
     ultoa( value, p, radix );
     return( buffer );
 }
-
-/****************************************************************************
-*
-* Description:  Shared alphabet array for conversion of integers to ASCII.
-*
-****************************************************************************/
-
-static const char __Alphabet[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 /****************************************************************************
 *

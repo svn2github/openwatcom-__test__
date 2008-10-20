@@ -32,11 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <io.h>
-#include <sys/types.h>
-#include <sys/utime.h>
-#include <sys/stat.h>
+#include <unistd.h>
 #include "fcenable.h"
 
 extern void *   MemAlloc( unsigned );
@@ -49,6 +45,9 @@ extern void     LinkList( void **, void * );
 extern int      QRead( int, void *, int );
 extern int      QWrite( int, void *, int );
 extern void     FreeList( void * );
+extern void     BuildRecord( void *, unsigned );
+extern int      GetIndex( char ** );
+extern void     IndexRecord( unsigned );
 
 #define VARIABLE_SIZE 1
 #define MAJOR_OBJ_VERSION 1

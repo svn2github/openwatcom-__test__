@@ -4,15 +4,16 @@ DnsAcquireContextHandle_A@12
 DnsAcquireContextHandle_W@12
 DnsExtractRecordsFromMessage_UTF8@12
 DnsExtractRecordsFromMessage_W@12
+DnsFree@8
 DnsModifyRecordsInSet_A@24
 DnsModifyRecordsInSet_UTF8@24
 DnsModifyRecordsInSet_W@24
 DnsNameCompare_A@8
 DnsNameCompare_W@8
+DnsQueryConfig@24
 DnsQuery_A@24
 DnsQuery_UTF8@24
 DnsQuery_W@24
-DnsQueryConfig@24
 DnsRecordCompare@8
 DnsRecordCopyEx@12
 DnsRecordListFree@8

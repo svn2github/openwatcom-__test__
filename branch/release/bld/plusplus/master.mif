@@ -74,8 +74,13 @@ fesupp_hdr   = "fesupp.h"
 carvecpp_hdr = "carvecpp.h"
 !endif
  
+!ifeq cg_dll 1
+extra_c_flags += -D_CGDLL
+!endif
+
 !ifeq release 0
 extra_c_flags_axp = -si
+extra_c_flags += -db
 !endif
  
 extra_c_flags_osi   = -DIDE_PGM -D__OS2__
@@ -246,7 +251,7 @@ $(dll_name).dll : $(rc_objs) $(depends_dll) dll.lnk
 !endif
  
 $(dll_name).lib : $(dll_name).dll
-    $(librarian) $(libflags) $@ +$[@
+    $(librarian) $(libflags) +$[@
  
 # conventions:
 #
@@ -366,10 +371,16 @@ cmdlnpr1.gh cmdlnpr2.gh cmdlnusg.gh usage.u usage01.int : ./optencod.exe ../gml/
 ic_mask.gh : ./icmask.exe ../h/ic.h ../c/dwarf.c ../c/cgbkcgrf.c ../c/cgio.c ../c/brmwrite.c
     $[@ ../h/ic.h ../c/dwarf.c ../c/cgbkcgrf.c ../c/cgio.c ../c/brmwrite.c
  
-./mkopcode.exe: $(wasm_dir)/mkopcode.c
-    $(bld_cl) $[@ $(wcl_util_opts)
+./mkopcod1.exe: $(wasm_dir)/mkopcod1.c $(wasm_dir)/mkopcode.h
+    $(bld_cl) -I"$(wasm_dir)/h" $[@ $(wcl_util_opts)
  
-inlnops.gh: ./mkopcode.exe $(wasm_dir)/inlnops.tok
+asmops.gh: ./mkopcod1.exe $(wasm_dir)/inlnops.tok
+    $[@ $(wasm_dir)/inlnops.tok $@
+ 
+./mkopcode.exe: $(wasm_dir)/mkopcode.c $(wasm_dir)/mkopcode.h asmops.gh
+    $(bld_cl) -I"$(wasm_dir)/h" $[@ $(wcl_util_opts)
+ 
+asmopsd.gh: ./mkopcode.exe $(wasm_dir)/inlnops.tok
     $[@ $(wasm_dir)/inlnops.tok $@
  
 ./genverrc.exe: $(fe_misc_dir)/c/genverrc.c
@@ -380,7 +391,7 @@ patch_level=0
 !endif
  
 plusplus.rc : ./genverrc.exe ../rc/r_$(host_os)$(host_cpu).rc
-    $[@ $]@ $@ $$ $(dll_name).dll $(patch_level)
+    $[@ $]@ $@ $$ $(dll_name) $(patch_level)
  
 !ifeq target_cpu axp
  

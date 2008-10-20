@@ -30,6 +30,8 @@
 
 
 #include "variety.h"
+#include <process.h>
+#include <stddef.h>
 #include <string.h>
 #include <malloc.h>
 #include <i86.h>
@@ -38,8 +40,8 @@
 #include "sigtab.h"
 #include "thread.h"
 #include "rtdata.h"
-#include "extfunc.h"
 #include "exitwmsg.h"
+#include "cthread.h"
 
 #define EXIT_THREAD     0
 
@@ -54,9 +56,6 @@ extern void             ExitThread( int , int );
 extern int              BeginThread( void (*)( void * ), void *, unsigned,
                                      void * );
 
-extern  void            _endthread( void );
-
-extern  unsigned        __MaxThreads;
 extern  void            **__ThreadIDs;
 
 _WCRTDATA thread_data   *(*__GetThreadPtr)( void ) = &__SingleThread;
@@ -98,7 +97,7 @@ extern int *__threadid( void )
             ptr = lib_calloc( 1, __ThreadDataSize );
             if( ptr == NULL ) {
                 __fatal_runtime_error(
-                    "Unable to allocate thread-specific data\r\n", 1 );
+                    "Unable to allocate thread-specific data", 1 );
             }
             __ThreadData[ id ].data = ptr;
             __ThreadData[ id ].allocated_entry = 1;
@@ -108,7 +107,7 @@ extern int *__threadid( void )
             if( __initthread( ptr ) ) {
                 lib_free( ptr );
                 __fatal_runtime_error(
-                    "Unable to initialize thread-specific data\r\n", 1 );
+                    "Unable to initialize thread-specific data", 1 );
             }
         }
     }

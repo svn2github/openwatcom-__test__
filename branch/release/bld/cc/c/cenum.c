@@ -46,7 +46,7 @@ void EnumInit( void )
 }
 
 
-local ENUM_HANDLE EnumLkAdd( TAGPTR tag )
+local ENUMPTR EnumLkAdd( TAGPTR tag )
 {
     ENUMPTR     esym;
     int         len;
@@ -58,6 +58,7 @@ local ENUM_HANDLE EnumLkAdd( TAGPTR tag )
     strcpy( esym->name, Buffer );
     esym->parent = tag;
     esym->hash = HashValue;
+    esym->src_loc = TokenLoc;
     esym->next_enum = EnumTable[ esym->hash ];
     ++EnumCount;
     if( tag->u.enum_list == NULL ) {
@@ -70,11 +71,13 @@ local ENUM_HANDLE EnumLkAdd( TAGPTR tag )
 #endif
     return( esym );
 }
+
 #if defined( WATCOM_BIG_ENDIAN )
 #   define i64val(h,l) { h, l }
 #else
 #   define i64val(h,l) { l, h }
 #endif
+
 enum enum_rng {
     ENUM_UNDEF = -1,
     ENUM_S8,
@@ -186,9 +189,9 @@ TYPEPTR EnumDecl( int flags )
         uint64          Inc;
         bool            minus;
         bool            has_sign;
-        ENUM_HANDLE     *prev_lnk;
-        ENUM_HANDLE     esym;
-        int             error_line;
+        ENUMPTR         *prev_lnk;
+        ENUMPTR         esym;
+        source_loc      error_loc;
         char            buff[50];
 
         if( CompFlags.make_enums_an_int ) {
@@ -212,11 +215,11 @@ TYPEPTR EnumDecl( int flags )
             esym = EnumLkAdd( tag );
             *prev_lnk = esym;
             prev_lnk = &esym->thread;
-            error_line = TokenLine;
+            error_loc = TokenLoc;
             NextToken();
             if( CurToken == T_EQUAL ) {
                 NextToken();
-                error_line = TokenLine;
+                error_loc = TokenLoc;
                 ConstExprAndType( &val );
                 switch( val.type ){
                 case TYPE_ULONG:
@@ -277,7 +280,7 @@ TYPEPTR EnumDecl( int flags )
                 }
             }
             if( error != ENUM_UNDEF ) {
-                TokenLine = error_line;
+                SetErrLoc( &error_loc );
                 get_msg_range( buff, error );
                 CErr( ERR_ENUM_CONSTANT_OUT_OF_RANGE, buff );
             }
@@ -299,21 +302,16 @@ TYPEPTR EnumDecl( int flags )
 }
 
 
-int EnumLookup( int hash_value, char *name, struct enum_info *eip )
+ENUMPTR EnumLookup( int hash_value, char *name )
 {
     ENUMPTR     esym;
 
-    for( esym = EnumTable[hash_value]; esym; ) {
+    for( esym = EnumTable[hash_value]; esym != NULL; esym = esym->next_enum ) {
         if( strcmp( esym->name, name ) == 0 ) {
-            eip->value = esym->value;
-            eip->parent = esym->parent;
-            eip->level = esym->parent->level;
-            return( 1 );            /* indicate ENUM was found */
+            break;
         }
-        esym = esym->next_enum;
     }
-    eip->level = -1;                /* indicate not found */
-    return( 0 );                    /* indicate this was not an ENUM */
+    return( esym );
 }
 
 

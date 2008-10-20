@@ -46,6 +46,8 @@
 #include "ferror.h"
 #include "inout.h"
 #include "fctypes.h"
+#include "cspawn.h"
+#include "stdio.h"
 
 #include "langenvd.h"
 #if _CPU == 386 || _CPU == 8086
@@ -76,7 +78,6 @@ extern  char            *SDExtn(char *,char *);
 extern  char            *SDFName(char *);
 extern  char            *STGetName(sym_id,char *);
 extern  char            *STExtractName(sym_id,char *);
-extern  void            Suicide(void);
 extern  intstar4        GetComBlkSize(sym_id);
 extern  aux_info        *AuxLookup(sym_id);
 extern  void            SendBlip(void);
@@ -126,16 +127,38 @@ static  cg_type         UserType;
 #ifdef pick
 #undef pick
 #endif
-#define pick(id,type,dbgtype,cgtype) dbgtype,
+#define pick(id,type,dbgtype,cgtype,typnam) dbgtype,
 
 static  dbg_type        DBGTypes[] = {
 #include "ptypdefn.h"
 };
 
+#ifdef pick
+#undef pick
+#endif
+#define pick(id,type,dbgtype,cgtype,typnam) typnam,
+static  char * DBGNames[] = {
+#include "ptypdefn.h"
+};
+
+
 extern  sym_id                  STShadow(sym_id);
 extern  sym_id                  FindShadow(sym_id);
 extern  sym_id                  FindEqSetShadow(sym_id);
 extern  uint                    SymAlign(sym_id);
+
+/* Forward declarations */
+static  void    SegBytes( unsigned_32 size );
+static  void    DefineGlobalSeg( global_seg *seg );
+static  void    DefineGlobalSegs( void );
+static  void    DefineCommonSegs( void );
+static  void    AllocGlobalSegs( void );
+static  void    AllocCommonSegs( void );
+static  void    DefCodeSeg( void );
+static  void    BldCSName( char *buff );
+static  void    AllocComBlk( sym_id cb );
+segment_id       GetGlobalSeg( unsigned_32 g_offset );
+
 
 #define _Shadow( s )    if( (s->ns.flags & SY_CLASS) == SY_VARIABLE ) { \
                             if( s->ns.flags & SY_SPECIAL_PARM ) { \
@@ -431,7 +454,7 @@ static  void    SegBytes( unsigned_32 size ) {
 }
 
 
-static  void            DefineGlobalSeg( global_seg *seg ) {
+static  void   DefineGlobalSeg( global_seg *seg ) {
 //==========================================================
 
 // Define a global segment.
@@ -1375,7 +1398,7 @@ void    FEMessage( int msg, void *x ) {
     case MSG_FATAL :
         Error( CP_FATAL_ERROR, x );
         CGFlags |= CG_FATAL;
-        Suicide();
+        CSuicide();
         break;
     case MSG_BAD_PARM_REGISTER :
         Error( CP_BAD_PARM_REGISTER, x );
@@ -1455,7 +1478,9 @@ static  dbg_type        GetDbgType( sym_id sym ) {
         } else {
             // character*(*) variable/array
             if( sym->ns.flags & SY_VALUE_PARM ) {
-                return( DBCharBlock( 0 ) );
+                char    new_name[32];
+                sprintf( new_name, "%s*(*)", DBGNames[ PT_CHAR ] );
+                return( DBCharBlockNamed( new_name, 0 ) );        
             }
             loc = DBLocInit();
             if( Options & OPT_DESCRIPTOR ) {
@@ -1472,6 +1497,10 @@ static  dbg_type        GetDbgType( sym_id sym ) {
         }
     } else if( sym->ns.typ == TY_STRUCTURE ) {
         return( sym->ns.xt.record->dbi );
+    } else if( (sym->ns.typ == TY_CHAR) ) {
+        char    new_name[32];
+        sprintf( new_name, "%s*%u", DBGNames[ PT_CHAR ], sym->ns.xt.size );
+        return( DBCharBlockNamed( new_name, sym->ns.xt.size ) );        
     } else {
         return( BaseDbgType( sym->ns.typ, sym->ns.xt.size ) );
     }
@@ -1659,7 +1688,7 @@ static  dbg_type        DefCommonStruct( sym_id sym ) {
     com_eq      *com_ext;
 
     BEDefType( UserType, ALIGN_BYTE, GetComBlkSize( sym ) );
-    db = DBBegStruct( UserType, TRUE );
+    db = DBBegNameStruct( "COMMON BLOCK", UserType, TRUE );
     com_offset = 0;
     sym = sym->ns.si.cb.first;
     for(;;) {
@@ -1693,11 +1722,11 @@ static  void    InitDBGTypes( void ) {
 
     if( DBGTypes[ PT_LOG_1 ] == DBG_NIL_TYPE ) {
         for( typ = PT_LOG_1; typ <= PT_REAL_16; ++typ ) {
-            DBGTypes[ typ ] = DBScalar( "", MkCGType( typ ) );
+            DBGTypes[ typ ] = DBScalar( DBGNames[ typ ], MkCGType( typ ) );
         }
-        DBGTypes[ PT_CPLX_8 ] = DBFtnType( "", T_DBG_COMPLEX );
-        DBGTypes[ PT_CPLX_16 ] = DBFtnType( "", T_DBG_DCOMPLEX );
-        DBGTypes[ PT_CPLX_32 ] = DBFtnType( "", T_DBG_XCOMPLEX );
+        DBGTypes[ PT_CPLX_8 ]  = DBFtnType( DBGNames[ PT_CPLX_8 ],  T_DBG_COMPLEX );
+        DBGTypes[ PT_CPLX_16 ] = DBFtnType( DBGNames[ PT_CPLX_16 ], T_DBG_DCOMPLEX );
+        DBGTypes[ PT_CPLX_32 ] = DBFtnType( DBGNames[ PT_CPLX_32 ], T_DBG_XCOMPLEX );
     }
 }
 

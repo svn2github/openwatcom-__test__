@@ -24,7 +24,6 @@ NDdeShareGetInfoA@28
 NDdeShareGetInfoW@28
 NDdeShareSetInfoA@24
 NDdeShareSetInfoW@24
-NDdeSpecialCommandA@24
-NDdeSpecialCommandW@24
 NDdeTrustedShareEnumA@24
 NDdeTrustedShareEnumW@24
+

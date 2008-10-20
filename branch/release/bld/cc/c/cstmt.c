@@ -35,7 +35,7 @@
 typedef struct block_entry {
     struct block_entry  *prev_block;
     struct block_entry  *prev_loop;
-    int         block_type;
+    TOKEN       block_type;
     int         top_label;
     int         break_label;
     int         continue_label;
@@ -68,7 +68,6 @@ static BLOCKPTR     BlockStack;
 static BLOCKPTR     LoopStack;
 static SWITCHPTR    SwitchStack;
 
-extern  TREEPTR BaseConv( TYPEPTR typ1, TREEPTR op2 );
 extern  TREEPTR BoolConv( TYPEPTR typ, TREEPTR tree );
 extern  int     LoopDecl( SYM_HANDLE *sym_head );
 
@@ -149,8 +148,7 @@ void AddStmt( TREEPTR stmt )
 {
     WalkExprTree( stmt, ChkStringLeaf, NoOp, NoOp, DoConstFold );
     stmt = ExprNode( 0, OPR_STMT, stmt );
-    stmt->op.source_fno = SrcFno;
-    stmt->srclinenum = SrcLineNum;
+    stmt->op.src_loc = SrcLoc;
     stmt->op.unroll_count = UnrollCount;
     if( FirstStmt == NULL )  FirstStmt = stmt;
     if( LastStmt != NULL ) {
@@ -308,10 +306,9 @@ static void JumpTrue( TREEPTR expr, LABEL_INDEX label )
 
 void LookAhead( void )
 {
-    SavedId = CStrSave( Buffer );        /* save current id */
+    SavedId = CStrSave( Buffer );       /* save current id */
     SavedHash = HashValue;              /* and its hash value */
-    SavedTokenLine = TokenLine;         /* save linenum and fno 09-jul-95 */
-    SavedTokenFno  = TokenFno;
+    SavedTokenLoc = TokenLoc;           /* save linenum and fno 09-jul-95 */
     NextToken();                        /* get next token */
     LAToken = CurToken;                 /* save it in look ahead */
     CurToken = T_SAVED_ID;              /* go back to saved id */
@@ -325,11 +322,9 @@ static int GrabLabels( void )
     label = NULL;
     for( ;; ) {
         if( CurToken == T_SAVED_ID ) {          /* 09-jul-95 */
-            SrcLineNum = SavedTokenLine;
-            SrcFno     = SavedTokenFno;
+            SrcLoc = SavedTokenLoc;
         } else {
-            SrcLineNum = TokenLine;
-            SrcFno     = TokenFno;
+            SrcLoc = TokenLoc;
             if( CurToken != T_ID ) break;
             LookAhead();
         }
@@ -632,8 +627,7 @@ static void ElseStmt( void )
 {
     LABEL_INDEX if_label;
 
-    SrcLineNum = TokenLine;             /* 18-jan-89 */
-    SrcFno     = TokenFno;
+    SrcLoc = TokenLoc;
     NextToken();
     BlockStack->block_type = T_ELSE;
     if_label = BlockStack->break_label;
@@ -798,13 +792,22 @@ static void AddCaseLabel( unsigned long value )
     } else {
         new_ce = (CASEPTR)CMemAlloc( sizeof( CASEDEFN ) );
         new_ce->value = converted_value;
-        new_ce->label = NextLabel();
         if( prev_ce == NULL ) {
             new_ce->next_case = SwitchStack->case_list;
             SwitchStack->case_list = new_ce;
         } else {
             prev_ce->next_case = new_ce;
             new_ce->next_case = ce;
+        }
+        /* Check if the previous statement was a 'case'. If so, reuse the label, as generating
+         * too many labels seriously slows down code generation.
+         */
+        if( prev_ce && LastStmt->op.opr == OPR_STMT && LastStmt->right->op.opr == OPR_CASE ) {
+            new_ce->label = SwitchStack->last_case_label;
+            new_ce->gen_label = FALSE;
+        } else {
+            new_ce->label = NextLabel();
+            new_ce->gen_label = TRUE;
         }
         SwitchStack->number_of_cases++;
         if( converted_value < SwitchStack->low_value ) {
@@ -813,8 +816,9 @@ static void AddCaseLabel( unsigned long value )
         if( converted_value > SwitchStack->high_value ) {
             SwitchStack->high_value = converted_value;
         }
+        SwitchStack->last_case_label = new_ce->label;
         tree = LeafNode( OPR_CASE );
-        tree->op.label_index = new_ce->label;
+        tree->op.case_info = new_ce;
         AddStmt( tree );
     }
 }
@@ -1091,12 +1095,10 @@ static void EndOfStmt( void )
         case T_DO:
             DropContinueLabel();
             MustRecog( T_WHILE );
-            SrcLineNum = TokenLine;             /* 20-dec-88 */
-            SrcFno = TokenFno;
+            SrcLoc = TokenLoc;
             JumpTrue( BracketExpr(), BlockStack->top_label );
             MustRecog( T_SEMI_COLON );
-            SrcLineNum = TokenLine;
-            SrcFno = TokenFno;
+            SrcLoc = TokenLoc;
             --LoopDepth;
             DropBreakLabel();
             break;
@@ -1213,7 +1215,7 @@ void Statement( void )
 
 #ifndef NDEBUG
     if( DebugFlag >= 1 ) {
-        printf( "***** line %d, func=%s\n", TokenLine, CurFunc->name );
+        printf( "***** line %u, func=%s\n", TokenLoc.line, CurFunc->name );
         PrintStats();
     }
 #endif
@@ -1262,13 +1264,13 @@ void Statement( void )
             BlockStack->break_label = NextLabel();
             JumpFalse( BracketExpr(), BlockStack->break_label );
             /* 23-dec-88, only issue msg if ';' is on same line as 'if' */
-            if( CurToken == T_SEMI_COLON  &&  SrcLineNum == TokenLine ) {
-                SetErrLoc( ErrFName, TokenLine );       /* 04-nov-91 */
+            if( CurToken == T_SEMI_COLON  &&  SrcLoc.line == TokenLoc.line && SrcLoc.fno == TokenLoc.fno ) {
+                SetErrLoc( &TokenLoc );
                 NextToken();    /* look ahead for else keyword */
                 if( CurToken != T_ELSE ) {              /* 02-apr-91 */
                     ChkUseful();                        /* 08-dec-88 */
                 }
-                SetErrLoc( NULL, 0 );                   /* 04-nov-91 */
+                InitErrLoc();
                 break;
             }
             declaration_allowed = FALSE;
@@ -1425,7 +1427,7 @@ void Statement( void )
         }
     }
     if( !return_info.with_expr ) {   /* no return values present */
-        if( !CurFunc->naked ) {
+        if( !DeadCode && !CurFunc->naked ) {
             ChkRetValue();
         }
     } else if( ! return_at_outer_level ) {              /* 28-feb-92 */
@@ -1449,8 +1451,7 @@ void Statement( void )
     }
     AddStmt( tree );
     AddSymList( CurFunc->u.func.locals );
-    SrcLineNum = TokenLine;
-    SrcFno = TokenFno;
+    SrcLoc = TokenLoc;
     FreeLabels();
     if( skip_to_next_token ) {
         NextToken();

@@ -33,14 +33,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #ifdef __WATCOMC__
-  #include <process.h>
+    #include <process.h>
+#else
+    #include "clibext.h"
 #endif
 #include <ctype.h>
 
 #include "asmalloc.h"
-#include "asmins.h"
 #include "fatal.h"
-#include "asmdefs.h"
 #include "asmexpnd.h"
 #include "objprs.h"
 #include "genmsomf.h"
@@ -48,11 +48,10 @@
 #include "womputil.h"
 #include "swchar.h"
 #include "asminput.h"
-#include "asmerr.h"
 #include "pathgrp.h"
 
 #ifdef __OSI__
-  #include "ostype.h"
+    #include "ostype.h"
 #endif
 
 extern void             Fatal( unsigned msg, ... );
@@ -531,7 +530,7 @@ static void usage_msg( void )
     exit(1);
 }
 
-static void Ignore( void ) {};
+static void Ignore( void ) {}
 
 static void Set_BT( void ) { SetTargName( OptParm,  OptScanPtr - OptParm ); }
 
@@ -1056,6 +1055,8 @@ static int set_build_target( void )
         strcpy( Options.build_target, "BSD" );
 #elif defined(__OSX__) || defined(__APPLE__)
         strcpy( Options.build_target, "OSX" );
+#elif defined(__SOLARIS__) || defined( __sun )
+        strcpy( Options.build_target, "SOLARIS" );
 #elif defined(__DOS__)
         strcpy( Options.build_target, "DOS" );
 #elif defined(__OS2__)
@@ -1092,6 +1093,8 @@ static int set_build_target( void )
     } else if( stricmp( Options.build_target, "QNX" ) == 0 ) {
         add_constant( "__UNIX__" );
     } else if( stricmp( Options.build_target, "LINUX" ) == 0 ) {
+        add_constant( "__UNIX__" );
+    } else if( stricmp( Options.build_target, "BSD" ) == 0 ) {
         add_constant( "__UNIX__" );
     }
     return( NOT_ERROR );
@@ -1171,6 +1174,7 @@ int main( int argc, char **argv )
     argc = argc;
 #ifndef __WATCOMC__
     _argv = argv;
+    _argc = argc;
 #endif
 
 #else

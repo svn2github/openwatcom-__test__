@@ -24,13 +24,13 @@
 *
 *  ========================================================================
 *
-* Description:  i/o read processing
+* Description:  File I/O read processing
 *
 ****************************************************************************/
 
-
 #include "ftnstd.h"
-#include "fio.h"
+#include "ftextfun.h"
+#include "ftextvar.h"
 #include "posio.h"
 #include "sysbuff.h"
 
@@ -39,18 +39,6 @@
 #if defined( __WINDOWS__ )
 #include <conio.h>
 #endif
-
-extern  void            FSetErr(int,b_file *);
-extern  void            FSetSysErr(b_file *);
-extern  void            FSetEof(b_file *);
-extern  void            FSetTrunc(b_file *);
-extern  long int        FGetFilePos(b_file *);
-extern  void            IOOk(b_file *);
-extern  int             FlushBuffer(b_file *);
-extern  int             SysSeek(b_file *,long int,int);
-
-extern  b_file          *FStdIn;
-
 
 uint    readbytes( b_file *io, char *buff, uint len ) {
 //=====================================================
@@ -174,10 +162,10 @@ static  uint    GetTextRec( b_file *io, char *b, uint len ) {
         if( rs[0] == LF )
             return( len );
 #if ! defined( __UNIX__ )
-        if( SysRead( io, &rs[1], sizeof( char ) ) == READ_ERROR ) {
-            return( 0 );
-        }
         if( rs[0] == CR ) {
+            if( SysRead( io, &rs[1], sizeof( char ) ) == READ_ERROR ) {
+                return( 0 );
+            }
             if( rs[1] == LF )
                 return( len );
             if( ( io->attrs & CARRIAGE_CONTROL ) && ( rs[1] == FF ) ) {
@@ -206,7 +194,7 @@ static  uint    GetTextRec( b_file *io, char *b, uint len ) {
         seen_cr = FALSE;
         trunc = FALSE;
         done = FALSE;
-        for(;;) {
+        for( ; ; ) {
             if( ptr >= stop ) {
                 io->b_curs = ptr - io->buffer;
                 if( FillBuffer( io ) < 0 ) {
@@ -223,28 +211,24 @@ static  uint    GetTextRec( b_file *io, char *b, uint len ) {
             }
             ch = *ptr;
             ++ptr;
+            if( ch == LF )
+                break;
             if( !seen_cr ) {
-                if( ch == LF ) break;
                 if( ch == CTRL_Z ) {
                     --ptr; // give back char so we don't read past EOF
-                    if( read == 0 ) FSetEof( io );
+                    if( read == 0 )
+                        FSetEof( io );
                     break;
                 }
-#if ! defined( __UNIX__ )
                 if( ch == CR ) {
                     seen_cr = TRUE;
-                } else
-#endif
-                if( read < len ) {
+                } else if( read < len ) {
                     b[ read ] = ch;
                     ++read;
                 } else {
                     trunc = TRUE;
                 }
-#if ! defined( __UNIX__ )
             } else {
-                if( ch == LF )
-                    break;
                 if( ch == FF && (io->attrs & CARRIAGE_CONTROL) )
                     break;
                 --ptr;  // give back the char
@@ -255,7 +239,6 @@ static  uint    GetTextRec( b_file *io, char *b, uint len ) {
                 } else {
                     trunc = TRUE;
                 }
-#endif
             }
         }
         io->b_curs = ptr - io->buffer;
@@ -266,8 +249,9 @@ static  uint    GetTextRec( b_file *io, char *b, uint len ) {
     } else {    // device (CON)
         read = 0;
         len = readbytes( io, b, len );
-        if( len == READ_ERROR ) return( 0 );
-        for(;;) {
+        if( len == READ_ERROR )
+            return( 0 );
+        for( ; ; ) {
             if( read == len )
                 break;
 #if defined( __UNIX__ ) || defined( __NETWARE__ )

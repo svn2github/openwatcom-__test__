@@ -5,7 +5,12 @@ name = wbrw
 browse_autodepends = .AUTODEPEND
 !endif
 
-.extensions: .gpp
+additional_cleanup = &
+    $(docs_root)/os2/wbrw.h &
+    $(docs_root)/win/wbrw.h &
+    $(docs_root)/nt/wbrw.h
+
+.extensions: .gpp .res .rc
 
 sys_windowed = 1
 
@@ -19,6 +24,7 @@ sys_windowed = 1
 .c: ../cpp;../merge/c;$(posix_dir)/misc;$(lib_misc_dir)/c
 .cpp: ../cpp;../brg/cpp
 .gpp: ../gen
+.rc: ../res
 
 !include ../mif/template.mif
 
@@ -39,10 +45,10 @@ ext = mbr
 mbr_files = $+$(template)$-
 !endif
 
-inc_dirs_nt  = -I"$(guitools_dir)/win95"
-inc_dirs_win = -I"$(guitools_dir)/win"
-inc_dirs_dos = -I"$(guitools_dir)/os2"
-inc_dirs_os2 = -I"$(guitools_dir)/os2"
+inc_dirs_nt  = -I"$(docs_root)/nt"
+inc_dirs_win = -I"$(docs_root)/win"
+inc_dirs_dos = -I"$(docs_root)/os2"
+inc_dirs_os2 = -I"$(docs_root)/os2"
 
 inc_dirs = -I"../h" -I"../brg/h" -I"../gen" $(wclass_inc_dirs) -I"$(dwarf_dir)/dr/h" -I"$(posix_dir)/h" -I$(editdll_dir)
 
@@ -81,11 +87,10 @@ extra_rc_flags_win = -k
 extra_rc_flags_nt  = -k
 extra_rc_flags_os2 = -p
 
-rc_file_nt  = ../res/wbrw.rc
-rc_file_win = ../res/wbrw.rc
-rc_file_os2 = ../res/wbrwpm.rc
+rc_file_nt  = wbrw.res
+rc_file_win = wbrw.res
+rc_file_os2 = wbrwpm.res
 rc_file     = $(rc_file_$(host_OS))
-additional_cleanup += ../res/*.res
 
 #linker
 LIBS_win    = $(gui_dir)/win/wini86/gui.lib
@@ -119,16 +124,27 @@ exe_ext = $(exe_ext_$(host_os))
 exe_ext = exe
 !endif
 
-prereq_nt = $(guitools_dir)/win95/wbrw.h
-prereq_win = $(guitools_dir)/win/wbrw.h
-prereq_os2 = $(guitools_dir)/os2/wbrw.h
-prereq_dos = $(guitools_dir)/os2/wbrw.h
+prereq_nt  = $(docs_root)/nt/wbrw.h
+prereq_win = $(docs_root)/win/wbrw.h
+prereq_os2 = $(docs_root)/os2/wbrw.h
+prereq_dos = $(docs_root)/os2/wbrw.h
+
+# systems where version resource must be added to .EXE
+build_rc_nt_386 = nt
+
+!ifdef build_rc_$(host_os)_$(host_cpu)
+res_objs = version.res
+!endif
 
 all: $(prereq_$(host_os)) $(name).exe .SYMBOLIC
 
-$(name).exe : $(OBJECTS) $(LIBS)
+$(name).exe : $(OBJECTS) $(LIBS) $(rc_file) $(res_objs)
     $(linker) $(lflags) name $(name).$(exe_ext) file {$(OBJECTS)} lib {$(LIBS)}
+!ifdef build_rc_$(host_os)_$(host_cpu)
+    $(rc) $(rc_flags) $(rc_file) $^@ -fr=$(res_objs)
+!else
     $(rc) $(rc_flags) $(rc_file) $^@
+!endif
 !ifdef gen_browse_file
     @%create browser.wbr
     @for %i in ($(mbr_files)) do @%append browser.wbr file %i
@@ -142,7 +158,20 @@ dmem.obj : mem.cpp
 !ifdef prereq_$(host_os)
 $(prereq_$(host_os)): .ALWAYS
 curr_dir=$+$(%cwd)$-
-        @cd $(%DOC_ROOT)/$(host_os)
+        @cd $(docs_root)/$(host_os)
         @wmake -h hbook=wbrw header=1
         @cd $(curr_dir)
 !endif
+
+.rc.res:
+    $(rc) -r $(rc_flags) $(inc_dirs_sys) $< -fo=$@
+
+./genverrc.exe : $(fe_misc_dir)/c/genverrc.c
+        $(bld_cl) $[@ $(wcl_util_opts) -D_VERSION=$(bld_ver)
+
+!ifndef patch_level
+patch_level=0
+!endif
+
+version.rc : ./genverrc.exe ../res/exever.rc $(fe_misc_dir)/c/genverrc.c
+        $[@ ../res/exever.rc version.rc $$ $(name) $(patch_level)

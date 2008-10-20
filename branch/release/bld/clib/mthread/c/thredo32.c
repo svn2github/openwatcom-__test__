@@ -36,6 +36,8 @@
 #define INCL_DOSEXCEPTIONS
 #include <wos2.h>
 
+#include <process.h>
+#include <stddef.h>
 #include <string.h>
 #include <dos.h>
 #include <float.h>
@@ -44,22 +46,17 @@
 #include "stacklow.h"
 #include "sigtab.h"
 #include "rtdata.h"
-#include "extfunc.h"
 #include "trdlist.h"
 #include "mthread.h"
 #include "widechar.h"
 #include "initarg.h"
+#include "cthread.h"
 
 #pragma aux __threadstksize "*"
 extern  unsigned        __threadstksize;
 
-extern  thread_data     **__InitThreadProcessing(void);
-extern  void            __InitMultipleThread(void);
-extern  unsigned        __threadstack(void);
-extern  void            (*__sig_init_rtn)(void);
-extern  void            (*__sig_fini_rtn)(void);
-
-extern  void            _endthread( void );
+extern  void            __InitMultipleThread( void );
+extern  unsigned        __threadstack( void );
 
 typedef struct thread_args {
     thread_fn   *rtn;

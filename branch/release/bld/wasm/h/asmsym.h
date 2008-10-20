@@ -33,7 +33,6 @@
 #define _ASMSYM_H_
 
 #include "asminlin.h"
-#include "asmops2.h"
 
 typedef enum {
         MT_BYTE,
@@ -90,7 +89,8 @@ typedef struct asm_sym {
         uint_32         total_length; /* total number of elements (lengthof) */
         uint_32         count;
         char            *(*mangler)( struct asm_sym *sym, char *buffer );
-        unsigned        public:1;
+        unsigned        public      :1;
+        unsigned        referenced  :1;
         lang_type       langtype;
 #else
         long            addr;

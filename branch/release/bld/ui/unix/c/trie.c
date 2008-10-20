@@ -24,17 +24,14 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Trie implementation for UI lib.
 *
 ****************************************************************************/
 
 
 #include <stddef.h>
 #include <stdlib.h>
-#ifndef __WATCOMC__
 #include "walloca.h"
-#endif
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -222,12 +219,6 @@ static int child_comp( const int *pkey, const eNode *pbase )
     return( *pkey - pbase->c );
 }
 
-#if defined( SUN )
-    #define __alloca( x ) _alloca( (x) )
-#elif defined( SGI ) || defined( HP ) || defined( LINUX )
-    #define __alloca( x ) alloca( (x) )
-#endif
-
 EVENT TrieRead( void )
 {
     eTrie       *trie;
@@ -239,7 +230,7 @@ EVENT TrieRead( void )
     eNode       *node;
     int         timeout;
 
-    buf = (char *)__alloca( KeyTrieDepth + 1 );
+    buf = alloca( KeyTrieDepth + 1 );
 
     trie = &KeyTrie;
     buf[0] = '\0';

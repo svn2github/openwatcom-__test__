@@ -31,9 +31,7 @@
 
 #include "asmglob.h"
 
-#include "asmsym.h"
 #include "asmalloc.h"
-#include "asmdefs.h"
 
 #ifdef __USE_BSD
 #define stricmp strcasecmp
@@ -44,7 +42,6 @@
 #include "directiv.h"
 #include "queues.h"
 #include "hash.h"
-#include "asmops1.h"
 #include "myassert.h"
 
 static struct asm_sym   *sym_table[ HASH_TABLE_SIZE ] = { NULL };
@@ -52,6 +49,10 @@ static struct asm_sym   *sym_table[ HASH_TABLE_SIZE ] = { NULL };
 static unsigned         AsmSymCount;    /* Number of symbols in table */
 
 static char             dots[] = " . . . . . . . . . . . . . . . .";
+
+#ifdef DEBUG_OUT
+void    DumpASym( void );   /* Forward declaration */
+#endif
 
 #else
 
@@ -86,6 +87,7 @@ static char *InitAsmSym( struct asm_sym *sym, const char *name )
         sym->segment = NULL;
         sym->offset = 0;
         sym->public = FALSE;
+        sym->referenced = FALSE;
         sym->langtype = LANG_NONE;
         sym->first_size = 0;
         sym->first_length = 0;
@@ -402,7 +404,7 @@ static struct asm_sym **SortAsmSyms( void )
 const char *get_seg_align( seg_info *seg )
 /****************************************/
 {
-    switch( seg->segrec->d.segdef.align ) {
+    switch( seg->align ) {
     case ALIGN_ABS:
     case ALIGN_BYTE:
         return( "Byte " );
@@ -424,7 +426,7 @@ const char *get_seg_align( seg_info *seg )
 static const char *get_seg_combine( seg_info *seg )
 /*************************************************/
 {
-    switch( seg->segrec->d.segdef.combine ) {
+    switch( seg->combine ) {
     case COMB_INVALID:
         return( "Private " );
     case COMB_STACK:
@@ -445,13 +447,13 @@ static void log_segment( struct asm_sym *sym, struct asm_sym *group )
 
         if( seg->group == group ) {
             LstMsg( "%s %s        ", sym->name, dots + strlen( sym->name ) + 1 );
-            if( seg->segrec->d.segdef.use_32 ) {
+            if( seg->use_32 ) {
                 LstMsg( "32 Bit   %08lX ", seg->current_loc );
             } else {
                 LstMsg( "16 Bit   %04lX     ", seg->current_loc );
             }
             LstMsg( "%s   %s", get_seg_align( seg ), get_seg_combine( seg ) );
-            LstMsg( "'%s'\n", GetLname( seg->segrec->d.segdef.class_name_idx ) );
+            LstMsg( "'%s'\n", seg->class_name->name );
         }
     }
 }
@@ -550,7 +552,7 @@ static void log_symbol( struct asm_sym *sym )
         if( cst->count && cst->data[0].token != T_NUM ) {
             LstMsg( "Text     %s\n", cst->data[0].string_ptr );
         } else {
-            LstMsg( "Number   %04Xh\n", cst->count ? cst->data[0].value : 0 );
+            LstMsg( "Number   %04Xh\n", cst->count ? cst->data[0].u.value : 0 );
         }
     } else if( sym->state == SYM_INTERNAL && !IS_SYM_COUNTER( sym->name ) ) {
         LstMsg( "%s %s        ", sym->name, dots + strlen( sym->name ) + 1 );
@@ -653,29 +655,30 @@ static void DumpSymbol( struct asm_sym *sym )
     switch( sym->state ) {
     case SYM_SEG:
         type = "SEGMENT";
-//        dir->e.seginfo->lname_idx = 0;
+//        dir->e.seginfo = AsmAlloc( sizeof( seg_info ) );
+//        dir->e.seginfo->idx = 0;
 //        dir->e.seginfo->grpidx = 0;
 //        dir->e.seginfo->segrec = NULL;
         break;
     case SYM_GRP:
         type = "GROUP";
 //        dir->e.grpinfo = AsmAlloc( sizeof( grp_info ) );
-//        dir->e.grpinfo->idx = grpdefidx;
+//        dir->e.grpinfo->idx = 0;
 //        dir->e.grpinfo->seglist = NULL;
 //        dir->e.grpinfo->numseg = 0;
-//        dir->e.grpinfo->lname_idx = 0;
         break;
     case SYM_EXTERNAL:
         type = "EXTERNAL";
 //        dir->e.extinfo = AsmAlloc( sizeof( ext_info ) );
-//        dir->e.extinfo->idx = ++extdefidx;
+//        dir->e.extinfo->idx = 0;
 //        dir->e.extinfo->use32 = Use32;
 //        dir->e.extinfo->comm = 0;
+//        dir->e.extinfo->global = 0;
         break;
 //    case TAB_COMM:
 //        sym->state = SYM_EXTERNAL;
 //        dir->e.comminfo = AsmAlloc( sizeof( comm_info ) );
-//        dir->e.comminfo->idx = ++extdefidx;
+//        dir->e.comminfo->idx = 0;
 //        dir->e.comminfo->use32 = Use32;
 //        dir->e.comminfo->comm = 1;
 //        break;
@@ -701,17 +704,9 @@ static void DumpSymbol( struct asm_sym *sym )
         break;
     case SYM_CLASS_LNAME:
         type = "CLASS";
-        break;
-    case SYM_LNAME:
-        type = "LNAME";
 //        dir->e.lnameinfo = AsmAlloc( sizeof( lname_info ) );
-//        dir->e.lnameinfo->idx = ++LnamesIdx;
+//        dir->e.lnameinfo->idx = 0;
         break;
-//    case TAB_PUB:
-//        sym->public = TRUE;
-//        return;
-//    case TAB_GLOBAL:
-//        break;
     case SYM_STRUCT:
         type = "STRUCTURE";
 //        dir->e.structinfo = AsmAlloc( sizeof( struct_info ) );

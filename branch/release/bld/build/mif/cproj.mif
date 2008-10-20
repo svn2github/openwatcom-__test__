@@ -87,13 +87,13 @@ mode_aflags   = -DNDEBUG
 mode_lflags   = $(ldebug_fmt)
 mode_clflags  = $(cldebug_fmt)
 !ifdef $(proj_name)_distrib_lib
-mode_libflags = -s-t
+mode_libflags = -s-t-zld
 !endif
 !else
 mode_cflags   = -od -d2 $(cdebug_fmt)
 mode_aflags   = -d1
 mode_lflags   = $(ldebug_fmt) all
-mode_clflags  = $(cldebug_fmt)
+mode_clflags  = $(cldebug_fmt) -d2
 !endif
 
 !ifndef $(proj_name)_nosymfile
@@ -118,6 +118,7 @@ default_memory_model_386_win   = f
 default_memory_model_386_os2   = f
 default_memory_model_386_nt    = f
 default_memory_model_386_linux = f
+default_memory_model_386_nto   = f
 default_memory_model_386_      = f
 
 !ifndef memory_model_386
@@ -213,6 +214,7 @@ def_fpu_flags_nov_386   = -fpc
   # I think Novell doesn't use any OSI objects
 def_fpu_flags_osi_386   = -fpi
   ######
+def_fpu_flags_nto_386   = -fpi
 
 !ifdef fpu_flags_$(host_os)_$(host_cpu)
 fpu_flags = $(fpu_flags_$(host_os)_$(host_cpu))
@@ -231,16 +233,11 @@ clflags_qnx_386    = -l=qnx
 clflags_osi_386    = -l=osi
 clflags_dos_i86    = -l=dos
 clflags_dos_386    = -l=dos4g
+#clflags_dos_386    = -l=causeway
 clflags_nov_386    = -l=netware
-!ifdef bootstrapmode
-clflags_linux_386  = -l=bld_linux
-clflags_linux_ppc  = -l=bld_linuxppc
-clflags_linux_mps  = -l=bld_linuxmips
-!else
 clflags_linux_386  = -l=linux
 clflags_linux_ppc  = -l=linuxppc
 clflags_linux_mps  = -l=linuxmips
-!endif
 
 clflags_exe_osi_386 = -fe=$^&.rex
 !ifdef clflags_exe_$(host_os)_$(host_cpu)
@@ -289,21 +286,16 @@ lflags_nt_386    = sys nt
 lflags_os2_386   = sys os2v2
 lflags_os2_i86   = sys os2 pmc
 lflags_dos_386   = sys dos4g
+#lflags_dos_386   = sys causeway
 lflags_qnx_386   = sys qnx386 flat
 lflags_qnx_i86   = sys qnx
 lflags_win_386   = sys win386
 lflags_win_i86   = sys windows
 lflags_nov_386   = sys novell
 lflags_osi_386   = sys osi
-!ifdef bootstrapmode
-lflags_linux_386 = sys bld_linux
-lflags_linux_ppc = sys bld_linuxppc
-lflags_linux_mps = sys bld_linuxmips
-!else
 lflags_linux_386 = sys linux
 lflags_linux_ppc = sys linuxppc
 lflags_linux_mps = sys linuxmips
-!endif
 
 lflags_dll_nt_axp    = sys ntaxp dll
 lflags_dll_nt_386    = sys nt dll
@@ -333,8 +325,8 @@ cflags_all     += -bd
 lflags          = $(mode_lflags) $(lflags_$(host_os)_$(host_cpu)) $(extra_l_flags_$(host_os)) $(extra_l_flags)
 lflags_dll      = $(mode_lflags) $(lflags_dll_$(host_os)_$(host_cpu)) $(extra_l_flags_dll_$(host_os)) $(extra_l_flags_dll)
 
-libflags_all    = -b-n $(mode_libflags)
-libflags        =  $(libflags_all) $(libflags_$(host_os)_$(host_cpu)) $(extra_lib_flags) $(extra_lib_flags_$(host_cpu))
+libflags_all    = -b-n-pa $(mode_libflags)
+libflags        =  $(libflags_all) $(libflags_$(host_os)_$(host_cpu)) $(extra_lib_flags) $(extra_lib_flags_$(host_cpu)) $^@
 
 rc_flags_nt     = -bt=nt
 rc_flags_win    = -bt=windows
@@ -348,10 +340,10 @@ rc_flags        = $(rc_flags_$(host_os)) $(rc_flags_$(host_cpu)) $(extra_rc_flag
 
 !ifdef bootstrapmode
 
-inc_dirs_sys_os2_386 = -I$(dev_dir)/os2api/incl32
-inc_dirs_sys_os2_i86 = -I$(dev_dir)/os2api/incl16
-inc_dirs_sys_nt    = -I$(dev_dir)/w32api/include
-inc_dirs_sys_win   = -I$(dev_dir)/w16api/include
+inc_dirs_sys_os2_386 = -I$(dev_dir)/os2api/os2386
+inc_dirs_sys_os2_i86 = -I$(dev_dir)/os2api/os2286
+inc_dirs_sys_nt    = -I$(dev_dir)/w32api/nt
+inc_dirs_sys_win   = -I$(dev_dir)/w16api/wini86
 inc_dirs_sys_os2   = $(inc_dirs_sys_os2_$(host_cpu))
 inc_dirs_sys_dos   =
 inc_dirs_sys_nov   =
@@ -454,6 +446,8 @@ linker          = $(linker_$(host_cpu))
 librarian       = $(librarian_$(host_cpu))
 as              = $(as_$(host_cpu))
 vi              = vi -q -d -i
+sed             = sed
+awk             = awk
 !ifdef __UNIX__
 rc_aui          = $(rcaui) -bt=windows -I$(watcom_dir)/h -zk0 -r
 !else

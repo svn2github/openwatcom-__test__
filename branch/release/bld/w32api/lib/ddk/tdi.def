@@ -1,20 +1,9 @@
-LIBRARY tdi.sys
+LIBRARY TDI.SYS
 EXPORTS
-;CTEAllocateString
-;CTEBlock
-;CTEInitEvent
-;CTEInitString
-;CTEInitTimer
-;CTEInitialize
-;CTELogEvent
-;CTEScheduleDelayedEvent
-;CTEScheduleEvent
-;CTESignal
-;CTEStartTimer
-;CTESystemUpTime
 TdiBuildNetbiosAddress@12
 TdiBuildNetbiosAddressEa@12
 TdiCopyBufferToMdl@24
+TdiCopyBufferToMdlWithReservedMappingAtDpcLevel@16
 TdiCopyMdlChainToMdlChain@20
 TdiCopyMdlToBuffer@24
 TdiDefaultChainedRcvDatagramHandler@40
@@ -30,14 +19,15 @@ TdiDefaultSendPossibleHandler@12
 TdiDeregisterAddressChangeHandler@4
 TdiDeregisterDeviceObject@4
 TdiDeregisterNetAddress@4
-;TdiDeregisterNotificationHandler
+TdiDeregisterNotificationHandler@4
 TdiDeregisterPnPHandlers@4
 TdiDeregisterProvider@4
 TdiEnumerateAddresses@4
 TdiInitialize@0
+TdiMapBuffer@4
 TdiMapUserRequest@12
 TdiMatchPdoWithChainedReceiveContext@8
-;TdiOpenNetbiosAddress
+TdiOpenNetbiosAddress@16
 TdiPnPPowerComplete@12
 TdiPnPPowerRequest@20
 TdiProviderReady@4
@@ -48,3 +38,4 @@ TdiRegisterNotificationHandler@12
 TdiRegisterPnPHandlers@12
 TdiRegisterProvider@8
 TdiReturnChainedReceives@8
+TdiUnmapBuffer@4

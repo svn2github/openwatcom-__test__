@@ -24,19 +24,13 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Build an error message.
 *
 ****************************************************************************/
 
-
-//
-// BLDERR    :  Build an error message.
-//
-
 #include "ftnstd.h"
+#include "ftextfun.h"
 
-#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>

@@ -70,7 +70,7 @@ struct cmd_t {                          /* compiled-command representation */
 #define CEOF    22      /* end-of-field mark */
 #define MTYPE   32      /* multiple counts |'d into RE      \{...\}    */
 
-extern void     execute( const char *file ); /* In sedexec.c */
+extern void     execute( const char *file ); /* In sed.c */
 
 /* The following are in sedcomp.c */
                                         /* main data areas */
@@ -79,9 +79,9 @@ extern sedcmd           cmds[];         /* hold compiled commands */
 extern long             linenum[];      /* numeric-addresses table */
 
                                         /* miscellaneous shared variables */
-extern int              nflag;          /* -n option flag */
-extern int              eargc;          /* scratch copy of argument count */
-extern char const       bits[];         /* the bits table */
+extern int                  nflag;      /* -n option flag */
+extern int                  eargc;      /* scratch copy of argument count */
+extern unsigned char const  bits[];     /* the bits table */
 
 /* sed.h ends here */
 

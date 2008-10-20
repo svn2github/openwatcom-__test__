@@ -18,20 +18,6 @@ make_flags += convention=$(convention)
 make_flags += linkage=$(linkage)
 !endif
 
-!ifeq release 0
-!ifdef profile
-lib_flags    +=-p=128
-!else
-lib_flags    +=-p=64
-!endif
-!else
-!ifdef profile
-lib_flags    +=-p=32
-!else
-lib_flags    +=-p=16
-!endif
-!endif
-
 all : $(libname).lib .symbolic
     @%null
 
@@ -44,11 +30,11 @@ $(libname).lib : $(libs)
     @rm -f export.def
     $(librarian) $(lib_flags) $(lib_flags_linkage) $^@ @tmp.lbc +timstamp.obj
 !ifeq linkage dynamic
-    $(vi) -s $(lib_misc_dir)/vi/export.vi export.def
+    $(sed) -f $(lib_misc_dir)/sed/export.sed export.def > tmp.def
+    @cp tmp.def export.def
+    @rm tmp.def
 !endif
     @rm -f tmp.lbc
     @rm -f timstamp.obj
 
 !include $(clib_dir)/clean.mif
-!include $(clib_dir)/updlib.mif
-!include $(clib_dir)/project.mif

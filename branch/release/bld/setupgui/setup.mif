@@ -29,16 +29,12 @@ objs = &
     dynarray.obj    &
     gendlg.obj      &
     hash.obj        &
-    nlmver.obj
+    nlmver.obj      &
+    utils.obj
 
 !ifdef patch
 objs +=             &
-    common.obj      &
-    decode.obj      &
-    exetype.obj     &
-    io.obj          &
-    lookup.obj      &
-    qsort.obj
+    exetype.obj
 !endif
 
 !ifeq host_os win
@@ -48,29 +44,24 @@ objs += &
 !else
     setupiod.obj    &
 !endif
-    utils.obj       &
     winutil.obj     &
     winddeml.obj
 !else ifeq host_os nt
 objs += &
     setupio.obj     &
-    utils.obj       &
     winutil.obj     &
     winddeml.obj
 !else ifeq host_os os2
 objs += &
     setupio.obj     &
-    utils.obj       &
     winutil.obj     &
     os2util.obj
 !else ifeq host_os linux
 objs += &
-    setupio.obj     &
-    unixutil.obj
+    setupio.obj
 !else
 objs += &
-    setupio.obj     &
-    utils.obj
+    setupio.obj
 !endif
 
 !ifeq sys_windowed 1
@@ -82,6 +73,10 @@ libs_os2 = $(guidir)/win/os2$(host_cpu)/gui.lib
 libs_win = $(guidir)/win/win$(host_cpu)/gui.lib
 
 !else
+
+# custom version of resource finder
+extra_c_flags_loadfind = -I"$(wres_dir)/h"
+objs += loadfind.obj
 
 libs_dos = &
 $(guidir)/ui/dos$(host_cpu)/gui.lib &
@@ -97,6 +92,11 @@ $(wres_lib)
 libs_os2 = &
 $(guidir)/ui/os2$(host_cpu)/gui.lib &
 $(uidir)/os2/os2$(host_cpu)/ui.lib &
+$(wres_lib)
+
+libs_nt = &
+$(guidir)/ui/nt$(host_cpu)/gui.lib &
+$(uidir)/nt/nt$(host_cpu)/ui.lib &
 $(wres_lib)
 
 !endif
@@ -205,6 +205,8 @@ setup.exe: $(gendeps) setupui.res
 
 !else ifeq host_os nt
 
+!ifeq sys_windowed 1
+
 all : setup.exe csetup.exe f77setup.exe .SYMBOLIC
 
 setup.exe: virgin.exe setup.res
@@ -214,6 +216,14 @@ setup.exe: virgin.exe setup.res
 
 virgin.exe: $(gendeps)
     $(linker) name $^@ @setup.lnk
+
+!else
+
+setup.exe: $(gendeps) setupui.res
+    $(linker) name $^@ @setup.lnk
+    wstrip -q -a -r setup.exe . setupui.res
+
+!endif
 
 !else ifeq host_os dos
 
@@ -263,6 +273,9 @@ setup.lnk : makefile ../setup.mif
 ! endif
 !else ifeq host_os dos
     @%append setup.lnk option stack=30K
+!ifeq host_cpu 386
+    @%append setup.lnk option stub=$(cw_dir)/cw32/dosi86/cwstub.exe
+!endif
 !else
 !endif
 !ifdef PROJECT_LIBS
@@ -287,15 +300,6 @@ f77setup.res : setup.rc $(dep_res1) ../res/f77.bmp
 
 jfsetup.res : setup.rc $(dep_res1) ../res/f77.bmp
     $(rc) $(rc_flags) -DJFSETUP -DJAPANESE_MESSAGES -zk0 $(res_inc_dirs) $[@ -fo=$^@
-
-dbsetup.res : setup.rc $(dep_res1) ../res/wsql.bmp
-    $(rc) $(rc_flags) -DDBSETUP $(res_inc_dirs) $[@ -fo=$^@
-
-jdbsetup.res : setup.rc $(dep_res1) ../res/wsql.bmp
-    $(rc) $(rc_flags) -DJDBSETUP -DJAPANESE_MESSAGES -zk0 $(res_inc_dirs) $[@ -fo=$^@
-
-sdbsetup.res : setup.rc $(dep_res1) ../res/sqlserv.bmp
-    $(rc) $(rc_flags) -DSDBSETUP $(res_inc_dirs) $[@ -fo=$^@
 
 setup.res : setup.rc $(dep_res1) ../res/generic.bmp
     $(rc) $(rc_flags) $(res_inc_dirs) $[@ -fo=$^@
@@ -330,5 +334,3 @@ f77setup.exe : virgin.exe
 jcsetup.exe  : virgin.exe
 
 jfsetup.exe  : virgin.exe
-
-dbsetup.exe  : virgin.exe

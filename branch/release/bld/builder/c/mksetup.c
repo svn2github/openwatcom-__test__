@@ -35,6 +35,12 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include "diskos.h"
+#ifdef __UNIX__
+    #include <unistd.h>
+#else
+    #include <direct.h>
+    #include <dos.h>
+#endif
 
 #define RoundUp( size, limit )  ( ( ( size + limit - 1 ) / limit ) * limit )
 
@@ -112,6 +118,7 @@ static LIST                 *BeforeList = NULL;
 static LIST                 *EndList = NULL;
 static LIST                 *DeleteList = NULL;
 static LIST                 *ForceDLLInstallList = NULL;
+static LIST                 *AssociationList = NULL;
 static LIST                 *ErrMsgList = NULL;
 static LIST                 *SetupErrMsgList = NULL;
 static unsigned             MaxDiskFiles;
@@ -120,6 +127,7 @@ static int                  Lang = 1;
 static int                  Upgrade = FALSE;
 static int                  Verbose = FALSE;
 static int                  IgnoreMissingFiles = FALSE;
+static int                  CreateMissingFiles = FALSE;
 static char                 *Include;
 static const char           MksetupInf[] = "mksetup.inf";
 
@@ -230,6 +238,8 @@ int CheckParms( int *pargc, char **pargv[] )
                 Verbose = TRUE;
             } else if( tolower( (*pargv)[1][1] ) == 'f' ) {
                 IgnoreMissingFiles = TRUE;
+            } else if( tolower( (*pargv)[1][1] ) == 'x' ) {
+                CreateMissingFiles = TRUE;
             } else {
                 printf( "Unrecognized option %s\n", (*pargv)[1] );
             }
@@ -247,6 +257,7 @@ int CheckParms( int *pargc, char **pargv[] )
         printf( "-u         create upgrade setup script\n" );
         printf( "-d<string> specify string to add to Application section\n" );
         printf( "-f         force script creation if files missing (testing only)\n" );
+        printf( "-x         force creation of missing files (testing only)\n" );
         return( FALSE );
     }
     Product = argv[ 1 ];
@@ -393,6 +404,71 @@ int AddPathTree( char *path, int target )
     return( AddPath( path, target, parent ) );
 }
 
+static int mkdir_nested( char *path )
+/***********************************/
+{
+#ifdef __UNIX__
+    struct stat sb;
+#else
+    unsigned    attr;
+#endif
+    char        pathname[ FILENAME_MAX ];
+    char        *p;
+    char        *end;
+
+    p = pathname;
+    strncpy( pathname, path, FILENAME_MAX );
+    end = pathname + strlen( pathname );
+
+#ifndef __UNIX__
+    /* special case for drive letters */
+    if( p[0] && p[1] == ':' ) {
+        p += 2;
+    }
+#endif
+    /* skip initial path separator if present */
+    if( (p[0] == '/') || (p[0] == '\\') )
+        ++p;
+
+    /* find the next path component */
+    while( p < end ) {
+        while( (p < end) && (*p != '/') && (*p != '\\') )
+            ++p;
+        *p = '\0';
+
+        /* check if pathname exists */
+#ifdef __UNIX__
+        if( stat( pathname, &sb ) == -1 ) {
+#else
+        if( _dos_getfileattr( pathname, &attr ) != 0 ) {
+#endif
+            int rc;
+
+#ifdef __UNIX__
+            rc = mkdir( pathname, S_IRWXU | S_IRWXG | S_IRWXO );
+#else
+            rc = mkdir( pathname );
+#endif
+            if( rc != 0 ) {
+                printf( "Can not create directory '%s': %s\n", pathname, strerror( errno ) );
+                return( -1 );
+            }
+        } else {
+            /* make sure it really is a directory */
+#ifdef __UNIX__
+            if( !S_ISDIR( sb.st_mode ) ) {
+#else
+            if( (attr & _A_SUBDIR) == 0 ) {
+#endif
+                printf( "Can not create directory '%s': file with the same name already exists\n", pathname );
+                return( -1 );
+            }
+        }
+        /* put back the path separator - forward slash always works */
+        *p++ = '/';
+    }
+    return( 0 );
+}
 
 int AddFile( char *path, char *old_path, char redist, char *file, char *rel_file, char *dst_var, char *cond )
 /***********************************************************************************************************/
@@ -450,6 +526,30 @@ int AddFile( char *path, char *old_path, char redist, char *file, char *rel_file
         printf( "'%s' does not exist\n", src );
         if( IgnoreMissingFiles ) {
             act_size = 1024;
+            time = 0;
+        } else if( CreateMissingFiles ) {
+            FILE    *fp;
+            char    c;
+
+            fp = fopen( src, "w" );
+            if( fp == NULL ) {
+                for( p = src + strlen( src ); p > src; p-- ) {
+                    if( (*(p - 1) == '\\') || (*(p - 1) == '/') ) {
+                        c = *p;
+                        *p = '\0';
+                        mkdir_nested( src );
+                        *p = c;
+                        break;
+                    }
+                }
+                fp = fopen( src, "w" );
+                if( fp == NULL ) {
+                    printf( "Cannot create '%s'\n", src );
+                    return( FALSE );
+                }
+            }
+            fclose( fp );
+            act_size = 0;
             time = 0;
         } else {
             return( FALSE );
@@ -721,6 +821,7 @@ int ReadList( FILE *fp )
 #define STRING_language         "language="
 #define STRING_upgrade          "upgrade="
 #define STRING_forcedll         "forcedll="
+#define STRING_assoc            "assoc="
 #define STRING_errmsg           "errmsg="
 #define STRING_setuperrmsg      "setuperrmsg="
 
@@ -886,6 +987,8 @@ void ReadSection( FILE *fp, char *section, LIST **list )
             free( new );
         } else if( STRING_IS( SectionBuf, new, STRING_forcedll ) ) {
             AddToList( new, &ForceDLLInstallList );
+        } else if( STRING_IS( SectionBuf, new, STRING_assoc ) ) {
+            AddToList( new, &AssociationList );
         } else if( STRING_IS( SectionBuf, new, STRING_errmsg ) ) {
             AddToList( new, &ErrMsgList );
         } else if( STRING_IS( SectionBuf, new, STRING_setuperrmsg ) ) {
@@ -1188,6 +1291,13 @@ int CreateScript( long init_size, unsigned padding )
     if( ForceDLLInstallList != NULL ) {
         fprintf( fp, "\n[ForceDLLInstall]\n" );
         for( list = ForceDLLInstallList; list != NULL; list = list->next ) {
+            fprintf( fp, "%s\n", list->item );
+        }
+    }
+
+    if( AssociationList != NULL ) {
+        fprintf( fp, "\n[Associations]\n" );
+        for( list = AssociationList; list != NULL; list = list->next ) {
             fprintf( fp, "%s\n", list->item );
         }
     }

@@ -40,6 +40,9 @@
 #include "feprotos.h"
 #include "cgen.h"
 
+extern  SYM_LISTS       *SymListHeads;
+extern  int             LabelIndex;
+
 local void      FreeExtVars( void );
 local void      FreeGblVars( SYM_HANDLE sym_handle );
 local void      FreeLocalVars( SYM_HANDLE sym_list );
@@ -66,8 +69,6 @@ static  struct  local_vars {
     SYM_HANDLE              sym_list;
 } *LocalVarList;
 
-extern  SYM_LISTS       *SymListHeads;
-
 #ifdef __SEH__
 #include "tryblock.h"
 
@@ -89,9 +90,7 @@ static OPNODE           *FuncNodePtr;
 static int              Refno;
 static temp_handle      SSVar;
 static SYM_HANDLE       Saved_CurFunc;
-
-extern  int             LabelIndex;
-static  int             InLineDepth;
+static int              InLineDepth;
 
 struct func_save {
     SYMPTR          func;
@@ -312,7 +311,6 @@ static cg_type DataPointerType( OPNODE *node )
     return( T_POINTER );
 #endif
 }
-
 
 local cg_name ForceVolatileFloat( cg_name name, TYPEPTR typ ) /* 05-sep-92 */
 {
@@ -679,8 +677,10 @@ static cg_name PushConstant( OPNODE *node )
     case TYPE_UINT:
     case TYPE_LONG:
     case TYPE_ULONG:
-    case TYPE_POINTER:
         name = CGInteger( node->ulong_value, dtype );
+        break;
+    case TYPE_POINTER:
+        name = CGInteger( node->ulong_value, DataPointerType( node ) );
         break;
     case TYPE_LONG64:
     case TYPE_ULONG64:
@@ -997,6 +997,7 @@ local void EmitNodes( TREEPTR tree )
             name = CGTempName( temp_name, T_LONG_POINTER );
             left = CGAssign( name, op1, T_LONG_POINTER );
             name = CGTempName( temp_name, T_LONG_POINTER );
+            left = CGEval( left );  // force order - temp_name used on both sides
             PushCGName( left );
             name = CGUnary( O_POINTS, name, T_LONG_POINTER );
             PushCGName( CGUnary( O_POINTS, name, T_LONG_POINTER ) );
@@ -1077,8 +1078,12 @@ local void EmitNodes( TREEPTR tree )
             PushCGName( call_list );
             break;
         case OPR_LABEL:                 // label
-        case OPR_CASE:                  // case label
             CGControl( O_LABEL, NULL, CGLabelHandles[ node->label_index ] );
+            break;
+        case OPR_CASE:                  // case label
+            if( node->case_info->gen_label ) {
+                CGControl( O_LABEL, NULL, CGLabelHandles[ node->case_info->label ] );
+            }
             break;
         case OPR_JUMP:                  // jump
             CGControl( O_GOTO, NULL, CGLabelHandles[ node->label_index ] );
@@ -1188,23 +1193,21 @@ local TREEPTR GenOptimizedCode( TREEPTR tree )
 
     unroll_count = 0;
     while( tree != NULL ) {
-        SrcFno = tree->op.source_fno;
-        SrcLineNum = tree->srclinenum;
-        if( SrcLineNum != SrcLineCount ) {
+        if( tree->op.src_loc.line != SrcLoc.line || tree->op.src_loc.fno != SrcLoc.fno ) {
             if( Saved_CurFunc == 0 ) {      /* 24-nov-91 */
                 FNAMEPTR    flist;
 
-                flist = FileIndexToFName( SrcFno );
+                flist = FileIndexToFName( tree->op.src_loc.fno );
                 if( flist->index_db == -1 ) {
                     char *fullpath;
 
                     fullpath = FNameFullPath( flist );
                     flist->index_db = DBSrcFile( fullpath );
                 }
-                DBSrcCue( flist->index_db, SrcLineNum, 1 );
+                DBSrcCue( flist->index_db, tree->op.src_loc.line, 1 );
             }
+            SrcLoc = tree->op.src_loc;
         }
-        SrcLineCount = SrcLineNum;      /* for error msgs 14-jul-89 */
         if( tree->op.unroll_count != unroll_count ) {
             unroll_count = tree->op.unroll_count;
             BEUnrollCount( unroll_count );
@@ -1432,7 +1435,8 @@ void DoCompile( void )
                 if( GenSwitches & DBG_TYPES ) EmitDBType();
                 EmitSyms();
                 EmitCS_Strings();
-                SrcLineCount = 0;
+                SrcLoc.line = 0;
+                SrcLoc.fno = 0;
                 EmitDataQuads();
                 FreeDataQuads();
 #ifdef __SEH__

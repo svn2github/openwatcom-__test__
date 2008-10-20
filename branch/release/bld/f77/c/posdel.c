@@ -24,24 +24,16 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  FIle I/O routines
 *
 ****************************************************************************/
 
-
 #include "ftnstd.h"
-#include "fio.h"
+#include "ftextfun.h"
 #include "posio.h"
 
-extern  void            FSetSysErr(a_file *);
-
-
 void    Scratchf( char *fn ) {
-//============================
-
 // Erase a file.
-
     if( unlink( fn ) != 0 ) {
         FSetSysErr( NULL );
     }

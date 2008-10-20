@@ -45,6 +45,7 @@
 #include "ferror.h"
 #include "insert.h"
 #include "utility.h"
+#include "convert.h"
 
 extern  void            DetSubList(void);
 extern  void            DetCallList(void);
@@ -55,7 +56,6 @@ extern  void            GMakeDCplx(void);
 extern  void            GMakeXCplx(void);
 extern  void            GArg(void);
 extern  void            GILCnvTo(TYPE,uint);
-extern  void            CnvTo(itnode*,TYPE,uint);
 extern  void            UpdateNode(itnode *,itnode *);
 extern  void            BackTrack(void);
 extern  void            MoveDown(void);
@@ -117,6 +117,19 @@ extern  void            SetDefinedStatus(void);
 
 extern  void            (* const __FAR GenOprTable[])(TYPE, TYPE, OPTR);
 extern  void            (* const __FAR ConstTable[])(TYPE, TYPE, OPTR);
+
+/* Forward declarations */
+static  void    InlineCnvt( void );
+static  void    IFPrmChk( void );
+static  void    EvalList( void );
+static  void    FixList( void );
+static  void    PrepArg( void );
+static  void    LowColon( void );
+static  void    AddSS( int number );
+
+void    AddConst( itnode *node );
+
+
 
 #ifdef pick
 #undef pick
@@ -526,8 +539,8 @@ static  void    BadBracket( void ) {
 }
 
 
-void    BadEqual( void ) {
-//========================
+static void    BadEqual( void ) {
+//===============================
 
 // Upscan routine for illegal quantity on left side of equal sign
 

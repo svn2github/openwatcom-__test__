@@ -136,7 +136,22 @@ static Elf32_Word elfRelocTypesMIPS[] = {
 };
 
 // Someone should really make these up...
-static Elf32_Word elfRelocTypesAlpha[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 };
+static Elf32_Word elfRelocTypesAlpha[] = {
+    R_ALPHA_NONE,               /* OWL_RELOC_ABSOLUTE */
+    R_ALPHA_REFLONG,            /* OWL_RELOC_WORD */
+    R_ALPHA_GPRELHIGH,          /* OWL_RELOC_HALF_HI */
+    R_ALPHA_NONE,               /* OWL_RELOC_HALF_HA */
+    R_ALPHA_NONE,               /* OWL_RELOC_PAIR */
+    R_ALPHA_GPRELLOW,           /* OWL_RELOC_HALF_LO */
+    R_ALPHA_BRADDR,             /* OWL_RELOC_BRANCH_REL */
+    R_ALPHA_NONE,               /* OWL_RELOC_BRANCH_ABS */
+    R_ALPHA_SREL16,             /* OWL_RELOC_JUMP_REL */
+    R_ALPHA_NONE,               /* OWL_RELOC_JUMP_ABS */
+    R_ALPHA_NONE,               /* OWL_RELOC_SECTION_INDEX */
+    R_ALPHA_NONE,               /* OWL_RELOC_SECTION_OFFSET */
+    R_ALPHA_GPREL16,            /* OWL_RELOC_TOC_OFFSET */
+    R_ALPHA_NONE,               /* OWL_RELOC_GLUE */
+};
 
 static Elf32_Word elfRelocTypes386[] = {
     R_386_NONE,                 /* OWL_RELOC_ABSOLUTE */
@@ -262,15 +277,15 @@ unsigned OWLENTRY OWLRelocBitMask( owl_file_handle file, owl_reloc_info *reloc )
     assert( reloc != NULL );
     switch( file->info->cpu ) {
     case OWL_CPU_PPC:
-        mask_array = &ppcMasks;
+        mask_array = ppcMasks;
         break;
     case OWL_CPU_ALPHA:
-        mask_array = &alphaMasks;
+        mask_array = alphaMasks;
         break;
     case OWL_CPU_INTEL:
         return 0xffffffff;
     case OWL_CPU_MIPS:
-        mask_array = &mipsMasks;
+        mask_array = mipsMasks;
         break;
     default:
         assert( 0 );

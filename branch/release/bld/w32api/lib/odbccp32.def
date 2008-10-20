@@ -1,4 +1,4 @@
-LIBRARY ODBCCP32.dll
+LIBRARY ODBCCP32.DLL
 EXPORTS
 SQLConfigDataSource@16
 SQLConfigDataSourceW@16
@@ -51,4 +51,4 @@ SQLWriteFileDSN@16
 SQLWriteFileDSNW@16
 SQLWritePrivateProfileString@16
 SQLWritePrivateProfileStringW@16
-ODBC___GetSetupProc@4
+

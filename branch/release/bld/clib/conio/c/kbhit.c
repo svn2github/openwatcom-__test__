@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  Implementation of kbhit() for DOS.
 *
 ****************************************************************************/
 
@@ -37,11 +36,11 @@
 #include "defwin.h"
 
 #ifndef DEFAULT_WINDOWING
-    extern      signed char _kbhit( void );
+    extern      signed char _os_kbhit( void );
 
-    #pragma aux _kbhit = 0xb4 0x0b      /* mov ah,0bh */\
-                         0xcd 0x21      /* int 21h    */\
-                         value [al];
+    #pragma aux _os_kbhit =  "mov ah,0bh"   \
+                             "int 21h"      \
+                             value [al];
 #endif
 
 _WCRTLINK int kbhit( void )
@@ -57,6 +56,6 @@ _WCRTLINK int kbhit( void )
         return( 0 );
     }
 #else
-    return( _kbhit() );
+    return( _os_kbhit() );
 #endif
 }

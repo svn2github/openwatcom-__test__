@@ -1,4 +1,4 @@
-LIBRARY hid.dll
+LIBRARY HID.DLL
 EXPORTS
 HidD_FlushQueue@4
 HidD_FreePreparsedData@4
@@ -15,7 +15,6 @@ HidD_GetPhysicalDescriptor@12
 HidD_GetPreparsedData@8
 HidD_GetProductString@12
 HidD_GetSerialNumberString@12
-HidD_Hello@8
 HidD_SetConfiguration@12
 HidD_SetFeature@12
 HidD_SetNumInputBuffers@8
@@ -41,7 +40,6 @@ HidP_SetScaledUsageValue@32
 HidP_SetUsageValue@32
 HidP_SetUsageValueArray@36
 HidP_SetUsages@32
-HidP_TranslateUsagesToI8042ScanCodes@24
+HidP_TranslateUsageAndPagesToI8042ScanCodes@24
 HidP_UnsetUsages@32
 HidP_UsageListDifference@20
-;HidservInstaller

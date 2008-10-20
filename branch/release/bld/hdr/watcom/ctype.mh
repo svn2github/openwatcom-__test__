@@ -113,7 +113,7 @@ _WCRTLINK extern int    __iscsym(int);
 #if (defined(__SW_BR) || defined(_RTDLL))
  #define _IsTable _IsTable_br
 #endif
-_WCRTDATA extern const char _WCDATA _IsTable[257];
+_WCRTDATA extern const unsigned char _WCDATA _IsTable[257];
 
 #if !defined(__FUNCTION_DATA_ACCESS)
 :: Eliminate macros from cctype. These can be put back later as in-lines.
@@ -141,13 +141,13 @@ _WCRTDATA extern const char _WCDATA _IsTable[257];
 :endsegment
 #endif
 
+#define iscsym        __iscsym
+#define iscsymf       __iscsymf
+
 :segment CNAME
 :include cplusepi.sp
-:endsegment
-
-:: This #endif closes the #ifdef __cplusplus in ctype.h
-:segment !CNAME
-#endif
+:elsesegment
+#endif /* __cplusplus not defined */
 :endsegment
 
 #endif

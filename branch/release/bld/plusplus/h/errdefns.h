@@ -92,6 +92,18 @@ msg_status_t CErr2p(            // ISSUE ERROR (ptr PARAMETER)
     MSG_NUM msgnum,             // - message number
     void const *p1 )            // - parameter
 ;
+void CErrSuppress(
+    error_state_t *saved_save )
+;
+void CErrSuppressRestore(
+    unsigned count )
+;
+unsigned CErrUnsuppress(
+    void )
+;
+boolean CErrSuppressedOccurred(
+    error_state_t *saved_save )
+;
 void CErrCheckpoint(            // save current state of error reporting
     error_state_t *save )       // - location to save data
 ;
@@ -105,6 +117,9 @@ void CSuicide(                  // COMMIT SUICIDE
     void )
 ;
 void ErrFileOpen(               // OPEN ERROR FILE
+    void )
+;
+void ErrFileErase(              // ERASE ERROR FILE
     void )
 ;
 unsigned ErrPCHVersion(         // PROVIDE A VERSION NUMBER FOR THE ERROR MESSAGES

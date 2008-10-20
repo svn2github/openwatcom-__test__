@@ -1,9 +1,10 @@
-LIBRARY d3drm.dll
+LIBRARY D3DRM.DLL
 EXPORTS
 D3DRMColorGetAlpha@4
 D3DRMColorGetBlue@4
 D3DRMColorGetGreen@4
 D3DRMColorGetRed@4
+D3DRMCreate@4
 D3DRMCreateColorRGB@12
 D3DRMCreateColorRGBA@16
 D3DRMMatrixFromQuaternion@8
@@ -20,4 +21,3 @@ D3DRMVectorReflect@12
 D3DRMVectorRotate@16
 D3DRMVectorScale@12
 D3DRMVectorSubtract@12
-Direct3DRMCreate@4

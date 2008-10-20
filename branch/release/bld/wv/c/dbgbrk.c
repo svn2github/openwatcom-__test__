@@ -30,20 +30,15 @@
 
 
 #include <string.h>
-#include "dbgdefn.h"
-#include "dbgtoken.h"
+#include "dbgdata.h"
 #include "dbgerr.h"
 #include "dbginfo.h"
-#include "dbgbreak.h"
 #include "dbgitem.h"
 #include "dbglit.h"
 #include "dbgmem.h"
-#include "dbgtoggl.h"
-#include "dbginp.h"
 #include "namelist.h"
 #include "dbgstk.h"
 #include "dbgrep.h"
-#include "dbgreg.h"
 #include "dbgio.h"
 #include "trpcore.h"
 #include "mad.h"
@@ -72,18 +67,18 @@ extern address          GetRegIP( void );
 extern int              SectIsLoaded( unsigned int, int  );
 extern dword            RemoteSetBreak( address );
 extern void             RemoteRestoreBreak( address, dword );
-OVL_EXTERN brk          *TypePoint( memory_expr );
-OVL_EXTERN brk          *BadPoint( memory_expr );
-OVL_EXTERN brk          *ImageBreak( memory_expr );
-OVL_EXTERN brk          *ActivatePoint( memory_expr );
-OVL_EXTERN brk          *ClearPoint( memory_expr );
-OVL_EXTERN brk          *TogglePoint( memory_expr );
-OVL_EXTERN brk          *ResumePoint( memory_expr );
-OVL_EXTERN brk          *UnResumePoint( memory_expr );
-OVL_EXTERN brk          *DeactivatePoint( memory_expr );
-OVL_EXTERN brk          *SetBreak( memory_expr );
-OVL_EXTERN brk          *SetWatch( memory_expr );
-OVL_EXTERN brk          *SetPoint( memory_expr def_seg, mad_type_handle );
+OVL_EXTERN brkp         *TypePoint( memory_expr );
+OVL_EXTERN brkp         *BadPoint( memory_expr );
+OVL_EXTERN brkp         *ImageBreak( memory_expr );
+OVL_EXTERN brkp         *ActivatePoint( memory_expr );
+OVL_EXTERN brkp         *ClearPoint( memory_expr );
+OVL_EXTERN brkp         *TogglePoint( memory_expr );
+OVL_EXTERN brkp         *ResumePoint( memory_expr );
+OVL_EXTERN brkp         *UnResumePoint( memory_expr );
+OVL_EXTERN brkp         *DeactivatePoint( memory_expr );
+OVL_EXTERN brkp         *SetBreak( memory_expr );
+OVL_EXTERN brkp         *SetWatch( memory_expr );
+OVL_EXTERN brkp         *SetPoint( memory_expr def_seg, mad_type_handle );
 extern bool             RemoteSetWatch( address, unsigned, unsigned long * );
 extern void             RemoteRestoreWatch( address, unsigned );
 extern void             ErrorBox( char * );
@@ -96,7 +91,7 @@ extern bool             CheckBPIns( void );
 extern char             *GetCmdEntry( char *, int, char * );
 extern char             *Format( char *buff, char *fmt, ... );
 extern void             InvokeAFile( char * );
-extern void             CreateInvokeFile( char *name, void (*rtn)( void ) );
+extern void             CreateInvokeFile( char *name, void ( *rtn ) ( void ) );
 extern void             UnAsm( address addr, unsigned, char *buff );
 extern char             *AddHexSpec( char * );
 extern char             *GetCmdName( int );
@@ -129,19 +124,19 @@ extern void             DoInput( void );
 extern char             *CnvNearestAddr( address, char *, unsigned );
 extern void             DbgUpdate( update_list );
 extern bool             DUIGetSourceLine( cue_handle *ch, char *buff, unsigned len );
-extern void             DUIRemoveBreak( brk *bp );
+extern void             DUIRemoveBreak( brkp *bp );
 extern void             CheckForNewThreads( bool );
-extern void             LValue(stack_entry *);
+extern void             LValue( stack_entry * );
 
 
 extern char_ring        *DLLList;
 extern unsigned char    CurrRadix;
-extern brk              UserTmpBrk;
-extern brk              DbgTmpBrk;
+extern brkp             UserTmpBrk;
+extern brkp             DbgTmpBrk;
 extern char             *TxtBuff;
 extern tokens           CurrToken;
 extern debug_level      DbgLevel;
-extern brk              *BrkList;
+extern brkp             *BrkList;
 extern address          NilAddr;
 extern stack_entry      *ExprSP;
 extern mod_handle       CodeAddrMod;
@@ -181,7 +176,7 @@ typedef enum {
 } brk_event;
 
 typedef struct {
-    brk *(* rtn)(memory_expr);
+    brkp *(* rtn)( memory_expr );
     memory_expr type;
 } bpjmptab_type;
 
@@ -202,7 +197,7 @@ static bpjmptab_type BPJmpTab[] = {
 
 static char *BrkFmt( void )
 {
-    return( (DbgLevel != ASM) ? "%l" : "%a" );
+    return( ( DbgLevel != ASM ) ? "%l" : "%a" );
 }
 
 
@@ -223,7 +218,7 @@ void InitBPs( void )
  * InsertOneBP -- insert one break point into memory
  */
 
-static bool InsertOneBP( brk *bp, bool force )
+static bool InsertOneBP( brkp *bp, bool force )
 {
     bool    at_ip;
 
@@ -247,7 +242,7 @@ static bool InsertOneBP( brk *bp, bool force )
 
 bool InsertBPs( bool force )
 {
-    brk     *bp;
+    brkp    *bp;
     bool    at_ip;
 
     at_ip = FALSE;
@@ -256,10 +251,10 @@ bool InsertBPs( bool force )
         if( bp->th != MAD_NIL_TYPE_HANDLE ) continue;
         bp->status.b.in_place = FALSE;
         bp->status.b.hit = FALSE;
-        if( (UserTmpBrk.status.b.active)
-         && (AddrComp( UserTmpBrk.loc.addr, bp->loc.addr ) == 0) ) continue;
-        if( (DbgTmpBrk.status.b.active)
-         && (AddrComp( DbgTmpBrk.loc.addr, bp->loc.addr ) == 0) ) continue;
+        if( ( UserTmpBrk.status.b.active )
+         && ( AddrComp( UserTmpBrk.loc.addr, bp->loc.addr ) == 0 ) ) continue;
+        if( ( DbgTmpBrk.status.b.active )
+         && ( AddrComp( DbgTmpBrk.loc.addr, bp->loc.addr ) == 0 ) ) continue;
         at_ip |= InsertOneBP( bp, force );
     }
     UserTmpBrk.status.b.hit = FALSE;
@@ -283,18 +278,18 @@ bool InsertBPs( bool force )
  * RemoveOneBP -- remove one breakpoint from memory
  */
 
-static void RemoveOneBP( brk *bp )
+static void RemoveOneBP( brkp *bp )
 {
-    if( (bp->status.b.in_place) && SectIsLoaded( bp->loc.addr.sect_id, OVL_MAP_EXE ) ) {
+    if( ( bp->status.b.in_place ) && SectIsLoaded( bp->loc.addr.sect_id, OVL_MAP_EXE ) ) {
         RemoteRestoreBreak( bp->loc.addr, bp->item.ud );
     }
 }
 
-static void RemoveOneWP( brk *bp )
+static void RemoveOneWP( brkp *bp )
 {
     mad_type_info       mti;
 
-    if( (bp->status.b.in_place) && SectIsLoaded(bp->loc.addr.sect_id,OVL_MAP_EXE) ) {
+    if( ( bp->status.b.in_place ) && SectIsLoaded( bp->loc.addr.sect_id,OVL_MAP_EXE ) ) {
         bp->status.b.in_place = FALSE;
         MADTypeInfo( bp->th, &mti );
         RemoteRestoreWatch( bp->loc.addr, mti.b.bits / BITS_PER_BYTE );
@@ -308,7 +303,7 @@ static void RemoveOneWP( brk *bp )
 
 void RemoveBPs( void )
 {
-    brk     *bp;
+    brkp    *bp;
 
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
         if( bp->th != MAD_NIL_TYPE_HANDLE ) {
@@ -326,7 +321,7 @@ void RemoveBPs( void )
 }
 
 
-void GetBPAddr( brk *bp, char *buff )
+void GetBPAddr( brkp *bp, char *buff )
 {
     char                *p;
 
@@ -346,7 +341,7 @@ void GetBPAddr( brk *bp, char *buff )
 }
 
 
-void GetBPText( brk *bp, char *buff )
+void GetBPText( brkp *bp, char *buff )
 {
     unsigned    max;
 
@@ -368,9 +363,9 @@ void GetBPText( brk *bp, char *buff )
 }
 
 
-extern brk *FindBreakByLine( mod_handle mod, cue_file_id id, unsigned line )
+extern brkp *FindBreakByLine( mod_handle mod, cue_file_id id, unsigned line )
 {
-    brk         *bp;
+    brkp        *bp;
     mod_handle  brk_mod;
     DIPHDL( cue, ch );
 
@@ -387,9 +382,9 @@ extern brk *FindBreakByLine( mod_handle mod, cue_file_id id, unsigned line )
 }
 
 
-extern brk *FindBreak( address addr )
+extern brkp *FindBreak( address addr )
 {
-    brk     *bp;
+    brkp    *bp;
 
     if( IS_NIL_ADDR( addr ) ) return( NULL );
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
@@ -405,7 +400,7 @@ extern brk *FindBreak( address addr )
  * DispBPMsg -- display breakpoints that were hit
  */
 
-static char *StrVal( char *which, brk *wp, char *p )
+static char *StrVal( char *which, brkp *wp, char *p )
 {
     unsigned    max;
 
@@ -418,7 +413,7 @@ static char *StrVal( char *which, brk *wp, char *p )
 }
 
 
-static char     *GetBPAddrText( brk *bp, char *p )
+static char     *GetBPAddrText( brkp *bp, char *p )
 {
     if( bp->th != MAD_NIL_TYPE_HANDLE ) {
         p = StrCopy( LIT( Break_on_write ), p );
@@ -435,7 +430,7 @@ static char     *GetBPAddrText( brk *bp, char *p )
 }
 
 
-static void GetWPVal( brk *wp )
+static void GetWPVal( brkp *wp )
 {
     wp->status.b.has_value = FALSE;
     if( ItemGetMAD( &wp->loc.addr, &wp->item, IT_NIL, wp->th ) ) {
@@ -446,7 +441,7 @@ static void GetWPVal( brk *wp )
 
 bool DispBPMsg( bool stack_cmds )
 {
-    brk     *bp, *next;
+    brkp    *bp, *next;
     char    *p;
     bool    ret;
     cmd_list    *cmds;
@@ -474,7 +469,7 @@ bool DispBPMsg( bool stack_cmds )
             FreeCmdList( cmds );
             ret = TRUE;
         }
-        if( stack_cmds && (bp->cmds != NULL) && bp->status.b.use_cmds ) {
+        if( stack_cmds && ( bp->cmds != NULL ) && bp->status.b.use_cmds ) {
             bp->status.b.cmds_pushed = TRUE;
             PushCmdList( bp->cmds );
             TypeInpStack( INP_BREAK_POINT );
@@ -496,7 +491,7 @@ bool DispBPMsg( bool stack_cmds )
 }
 
 
-static char *GetBPCmd( brk *bp, char *p, brk_event event )
+static char *GetBPCmd( brkp *bp, char *p, brk_event event )
 {
     char        *cmds;
     char        *cond;
@@ -592,7 +587,7 @@ static char *GetBPCmd( brk *bp, char *p, brk_event event )
 }
 
 
-static void RecordBreakEvent( brk *bp, brk_event event )
+static void RecordBreakEvent( brkp *bp, brk_event event )
 {
     GetBPCmd( bp, TxtBuff, event );
     RecordEvent( TxtBuff );
@@ -603,7 +598,7 @@ static void RecordBreakEvent( brk *bp, brk_event event )
 }
 
 
-static void DoActPoint( brk *bp, bool act )
+static void DoActPoint( brkp *bp, bool act )
 {
     bp->status.b.active = act;
     RecordBreakEvent( bp, act ? B_ACTIVATE : B_DEACTIVATE );
@@ -612,7 +607,7 @@ static void DoActPoint( brk *bp, bool act )
     }
 }
 
-void ActPoint( brk *bp, bool act )
+void ActPoint( brkp *bp, bool act )
 {
     if( act && bp->status.b.unmapped ) return;
     DoActPoint( bp, act );
@@ -621,7 +616,7 @@ void ActPoint( brk *bp, bool act )
 
 void BrkEnableAll( void )
 {
-    brk         *bp;
+    brkp        *bp;
 
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
         DoActPoint( bp, TRUE );
@@ -632,7 +627,7 @@ void BrkEnableAll( void )
 
 void BrkDisableAll( void )
 {
-    brk     *bp;
+    brkp    *bp;
 
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
         DoActPoint( bp, FALSE );
@@ -641,12 +636,12 @@ void BrkDisableAll( void )
 }
 
 
-void RemovePoint( brk *bp )
+void RemovePoint( brkp *bp )
 {
-    brk         **owner;
+    brkp        **owner;
 
     for( owner = &BrkList; ; owner = &(*owner)->next ) {
-        if( (*owner) == bp ) {
+        if( ( *owner ) == bp ) {
             RecordBreakEvent( bp, B_CLEAR );
             FreeCmdList( bp->cmds );
             _Free( bp->condition );
@@ -666,7 +661,7 @@ void RemovePoint( brk *bp )
 
 bool RemoveBreak( address addr )
 {
-    brk         *bp;
+    brkp        *bp;
 
     bp = FindBreak( addr );
     if( bp == NULL ) return( FALSE );
@@ -689,7 +684,7 @@ void BrkClearAll( void )
 
 void BPsDeac( void )
 {
-    brk     *bp;
+    brkp    *bp;
 
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
         DoActPoint( bp, FALSE );
@@ -706,7 +701,7 @@ void BPsDeac( void )
 
 void BPsUnHit( void )
 {
-    brk     *bp;
+    brkp    *bp;
 
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
         bp->status.b.hit = FALSE;
@@ -716,7 +711,7 @@ void BPsUnHit( void )
 }
 
 
-void RecordNewPoint( brk *bp )
+void RecordNewPoint( brkp *bp )
 {
     SetRecord( TRUE );
     RecordBreakEvent( bp, B_SET );
@@ -725,7 +720,7 @@ void RecordNewPoint( brk *bp )
 
 void RecordPointStart( void )
 {
-    brk *bp;
+    brkp    *bp;
 
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
         RecordNewPoint( bp );
@@ -733,7 +728,7 @@ void RecordPointStart( void )
 }
 
 
-void RecordClearPoint( brk *bp )
+void RecordClearPoint( brkp *bp )
 {
     SetRecord( TRUE );
     RecordBreakEvent( bp, B_CLEAR );
@@ -758,7 +753,7 @@ void GetBreakOnImageCmd( char *name, char *buff, bool clear )
 
 void ShowBPs( void )
 {
-    brk         *bp;
+    brkp        *bp;
     char_ring   *dll;
 
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
@@ -800,12 +795,12 @@ void ProcBreak( void )
  * SetBreak -- set a break point
  */
 
-OVL_EXTERN brk *SetBreak( memory_expr def_seg )
+OVL_EXTERN brkp *SetBreak( memory_expr def_seg )
 {
     return( SetPoint( def_seg, MAD_NIL_TYPE_HANDLE ) );
 }
 
-OVL_EXTERN brk *TypePoint( memory_expr def_seg )
+OVL_EXTERN brkp *TypePoint( memory_expr def_seg )
 {
     mad_type_handle     th;
 
@@ -817,7 +812,7 @@ OVL_EXTERN brk *TypePoint( memory_expr def_seg )
 }
 
 
-OVL_EXTERN brk *SetWatch( memory_expr def_seg )
+OVL_EXTERN brkp *SetWatch( memory_expr def_seg )
 {
     return( SetPoint( def_seg, MADTypeDefault( MTK_INTEGER, 0, &DbgRegs->mr, NULL ) ) );
 }
@@ -827,7 +822,7 @@ OVL_EXTERN brk *SetWatch( memory_expr def_seg )
  * BadPoint -- handle bad break point command
  */
 
-OVL_EXTERN brk *BadPoint( memory_expr def_seg )
+OVL_EXTERN brkp *BadPoint( memory_expr def_seg )
 {
     def_seg=def_seg;
     Error( ERR_LOC, LIT( ERR_BAD_OPTION ), GetCmdName( CMD_BREAK ) );
@@ -839,7 +834,7 @@ OVL_EXTERN brk *BadPoint( memory_expr def_seg )
  * ImageBreak -- break on image loaded
  */
 
-OVL_EXTERN brk *ImageBreak( memory_expr def_seg )
+OVL_EXTERN brkp *ImageBreak( memory_expr def_seg )
 {
     char        *start;
     unsigned    len;
@@ -871,13 +866,13 @@ done:;
 
 
 /*
- * PointBreak -- get 'brk *' from command line
+ * PointBreak -- get 'brkp *' from command line
  */
 
-static brk *PointBreak( memory_expr def_seg, address *addr )
+static brkp *PointBreak( memory_expr def_seg, address *addr )
 {
-    unsigned   index;
-    brk         *bp;
+    unsigned    index;
+    brkp        *bp;
     unsigned    old;
 
     if( addr != NULL ) {
@@ -905,7 +900,7 @@ static brk *PointBreak( memory_expr def_seg, address *addr )
 }
 
 
-static brk *BPNotNull( brk *bp )
+static brkp *BPNotNull( brkp *bp )
 {
     if( bp == NULL ) {
         Error( ERR_NONE, LIT( ERR_NO_SUCH_POINT ) );
@@ -913,7 +908,7 @@ static brk *BPNotNull( brk *bp )
     return( bp );
 }
 
-static void ResPoint( brk *bp, bool res )
+static void ResPoint( brkp *bp, bool res )
 {
     bp->status.b.resume = res;
     RecordBreakEvent( bp, res ? B_RESUME : B_UNRESUME );
@@ -923,10 +918,10 @@ static void ResPoint( brk *bp, bool res )
  * Ac_DeacPoint -- (un)resume (de)activate specified break point
  */
 
-static brk *Ac_DeacPoint( memory_expr def_seg,
-                          bool act, void (*rtn)( brk *, bool ) )
+static brkp *Ac_DeacPoint( memory_expr def_seg,
+                          bool act, void ( *rtn ) ( brkp *, bool ) )
 {
-    brk         *bp;
+    brkp        *bp;
     address     addr;
 
     if( CurrToken == T_MUL ) {
@@ -948,7 +943,7 @@ static brk *Ac_DeacPoint( memory_expr def_seg,
  * ActivatePoint -- activate specified break point
  */
 
-OVL_EXTERN brk *ActivatePoint( memory_expr def_seg )
+OVL_EXTERN brkp *ActivatePoint( memory_expr def_seg )
 {
     return( Ac_DeacPoint( def_seg, TRUE, ActPoint ) );
 }
@@ -958,17 +953,17 @@ OVL_EXTERN brk *ActivatePoint( memory_expr def_seg )
  * DeactivatePoint -- deactivate specified break point
  */
 
-OVL_EXTERN brk *DeactivatePoint( memory_expr def_seg )
+OVL_EXTERN brkp *DeactivatePoint( memory_expr def_seg )
 {
     return( Ac_DeacPoint( def_seg, FALSE, ActPoint ) );
 }
 
-OVL_EXTERN brk *ResumePoint( memory_expr def_seg )
+OVL_EXTERN brkp *ResumePoint( memory_expr def_seg )
 {
     return( Ac_DeacPoint( def_seg, TRUE, ResPoint ) );
 }
 
-OVL_EXTERN brk *UnResumePoint( memory_expr def_seg )
+OVL_EXTERN brkp *UnResumePoint( memory_expr def_seg )
 {
     return( Ac_DeacPoint( def_seg, FALSE, ResPoint ) );
 }
@@ -978,7 +973,7 @@ OVL_EXTERN brk *UnResumePoint( memory_expr def_seg )
  * ClearPoint -- clear specified break point
  */
 
-static brk *ClearPoint( memory_expr def_seg )
+static brkp *ClearPoint( memory_expr def_seg )
 {
     address addr;
     if( CurrToken == T_MUL ) {
@@ -1006,7 +1001,7 @@ char *CopySourceLine( cue_handle *ch )
 }
 
 
-bool GetBPSymAddr( brk *bp, address *addr )
+bool GetBPSymAddr( brkp *bp, address *addr )
 {
     char        buff[TXT_LEN],*p;
     bool        rc;
@@ -1026,7 +1021,7 @@ bool GetBPSymAddr( brk *bp, address *addr )
 }
 
 
-void SetPointAddr( brk *bp, address addr )
+void SetPointAddr( brkp *bp, address addr )
 {
     DIPHDL( cue, ch );
     image_entry *image;
@@ -1093,7 +1088,7 @@ bool BrkCheckWatchLimit( address loc, mad_type_handle th )
 {
     bool                enough_iron;
     unsigned long       mult;
-    brk                 *wp;
+    brkp                *wp;
     mad_type_info       mti;
     unsigned            size;
 
@@ -1128,7 +1123,7 @@ bool BrkCheckWatchLimit( address loc, mad_type_handle th )
 
 static int FindNextBPIndex( void )
 {
-    brk         *bp;
+    brkp        *bp;
     int         max;
 
     max = 0;
@@ -1139,13 +1134,13 @@ static int FindNextBPIndex( void )
 }
 
 
-static brk *AddPoint( address loc, mad_type_handle th, bool unmapped )
+static brkp *AddPoint( address loc, mad_type_handle th, bool unmapped )
 {
-    brk                 *bp;
-    brk                 **owner;
+    brkp                *bp;
+    brkp                **owner;
 
     if( th != MAD_NIL_TYPE_HANDLE && !BrkCheckWatchLimit( loc, th ) ) return( NULL );
-    _Alloc( bp, sizeof( brk ) );
+    _Alloc( bp, sizeof( brkp ) );
     InitMappableAddr( &bp->loc );
     bp->th = th;
     bp->mad = SysConfig.mad;
@@ -1180,9 +1175,9 @@ static brk *AddPoint( address loc, mad_type_handle th, bool unmapped )
 }
 
 
-extern brk *AddBreak( address addr )
+extern brkp *AddBreak( address addr )
 {
-    brk         *bp;
+    brkp        *bp;
 
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
         if( AddrComp( bp->loc.addr, addr ) == 0 ) {
@@ -1200,7 +1195,7 @@ extern brk *AddBreak( address addr )
 
 extern void ToggleBreak( address addr )
 {
-    brk         *bp;
+    brkp        *bp;
 
     if( IS_NIL_ADDR( addr ) ) return;
     bp = FindBreak( addr );
@@ -1218,9 +1213,9 @@ extern void ToggleBreak( address addr )
  * TogglePoint -- toggle specified break point
  */
 
-OVL_EXTERN brk *TogglePoint( memory_expr def_seg )
+OVL_EXTERN brkp *TogglePoint( memory_expr def_seg )
 {
-    brk         *bp;
+    brkp        *bp;
     address     addr;
 
     bp = PointBreak( def_seg, &addr );
@@ -1236,7 +1231,7 @@ OVL_EXTERN brk *TogglePoint( memory_expr def_seg )
 
 void BrkAddrRefresh( void )
 {
-    brk         *bp;
+    brkp        *bp;
 
     for( bp = BrkList; bp != NULL; bp = bp->next ) {
         SetPointAddr( bp, bp->loc.addr );
@@ -1256,24 +1251,24 @@ static void ReqComma( void )
     Scan();
 }
 
-void SetBPCountDown( brk *bp, long countdown )
+void SetBPCountDown( brkp *bp, long countdown )
 {
     bp->countdown = countdown;
     bp->initial_countdown = countdown;
     bp->status.b.use_countdown = ( countdown != NULL );
 }
 
-bool GetBPAutoDestruct( brk *bp )
+bool GetBPAutoDestruct( brkp *bp )
 {
     return( bp->status.b.autodestruct );
 }
 
-void SetBPAutoDestruct( brk *bp, int autodes )
+void SetBPAutoDestruct( brkp *bp, int autodes )
 {
     bp->status.b.autodestruct = autodes;
 }
 
-void SetBPCondition( brk *bp, char *condition )
+void SetBPCondition( brkp *bp, char *condition )
 {
     if( bp->condition != NULL ) {
         _Free( bp->condition );
@@ -1286,7 +1281,7 @@ void SetBPCondition( brk *bp, char *condition )
     bp->status.b.use_condition = ( bp->condition != NULL );
 }
 
-void SetBPPatch( brk *bp, char *patch )
+void SetBPPatch( brkp *bp, char *patch )
 {
     char        *end;
 
@@ -1302,36 +1297,36 @@ void SetBPPatch( brk *bp, char *patch )
     bp->status.b.use_cmds = ( bp->cmds != NULL );
 }
 
-void SetBPResume( brk *bp, int resume )
+void SetBPResume( brkp *bp, int resume )
 {
     bp->status.b.resume = resume;
 }
 
-long GetBPCountDown( brk *bp )
+long GetBPCountDown( brkp *bp )
 {
     return( bp->initial_countdown );
 }
 
-char *GetBPCondition( brk *bp )
+char *GetBPCondition( brkp *bp )
 {
     if( bp->condition == NULL ) return( "" );
     return( bp->condition );
 }
 
-char *GetBPPatch( brk *bp )
+char *GetBPPatch( brkp *bp )
 {
     if( bp->cmds == NULL ) return( "" );
     return( bp->cmds->buff + strlen( GetCmdName( CMD_DO ) ) + 1 );
 }
 
-int GetBPResume( brk *bp )
+int GetBPResume( brkp *bp )
 {
     return( bp->status.b.resume );
 }
 
-static brk *SetPoint( memory_expr def_seg, mad_type_handle th )
+static brkp *SetPoint( memory_expr def_seg, mad_type_handle th )
 {
-    brk         *bp;
+    brkp        *bp;
     char        *start;
     unsigned    len;
     address     loc;
@@ -1440,6 +1435,9 @@ done:;
         case 2:
         case 4:
             break;
+        case 8:
+            if( Supports8ByteBreakpoints )
+                break;
         default:
             Error( ERR_NONE, LIT( ERR_NOT_WATCH_SIZE ) );
             break;
@@ -1473,23 +1471,28 @@ done:;
 
 bool BreakWrite( address addr, mad_type_handle th, char *comment )
 {
-    brk                 *bp;
+    brkp                *bp;
     mad_type_info       mti;
-
+    bool                ok_to_try = TRUE;
     if( th == MAD_NIL_TYPE_HANDLE ) return( FALSE );
     MADTypeInfo( th, &mti );
     switch( mti.b.bits / BITS_PER_BYTE ) {
+    case 8:
+        if( !Supports8ByteBreakpoints )
+            ok_to_try = FALSE;
     case 1:
     case 2:
     case 4:
-        if(  FindBreak( addr ) != NULL ) {
-            Error( ERR_NONE, LIT( ERR_POINT_EXISTS ) );
+        if( ok_to_try ) {
+            if(  FindBreak( addr ) != NULL ) {
+                Error( ERR_NONE, LIT( ERR_POINT_EXISTS ) );
+            }
+            bp = AddPoint( addr, th, FALSE );
+            if( bp == NULL ) return( TRUE );
+            bp->source_line = DupStr( comment );
+            RecordBreakEvent( bp, B_SET );
+            return( TRUE );
         }
-        bp = AddPoint( addr, th, FALSE );
-        if( bp == NULL ) return( TRUE );
-        bp->source_line = DupStr( comment );
-        RecordBreakEvent( bp, B_SET );
-        return( TRUE );
     default:
         return( FALSE );
     }
@@ -1509,7 +1512,7 @@ static void BreakOnAddress( void *_s )
 
     if( IS_NIL_ADDR( s->addr )
      || !BreakWrite( s->addr,
-                    FindMADTypeHandle(MAS_MEMORY|MTK_INTEGER,s->size),
+                    FindMADTypeHandle( MAS_MEMORY|MTK_INTEGER, s->size ),
                      s->comment ) ) {
         Error( ERR_NONE, LIT( ERR_NOT_WATCH_SIZE ) );
     }
@@ -1561,7 +1564,7 @@ void PointFini( void )
 }
 
 
-static  bool    HaveHitBP( brk *bp )
+static  bool    HaveHitBP( brkp *bp )
 {
     if( !bp->status.b.active ) return( FALSE );
     if( !bp->status.b.in_place ) return( FALSE );
@@ -1573,7 +1576,7 @@ static  bool    HaveHitBP( brk *bp )
 
 OVL_EXTERN      void    TestExpression( void *_bp )
 {
-    brk         *bp = _bp;
+    brkp        *bp = _bp;
     char        *old;
     int         val;
 
@@ -1589,8 +1592,8 @@ OVL_EXTERN      void    TestExpression( void *_bp )
 
 void CheckBPErrors( void )
 {
-    brk *bp;
-    brk *next;
+    brkp    *bp;
+    brkp    *next;
 
     for( bp = BrkList; bp != NULL; bp = next ) {
         next = bp->next;
@@ -1603,8 +1606,8 @@ void CheckBPErrors( void )
 
 void BrkCmdError( void )
 {
-    brk *bp;
-    brk *next;
+    brkp    *bp;
+    brkp    *next;
 
     for( bp = BrkList; bp != NULL; bp = next ) {
         next = bp->next;
@@ -1617,7 +1620,7 @@ void BrkCmdError( void )
 
 unsigned CheckBPs( unsigned conditions, unsigned run_conditions )
 {
-    brk                 *bp;
+    brkp                *bp;
     item_mach           item;
     bool                hit, bphit, wphit;
     bool                state_set;
@@ -1633,11 +1636,41 @@ unsigned CheckBPs( unsigned conditions, unsigned run_conditions )
             if( SectIsLoaded( bp->loc.addr.sect_id, OVL_MAP_EXE ) ) {
                 MADTypeInfo( bp->th, &mti );
                 if( ItemGetMAD( &bp->loc.addr, &item, IT_NIL, bp->th ) ) {
-                    if( (memcmp( &bp->item, &item, mti.b.bits / BITS_PER_BYTE ) != 0) || !bp->status.b.has_value ) {
-                        hit = TRUE;
+                    
+                    /*
+                     * If the breakpoint fires here because of a write, but the value hasn't changed then
+                     * the breakpoint does not fire off!!!! The SupportsExactBreakpoints actually enables
+                     * break on write, not break on change and allocates the exact data space - not plus
+                     * or minus a few bytes...
+                     *
+                     */
+                    
+                    if( _IsOn( SW_BREAK_ON_WRITE ) && SupportsExactBreakpoints ) {
+
+                        bool    drop_hit = FALSE;
+                        
+                        if( ( UserTmpBrk.status.b.active ) || ( DbgTmpBrk.status.b.active ) ) {
+                        
+                            if( HaveHitBP( &UserTmpBrk ) ) {
+                                drop_hit = TRUE;
+                            }
+                            if( HaveHitBP( &DbgTmpBrk ) ) {
+                                drop_hit = TRUE;
+                            }
+                            if( ! ( conditions & ( COND_BREAK | COND_WATCH | COND_TRACE | COND_USER | COND_EXCEPTION | COND_STOP ) ) )
+                                drop_hit = TRUE;
+                        }
+                        
+                        if( !drop_hit ) 
+                            hit = TRUE;
+                    } else {
+                        if( ( memcmp( &bp->item, &item, mti.b.bits / BITS_PER_BYTE ) != 0 ) || !bp->status.b.has_value ) {
+                            hit = TRUE;
+                        }
                     }
                 } else if( bp->status.b.has_value ) {
-                    hit = TRUE;
+                    if( conditions & ( COND_BREAK | COND_WATCH | COND_TRACE | COND_USER | COND_EXCEPTION | COND_STOP ) )
+                        hit = TRUE;
                 }
             }
         } else {
@@ -1695,8 +1728,8 @@ unsigned CheckBPs( unsigned conditions, unsigned run_conditions )
         bphit = TRUE;
         DbgTmpBrk.status.b.hit = TRUE;
     }
-    if( bphit ) return( COND_BREAK | (conditions & ~COND_STOPPERS) );
-    if( wphit ) return( COND_WATCH | (conditions & ~COND_STOPPERS) );
+    if( bphit ) return( COND_BREAK | ( conditions & ~COND_STOPPERS ) );
+    if( wphit ) return( COND_WATCH | ( conditions & ~COND_STOPPERS ) );
     if( conditions & COND_BREAK ) {
         unsigned        max = TXT_LEN;
 
@@ -1711,7 +1744,7 @@ unsigned CheckBPs( unsigned conditions, unsigned run_conditions )
                 return( conditions );
             } else if( SetMsgText( TxtBuff, &conditions ) ) {
                 DUIMsgBox( TxtBuff );
-                return( COND_TRACE | COND_MESSAGE | (conditions & ~COND_STOPPERS) );
+                return( COND_TRACE | COND_MESSAGE | ( conditions & ~COND_STOPPERS ) );
             } else {
                 return( conditions & ~COND_STOPPERS );
             }
@@ -1727,7 +1760,7 @@ unsigned CheckBPs( unsigned conditions, unsigned run_conditions )
 
 bool UpdateWPs( void )
 {
-    brk                 *wp;
+    brkp                *wp;
     bool                have_active;
 
     have_active = FALSE;
@@ -1746,13 +1779,13 @@ bool UpdateWPs( void )
 
 void InsertWPs( void )
 {
-    brk                 *wp;
+    brkp                *wp;
     unsigned long       mult;
     mad_type_info       mti;
 
     for( wp = BrkList; wp != NULL; wp = wp->next ) {
         if( wp->th == MAD_NIL_TYPE_HANDLE ) continue;
-        if( wp->status.b.active && SectIsLoaded(wp->loc.addr.sect_id,OVL_MAP_EXE) ) {
+        if( wp->status.b.active && SectIsLoaded( wp->loc.addr.sect_id, OVL_MAP_EXE ) ) {
             wp->status.b.in_place = TRUE;
             MADTypeInfo( wp->th, &mti );
             RemoteSetWatch( wp->loc.addr, mti.b.bits / BITS_PER_BYTE, &mult );
@@ -1833,7 +1866,7 @@ void BreakAllModEntries( mod_handle handle )
 
 void ClearAllModBreaks( mod_handle handle )
 {
-    brk         *bp, *next;
+    brkp        *bp, *next;
     mod_handle  mh;
 
     for( bp = BrkList; bp != NULL; bp = next ) {
@@ -1845,7 +1878,7 @@ void ClearAllModBreaks( mod_handle handle )
     }
 }
 
-address GetRowAddrDirectly(mod_handle mod, cue_file_id file_id, int row, bool exact )
+address GetRowAddrDirectly( mod_handle mod, cue_file_id file_id, int row, bool exact )
 {
     DIPHDL( cue, ch );
 
@@ -1860,10 +1893,10 @@ address GetRowAddrDirectly(mod_handle mod, cue_file_id file_id, int row, bool ex
     return( CueAddr( ch ) );
 }
 
-brk *GetBPAt( int row )
+brkp *GetBPAt( int row )
 {
     int     i = 0;
-    brk     *bp = NULL;
+    brkp    *bp = NULL;
 
     for( bp = BrkList , i = 0 ; bp != NULL; bp = bp->next , ++i ) {
         if ( i == row ) {

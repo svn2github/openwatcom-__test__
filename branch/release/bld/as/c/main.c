@@ -32,6 +32,9 @@
 #include "as.h"
 #include <setjmp.h>
 #include "preproc.h"
+#if !defined( __WATCOMC__ )
+    #include "clibext.h"
+#endif
 
 extern bool     OptionsInit( int argc, char *argv[] );
 extern void     OptionsFini( void );
@@ -48,17 +51,18 @@ jmp_buf         AsmParse;
 int             ExitStatus = EXIT_SUCCESS;
 
 
-void main( int argc, char **argv )
-//********************************
+int main( int argc, char **argv )
+//*******************************
 {
     static char *fname;
 
 #ifndef __WATCOMC__
     _argv = argv;
+    _argc = argc;
 #endif
     MemInit();
     if( !AsMsgInit() ) {
-        exit( EXIT_FAILURE );
+        return( EXIT_FAILURE );
     }
     if( argc == 1 ) {
         Banner();
@@ -112,5 +116,5 @@ void main( int argc, char **argv )
     OptionsFini();
     AsMsgFini();
     MemFini();
-    exit( ExitStatus );
+    return( ExitStatus );
 }
