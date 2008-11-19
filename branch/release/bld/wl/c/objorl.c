@@ -291,7 +291,7 @@ static orl_return DeflibCallback( char *name, void *dummy )
 /*********************************************************/
 {
     dummy = dummy;
-    AddCommentLib( name, strlen(name), 0xfe );
+    AddCommentLib( name, strlen(name), LIB_PRIORITY_MAX - 1 );
     return( ORL_OKAY );
 }
 
@@ -535,17 +535,18 @@ static void DefineComdatSym( segnode *seg, symbol *sym, orl_symbol_value value )
 /******************************************************************************/
 {
     unsigned    select;
+    sym_info    sym_type;
     segdata     *sdata;
 
     sdata = seg->entry;
     sdata->hascdatsym = TRUE;
     select = sdata->select;
     if( select == 0 ) {
-        select = SYM_CDAT_SEL_ANY;
+        sym_type = SYM_CDAT_SEL_ANY;
     } else {
-        select = (select - 1) << SYM_CDAT_SEL_SHIFT;
+        sym_type = (select - 1) << SYM_CDAT_SEL_SHIFT;
     }
-    DefineComdat( sdata, sym, value, select, seg->contents );
+    DefineComdat( sdata, sym, value, sym_type, seg->contents );
 }
 
 static orl_return ProcSymbol( orl_symbol_handle symhdl )
@@ -573,8 +574,7 @@ static orl_return ProcSymbol( orl_symbol_handle symhdl )
         if( !(CurrMod->modinfo & MOD_GOT_NAME) ) {
             CurrMod->modinfo |= MOD_GOT_NAME;
             _LnkFree( CurrMod->name );
-            CurrMod->name = StringStringTable( &PermStrings,
-                                                name );
+            CurrMod->name = AddStringStringTable( &PermStrings, name );
         }
         return( ORL_OKAY );
     }

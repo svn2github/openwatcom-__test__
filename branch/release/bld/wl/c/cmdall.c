@@ -350,7 +350,7 @@ static void *AddObjFile( char *name, char *member, file_list **filelist )
     return( new_entry );
 }
 
-file_list *AddObjLib( char *name, unsigned char priority )
+file_list *AddObjLib( char *name, lib_priority priority )
 /***************************************************************/
 
  {
@@ -504,8 +504,6 @@ bool ProcModFiles( void )
 }
 
 
-#define MAX_PRIORITY    255
-
 static bool AddLib( void )
 /************************/
 {
@@ -513,7 +511,7 @@ static bool AddLib( void )
     file_list   *result;
 
     ptr = FileName( Token.this, Token.len, E_LIBRARY, FALSE );
-    result = AddObjLib( ptr, MAX_PRIORITY );
+    result = AddObjLib( ptr, LIB_PRIORITY_MAX );
     result->status |= STAT_USER_SPECD;
     if( CmdFlags & CF_SET_SECTION ) {
         result->status |= STAT_LIB_FIXED;
@@ -1050,14 +1048,14 @@ static void GetCommandBlock( sysblock **hdr, char *name, parse_entry *endtab )
     stringtable strtab;
 
     InitStringTable( &strtab, FALSE );
-    AddStringTable( &strtab, (char *) &strtab, offsetof(sysblock,commands)  );
+    AddBufferStringTable( &strtab, &strtab, offsetof( sysblock, commands ) );
     while( !ProcOne( endtab, SEP_SPACE, FALSE ) ) {
         Token.thumb = OK;
-        AddStringTable( &strtab, Token.this, Token.len );
-        CharStringTable( &strtab, ' ' );
+        AddBufferStringTable( &strtab, Token.this, Token.len );
+        AddCharStringTable( &strtab, ' ' );
         RestoreParser();
     }
-    CharStringTable( &strtab, '\0' );
+    AddCharStringTable( &strtab, '\0' );
     _ChkAlloc( copyptr, GetStringTableSize( &strtab ) );
     sys = (sysblock *) copyptr;
     WriteStringTable( &strtab, CopyBlocks, &copyptr );

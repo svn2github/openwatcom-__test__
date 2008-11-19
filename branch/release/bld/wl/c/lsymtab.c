@@ -873,14 +873,14 @@ symbol * SymXOp( sym_flags op, char *name, int length )
 }
 
 symbol * SymXOpNWPfx( sym_flags op, char *name, int length, char * prefix, int prefixLen)
-/************************************************************/
+/***************************************************************************************/
 {
     symbol * retsym = SymXOp(op, name, length);
 
     if( NULL == retsym )
         return NULL;
 
-    if( ((NULL != prefix) && (0 != prefixLen)) || (NULL != CmdFile->symprefix) ) {
+    if( ( NULL != prefix ) && ( 0 != prefixLen ) || ( NULL != CmdFile->symprefix ) ) {
         char * pfxname = alloca(255+1); /* max len of PString - used to be prefixLen+1 */
 
         if( NULL == pfxname ) {
@@ -891,11 +891,11 @@ symbol * SymXOpNWPfx( sym_flags op, char *name, int length, char * prefix, int p
         if( prefix ) {
             memcpy( pfxname, prefix, prefixLen );
             pfxname[ prefixLen] = '\0';
-        }
-        else
+        } else {
             strcpy( pfxname, CmdFile->symprefix );
+        }
 
-        if( NULL == (retsym->prefix = AddStringTable( &PrefixStrings, pfxname, strlen( pfxname ) + 1 )) ) {
+        if( NULL == (retsym->prefix = AddStringStringTable( &PrefixStrings, pfxname )) ) {
             LnkMsg( ERR+MSG_INTERNAL, "s", "no memory for prefix symbol");
             return NULL;
         }
@@ -960,7 +960,7 @@ static symbol * GlobalSearchSym( char *symname, int hash, int len )
 
     sym = GlobalSymPtrs[ hash ];
     while( sym != NULL ) {
-        if( len == sym->namelen ) {
+        if( len == sym->namelen_cmp ) {
             if( (*CmpRtn)( symname, sym->name, len ) == 0 )
                 break;
         }
@@ -977,7 +977,7 @@ static symbol * StaticSearchSym( char *symname, unsigned hash, int len )
 
     sym = StaticSymPtrs[ hash ];
     while( sym != NULL ) {
-        if( sym->info & SYM_IN_CURRENT && len == sym->namelen ) {
+        if( sym->info & SYM_IN_CURRENT && len == sym->namelen_cmp ) {
             if( memcmp( symname, sym->name, len ) == 0 )
                 break;
         }
@@ -997,7 +997,7 @@ static symbol * DoSymOp( byte op, char *symname, int length )
     if( NameLen != 0 && NameLen < length ) {
         searchlen = NameLen;
     } else {
-        searchlen = length + 1 ;         /* include NULLCHAR in comparison */
+        searchlen = length;
     }
     if( op & ST_STATIC ) {
         hash = StaticHashFn( symname, searchlen );
@@ -1014,8 +1014,8 @@ static symbol * DoSymOp( byte op, char *symname, int length )
     }
     if( !(op & ST_FIND) ) {
         sym = AddSym();
-        sym->name = AddStringTable( &PermStrings, symname, length + 1 );
-        sym->namelen = searchlen;
+        sym->name = AddSymbolStringTable( &PermStrings, symname, length );
+        sym->namelen_cmp = searchlen;
 
         if( op & ST_STATIC ) {
             sym->info |= SYM_STATIC;
@@ -1227,7 +1227,7 @@ void XWriteImports( void )
     }
 }
 
-symbol * AddAltDef( symbol *sym, unsigned sym_type )
+symbol * AddAltDef( symbol *sym, sym_info sym_type )
 /*********************************************************/
 {
     symbol *    altsym;
@@ -1261,7 +1261,7 @@ symbol * HashReplace( symbol *sym )
     newsym = AddSym();
     newsym->e.mainsym = sym;
     newsym->name = sym->name;
-    newsym->namelen = sym->namelen;
+    newsym->namelen_cmp = sym->namelen_cmp;
     newsym->info = sym->info | SYM_DEAD | SYM_IS_ALTDEF;
     Ring2Append( &sym->mod->publist, newsym );
     RingAppend( &sym->u.altdefs, newsym );
