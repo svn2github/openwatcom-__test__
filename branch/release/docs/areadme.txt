@@ -22,8 +22,8 @@ Alpha compilers (wccaxp and wppaxp).
 
 2. The linker system directives for the Alpha are as follows:
     sys ntaxp       - alpha console mode app
-    sys ntaxp_win       - alpha windowed app
-    sys ntaxp_dll       - alpha dll
+    sys ntaxp_win   - alpha windowed app
+    sys ntaxp_dll   - alpha dll
     
 3. The Alpha librarian creates Microsoft Visual C++ compatible AR-format
 libraries.

@@ -11,8 +11,7 @@ tmp_file = tmp.tmp
     @set ESM_CHECK=%null
     @if exist $^&.esm @set ESM_CHECK=diff -i -b $^&.dis $^&.esm
     $(%ESM_CHECK)
-    @dmpobj -q -l -rec=FIXUPP $[@
-    @bvi -d -q -s ../fixlst1.vi -k "ZZ" $^&.lst
+    @dmpobj -q -rec=FIXUPP $[@ | sed -f ../fixlst1.sed >$^&.lst
     @set EMP_CHECK=@%null
     @if exist $^&.emp @set EMP_CHECK=diff -i -b $^&.lst $^&.emp
     $(%EMP_CHECK)
@@ -29,7 +28,9 @@ tmp_file = tmp.tmp
     @%append $(%ERROR_FILE) PASS compiling $[@
     @if not exist $@ @%create $@
 
-test : .symbolic clean_save global start_test $(dis_objs) $(objs) finish_test save global
+all : .symbolic test global
+
+test : .symbolic clean_save global start_test $(dis_objs) $(objs) finish_test save
 
 finish_test : .symbolic ./chk_exec.exe
     @set ERROR_FILE=error.out

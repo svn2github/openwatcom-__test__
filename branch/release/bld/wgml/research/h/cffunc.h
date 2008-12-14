@@ -33,6 +33,10 @@
 *                   get_p_buffer()
 *                   parse_functions_block()
 *
+* Note:         The field names are intended to correspond to the field names 
+*               shown in the Wiki. The Wiki structs are named when the structs
+*               defined here are defined; they are not identical.
+*
 ****************************************************************************/
 
 #ifndef CFFUNC_H_INCLUDED
@@ -41,56 +45,61 @@
 #include <stdint.h>
 #include <stdio.h>
 
-/*  Structure declarations */
+/* Structure declarations. */
 
-/*  These structs are based on the discussion in the Wiki, which should be
- *  consulted for further information on how the data is structured.
+/* This holds the raw contents of one or more contiguous P-buffers. The
+ * buffer is to be interpreted as an array of count uint8_t length. The
+ * value of count should always be a multiple of 80.
  */
 
-/*  This holds the raw contents of one or more contiguous P-buffers. The
- *  buffer is to be interpreted as an array of count uint8_t length. The
- *  value of count should always be a multiple of 80.
- */
-
-typedef struct p_buffer_struct
-{
+typedef struct {
     uint16_t    count;
     uint8_t *   buffer;
 } p_buffer;
 
-/*  This is the CodeBlock discussed in the Wiki */
+/* To hold the data extracted from a CodeBlock struct. This is for use in the
+ * cop_device and cop_driver structs.
+ */
 
-typedef struct code_block_struct
-{
+typedef struct {
+    uint16_t            count;
+    uint8_t *           text;
+} code_text;
+
+/* To hold the data extracted from the CodeBlock struct. This is the complete
+ * CodeBlock discussed in the Wiki, enhanced with the field cumulative_index
+ * for use when parsing the DeviceFile struct.
+ */
+
+typedef struct {
     uint8_t     designator;
     uint8_t     cb05_flag;
     uint8_t     lp_flag;
     uint16_t    pass;
     uint16_t    count;
     uint16_t    cumulative_index;
-    uint8_t *   function;
+    uint8_t *   text;
 } code_block;
 
-/* This is the Variant A FunctionsBlock discussed in the Wiki */
+/* To hold the data extracted from the Variant A FunctionsBlock struct. */
 
-typedef struct functions_block_struct
-{
+typedef struct {
     uint16_t        count;
     code_block *    code_blocks;
 } functions_block;
 
-/* Function declarations */
+/* Function declarations. */
 
 #ifdef  __cplusplus
-extern "C" {    /* Use "C" linkage when in C++ mode */
+extern "C" {    /* Use "C" linkage when in C++ mode. */
 #endif
 
-code_block *        get_code_blocks( uint8_t * *, uint16_t, uint8_t *, char * );
-p_buffer *          get_p_buffer( FILE * );
-functions_block *   parse_functions_block( uint8_t * *, uint8_t *, char * );
+extern code_block      *   get_code_blocks( uint8_t * * position, uint16_t count, uint8_t * base, char * block );
+extern p_buffer        *   get_p_buffer( FILE * file );
+extern functions_block *   parse_functions_block( uint8_t * * position, uint8_t * base, char * block );
 
 #ifdef  __cplusplus
-}   /* End of "C" linkage for C++ */
+}   /* End of "C" linkage for C++. */
 #endif
 
 #endif  /* CFFUNC_H_INCLUDED */

@@ -33,7 +33,13 @@
 *                   print_usage()
 *
 *               The remaining functions are implemented in common.c:
+*                   free_resources()
 *                   initialize_globals()
+*                   mem_alloc()
+*                   mem_free()
+*                   mem_realloc()
+*                   my_exit()
+*                   out_msg()
 *                   skip_spaces()
 *
 ****************************************************************************/
@@ -41,15 +47,19 @@
 #ifndef COMMON_H_INCLUDED
 #define COMMON_H_INCLUDED
 
-/* Function return values */
+#define __STDC_WANT_LIB_EXT1__ 1
+#include <errno.h>
+#include <stdbool.h>
+#include <stddef.h>
+
+/* Function return values. */
 
 #define FAILURE 0
 #define SUCCESS 1
 
-/* Global variable declarations */
+/* Global variable declarations. */
 
-/*
- * This allows the same declarations to function as definitions.
+/* This allows the same declarations to function as definitions.
  * Just #define global before including this file.
  */
 
@@ -57,31 +67,39 @@
     #define global  extern
 #endif
 
-/* This records, generally, whether '\' or '/' is used on the command line */ 
+/* This records, generally, whether '\' or '/' is used on the command line. */ 
 
 global char switch_char;    
 
-#undef global   /* reset so can be reused with other headers */
+/* Reset so can be reused with other headers. */
 
-/* Function declarations */
+#undef global
+
+/* Function declarations. */
 
 #ifdef  __cplusplus
-extern "C" {    /* Use "C" linkage when in C++ mode */
+extern "C" {    /* Use "C" linkage when in C++ mode. */
 #endif
 
-/* These functions must be defined by each program using them */
+/* These functions must be defined by each program using them. */
 
-int     parse_cmdline( char * );
-void    print_banner( void );
-void    print_usage( void );
+extern  int         parse_cmdline( char * );
+extern  void        print_banner( void );
+extern  void        print_usage( void );
 
-/* These functions are defined in common.c */
+/* These functions are defined in common.c. */
 
-void    initialize_globals( void );
-char *  skip_spaces( char * );
+extern  bool        free_resources( errno_t in_errno );
+extern  void        initialize_globals( void );
+extern  void        mem_free( void *p );
+extern  void    *   mem_alloc( size_t size );
+extern  void    *   mem_realloc( void *p, size_t size );
+extern  void        my_exit( int rc );
+extern  void        out_msg( char *fmt, ... );
+extern  char    *   skip_spaces( char * start );
 
 #ifdef  __cplusplus
-}   /* End of "C" linkage for C++ */
+}   /* End of "C" linkage for C++. */
 #endif
 
 #endif  /* COMMON_H_INCLUDED */

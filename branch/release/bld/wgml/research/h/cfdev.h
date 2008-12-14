@@ -32,10 +32,16 @@
 *                       defaultfont_block
 *                           default_font
 *                       pause_block
+*                           code_text
 *                       devicefont_block
 *                           device_font
+*                               code_text
 *                   is_dev_file()
 *                   parse_device()
+*
+* Note:         The field names are intended to correspond to the field names 
+*               shown in the Wiki. The Wiki structs are named when the structs
+*               defined here are defined; they are not identical.
 *
 ****************************************************************************/
 
@@ -45,17 +51,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+
+#include "cffunc.h"
 #include "cftrans.h"
 
-/* Structure declarations */
+/* Structure declarations. */
 
-/* These structs are based on the discussion in the Wiki, which should be
- * consulted for further information on how the data is structured.
- */
-
-/* Fonts In box_block and underscore_block.
+/* Fonts in box_block and underscore_block.
  *
  * These structs have two font fields: font_name and font_number.
+ *
+ * For the UnderscoreBlock only, if specified_font is false, then both font_name
+ * and font_number are to be ignored and whatever font is in use when the
+ * underscore character is needed is to be used.
  *
  * If font_name is NULL, then font_name is to be ignored and font_number
  * is to be used.
@@ -67,8 +75,9 @@
  * font number "0" should be used. There is always a font numbered "0".
  */
 
-typedef struct box_block_struct
-{
+/* To hold the data from the BoxBlock struct. */
+
+typedef struct {
     char *          font_name;
     uint8_t         font_number;
     char            horizontal_line;
@@ -84,78 +93,69 @@ typedef struct box_block_struct
     char            inside_join;
 } box_block;
 
-typedef struct underscore_block_struct
-{
+/* To hold the data from the UnderscoreBlock struct. */
+
+typedef struct {
+    bool            specified_font;
     char *          font_name;
     uint8_t         font_number;
     char            underscore_char;
 } underscore_block;
 
-typedef struct default_font_struct
-{
+/* To hold the data from the DefaultFont struct. */
+
+typedef struct {
     char *          font_name;
     char *          font_style;
     uint16_t        font_height;
     uint16_t        font_space;    
 } default_font;
 
-/* Field "font" points to an array of "count" default_font instances. */
+/* To hold the data from the DefaultfontBlock struct. */
 
-typedef struct defaultfont_block_struct
-{
-    uint16_t        count;
-    default_font *  font;
+typedef struct {
+    uint16_t        font_count;
+    default_font *  fonts;
 } defaultfont_block;
 
-/* For each type of :PAUSE, the pointer points to an array of bytes whose
- * length is given in the corresponding "_count" field.
- */
+/* This struct duplicates the PauseBlock struct. */
 
-typedef struct pause_block_struct
-{
-    uint16_t        startpause_count;
-    uint8_t *       startpause;
-    uint16_t        documentpause_count;
-    uint8_t *       documentpause;
-    uint16_t        docpagepause_count;
-    uint8_t *       docpagepause;
-    uint16_t        devpagepause_count;
-    uint8_t *       devpagepause;
+typedef struct {
+    code_text *     start_pause;
+    code_text *     document_pause;
+    code_text *     docpage_pause;
+    code_text *     devpage_pause;
 } pause_block;
 
-/* Field "fontpause" points to an array of "fontpause_count" bytes */
+/* To hold the data from the DeviceFont struct. */
 
-typedef struct device_font_struct
-{
+typedef struct {
     char *          font_name;
     char *          font_switch;
     uint8_t         resident;
-    uint16_t        fontpause_count;
-    uint8_t *       fontpause;
+    code_text *     font_pause;
 } device_font;
 
-/* Field "font" points to an array of "count" device_font instances. */
+/* To hold the data from the DevicefontBlock struct. */
 
-typedef struct devicefont_block_struct
-{
-    uint16_t            count;
-    device_font *       font;
+typedef struct {
+    uint16_t        font_count;
+    device_font *   fonts;
 } devicefont_block;
 
-/*  The comments refer to the "blocks" discussed in the Wiki. 
+/* This struct embodies the binary form of the :DEVICE block. 
  *
- *  Note that the "FunctionsBlock" is not mentioned. The various "CodeBlock"s
- *  are instead provided as part of PauseBlock and DevicefontBlock.
+ * Note that the FunctionsBlock is not mentioned. The various CodeBlocks
+ * are instead provided as part of PauseBlock and DevicefontBlock.
  *
- *  The first two fields are used internally and were used for sizing during
- *  development
+ * The first two fields are used internally and were used for sizing during
+ * development.
  *
- *  The instance returned will be allocated as a single block and so can be
- *  freed in one statement.
+ * The instance returned will be allocated as a single block and so can be
+ * freed in one statement.
  */
 
-typedef struct cop_device_struct
-{
+typedef struct {
     size_t              allocated_size;
     size_t              next_offset;
     /* The Attributes */
@@ -186,17 +186,17 @@ typedef struct cop_device_struct
     devicefont_block    devicefonts;
 } cop_device;
 
-/* Function declarations */
+/* Function declarations. */
 
 #ifdef  __cplusplus
-extern "C" {    /* Use "C" linkage when in C++ mode */
+extern "C" {    /* Use "C" linkage when in C++ mode. */
 #endif
 
-bool is_dev_file( FILE * );
-cop_device * parse_device( FILE *);
+extern bool            is_dev_file( FILE * in_file );
+extern cop_device  *   parse_device( FILE * in_file );
 
 #ifdef  __cplusplus
-}   /* End of "C" linkage for C++ */
+}   /* End of "C" linkage for C++. */
 #endif
 
 #endif  /* CFDEV_H_INCLUDED */

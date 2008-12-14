@@ -29,41 +29,39 @@
 *                   outtrans_block
 *                       translation
 *
+* Note:         The field names are intended to correspond to the field names 
+*               shown in the Wiki. The Wiki structs are named when the structs
+*               defined here are defined; they are not identical.
+*
 ****************************************************************************/
 
 #ifndef CFTRANS_H_INCLUDED
 #define CFTRANS_H_INCLUDED
 
-//#include <stdbool.h>
 #include <stdint.h>
 
-/* Structure declarations */
+/* Structure declarations. */
 
-/* These structs are based on the discussion in the Wiki, which should be
- * consulted for further information on how the data is structured.
+/* To hold the data extracted from an IntransBlock struct.
+ * intrans_block is a struct for consistency with outtrans_block.
  */
 
-/* intrans_block is a struct for consistency with outtrans_block. */
-
-typedef struct intrans_block_struct
-{
+typedef struct {
     uint8_t         table[0x100];
 } intrans_block;
 
-/* Field "data" points to a buffer containing "count" bytes.
- * This is not a string: $00 is a valid embedded value.
- */
+/* To hold the data extracted from an OuttransData struct. */
 
-typedef struct translation_struct
-{
+typedef struct {
     uint8_t         count;
     uint8_t *       data;
 } translation;
 
-/* Each entry in table will be NULL if no out-translation is needed */
+/* To hold the data extracted from an OuttransBlock struct.
+ * The entry for a given character will be NULL if no out-translation is needed.
+ */
 
-typedef struct outtrans_block_struct
-{
+typedef struct {
     translation *   table[0x100];
 } outtrans_block;
 

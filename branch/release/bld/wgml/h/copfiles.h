@@ -24,8 +24,9 @@
 *
 *  ========================================================================
 *
-* Description:  Declares structs and functions used by wgml as such to
+* Description:  Declares an enum, structs and functions used by wgml to
 *               parse and interpret the information from .COP files:
+*                   cop_file_type
 *                   cop_device
 *                       box_block
 *                       underscore_block
@@ -50,8 +51,8 @@
 *                       fontswitch_funcs
 *                           fontswitch_block
 *                               code_text
-*                       fontstyle_block
-*                           font_style
+*                       fontstyle_group
+*                           fontstyle_block
 *                               code_text
 *                               line_proc
 *                                   code_text
@@ -64,22 +65,35 @@
 *                   get_cop_device()
 *                   get_cop_driver()
 *                   get_cop_font()
+*                   parse_header()
+*
+* Note:         The field names are intended to correspond to the field names 
+*               shown in the Wiki. The Wiki structs are named when the structs
+*               defined here are defined; they are not identical.
 *
 ****************************************************************************/
 
 #ifndef COPFILE_H_INCLUDED
 #define COPFILE_H_INCLUDED
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
-#include "wgml.h"
+/* Enum definition. */
 
-/* Structure declarations */
+/* This enum is used for the return value of function parse_header(). */
 
-/* These structs are based on the discussion in the Wiki, which should be
- * consulted for further information on how the data is structured.
- */
+typedef enum {
+    dir_v4_1_se,        // The file is a same-endian version 4.1 directory file.
+    se_v4_1_not_dir,    // The file is a same-endian version 4.1 device, driver, or font file.
+    not_se_v4_1,        // The file is not same-endian and/or not version 4.1.
+    not_bin_dev,        // The file is not a binary device file at all.
+    file_error          // An error occurred while reading the file.
+} cop_file_type;
+
+/* Structure declarations. */
 
 /* These structs are used by more than one of the top-level structs:
  *      intrans_block is used by both cop_device and cop_font
@@ -87,43 +101,45 @@
  *      code_text is used by both cop_device and cop_driver
  */
  
-/* intrans_block is a struct for consistency with outtrans_block. */
+/* To hold the data extracted from an IntransBlock struct.
+ * intrans_block is a struct for consistency with outtrans_block.
+ */
 
-typedef struct
-{
+typedef struct {
     uint8_t         table[0x100];
 } intrans_block;
 
-/* Field "data" points to a buffer containing "count" bytes.
- * This is not a string: $00 is a valid embedded value.
- */
+/* To hold the data extracted from an OuttransData struct. */
 
-typedef struct
-{
+typedef struct {
     uint8_t         count;
     uint8_t *       data;
 } translation;
 
-/* Each entry in table will be NULL if no out-translation is needed. */
+/* To hold the data extracted from an OuttransBlock struct.
+ * The entry for a given character will be NULL if no out-translation is needed.
+ */
 
-typedef struct
-{
+typedef struct {
     translation *   table[0x100];
 } outtrans_block;
 
-/* This struct represents a single CodeBlock. */
+/* To hold the data extracted from a CodeBlock struct. */
 
-typedef struct
-{
+typedef struct {
     uint16_t            count;
     uint8_t *           text;
 } code_text;
 
 /* These structs are unique to the top-level struct cop_device. */
 
-/* Fonts In box_block and underscore_block.
+/* Fonts in box_block and underscore_block.
  *
  * These structs have two font fields: font_name and font_number.
+ *
+ * For the UnderscoreBlock only, if specified_font is false, then both font_name
+ * and font_number are to be ignored and whatever font is in use when the
+ * underscore character is needed is to be used.
  *
  * If font_name is NULL, then font_name is to be ignored and font_number
  * is to be used.
@@ -135,8 +151,9 @@ typedef struct
  * font number "0" should be used. There is always a font numbered "0".
  */
 
-typedef struct
-{
+/* To hold the data from the BoxBlock struct. */
+
+typedef struct {
     char *              font_name;
     uint8_t             font_number;
     char                horizontal_line;
@@ -152,138 +169,155 @@ typedef struct
     char                inside_join;
 } box_block;
 
-typedef struct
-{
+/* To hold the data from the UnderscoreBlock struct. */
+
+typedef struct {
     bool                specified_font;
     char *              font_name;
     uint8_t             font_number;
     char                underscore_char;
 } underscore_block;
 
-typedef struct
-{
+/* To hold the data from the DefaultFont struct. */
+
+typedef struct {
     char *              font_name;
     char *              font_style;
     uint16_t            font_height;
     uint16_t            font_space;    
 } default_font;
 
-/* Field "font" points to an array of "count" default_font instances. */
+/* To hold the data from the DefaultfontBlock struct. */
 
-typedef struct
-{
-    uint16_t            count;
-    default_font *      font;
+typedef struct {
+    uint16_t            font_count;
+    default_font *      fonts;
 } defaultfont_block;
 
-typedef struct
-{
+/* To hold the data from the PauseBlock struct. */
+
+typedef struct {
     code_text *         start_pause;
     code_text *         document_pause;
-    code_text *         document_page_pause;
-    code_text *         device_page_pause;
+    code_text *         docpage_pause;
+    code_text *         devpage_pause;
 } pause_block;
 
-typedef struct
-{
+/* To hold the data from the DeviceFont struct. */
+
+typedef struct {
     char *              font_name;
     char *              font_switch;
     uint8_t             resident;
     code_text *         font_pause;
 } device_font;
 
-/* Field "font" points to an array of "count" device_font instances. */
+/* To hold the data from the DevicefontBlock struct. */
 
-typedef struct
-{
-    uint16_t            count;
-    device_font *       font;
+typedef struct {
+    uint16_t            font_count;
+    device_font *       fonts;
 } devicefont_block;
 
 /* These structs are unique to the top-level struct cop_driver. */
 
-/* The :INIT block is unique in allowing multiple intermixed :VALUE and
- * :FONTVALUE blocks. Testing shows wgml invoking each :FONTVALUE block
- * multiple times, as discussed in the Wiki. The field is_fontvalue is
- * provided to allow wgml to determine if a init_text instance came from
- * a :FONTVALUE block or not.
+/* In all cases: a count of "0" or a NULL pointer indicates that the
+ * corresponding item did not exist in the .COP file
  */
 
-typedef struct
-{
+/* To hold the data extracted from a CodeBlock struct.
+ * The :INIT block is unique in allowing multiple intermixed :VALUE and
+ * :FONTVALUE blocks. Testing shows wgml invoking each :FONTVALUE block
+ * multiple times but each :VALUE block only once, so is_fontvalue is provided
+ * to allow wgml to determine if an init_text instance came from a :FONTVALUE
+ * block or a :VALUE block.
+ */
+
+typedef struct {
     bool                is_fontvalue;
     uint16_t            count;
     uint8_t *           text;
 } init_text;
 
-typedef struct
-{
+/* To hold the data from the InitBlock struct. */
+/* The field names do not all correspond to those in the Wiki. */
+
+typedef struct {
     uint16_t            count;
-    init_text *         codetext;
+    init_text *         codeblock;
 } init_block;
 
-/* There can be at most two :INIT blocks. */
+/* To hold the data from the InitFuncs struct.
+ * This struct bears no resemblence to that in the Wiki: it takes advantage
+ * of the fact that there can be at most two :INIT blocks, and that they must
+ * be distinguished because wgml processes them at different times.
+ */
 
-typedef struct
-{
+typedef struct {
     init_block *        start;
     init_block *        document;
 } init_funcs;
 
-/* There can be at most two :FINISH blocks. A single code_text is used
- * for each because, although gendev will accept multiple :VALUE blocks
- * in a :FINISH block and even encode them in the .COP file, wgml will
- * only use the first, so only that one needs to be present.
+/* The FinishBlock struct is implemented by the code_text struct. */
+
+/* To hold the data from the FinishFuncs struct.
+ * This struct bears no resemblence to that in the Wiki: it takes advantage
+ * of the fact that there can be at most two :FINISH blocks, that wgml will
+ * only use the first :VALUE block in a :FINISH block, so that only that one
+ * needs to be presented here, and that they must be distinguished because
+ * wgml processes at most one of them. 
  */
 
-typedef struct
-{
+typedef struct {
     code_text *         end;
     code_text *         document;
 } finish_funcs;
 
-/* There will be as many newline_blocks as there are distinct values of
- * "advance". "count" contains the number of bytes in "text".
+/* To hold the data from the NewlineBlock struct.
+ * There will be as many newline_blocks as there are distinct values of
+ * "advance".
  */
 
-typedef struct
-{
+typedef struct {
     uint16_t            advance;
     uint16_t            count;
     uint8_t *           text;
 } newline_block;
 
-/* "count" contains the number of newline_block instances */
+/* To hold the data extracted from a NewlineFuncs struct. */
 
-typedef struct
-{
+typedef struct {
     uint16_t            count;
     newline_block *     newlineblocks;
 } newline_funcs;
 
-/* There will be as many fontswitch_blocks as there are distinct values of
- * "type"
+/* To hold the data from the FontswitchBlock struct.
+ * There will be as many fontswitch_blocks as there are distinct values of
+ * "type". The other field names do not correspond to the Wiki: they take
+ * advantage of the fact that there are at most two CodeBlocks, one from a
+ * :STARTVALUE block and the other from an :ENDVALUE block.
  */
 
-typedef struct
-{
+typedef struct {
     char *              type;
     code_text *         startvalue;
     code_text *         endvalue;
 } fontswitch_block;
 
-/* "count" contains the number of fontswitch_block instances */
+/* To hold the data extracted from a FontswitchFuncs struct. */
 
-typedef struct
-{
+typedef struct {
     uint16_t            count;
     fontswitch_block *  fontswitchblocks;
 } fontswitch_funcs;
 
-/* the order shown is the order enforced on the source file by gendev */
+/* To hold some of the data extracted from a FontstyleFuncs struct.
+ * This struct does not correspond to the struct in the Wiki. Instead, it takes
+ * advantage of the fact that each :LINEPROC block can define at most one of each
+ * of its sub-blocks.
+ */
 
-typedef struct
-{
+typedef struct {
     code_text *         startvalue;
     code_text *         firstword;
     code_text *         startword;
@@ -291,52 +325,57 @@ typedef struct
     code_text *         endvalue;
 } line_proc;
 
-/* "passes" contains the number of line_proc instances; "type" is the style
- * name, a null-terminated string
+/* To hold the data extracted from a ShortFontstyleBlock struct. 
+ * Only the first two fields are found in the Wiki struct. The next three take
+ * advantage of the fact that a :FONTSTYLE block directly defines at most one of
+ * each of two sub-blocks, plus any number of :LINEPROC blocks. The number of
+ * line_proc instances is given by the value of the field "passes".
  */
 
-typedef struct
-{
+typedef struct {
     uint16_t            passes;
     char *              type;
     code_text *         startvalue;
     code_text *         endvalue;
     line_proc *         lineprocs;
-} font_style;
-
-/* "count" contains the number of font_style instances */
-
-typedef struct
-{
-    uint16_t            count;
-    font_style *        fontstyle_list;
 } fontstyle_block;
 
-/* "thickness" is the value of attribute "thickness"; "count" is the number
- * of bytes pointed to by "text"
+/* To hold the data extracted from a FontstyleGroup struct. 
+ * This struct bears only a functional relationship to the struct in the Wiki,
+ * which must be seen to be believed.
  */
 
-typedef struct
-{
+typedef struct {
+    uint16_t            count;
+    fontstyle_block *   fontstyleblocks;
+} fontstyle_group;
+
+/* To hold the data extracted from an HlineBlock, a VlineBlock, or a DboxBlock
+ * struct. 
+ * This differs from the structs in the Wiki because each of them can contain at
+ * most one CodeBlock, as well as the thickness.
+ */
+
+typedef struct {
     uint32_t            thickness;
     uint16_t            count;
     uint8_t *           text;
 } line_block;
 
-
 /* This struct is unique to the top-level struct cop_font. */
 
-/* width_block is a struct for consistency with outtrans_block. */
+/* To hold the data extracted from a WidthBlock struct.
+ * width_block is a struct for consistency with outtrans_block.
+ */
 
-typedef struct
-{
+typedef struct {
     uint32_t            table[0x100];
 } width_block;
 
 /* These are the top-level structs. These are the only structs intended to
  * be created and passed around independently.
  *
- * The comments within the structs refer to the "blocks" discussed in the Wiki. 
+ * The comments within the structs refer to the blocks discussed in the Wiki. 
  *
  * The first two fields are used internally and were used for sizing during
  * development
@@ -345,14 +384,13 @@ typedef struct
  * freed in one statement.
  */
 
-/* This struct contains the data in a .COP file encoding a :DEVICE block.
+/* This struct embodies the binary form of the :DEVICE block. 
  *
  * Note that the "FunctionsBlock" is not mentioned. The various "CodeBlock"s
  * are instead provided as part of PauseBlock and DevicefontBlock.
  */
 
-typedef struct
-{
+typedef struct {
     size_t              allocated_size;
     size_t              next_offset;
     /* The Attributes */
@@ -383,14 +421,12 @@ typedef struct
     devicefont_block    devicefonts;
 } cop_device;
 
-/* This struct contains the data in a .COP file encoding a :DRIVER block.
+/* This struct embodies the binary form of the :DRIVER block.
  *
- * Note that the "unknown" block is not mentioned. This is because it
- * never has any data in it.
+ * The "unknown" block is not mentioned because it never has any data in it.
  */
 
-typedef struct
-{
+typedef struct {
     size_t              allocated_size;
     size_t              next_offset;
     /* The Attributes */
@@ -410,8 +446,8 @@ typedef struct
     code_text           htab;
     /* FontswitchFuncs */
     fontswitch_funcs    fontswitches;
-    /* FontstyleBlock */
-    fontstyle_block     fontstyles;
+    /* FontstyleGroup */
+    fontstyle_group     fontstyles;
     /* Variant A FunctionsBlock */
     code_text           absoluteaddress;
     /* HlineBlock */
@@ -422,10 +458,9 @@ typedef struct
     line_block          dbox;
 } cop_driver;
 
-/* This struct contains the data in a .COP file encoding a :FONT block. */
+/* This struct embodies the binary form of the :FONT block. */
 
-typedef struct
-{
+typedef struct {
     size_t              allocated_size;
     size_t              next_offset;
     /* The Attributes */
@@ -443,18 +478,19 @@ typedef struct
     width_block *       width;
 } cop_font;
 
-/* Function declarations */
+/* Function declarations. */
 
 #ifdef  __cplusplus
-extern "C" {    /* Use "C" linkage when in C++ mode */
+extern "C" {    /* Use "C" linkage when in C++ mode. */
 #endif
 
-cop_device  *   get_cop_device( char const * defined_name );
-cop_driver  *   get_cop_driver( char const * defined_name );
-cop_font    *   get_cop_font( char const * defined_name );
+extern cop_device   *   get_cop_device( char const * defined_name );
+extern cop_driver   *   get_cop_driver( char const * defined_name );
+extern cop_font     *   get_cop_font( char const * defined_name );
+extern cop_file_type    parse_header( FILE * in_file );
 
 #ifdef  __cplusplus
-}               /* End of "C" linkage for C++ */
+}   /* End of "C" linkage for C++. */
 #endif
 
-#endif          /* COPFILE_H_INCLUDED */
+#endif  /* COPFILE_H_INCLUDED */
