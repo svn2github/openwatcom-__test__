@@ -37,6 +37,7 @@
 #include <errno.h>
 
 #include "wgml.h"
+#include "copfiles.h"
 #include "findfile.h"
 #include "gvars.h"
 #include "banner.h"
@@ -428,7 +429,7 @@ void    show_include_stack( void )
                      ip->s.m->mac->mac_file_name);
             break;
         default:
-            out_msg( "\tERR Included from unknown\n" );
+            out_msg( "\tERR Included from unknown ( master document? )\n" );
             break;
         }
         ip = ip->prev;
@@ -519,11 +520,11 @@ static  void    proc_GML( char * filename )
             process_line();
             scan_line();
 
-            if( ProcFlags.newLevelFile || ProcFlags.newLevelMacro ) {
-                break;             // imbed and friends found start new level
+            if( ProcFlags.newLevelFile ) {
+                break;            // imbed and friends found, start new level
             }
         }
-        if( ProcFlags.newLevelFile || ProcFlags.newLevelMacro ) {
+        if( ProcFlags.newLevelFile ) {
             continue;
         }
 
@@ -600,10 +601,14 @@ int main( int argc, char * argv[] )
 
     g_trmem_init();                     // init memory tracker if necessary
 
+    get_systime();                      // initialize symbols date and time
+
     init_global_vars();
 
     token_buf = mem_alloc( buf_size );
+
     ff_setup();                         // init findfile
+    cop_setup();                        // init copfiles
 
     cmdlen = _bgetcmd( NULL, 0 ) + 1;
     cmdline = mem_alloc( cmdlen );
@@ -682,14 +687,12 @@ int main( int argc, char * argv[] )
     if( macro_dict != NULL ) {
         free_macro_dict( &macro_dict );
     }
-    if( buff1 != NULL ) {
-        mem_free( buff1 );
-    }
     if( buff2 != NULL ) {
         mem_free( buff2 );
     }
 
     ff_teardown();                  // free memory allocated in findfunc
+    cop_teardown();                 // free memory allocated in copfiles
 
     g_trmem_prt_list();             // all memory freed if no output from call
     g_trmem_close();
