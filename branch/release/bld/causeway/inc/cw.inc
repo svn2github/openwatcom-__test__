@@ -464,7 +464,7 @@ GetMem32        equ     0ff0ch
 ;If the memory block can't be re-sized in its current location, but a free block
 ;of memory of the new size exists, the memory will be copied to a new block and
 ;the old one released. This is transparent to the application as long as only
-;the selector origionaly allocated with GetMem is being used to access the
+;the selector originaly allocated with GetMem is being used to access the
 ;memory.
 ;
 ResMem  equ     0ff0dh
@@ -506,7 +506,7 @@ ResMemSO        equ     0ff2dh
 ;If the memory block can't be re-sized in its current location, but a free block
 ;of memory of the new size exists, the memory will be copied to a new block and
 ;the old one released. This is transparent to the application as long as only
-;the selector origionaly allocated with GetMem is being used to access the
+;the selector originaly allocated with GetMem is being used to access the
 ;memory.
 ;
 ResMem32        equ     0ff0eh
@@ -1038,7 +1038,7 @@ GetMCBSize      equ     0ff27h
 ;than the value set by this function. The default value is 16384.
 ;
 ;65536 is the maximum value this function will accept. Passing a value above
-;this will return with the carry set and the origional value still in force.
+;this will return with the carry set and the original value still in force.
 ;
 ;The CauseWay API memory allocation functions allocate memory from two sources.
 ;Allocation requests below the value returned by this function are allocated
@@ -1116,7 +1116,7 @@ cwExec  equ     0ff24h
 ;will be released, it is the programs responsability to release any additional
 ;memory etc allocated while the program is running. Alternatively, if you pass
 ;the PSP value to INT 21h, AH=50h before makeing additional memory requests
-;and then reset to the origional PSP the memory allocated will be released
+;and then reset to the original PSP the memory allocated will be released
 ;when the PSP is released.
 ;
 cwLoad  equ     0ff2ah
@@ -1141,6 +1141,72 @@ cwLoad  equ     0ff2ah
 ;The file pointer is not altered by this function.
 ;
 cwcInfo equ     0ff2bh
+
+
+;-------------------------------------------------------------------------------
+;
+;Notify Debugger of new module loaded
+;
+;On Entry:
+;
+;EDI    - module PSP linear address (FLAT).
+;
+;On Exit:
+;
+;NOTES:
+;
+;
+DbgNtfModLoad   equ     0fff7h
+
+
+;-------------------------------------------------------------------------------
+;
+;Notify Debugger of module unloading
+;
+;On Entry:
+;
+;EDI    - module PSP linear address (FLAT).
+;
+;On Exit:
+;
+;NOTES:
+;
+;
+DbgNtfModUnload equ     0fff8h
+
+
+;-------------------------------------------------------------------------------
+;
+;Get CauseWay identifier, PageDIRLinear and Page1stLinear info.
+;
+;On Exit:
+;
+;ECX:EDX - CauseWay identifier.
+;
+;ESI     - Linear address (PageDIRLinear)
+;
+;EDI     - Linear address (Page1stLinear)
+;
+;NOTES:
+;
+;
+ID equ          0fff9h
+
+
+;-------------------------------------------------------------------------------
+;
+;Get patch table address.
+;
+;On Exit:
+;
+;EDX    - Linear address of patch table.
+;
+;Error codes:
+;
+;NOTES:
+;
+;
+GetPatch equ    0fffah
 
 
 ;-------------------------------------------------------------------------------
@@ -1172,11 +1238,75 @@ cwcInfo equ     0ff2bh
 ;
 ;If error codes 1 or 2 are reported then the file pointer will be where ever it
 ;was last moved to by this function. For error code 3 the file pointer will be
-;back at its origional position on entry to this function. If no error occures
+;back at its original position on entry to this function. If no error occures
 ;then the file pointer will be moved to whatever comes after the compressed
 ;data.
 ;
-cwcLoad equ     0fffbh
+cwcLoad     equ 0fffbh
+
+
+;-------------------------------------------------------------------------------
+;
+;Check linear address of memory.
+;
+;On Entry:
+;
+;ESI    - Linear address of memory.
+;
+;On Exit:
+;
+;Carry set on invalid memory address.
+;
+;NOTES:
+;
+;
+LinearCheck equ 0fffch
+
+
+;-------------------------------------------------------------------------------
+;
+;Load CauseWay program for debug.
+;
+;On Entry:
+;
+;DS:EDX - File name.
+;
+;ES:ESI - Command line. First byte is length, then real data.
+;
+;CX     - Environment selector, 0 to use existing copy. 
+;
+;On Exit:
+;
+;Carry set on error and AX = error code else,
+;
+;CX:EDX - Entry CS:EIP
+;BX:EAX - Entry SS:ESP
+;SI     - PSP.
+;DI     - Auto DS.
+;EBP    - Segment definition memory.
+;
+;Error codes:
+;
+;1      - DOS file access error.
+;2      - Not recognisable file format.
+;3      - Not enough memory.
+;
+;NOTES:
+;
+;
+ExecDebug equ   0fffdh
+
+
+;-------------------------------------------------------------------------------
+;
+;Close all open file handles.
+;
+;On Exit:
+;
+;NOTES:
+;
+;
+CleanUp equ     0fffeh
 
 
 ;-------------------------------------------------------------------------------
@@ -1212,44 +1342,43 @@ RealRegsStruc ends
 ;Now the extended PSP structure.
 ;
 EPSP_Struc              struc
-                db 256 dup (?)
- EPSP_Parent            dw ?            ;Selector of parent/previous PSP, 0 for none.
- EPSP_Next              dw ?            ;Next PSP.
- EPSP_Resource  dd ?            ;Linear address of resource tracking table. 0
-                                ;for none.
- EPSP_mcbHead   dd ?            ;Linear address of MCB memory head. 0 for none.
- EPSP_mcbMaxAlloc       dd ?            ;Size of MCB chunks.
- EPSP_DTA               df ?            ;DTA address.
- EPSP_TransProt dw ?            ;Transfer buffer address.
- EPSP_TransReal dw ?            ;Transfer buffer real mode segment value.
- EPSP_TransSize dd ?            ;Transfer buffer size.
- EPSP_SSESP             df ?            ;Return SS:ESP to use.
- EPSP_INTMem            dd ?            ;linear address of interrupt/exception vector
-                                ;save buffer. 0 for none.
- EPSP_DPMIMem   dw ?            ;selector for DPMI state save buffer. 0 for
-                                ;none.
- EPSP_MemBase   dd ?            ;Program linear load address.
- EPSP_MemSize   dd ?            ;Program memory size.
- EPSP_SegBase   dw ?            ;Base program selector.
- EPSP_SegSize   dw ?            ;Number of program selectors.
+                    db 256 dup (?)
+ EPSP_Parent        dw ?            ;Selector of parent/previous PSP, 0 for none.
+ EPSP_Next          dw ?            ;Next PSP.
+ EPSP_Resource      dd ?            ;Linear address of resource tracking table. 0 for none.
+ EPSP_mcbHead       dd ?            ;Linear address of MCB memory head. 0 for none.
+ EPSP_mcbMaxAlloc   dd ?            ;Size of MCB chunks.
+ EPSP_DTA           df ?            ;DTA address.
+ EPSP_TransProt     dw ?            ;Transfer buffer address.
+ EPSP_TransReal     dw ?            ;Transfer buffer real mode segment value.
+ EPSP_TransSize     dd ?            ;Transfer buffer size.
+ EPSP_SSESP         df ?            ;Return SS:ESP to use.
+ EPSP_INTMem        dd ?            ;linear address of interrupt/exception vector save buffer. 0 for none.
+ EPSP_DPMIMem       dw ?            ;selector for DPMI state save buffer. 0 for none.
+ EPSP_MemBase       dd ?            ;Program linear load address.
+ EPSP_MemSize       dd ?            ;Program memory size.
+ EPSP_SegBase       dw ?            ;Base program selector.
+ EPSP_SegSize       dw ?            ;Number of program selectors.
 
- EPSP_NearBase  dd ?            ;NEAR function address translation base.
+ EPSP_NearBase      dd ?            ;NEAR function address translation base.
 
- EPSP_RealENV   dw ?            ;Origional real mode environment SEGMENT.
+ EPSP_RealENV       dw ?            ;Origional real mode environment SEGMENT.
 
- EPSP_NextPSP   dd ?            ;Pointer to next PSP
- EPSP_LastPSP   dd ?            ;Pointer to last PSP
+ EPSP_NextPSP       dd ?            ;Pointer to next PSP
+ EPSP_LastPSP       dd ?            ;Pointer to last PSP
 
- EPSP_Exports   dd ?            ;Pointer to export list.
- EPSP_Imports   dd ?            ;Pointer to import list.
+ EPSP_Exports       dd ?            ;Pointer to export list.
+ EPSP_Imports       dd ?            ;Pointer to import list.
 
- EPSP_Links             dd ?            ;Count of linked modules.
+ EPSP_Links         dd ?            ;Count of linked modules.
 
- EPSP_ExecCount dd ?            ;PMode pointer to exec counter.
+ EPSP_ExecCount     dd ?            ;PMode pointer to exec counter.
 
- EPSP_EntryCSEIP        df ?            ;Entry CS:EIP for DLL's
+ EPSP_EntryCSEIP    df ?            ;Entry CS:EIP for DLL's
 
- EPSP_PSPSel            dw ?            ;This PSP's selector.
+ EPSP_PSPSel        dw ?            ;This PSP's selector.
+
+ EPSP_FileName      db 256 dup (?)  ;This module full file name.
 
 EPSP_Struc              ends
 

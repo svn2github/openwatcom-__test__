@@ -96,19 +96,17 @@ static index_status find_cumulative_index( functions_block * in_block, \
  *      in_device is a pointer to the cop_device to be resized.
  *      in_size is the minimum acceptable increase in size.
  *
- * Warning:
- *      If mem_realloc() returns a different value from in_device, then the
- *      memory pointed to by in_device will be freed whether the function
- *      succeeds or fails. The intended use is for the pointer passed as
- *      in_device to be used to store the return value. 
- *
  * Returns:
  *      A pointer to a cop_device instance at least in_size larger with 
  *          the same data (except for the allocated_size field, which 
  *          reflects the new size) on success.
  *
- * Note:
+ * Notes:
  *      mem_realloc() will call exit() if the reallocation fails.
+ *      mem_realloc() will free in_device if the instance is actually moved to a
+ *          new location.
+ *      The intended use is for the pointer passed as in_device to be used to
+ *          store the return value.
  */
 
 static cop_device * resize_cop_device( cop_device * in_device, size_t in_size )
@@ -130,7 +128,6 @@ static cop_device * resize_cop_device( cop_device * in_device, size_t in_size )
     /* Reallocate the cop_device. */
 
     local_device = (cop_device *) mem_realloc( in_device, new_size );
-    if( local_device != in_device ) mem_free( in_device );
     local_device->allocated_size = new_size;
 
     return( local_device );
@@ -254,10 +251,10 @@ cop_device * parse_device( FILE * in_file )
     functions_block *   cop_functions       = NULL;
     index_status        return_value;
     p_buffer *          raw_functions       = NULL;
-    uint16_t            cumulative_index;
     uint8_t *           current;
     uint8_t             j;
-    uint8_t             nulls[2];
+    uint16_t            cumulative_index;
+    uint16_t            nulls;
 
     /* Used for count and other values. */
 
@@ -1021,10 +1018,23 @@ cop_device * parse_device( FILE * in_file )
                     translation_ptr = (translation *) ((char *) out_device + \
                                                 (size_t) outtrans_ptr->table[i] );
 
-                    translation_start = outtrans_data + \
-                                                        (uint16_array[i] & 0x00ff);        
-                    translation_ptr->count = *translation_start;
-                    ++translation_start;
+                    /* If the first byte at uint16_array[i] is 00, then the
+                     * second byte is the one-byte translation. Otherwise, the
+                     * second byte is an offset. For little-endian computers,
+                     * at least!
+                     */
+
+                    /* Set the count correctly. */
+
+                    if( (uint16_array[i] & 0xff00) == 0x00 ) {
+                        translation_ptr->count = 1;
+                    } else {
+                        translation_start = outtrans_data + \
+                                                    (uint16_array[i] & 0x00ff);
+                        translation_ptr->count = *translation_start;
+                    }
+
+                    /* Allocate space and perform other common operations. */
 
                     if( out_device->allocated_size < (out_device->next_offset \
                                                     + translation_ptr->count ) ) {
@@ -1040,19 +1050,27 @@ cop_device * parse_device( FILE * in_file )
                     out_device->next_offset += translation_ptr->count;
 
                     byte_ptr = (uint8_t *) out_device + (size_t) \
-                                                            translation_ptr->data;
-                    memcpy_s(byte_ptr, translation_ptr->count, \
+                                                        translation_ptr->data;
+
+                    /* Put the data into the buffer. */
+
+                    if( (uint16_array[i] & 0xff00) == 0x00 ) {
+                        *byte_ptr = (uint16_array[i] & 0x00ff);
+                    } else {
+                        ++translation_start;
+                        memcpy_s( byte_ptr, translation_ptr->count, \
                                     translation_start, translation_ptr->count );
+                    }
                 }
             }
+            mem_free( outtrans_data );
+            outtrans_data = NULL;
             break;
         default:
             mem_free( out_device );
             out_device = NULL;
             return( out_device );
         }
-        mem_free( outtrans_data );
-        outtrans_data = NULL;
     }  
 
     /* Get the DefaultfontBlock. */
@@ -1233,8 +1251,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1245,8 +1265,10 @@ cop_device * parse_device( FILE * in_file )
     if( count8 != 0x02 ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1260,8 +1282,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1282,8 +1306,10 @@ cop_device * parse_device( FILE * in_file )
         if( return_value == not_valid ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1331,8 +1357,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1343,8 +1371,10 @@ cop_device * parse_device( FILE * in_file )
     if( count8 != 0x02 ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1358,8 +1388,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1380,8 +1412,10 @@ cop_device * parse_device( FILE * in_file )
         if( return_value == not_valid ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1430,8 +1464,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1442,8 +1478,10 @@ cop_device * parse_device( FILE * in_file )
     if( count8 != 0x02 ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1457,8 +1495,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1479,8 +1519,10 @@ cop_device * parse_device( FILE * in_file )
         if( return_value == not_valid ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1528,8 +1570,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1540,8 +1584,10 @@ cop_device * parse_device( FILE * in_file )
     if( count8 != 0x02 ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1555,8 +1601,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1577,8 +1625,10 @@ cop_device * parse_device( FILE * in_file )
         if( return_value == not_valid ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1626,8 +1676,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1638,8 +1690,10 @@ cop_device * parse_device( FILE * in_file )
     if( count8 != 0x02 ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1654,8 +1708,10 @@ cop_device * parse_device( FILE * in_file )
     if( ferror( in_file ) || feof( in_file ) ) {
         mem_free( raw_functions );
         raw_functions = NULL;
-        mem_free( cop_functions->code_blocks );
-        cop_functions->code_blocks = NULL;
+        if( cop_functions->code_blocks != NULL ) {
+            mem_free( cop_functions->code_blocks );
+            cop_functions->code_blocks = NULL;
+        }
         mem_free( cop_functions );
         cop_functions = NULL;
         mem_free( out_device );
@@ -1688,8 +1744,10 @@ cop_device * parse_device( FILE * in_file )
         if( ferror( in_file ) || feof( in_file ) ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1711,8 +1769,10 @@ cop_device * parse_device( FILE * in_file )
             fread( string_ptr, length, 1, in_file );
             if( ferror( in_file ) || feof( in_file ) ) {
                 raw_functions = NULL;
-                mem_free( cop_functions->code_blocks );
-                cop_functions->code_blocks = NULL;
+                if( cop_functions->code_blocks != NULL ) {
+                    mem_free( cop_functions->code_blocks );
+                    cop_functions->code_blocks = NULL;
+                }
                 mem_free( cop_functions );
                 cop_functions = NULL;
                 mem_free( out_device );
@@ -1725,8 +1785,10 @@ cop_device * parse_device( FILE * in_file )
             ++out_device->next_offset;
         } else {
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1740,8 +1802,10 @@ cop_device * parse_device( FILE * in_file )
         if( ferror( in_file ) || feof( in_file ) ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1764,8 +1828,10 @@ cop_device * parse_device( FILE * in_file )
             if( ferror( in_file ) || feof( in_file ) ) {
                 mem_free( raw_functions );
                 raw_functions = NULL;
-                mem_free( cop_functions->code_blocks );
-                cop_functions->code_blocks = NULL;
+                if( cop_functions->code_blocks != NULL ) {
+                    mem_free( cop_functions->code_blocks );
+                    cop_functions->code_blocks = NULL;
+                }
                 mem_free( cop_functions );
                 cop_functions = NULL;
                 mem_free( out_device );
@@ -1786,8 +1852,10 @@ cop_device * parse_device( FILE * in_file )
         if( ferror( in_file ) || feof( in_file ) ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1795,11 +1863,13 @@ cop_device * parse_device( FILE * in_file )
             return( out_device );
         }
 
-        if( nulls == 0x0000 ) {
+        if( nulls != 0x0000 ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1813,8 +1883,10 @@ cop_device * parse_device( FILE * in_file )
         if( ferror( in_file ) || feof( in_file ) ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1825,8 +1897,10 @@ cop_device * parse_device( FILE * in_file )
         if( count8 != 0x03 ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1841,8 +1915,10 @@ cop_device * parse_device( FILE * in_file )
         if( ferror( in_file ) || feof( in_file ) ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1858,8 +1934,10 @@ cop_device * parse_device( FILE * in_file )
         if( ferror( in_file ) || feof( in_file ) ) {
             mem_free( raw_functions );
             raw_functions = NULL;
-            mem_free( cop_functions->code_blocks );
-            cop_functions->code_blocks = NULL;
+            if( cop_functions->code_blocks != NULL ) {
+                mem_free( cop_functions->code_blocks );
+                cop_functions->code_blocks = NULL;
+            }
             mem_free( cop_functions );
             cop_functions = NULL;
             mem_free( out_device );
@@ -1880,8 +1958,10 @@ cop_device * parse_device( FILE * in_file )
             if( return_value == not_valid ) {
                 mem_free( raw_functions );
                 raw_functions = NULL;
-                mem_free( cop_functions->code_blocks );
-                cop_functions->code_blocks = NULL;
+                if( cop_functions->code_blocks != NULL ) {
+                    mem_free( cop_functions->code_blocks );
+                    cop_functions->code_blocks = NULL;
+                }
                 mem_free( cop_functions );
                 cop_functions = NULL;
                 mem_free( out_device );
@@ -1894,6 +1974,10 @@ cop_device * parse_device( FILE * in_file )
             if( out_device->allocated_size < (out_device->next_offset + \
                                                         sizeof( code_text ) ) ) {
                 out_device = resize_cop_device( out_device, sizeof( code_text ) );
+                devicefont_ptr = (device_font *) ((uint8_t *) out_device + \
+                                        (size_t) out_device->devicefonts.fonts);
+                pause_ptr = (code_text *) ((char *) out_device + \
+                                        (size_t) devicefont_ptr[i].font_pause );
             }
 
             devicefont_ptr[i].font_pause = (code_text *) out_device->next_offset;
@@ -1928,8 +2012,10 @@ cop_device * parse_device( FILE * in_file )
 
     mem_free( raw_functions );
     raw_functions = NULL;
-    mem_free( cop_functions->code_blocks );
-    cop_functions->code_blocks = NULL;
+    if( cop_functions->code_blocks != NULL ) {
+        mem_free( cop_functions->code_blocks );
+        cop_functions->code_blocks = NULL;
+    }
     mem_free( cop_functions );
     cop_functions = NULL;
 
@@ -1950,8 +2036,10 @@ cop_device * parse_device( FILE * in_file )
         out_device->output_extension = string_ptr;
     }
     
-    string_ptr = (char *) out_device + (size_t) out_device->box.font_name;
-    out_device->box.font_name = string_ptr;
+    if( out_device->box.font_name != NULL ) {
+        string_ptr = (char *) out_device + (size_t) out_device->box.font_name;
+        out_device->box.font_name = string_ptr;
+    }
     
     if( out_device->underscore.font_name != NULL ) {
         string_ptr = (char *) out_device + \

@@ -266,12 +266,12 @@ void CoffWriteImport( libfile io, sym_file *sfile )
         mod_name_len = strlen( modName );
     }
     sym_name_len = 0;
-    symName = sfile->import->symName;
+    symName = sfile->import->u.sym.symName;
     if( symName != NULL ) {
         sym_name_len = strlen( symName );
     }
     exported_name_len = 0;
-    exportedName = sfile->import->exportedName;
+    exportedName = sfile->import->u.sym.exportedName;
     if( exportedName == NULL ) {
         exportedName = symName; // use this instead
     }
@@ -310,9 +310,9 @@ void CoffWriteImport( libfile io, sym_file *sfile )
         AddCoffSymbol( &c_file, buffer, 0x0, 1, IMAGE_SYM_TYPE_NULL,
             IMAGE_SYM_CLASS_EXTERNAL, 0 );
         AddCoffSymbol( &c_file, ".idata$2", 0xC0000040, 1, IMAGE_SYM_TYPE_NULL,
-            IMAGE_SYM_CLASS_STATIC, 0 );
-        AddCoffSymbol( &c_file, ".idata$6", 0x0, 2, IMAGE_SYM_TYPE_NULL,
             IMAGE_SYM_CLASS_SECTION, 0 );
+        AddCoffSymbol( &c_file, ".idata$6", 0x0, 2, IMAGE_SYM_TYPE_NULL,
+            IMAGE_SYM_CLASS_STATIC, 0 );
         AddCoffSymbol( &c_file, ".idata$4", 0xC0000040, 0, IMAGE_SYM_TYPE_NULL,
             IMAGE_SYM_CLASS_SECTION, 0 );
         AddCoffSymbol( &c_file, ".idata$5", 0xC0000040, 0, IMAGE_SYM_TYPE_NULL,
@@ -487,7 +487,7 @@ void CoffWriteImport( libfile io, sym_file *sfile )
             sym_idx = 0x8;
             break;
         }
-        ordinal = sfile->import->ordinal;
+        ordinal = sfile->import->u.sym.ordinal;
         if( sfile->import->type == NAMED ) {
             memset( buffer, 0, 4 );
             LibWrite( io, buffer, 4 );
@@ -508,6 +508,8 @@ void CoffWriteImport( libfile io, sym_file *sfile )
     default:
         break;
     }
+
+
     WriteCoffSymbols( io, &c_file );
     WriteCoffStringTable( io, &c_file );
     FiniCoffLibFile( &c_file );

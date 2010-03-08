@@ -61,7 +61,7 @@ common_objs = &
     coffwrt.obj &
     inlib.obj &
     idemsgpr.obj &
-    idedll.obj &
+    ideentry.obj &
     $(trmem_objs)
 
 
@@ -84,9 +84,9 @@ common_objs += $(orl_objs) $(wres_core_objs)
 
 !endif
 
-drv_objs = libdlldr.obj idedrv.obj idemsgfm.obj
+drv_objs = maindrv.obj idedrv.obj idemsgfm.obj
 
-exe_objs = libdlldr.obj idedrv.obj idemsgfm.obj
+exe_objs = maindrv.obj idedrv.obj idemsgfm.obj
 
 dll_objs_nt = ntdll.obj
 dll_objs_os2 = os2dll.obj
@@ -120,20 +120,16 @@ extra_c_flags += -DINCL_MSGTEXT
 extra_c_flags += -D__DEBUG__
 !endif
 
+!ifndef wlib_dll
+extra_c_flags += -DIDE_PGM
+!endif
+
 extra_c_flags_ntdll    = -bd
 extra_c_flags_os2dll   = -bd
 extra_c_flags_trmem    = $(trmem_cflags)
 extra_c_flags_trmemcvr = $(trmem_cover_cflags)
 extra_c_flags_memfuncs = $(trmem_cover_cflags)
 extra_c_flags_idedrv   = -DSTATIC_LINKAGE
-
-!ifndef wlib_dll
-extra_c_flags_idedrv   += -DIDE_PGM
-extra_c_flags_idemsgfm += -DIDE_PGM
-extra_c_flags_idemsgpr += -DIDE_PGM
-extra_c_flags_libdlldr += -DIDE_PGM
-extra_c_flags_idedll   += -DIDE_PGM
-!endif
 
 ###################
 # linker flags .EXE
@@ -148,7 +144,7 @@ extra_l_flags_qnx = op offset=64k, stack=60k
 extra_l_flags_dll = op map, symfile
 
 extra_l_flags_dll_nt = initinstance terminstance op offset=0x6A000000
-extra_l_flags_dll_os2 = INITINSTANCE TERMINSTANCE reference __DLLstart_
+extra_l_flags_dll_os2 = INITINSTANCE TERMINSTANCE
 
 ###################
 # rc flags
@@ -158,11 +154,7 @@ extra_rc_flags_linux = -D__UNIX__
 extra_rc_flags = $(extra_rc_flags_$(host_os))
 
 # systems where version resources must be added to .DLL
-build_rc_nt_386 = nt
-
-!ifdef build_rc_$(host_os)_$(host_cpu)
-res_objs = version.res
-!endif
+version_res_nt_386 = version.res
 
 !ifeq bootstrap 1
 
@@ -218,10 +210,10 @@ wlib.exe: $(depends_exe) exe.lnk
 
 !endif
 
-wlibd.dll: msg.gh $(depends_dll) $(res_objs) wlib.res dll.lnk
+wlibd.dll: msg.gh $(depends_dll) $(version_res_$(host_os)_$(host_cpu)) wlib.res dll.lnk
     $(linker) name $@ @dll.lnk
-!ifdef build_rc_$(host_os)_$(host_cpu)
-    $(rc) -k version.res $^@
+!ifdef version_res_$(host_os)_$(host_cpu)
+    $(rc) -k $(version_res_$(host_os)_$(host_cpu)) $^@
 !endif
     wstrip -q -a -r $@ . wlib.res
 
@@ -258,9 +250,6 @@ msg.gh : ./mkstr.exe
 wlib.res : ../wlib.rc ../wlib.msg msg.gh
     $(rc_aui) $(extra_rc_flags) $[@ -fo=$@
 
-version.res: version.rc
-    $(rc) $(rc_flags) -r $(inc_path) $[@ -fo=$^@
-
 ./genverrc.exe : $(fe_misc_dir)/c/genverrc.c
     $(bld_cl) $[@ $(wcl_util_opts) -D_VERSION=$(bld_ver)
 
@@ -268,5 +257,6 @@ version.res: version.rc
 patch_level=0
 !endif
 
-version.rc : ./genverrc.exe ../h/version.rc $(fe_misc_dir)/c/genverrc.c
+version.res : ./genverrc.exe ../h/version.rc $(fe_misc_dir)/c/genverrc.c
     $[@ ../h/version.rc version.rc $$ wlibd $(patch_level)
+    $(rc) $(rc_flags) $(inc_path) version.rc -fo=$^@

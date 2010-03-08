@@ -119,8 +119,8 @@ static void XT_parse( void )
     }
 }
 
-static int tm_check( unsigned short *status, unsigned short *row,
-                     unsigned short *col, unsigned long *the_time )
+static int tm_check( unsigned short *status, MOUSEORD *row,
+                     MOUSEORD *col, unsigned long *the_time )
 /**********************************************/
 {
 
@@ -160,8 +160,8 @@ static int tm_stop( void )
 
 static void TryOne( int type, char *test, char *init, char *input )
 {
-    unsigned short      row;
-    unsigned short      col;
+    MOUSEORD    row;
+    MOUSEORD    col;
 
     MouseType = type;
     uimouseforceoff();
@@ -304,8 +304,8 @@ static int gpm_tm_init( void )
 }
 #endif
 
-static int tm_init( bool install )
-/******************************/
+static int tm_init( int install )
+/*******************************/
 {
     char        *term;
     bool        kmous;                          // Does key_mouse exist?
@@ -314,7 +314,8 @@ static int tm_init( bool install )
     MouseType           = M_NONE;
     kmous               = ( key_mouse != NULL );
 
-    if( !install ) return( FALSE );
+    if( install == 0 )
+        return( FALSE );
 
     term = GetTermType();
     if( term != NULL && strstr( term, "xterm" ) != NULL ) {

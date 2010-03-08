@@ -66,11 +66,11 @@ void __F_NAME(__rterr_msg,__wrterr_msg)( const CHAR_TYPE *hdr, const CHAR_TYPE *
 {
 #if defined( __WINDOWS__ ) || defined( __WINDOWS_386__ )
     #ifdef __WIDECHAR__
-        char    outhdr[MB_CUR_MAX * STR_SIZE];
-        char    outmsg[MB_CUR_MAX * STR_SIZE];
+        char    outhdr[ MB_CUR_MAX * STR_SIZE ];
+        char    outmsg[ MB_CUR_MAX * STR_SIZE ];
 
-        wcstombs( outhdr, hdr, MB_CUR_MAX * STR_SIZE );
-        wcstombs( outmsg, msg, MB_CUR_MAX * STR_SIZE );
+        wcstombs( outhdr, hdr, sizeof( outhdr ) );
+        wcstombs( outmsg, msg, sizeof( outmsg ) );
     #else
         const char  *outhdr = hdr;
         const char  *outmsg = msg;
@@ -80,7 +80,7 @@ void __F_NAME(__rterr_msg,__wrterr_msg)( const CHAR_TYPE *hdr, const CHAR_TYPE *
     int     rc;
 
     rc = __F_NAME(fputs,fputws)( hdr, stderr );
-    rc = __F_NAME(fputs,fputws)( STRING(": "), stderr );
+    rc = __F_NAME(fputs,fputws)( STRING( ": " ), stderr );
     rc = __F_NAME(fputs,fputws)( msg, stderr );
     if( (rc == EOF) && (errno == EBADF) ) {
         MessageBox( NULL, msg, hdr, MB_OK | MB_TASKMODAL );
@@ -100,11 +100,11 @@ void __F_NAME(__rterr_msg,__wrterr_msg)( const CHAR_TYPE *hdr, const CHAR_TYPE *
         (DosQueryProcAddr( hmodPMWIN, ORD_WIN32MESSAGEBOX, NULL, (PFN*)&pfnWinMessageBox ) == NO_ERROR)
     ) {
     #ifdef __WIDECHAR__
-        char    outhdr[MB_CUR_MAX * STR_SIZE];
-        char    outmsg[MB_CUR_MAX * STR_SIZE];
+        char    outhdr[ MB_CUR_MAX * STR_SIZE ];
+        char    outmsg[ MB_CUR_MAX * STR_SIZE ];
 
-        wcstombs( outhdr, hdr, MB_CUR_MAX * STR_SIZE );
-        wcstombs( outmsg, msg, MB_CUR_MAX * STR_SIZE );
+        wcstombs( outhdr, hdr, sizeof( outhdr ) );
+        wcstombs( outmsg, msg, sizeof( outmsg ) );
     #else
         const char  *outhdr = hdr;
         const char  *outmsg = msg;
@@ -114,12 +114,12 @@ void __F_NAME(__rterr_msg,__wrterr_msg)( const CHAR_TYPE *hdr, const CHAR_TYPE *
         DosFreeModule( hmodPMWIN );
     } else {
         __F_NAME(fputs,fputws)( hdr, stderr );
-        __F_NAME(fputs,fputws)( STRING(": "), stderr );
+        __F_NAME(fputs,fputws)( STRING( ": " ), stderr );
         __F_NAME(fputs,fputws)( msg, stderr );
     }
 #else
     __F_NAME(fputs,fputws)( hdr, stderr );
-    __F_NAME(fputs,fputws)( STRING(": "), stderr );
+    __F_NAME(fputs,fputws)( STRING( ": " ), stderr );
     __F_NAME(fputs,fputws)( msg, stderr );
 #endif
 }

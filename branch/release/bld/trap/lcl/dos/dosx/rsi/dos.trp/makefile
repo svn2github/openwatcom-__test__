@@ -8,9 +8,7 @@ srv = rsi
 cpu = x86
 which = TRAP
 
-extra_c_flags = -DDOS4G -DDOSXTRAP
-
-extra_objs = $(dosx_trap_objs)
+extra_c_flags = -DDOS4G
 
 !include $(trap_dir)/lcl/dos/dosx/dosx.mif
 !include $(trap_dir)/master.mif

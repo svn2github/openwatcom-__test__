@@ -33,7 +33,7 @@
 #ifndef WINHDR_INCLUDED
 #define WINHDR_INCLUDED
 
-#if defined(__NT__)
+#if defined( __NT__ )
     #define _WINSOCKAPI_
 #endif
 
@@ -44,6 +44,10 @@
     #include "os2win.h"
 #else
     #define HAS_HWND
+    #define INCLUDE_COMMDLG_H
+    #define INCLUDE_DDEML_H
+    #define INCLUDE_SHELLAPI_H
+    #define INCLUDE_TOOLHELP_H
     #include <windows.h>
     #include "win1632.h"
 #endif

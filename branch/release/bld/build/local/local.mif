@@ -22,6 +22,21 @@ librarian = $(blib)
 rc = $(brc)
 rcaui = $(brc)
 
+# temporary fix for missing dosseg directive in OW 1.8 causeway DLL stuff
+!ifeq __VERSION__ 1280
+!ifdef sys_dll
+lflags_dos_386     += reference __DOSseg__
+!endif
+lflags_dll_dos_386 += reference __DOSseg__
+!endif
+
+# enable to switch to causeway extender
+!ifdef $(proj_name)_causeway
+clflags_dos_386 = -l=causeway
+lflags_dos_386  = sys causeway
+!endif
+
+
 !ifdef %open_nlang_root
 lang_root = $(%open_nlang_root)
 !else
@@ -54,15 +69,14 @@ cpp_386         += $(bld_incs)
 !loaddll wcc386 $(nlang_dll)\wccd386.dll
 !loaddll wccaxp $(nlang_dll)\wccdaxp.dll
 !loaddll wlib   $(nlang_dll)\wlibd.dll
-# should be removed after 1.8 will be released
-!if $(__VERSION__) >= 1280
 !loaddll wlink  $(nlang_dll)\wlinkd.dll
-!else
-!loaddll wlink  $(nlang_dll)\wlink.dll
-!endif
 !loaddll wpp    $(nlang_dll)\wppdi86.dll
 !loaddll wpp386 $(nlang_dll)\wppd386.dll
 !loaddll wppaxp $(nlang_dll)\wppdaxp.dll
+# C++ reference compiler
+!loaddll rppi86 $(plusplus_dir)\rpp.i86\rppdi86.dll
+!loaddll rpp386 $(plusplus_dir)\rpp.386\rppd386.dll
+!loaddll rppaxp $(plusplus_dir)\rpp.axp\rppdaxp.dll
 !endif
 
 !ifeq proj_name cc

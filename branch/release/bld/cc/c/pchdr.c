@@ -60,7 +60,7 @@ extern  TAGPTR  TagHash[TAG_HASH_SIZE + 1];
 
 #define PH_BUF_SIZE     32768
 #define PCH_SIGNATURE   (unsigned long) 'WPCH'
-#define PCH_VERSION     0x0120
+#define PCH_VERSION     0x0122
 #if defined(__I86__)
 #define PCH_VERSION_HOST ( ( 1L << 16 ) | PCH_VERSION )
 #elif defined(__386__)
@@ -195,7 +195,7 @@ static void InitPHVars( void )
     PH_computing_size  = 0;
 }
 
-static void CreatePHeader( char *filename )
+static void CreatePHeader( const char *filename )
 {
     PH_handle = sopen4( filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, SH_DENYRW, PMODE );
     if( PH_handle == -1 ) {
@@ -333,7 +333,7 @@ static void OutPutIncFileList( void )   // output primary include files
     unsigned    len;
     INCFILE     *ifile;
 
-    for( ifile = IncFileList; ifile; ifile = ifile->nextfile ) {
+    for( ifile = IncFileList; ifile != NULL; ifile = ifile->nextfile ) {
         len = sizeof( INCFILE ) + ifile->len;
         len = _RoundUp( len, sizeof( int ) );
         rc = WritePHeader( ifile, len );
@@ -350,7 +350,7 @@ static void OutPutLibraries( void )
     unsigned            len;
     struct library_list *lib;
 
-    for( lib = HeadLibs; lib; lib = lib->next ) {
+    for( lib = HeadLibs; lib != NULL; lib = lib->next ) {
         len = sizeof( struct library_list ) + strlen( lib->name );
         len = _RoundUp( len, sizeof( int ) );
         rc = WritePHeader( lib, len );
@@ -370,16 +370,16 @@ static void OutPutAliases( void )
     const char          *alias_name;
     const char          *alias_subst;
 
-    for( alias = AliasHead; alias; alias = alias->next ) {
+    for( alias = AliasHead; alias != NULL; alias = alias->next ) {
         memcpy( &tmp_alias, alias, sizeof( tmp_alias ) );
         alias_name  = alias->name;
         alias_subst = alias->subst;
-        if( alias_name ) {
+        if( alias_name != NULL ) {
             len = strlen( alias_name ) + 1;
             len = _RoundUp( len, sizeof( int ) );
             tmp_alias.name = (const void *)len;
         }
-        if( alias_subst ) {
+        if( alias_subst != NULL ) {
             len =  strlen( alias_subst ) + 1;
             len = _RoundUp( len, sizeof( int ) );
             tmp_alias.subst = (const void *)len;
@@ -389,13 +389,13 @@ static void OutPutAliases( void )
         if( rc != 0 ) {
             longjmp( PH_jmpbuf, rc );
         }
-        if( alias_name ) {
+        if( alias_name != NULL ) {
             rc = WritePHeader( alias_name, (unsigned)tmp_alias.name );
             if( rc != 0 ) {
                 longjmp( PH_jmpbuf, rc );
             }
         }
-        if( alias_subst ) {
+        if( alias_subst != NULL ) {
             rc = WritePHeader( alias_subst, (unsigned)tmp_alias.subst );
             if( rc != 0 ) {
                 longjmp( PH_jmpbuf, rc );
@@ -424,16 +424,8 @@ static void OutPutIncludes( void )
     unsigned    len;
     int         rc;
 
-    flist = FNames;
-    // don't want to include the primary source file
-    while( flist != NULL ) {
-        if( strcmp( flist->name, SrcFile->src_name ) == 0 ) {
-            flist = flist->next;
-            break;
-        }
-        flist = flist->next;
-    }
-    while( flist != NULL ) {
+    // don't want to include the primary source file, skip first item
+    for( flist = FNames->next; flist != NULL; flist = next_flist ) {
         next_flist = flist->next;
         len = strlen( flist->name ) + sizeof( struct fname_list );
         len = _RoundUp( len, sizeof( int ) );
@@ -443,7 +435,6 @@ static void OutPutIncludes( void )
         if( rc != 0 ) {
             longjmp( PH_jmpbuf, rc );
         }
-        flist = next_flist;
         PH_FileCount++;
     }
 }
@@ -455,8 +446,7 @@ static void OutPutRoDirList( void )
     unsigned    len;
     int         rc;
 
-    dirlist = PCHRDirNames;
-    while( dirlist != NULL ) {
+    for( dirlist = PCHRDirNames; dirlist != NULL; dirlist = next_dirlist ) {
         next_dirlist = dirlist->next;
         len = strlen( dirlist->name ) + sizeof( struct rdir_list );
         len = _RoundUp( len, sizeof( int ) );
@@ -466,7 +456,6 @@ static void OutPutRoDirList( void )
         if( rc != 0 ) {
             longjmp( PH_jmpbuf, rc );
         }
-        dirlist = next_dirlist;
         PH_RDirCount++;
     }
 }
@@ -479,8 +468,7 @@ static void OutPutIncAliasList( void )
     unsigned    len;
     int         rc;
 
-    aliaslist = IAliasNames;
-    while( aliaslist != NULL ) {
+    for( aliaslist = IAliasNames; aliaslist != NULL; aliaslist = next_aliaslist ) {
         next_aliaslist = aliaslist->next;
         real_name = aliaslist->real_name;
         len = sizeof( struct ialias_list ) + strlen( aliaslist->alias_name ) 
@@ -494,7 +482,6 @@ static void OutPutIncAliasList( void )
         if( rc != 0 ) {
             longjmp( PH_jmpbuf, rc );
         }
-        aliaslist = next_aliaslist;
         PH_IAliasCount++;
     }
 }
@@ -506,11 +493,11 @@ static void OutPutSegInfo( void )
     int                 rc;
     unsigned            len;
 
-    for( seg = TextSegList; seg; seg = seg->next ) {
+    for( seg = TextSegList; seg != NULL; seg = seg->next ) {
         ++PH_SegCount;
         seg->index = PH_SegCount;
         len = strlen( seg->segname );           // segment name
-        len += strlen( &seg->segname[len+1] );  // class name
+        len += strlen( &seg->segname[len + 1] );  // class name
         len += sizeof( struct textsegment ) + 1;
         len = _RoundUp( len, sizeof( int ) );
         next = seg->next;                       // save next pointer
@@ -528,7 +515,7 @@ static void OutPutEnums( ENUMPTR ep, TAGPTR parent )
     int         rc;
     unsigned    len;
 
-    for( ; ep; ep = ep->thread ) {
+    for( ; ep != NULL; ep = ep->thread ) {
         len = strlen( ep->name ) + sizeof( ENUMDEFN );
         len = _RoundUp( len, sizeof( int ) );
         ep->enum_len = len;
@@ -547,7 +534,7 @@ static void OutPutFields( FIELDPTR field )
     FIELDPTR    next_field;
     TYPEPTR     typ;
 
-    while( field != NULL ) {
+    for( ; field != NULL; field = next_field ) {
         len = strlen( field->name ) + sizeof( FIELD_ENTRY );
         len = _RoundUp( len, sizeof( int ) );
         next_field = field->next_field;         // save pointer
@@ -563,7 +550,6 @@ static void OutPutFields( FIELDPTR field )
         if( rc != 0 ) {
             longjmp( PH_jmpbuf, rc );
         }
-        field = next_field;
     }
 }
 
@@ -739,7 +725,7 @@ static void OutPutFuncParmList( TYPEPTR typ, int index )
     // index;      /* unused */
     parm_list = typ->u.fn.parms;
     if( parm_list != NULL ) {
-        for( ; *parm_list; ++parm_list ) {
+        for( ; *parm_list != NULL; ++parm_list ) {
             parm.type_index = (*parm_list)->type_index;
             rc = WritePHeader( &parm, sizeof( union parmtype ) );
             if( rc != 0 ) {
@@ -784,7 +770,8 @@ static void OutPutAuxInfo( struct aux_info *info )
         regs = save_parms;
         for( ;; ) {
             info->parms_size += sizeof( hw_reg_set );
-            if( HW_CEqual( *regs, HW_EMPTY ) ) break;
+            if( HW_CEqual( *regs, HW_EMPTY ) )
+                break;
             ++regs;
         }
     }
@@ -803,7 +790,8 @@ static void OutPutAuxInfo( struct aux_info *info )
         regs = save_parms;
         for( ;; ) {
             rc |= WritePHeader( regs, sizeof( hw_reg_set ) );
-            if( HW_CEqual( *regs, HW_EMPTY ) ) break;
+            if( HW_CEqual( *regs, HW_EMPTY ) )
+                break;
             ++regs;
         }
     }
@@ -832,16 +820,16 @@ static void OutPutPragmaInfo( void )
     int                 rc;
     unsigned            len;
 
-    for( index = 0; (info = BuiltinInfos[index]); ++index ) {
+    for( index = 0; (info = BuiltinInfos[index]) != NULL; ++index ) {
         OutPutAuxInfo( info );          // write out the aux_info struct
     }
     PH_PragmaCount = 0;
-    for( ent = AuxList; ent; ent = ent->next ) {
+    for( ent = AuxList; ent != NULL; ent = ent->next ) {
         info = ent->info;
         info->index = PCH_NULL_INDEX;
     }
     index = PCH_FIRST_INDEX;
-    for( ent = AuxList; ent; ent = ent->next ) {
+    for( ent = AuxList; ent != NULL; ent = ent->next ) {
         info = ent->info;
         if( info->index == PCH_NULL_INDEX ) {
             info->index = index;
@@ -850,7 +838,7 @@ static void OutPutPragmaInfo( void )
             ++PH_PragmaCount;
         }
     }
-    for( ent = AuxList; ent; ent = ent->next ) {
+    for( ent = AuxList; ent != NULL; ent = ent->next ) {
         info = ent->info;
         ent->aux_info_index = info->index - PCH_FIRST_INDEX;
         // write out aux_entry
@@ -876,10 +864,10 @@ static void OutPutMacros( void )
     PH_MacroCount = 0;
     PH_MacroSize = PH_size;
     for( i = 0; i < MACRO_HASH_SIZE; ++i ) {
-        for( mentry = MacHash[i]; mentry; mentry = mentry->next_macro ) {
+        for( mentry = MacHash[i]; mentry != NULL; mentry = mentry->next_macro ) {
             mentry_len = mentry->macro_len;
             next_macro = mentry->next_macro;        // save pointer
-            mentry->macro_index = i;        // replace with hash index
+            mentry->macro_index = i;                // replace with hash index
             rc = WritePHeader( mentry, mentry_len );
             mentry->next_macro = next_macro;        // restore pointer
             mentry_len = _RoundUp( mentry_len, sizeof( int ) ) - mentry_len;
@@ -892,7 +880,7 @@ static void OutPutMacros( void )
     }
     /* write out undefined macro list.  26-may-94 */
     PH_UndefMacroCount = 0;
-    for( mentry = UndefMacroList; mentry; mentry = mentry->next_macro ) {
+    for( mentry = UndefMacroList; mentry != NULL; mentry = mentry->next_macro ) {
         mentry_len = mentry->macro_len;
         rc = WritePHeader( mentry, mentry_len );
         mentry_len = _RoundUp( mentry_len, sizeof( int ) ) - mentry_len;
@@ -915,10 +903,10 @@ static void OutPutSymHashTable( void )
     int             rc;
     unsigned        len;
 
-    for( i=0; i < SYM_HASH_SIZE; i++ ) {
+    for( i = 0; i < SYM_HASH_SIZE; i++ ) {
         // reverse the list
         sym_list = NULL;
-        for( hsym = HashTab[i]; hsym; hsym = next_hsymptr ) {
+        for( hsym = HashTab[i]; hsym != NULL; hsym = next_hsymptr ) {
             next_hsymptr = hsym->next_sym;
             hsym->next_sym = sym_list;
             sym_list = hsym;
@@ -926,7 +914,7 @@ static void OutPutSymHashTable( void )
         }
         HashTab[i] = NULL;
         rc = 0;
-        for( hsym = sym_list; hsym; hsym = next_hsymptr ) {
+        for( hsym = sym_list; hsym != NULL; hsym = next_hsymptr ) {
             next_hsymptr = hsym->next_sym;
             hsym->hash_index = i;
             typ = hsym->sym_type;               // save type pointer
@@ -955,7 +943,7 @@ static void OutPutSymbols( void )
     if( PH_computing_size ) {
         PH_size += SymGetNumSyms() * sizeof( SYM_ENTRY );
     } else {
-        for( sym_handle = SymGetFirst(); sym_handle != SYM_INVALID ; sym_handle = SymGetNext( sym_handle ) ) {
+        for( sym_handle = SymGetFirst(); sym_handle != SYM_INVALID; sym_handle = SymGetNext( sym_handle ) ) {
             SymGet( &sym, sym_handle );
             if( sym.sym_type != NULL ) {
                 sym.sym_type_index = sym.sym_type->type_index;
@@ -1012,7 +1000,7 @@ void InitBuildPreCompiledHeader( void )
     PCHIAliasNames = IAliasNames;
 }
 
-void BuildPreCompiledHeader( char *filename )
+void BuildPreCompiledHeader( const char *filename )
 {
     int         rc;
     char        *cwd;
@@ -1066,14 +1054,12 @@ static char *FixupIncFileList( char *p, unsigned incfile_count )
     PCHOldIncFileList = IncFileList;
     PCHOldIncListValid = 1;
     IncFileList = NULL;
-    if( incfile_count != 0 ) {
-        do {
-            ifile = (INCFILE *)p;
-            AddIncFileList( ifile->filename );
-            len = sizeof( INCFILE ) + ifile->len;
-            len = _RoundUp( len, sizeof( int ) );
-            p += len;
-        } while( --incfile_count > 0 );
+    for( ; incfile_count != 0; --incfile_count ) {
+        ifile = (INCFILE *)p;
+        AddIncFileList( ifile->filename );
+        len = sizeof( INCFILE ) + ifile->len;
+        len = _RoundUp( len, sizeof( int ) );
+        p += len;
     }
     return( p );
 }
@@ -1127,17 +1113,15 @@ static char *FixupRoDirList( char *p, unsigned list_count )
     RDIRPTR     *lnk;
     unsigned    len;
 
-    lnk = &RDirNames;
-    while( (dirlist = *lnk) != NULL ) {
+    for( lnk = &RDirNames; (dirlist = *lnk) != NULL; ) {
         lnk = &dirlist->next;
     }
-    while( list_count != 0 ) {
+    for( ; list_count != 0; --list_count ) {
         dirlist = (RDIRPTR)p;
         len = dirlist->name_len;
         p += len;
         *lnk = dirlist;
         lnk = &dirlist->next;
-        --list_count;
     }
     *lnk = NULL;
     return( p );
@@ -1150,29 +1134,39 @@ static char *FixupIncAliasList( char *p, unsigned list_count )
     unsigned    len;
 
     lnk = &IAliasNames;
-    while( list_count != 0 ) {
+    for( ; list_count != 0; --list_count ) {
         aliaslist = (IALIASPTR)p;
         len = aliaslist->total_len;
         p += len;
         *lnk = aliaslist;
         aliaslist->real_name = aliaslist->alias_name + aliaslist->alias_name_len + 1;
         lnk = &aliaslist->next;
-        --list_count;
     }
     /* Tack pre-existing aliases onto the end (so that they're searched last) */
     *lnk = PCHIAliasNames;
     return( p );
 }
 
-static int VerifyIncludes( void )
+static int VerifyIncludes( const char *filename )
 {
     FNAMEPTR    flist;
     time_t      mtime;
-    bool        failed;
+    FNAMEPTR    fnew;
 
-    failed = FALSE;
-    for( flist = FNameList; flist; flist = flist->next ) {
-
+    // skip the primary source file (first item)
+    fnew = FNames->next;
+    for( flist = FNameList; flist != NULL; flist = flist->next ) {
+        if( fnew != NULL ) {
+            if( strcmp( fnew->name, flist->name ) != 0 ) {
+                return( TRUE );                
+            }
+            fnew = fnew->next;
+        } else if( filename != NULL ) {
+            if( strcmp( filename, flist->name ) != 0 ) {
+                return( TRUE );                
+            }
+            filename = NULL;
+        }
         if( flist->rwflag ){
             if( SrcFileInRDir( flist ) ) {
                 flist->rwflag = FALSE;
@@ -1182,14 +1176,14 @@ static int VerifyIncludes( void )
             mtime = _getFilenameTimeStamp( flist->name );
             if( flist->mtime != mtime || mtime == 0 ) {
                 PCHNote( PCHDR_INCFILE_CHANGED, flist->name  );
-          #if 0
-                printf( "%s old %d new %d\n",flist->name, flist->mtime, mtime );
-          #endif
-                failed = TRUE;
+#if 0
+                printf( "%s old %d new %d\n", flist->name, flist->mtime, mtime );
+#endif
+                return( TRUE );
             }
         }
     }
-    return( failed );
+    return( FALSE );
 }
 
 static char *FixupLibraries( char *p, unsigned library_count )
@@ -1207,7 +1201,8 @@ static char *FixupLibraries( char *p, unsigned library_count )
             p += len;
             lib->next = (struct library_list *)p;
             --library_count;
-            if( library_count == 0 ) break;
+            if( library_count == 0 )
+                break;
             lib = (struct library_list *)p;
         }
         lib->next = NULL;
@@ -1245,7 +1240,8 @@ static char *FixupAliases( char *p, unsigned alias_count )
                 p += len;
             }
             --alias_count;
-            if( alias_count == 0 ) break;
+            if( alias_count == 0 )
+                break;
             new_alias = CMemAlloc( sizeof( struct alias_list ) );
             memcpy( new_alias, p, sizeof( struct alias_list ) );
             alias->next = new_alias;
@@ -1264,17 +1260,15 @@ static char *FixupSegInfo( char *p, unsigned seg_count )
     TextSegArray = (struct textsegment **)CMemAlloc( (seg_count + 1) *
                                     sizeof( struct textsegment * ) );
     TextSegArray[0] = NULL;
-    if( seg_count != 0 ) {
-        while( seg_count != 0 ) {
-            seg = (struct textsegment *)p;
-            TextSegArray[ seg->index + 1 ] = seg;
-            len = seg->textsegment_len;
-            p += len;
-            seg->next = (struct textsegment *)p;
-            --seg_count;
-        }
-        seg->next = NULL;
+    for( ; seg_count != 0; --seg_count ) {
+        seg = (struct textsegment *)p;
+        TextSegArray[seg->index + 1] = seg;
+        len = seg->textsegment_len;
+        p += len;
+        seg->next = (struct textsegment *)p;
     }
+    if( seg_count != 0 )
+        seg->next = NULL;
     return( p );
 }
 
@@ -1284,14 +1278,13 @@ static char *FixupMacros( char *p, unsigned macro_count )
     MEPTR       mentry;
     unsigned    mentry_len;
 
-    while( macro_count != 0 ) {
+    for( ; macro_count != 0; --macro_count ) {
         mentry = (MEPTR)p;
         i = mentry->macro_index;                // get hash index
         mentry->next_macro = PCHMacroHash[i];
         PCHMacroHash[i] = mentry;
         mentry_len = _RoundUp( mentry->macro_len, sizeof( int ) );
         p += mentry_len;
-        --macro_count;
     }
     return( p );
 }
@@ -1303,13 +1296,12 @@ static char *FixupUndefMacros( char *p, unsigned undef_macro_count )
 
     PCHUndefMacroList = NULL;
     lnk = &PCHUndefMacroList;
-    while( undef_macro_count != 0 ) {
+    for( ; undef_macro_count != 0; --undef_macro_count ) {
         mentry = (MEPTR)p;
         *lnk = mentry;
         lnk = &mentry->next_macro;
         mentry_len = _RoundUp( mentry->macro_len, sizeof( int ) );
         p += mentry_len;
-        --undef_macro_count;
     }
     *lnk = NULL;
     return( p );
@@ -1329,14 +1321,14 @@ static int VerifyMacros( char *p, unsigned macro_count, unsigned undef_count )
         MEPTR       prev_mpch;
 
         prev_mpch = NULL;
-        for( mpch = PCHMacroHash[i]; mpch; mpch = mpch->next_macro ) {
-            if( mpch->macro_flags & MACRO_DEFINED_BEFORE_FIRST_INCLUDE ) {
-                mcur = MacHash[ i ];
-                while( mcur != NULL ) {
+        for( mpch = PCHMacroHash[i]; mpch != NULL; mpch = mpch->next_macro ) {
+            if( mpch->macro_flags & MFLAG_DEFINED_BEFORE_FIRST_INCLUDE ) {
+                for( mcur = MacHash[i]; mcur != NULL; mcur = mcur->next_macro ) {
                     if( strcmp( mcur->macro_name, mpch->macro_name ) == 0 ) {
                         macro_compare = MacroCompare( mpch, mcur );
-                        if( mpch->macro_flags & MACRO_REFERENCED ) {
-                            if( macro_compare == 0 ) break;
+                        if( mpch->macro_flags & MFLAG_REFERENCED ) {
+                            if( macro_compare == 0 )
+                                break;
                             return( -1 );       // abort: macros different
                         }
                         if( macro_compare != 0 ) { /* if different */
@@ -1349,10 +1341,9 @@ static int VerifyMacros( char *p, unsigned macro_count, unsigned undef_count )
                         }
                         break;
                     }
-                    mcur = mcur->next_macro;
                 }
                 if( mcur == NULL ) {  /* macro not found in current compile */
-                    if( mpch->macro_flags & MACRO_REFERENCED ) {
+                    if( mpch->macro_flags & MFLAG_REFERENCED ) {
                         return( -1 );   // abort: macro definition required
                     }
                     // delete macro from PCH list
@@ -1381,15 +1372,17 @@ static int VerifyMacros( char *p, unsigned macro_count, unsigned undef_count )
     // - endif
     // endloop
     for( i = 0; i < MACRO_HASH_SIZE; ++i ) {
-        for( mcur = MacHash[i]; mcur; mcur = mcur->next_macro ) {
-            for( mpch = PCHMacroHash[i]; mpch; mpch = mpch->next_macro ) {
-                if( strcmp( mpch->macro_name, mcur->macro_name ) == 0 ) break;
+        for( mcur = MacHash[i]; mcur != NULL; mcur = mcur->next_macro ) {
+            for( mpch = PCHMacroHash[i]; mpch != NULL; mpch = mpch->next_macro ) {
+                if( strcmp( mpch->macro_name, mcur->macro_name ) == 0 ) {
+                    break;
+                }
             }
-            if( mpch == NULL || !(mpch->macro_flags & MACRO_DEFINED_BEFORE_FIRST_INCLUDE) ){
+            if( mpch == NULL || !(mpch->macro_flags & MFLAG_DEFINED_BEFORE_FIRST_INCLUDE) ) {
             // macro may either have been undef'd (mpch == NULL ) or undef'd and defined
-                if( mcur->macro_flags & MACRO_USER_DEFINED ){ //compiler defined macros not saved on undefs
-                    for( mpch = PCHUndefMacroList; mpch; mpch = mpch->next_macro ) {
-                        if( strcmp(mpch->macro_name,mcur->macro_name) == 0 ) {
+                if( mcur->macro_flags & MFLAG_USER_DEFINED ) {  //compiler defined macros not saved on undefs
+                    for( mpch = PCHUndefMacroList; mpch != NULL; mpch = mpch->next_macro ) {
+                        if( strcmp( mpch->macro_name, mcur->macro_name ) == 0 ) {
                             if( MacroCompare( mpch, mcur ) != 0 ) {
                                 return( -1 );
                             } else {
@@ -1409,9 +1402,11 @@ static int VerifyMacros( char *p, unsigned macro_count, unsigned undef_count )
     for( i = 0; i < MACRO_HASH_SIZE; ++i ) {
         MEPTR       next_mcur;
 
-        for( mcur = MacHash[i]; mcur; mcur = next_mcur ) {
-            for( mpch = PCHMacroHash[i]; mpch; mpch = mpch->next_macro ) {
-                if( strcmp( mpch->macro_name, mcur->macro_name ) == 0 ) break;
+        for( mcur = MacHash[i]; mcur != NULL; mcur = next_mcur ) {
+            for( mpch = PCHMacroHash[i]; mpch != NULL; mpch = mpch->next_macro ) {
+                if( strcmp( mpch->macro_name, mcur->macro_name ) == 0 ) {
+                    break;
+                }
             }
             next_mcur = mcur->next_macro;
             if( mpch == NULL ) {          // if this macro not found in PCH
@@ -1433,7 +1428,7 @@ static char *FixupSymHashTable( char *p, unsigned symhash_count )
     int         i;
     unsigned    len;
 
-    while( symhash_count != 0 ) {
+    for( ; symhash_count != 0; --symhash_count ) {
         hsym = (SYM_HASHPTR)p;
         i = hsym->hash_index;
         hsym->next_sym = HashTab[i];
@@ -1444,7 +1439,6 @@ static char *FixupSymHashTable( char *p, unsigned symhash_count )
         len = strlen( hsym->name ) + sizeof( struct sym_hash_entry );
         len = _RoundUp( len, sizeof( int ) );
         p += len;
-        --symhash_count;
     }
     return( p );
 }
@@ -1456,20 +1450,19 @@ static char *FixupSymbols( char *p, unsigned symbol_count )
     unsigned    sym_handle;     // TODO: don't cheat!
 
     sym_handle = 0;
-    while( symbol_count != 0 ) {
+    for( ; symbol_count != 0; --symbol_count ) {
         symptr = (SYMPTR)p;
         if( symptr->sym_type_index != 0 ) {
             symptr->sym_type = TypeArray + symptr->sym_type_index;
         }
-        symptr->seginfo = TextSegArray[ symptr->seginfo_index ];
-        PCH_SymArray[ sym_handle ] = symptr;
+        symptr->seginfo = TextSegArray[symptr->seginfo_index];
+        PCH_SymArray[sym_handle] = symptr;
         p += sizeof( SYM_ENTRY );
         ++sym_handle;
-        --symbol_count;
     }
     for( sym_handle = 0; sym_handle < (unsigned)SpecialSyms; sym_handle++ ) {
         SymGet( &sym, (SYM_HANDLE)sym_handle );  // Redo special syms
-        symptr  = PCH_SymArray[ sym_handle ];
+        symptr  = PCH_SymArray[sym_handle];
         *symptr = sym;
     }
     return( p );
@@ -1504,10 +1497,11 @@ static char *FixupTypes( char *p, unsigned type_count )
     InitTypeHashTables();
     typ = (TYPEPTR)p;
     TypeArray = typ - 1;
-    while( type_count != 0 ) {
-        if( typ->decl_type == TYPE_FUNCTION ) break;
+    for( ; type_count != 0; --type_count ) {
+        if( typ->decl_type == TYPE_FUNCTION )
+            break;
         if( typ->object_index != 0 ) {
-            typ->object = &TypeArray[ typ->object_index ];
+            typ->object = &TypeArray[typ->object_index];
         }
         if( typ->decl_type == TYPE_ARRAY ) {
             array = (struct array_info *)CMemAlloc( sizeof( struct array_info ) );
@@ -1517,15 +1511,14 @@ static char *FixupTypes( char *p, unsigned type_count )
         }
         AddTypeHash( typ );
         ++typ;
-        --type_count;
     }
     parm_list = (union parmtype *)(typ + type_count);
-    while( type_count != 0 ) {
+    for( ; type_count != 0; --type_count ) {
         index = typ->u.fn.parm_index;
-        typ->next_type = FuncTypeHead[ index ];
-        FuncTypeHead[ index ] = typ;
+        typ->next_type = FuncTypeHead[index];
+        FuncTypeHead[index] = typ;
         if( typ->object_index != 0 ) {
-            typ->object = &TypeArray[ typ->object_index ];
+            typ->object = &TypeArray[typ->object_index];
         }
         if( parm_list->type_index == -1 ) {
             typ->u.fn.parms = NULL;
@@ -1533,7 +1526,8 @@ static char *FixupTypes( char *p, unsigned type_count )
             typ->u.fn.parms = (TYPEPTR *)parm_list;
             for( ;; ) {
                 index = parm_list->type_index;
-                if( index == -1 ) break;
+                if( index == -1 )
+                    break;
                 parm_list->parm_typ = TypeArray + index;
                 parm_list++;
             }
@@ -1541,7 +1535,6 @@ static char *FixupTypes( char *p, unsigned type_count )
         }
         parm_list++;
         ++typ;
-        --type_count;
     }
     FixupTypeIndexes( (struct type_indices *)parm_list );
     return( (char *)parm_list + sizeof( struct type_indices ) );
@@ -1555,9 +1548,10 @@ static char *FixupEnums( char *p, TAGPTR parent )
         ep = (ENUMPTR)p;
         p += ep->enum_len;
         ep->parent = parent;            // parent is union'ed with enum_len
-        ep->next_enum = EnumTable[ ep->hash ];
-        EnumTable[ ep->hash ] = ep;
-        if( ep->thread == NULL ) break;
+        ep->next_enum = EnumTable[ep->hash];
+        EnumTable[ep->hash] = ep;
+        if( ep->thread == NULL )
+            break;
         ep->thread = (ENUMPTR)p;
     }
     return( p );
@@ -1574,7 +1568,9 @@ static char *FixupFields( char *p )
         len = field->field_len;
         p += len;
         field->next_field = (FIELDPTR)p;
-        if( len < 0 ) break;
+        if( len < 0 ) {
+            break;
+        }
     }
     field->next_field = NULL;
     p -= len + len;
@@ -1587,7 +1583,7 @@ static void FixupTag( TYPEPTR typ )
     case TYPE_STRUCT:
     case TYPE_UNION:
     case TYPE_ENUM:
-        typ->u.tag = TagArray[ typ->u.tag_index ];
+        typ->u.tag = TagArray[typ->u.tag_index];
         break;
     default:
         break;
@@ -1612,9 +1608,9 @@ static char *FixupTags( char *p, unsigned tag_count )
     }
     tag = NULL;
     prevtag = NULL;
-    while( tag_count != 0 ) {
+    for( ; tag_count != 0; --tag_count ) {
         tag = (TAGPTR)p;
-        TagArray[ tag->tag_index ] = tag;
+        TagArray[tag->tag_index] = tag;
         typ = TypeArray + tag->sym_type_index;
         tag->sym_type = typ;
         len = strlen( tag->name ) + sizeof( TAGDEFN );
@@ -1633,12 +1629,11 @@ static char *FixupTags( char *p, unsigned tag_count )
         }
         tag->next_tag = prevtag;
         prevtag = tag;
-        --tag_count;
     }
-    for( tag = prevtag; tag; tag = nexttag ) {
+    for( tag = prevtag; tag != NULL; tag = nexttag ) {
         nexttag = tag->next_tag;
-        tag->next_tag = TagHash[ tag->hash ];
-        TagHash[ tag->hash ] = tag;
+        tag->next_tag = TagHash[tag->hash];
+        TagHash[tag->hash] = tag;
     }
     FixupTagPointers();
     return( p );
@@ -1679,19 +1674,19 @@ static char *FixupPragmaInfo( char *p, unsigned pragma_count )
     unsigned            index;
     unsigned            len;
 
-    for( index = 0; (info = BuiltinInfos[index]); ++index ) {
+    for( index = 0; (info = BuiltinInfos[index]) != NULL; ++index ) {
         memcpy( info, p, sizeof( struct aux_info ) );
         p = FixupAuxInfo( p, info );
     }
-    if( pragma_count == 0 ) return( p );
+    if( pragma_count == 0 )
+        return( p );
     info_array = (struct aux_info **)
                         CMemAlloc( pragma_count * sizeof( struct aux_info * ) );
     index = 0;
-    while( pragma_count != 0 ) {
+    for( ; pragma_count != 0; --pragma_count ) {
         info = (struct aux_info *)p;
         info_array[index++] = info;
         p = FixupAuxInfo( p, info );
-        --pragma_count;
     }
     AuxList = (struct aux_entry *)p;
     for( ;; ) {
@@ -1699,8 +1694,9 @@ static char *FixupPragmaInfo( char *p, unsigned pragma_count )
         len = sizeof( struct aux_entry ) + strlen( ent->name );
         len = _RoundUp( len, sizeof( int ) );
         p += len;
-        ent->info = info_array[ ent->aux_info_index ];
-        if( ent->next == NULL ) break;
+        ent->info = info_array[ent->aux_info_index];
+        if( ent->next == NULL )
+            break;
         ent->next = (struct aux_entry *)p;
     }
     CMemFree( info_array );
@@ -1712,18 +1708,14 @@ void FixupFNames( void )
 {
     FNAMEPTR    *lnk;
     FNAMEPTR    flist;
-    unsigned    index;
 
-    index = 0;
-    lnk = &FNames;
-    while( (flist = *lnk) != NULL ) {
-        index = flist->index;
-        lnk  = &flist->next;
+    for( lnk = &FNames; (flist = *lnk) != NULL; lnk = &flist->next ) {
+        if( strcmp( flist->name, FNameList->name ) == 0 ) {
+            break;
+        }
     }
     *lnk = FNameList;
     for( flist = FNameList; flist != NULL; flist = flist->next ) {
-        ++index;
-        flist->index = index;
         flist->index_db = -1;
     }
 }
@@ -1743,7 +1735,7 @@ int ValidHeader( struct pheader *pch )
 
 int LoadPreCompiledHeader( char *p, struct pheader *pch )
 {
-    int                 rc;
+    int         rc;
 
     rc = FixupDataStructures( p, pch );
     CMemFree( TagArray );
@@ -1825,14 +1817,12 @@ void AbortPreCompiledHeader( void )
 //      - all the include files are the same and have not been modified
 //========================================================================
 
-int UsePreCompiledHeader( char *filename )
+int UsePreCompiledHeader( const char *filename )
 {
     int                 handle;
     unsigned            len;
     char                *p;
     struct pheader      pch;
-    INCFILE             *ifile;
-    bool                ialias_error;
 
     handle = sopen( PCH_FileName, O_RDONLY | O_BINARY, SH_DENYWR );
     if( handle == -1 ) {
@@ -1873,7 +1863,7 @@ int UsePreCompiledHeader( char *filename )
     len = read( handle, PCH_Macros, pch.macro_size );
     close( handle );
     PCH_SymArray = (SYMPTR *)FEmalloc( pch.symbol_count * sizeof( SYMPTR ) );
-    if( PH_size != pch.size  ||  len != pch.macro_size ) {
+    if( PH_size != pch.size || len != pch.macro_size ) {
         PCHNote( PCHDR_READ_ERROR );
         AbortPreCompiledHeader();
         return( -1 );
@@ -1886,7 +1876,8 @@ int UsePreCompiledHeader( char *filename )
     p = FixupIncludes( p + pch.cwd_len, pch.file_count );
     p = FixupRoDirList( p, pch.rdir_count );
     p = FixupIncAliasList( p, pch.ialias_count );
-    if( VerifyIncludes() ) {
+    if( CompFlags.disable_ialias != pch.disable_ialias || VerifyIncludes( filename ) ) {
+        PCHNote( PCHDR_INCFILE_DIFFERENT );
         AbortPreCompiledHeader();
         return( -1 );
     }
@@ -1899,20 +1890,6 @@ int UsePreCompiledHeader( char *filename )
         return( -1 );
     }
     p = FixupIncFileList( p + len, pch.incfile_count );
-    ifile = IncFileList;
-    ialias_error = (CompFlags.disable_ialias != pch.disable_ialias);
-    if( !CompFlags.disable_ialias && !ForceInclude ) {
-        if( ifile->nextfile == NULL ) {
-            ialias_error = 1;
-        } else {
-            ifile = ifile->nextfile;
-        } 
-    }
-    if( ialias_error || strcmp( filename, ifile->filename ) != 0 ) {
-        PCHNote( PCHDR_INCFILE_DIFFERENT );
-        AbortPreCompiledHeader();
-        return( -1 );                           // can't use PCH
-    }
     if( VerifyMacros( PCH_Macros, pch.macro_count, pch.undef_macro_count ) != 0 ) {
         PCHNote( PCHDR_MACRO_CHANGED );
         AbortPreCompiledHeader();

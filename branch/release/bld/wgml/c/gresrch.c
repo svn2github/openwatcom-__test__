@@ -30,14 +30,15 @@
 
 #define __STDC_WANT_LIB_EXT1__  1      /* use safer C library              */
 
-#include "wgml.h"
 #include <stdarg.h>
+#include "wgml.h"
+#include "gvars.h"
 
 
 typedef struct taglist {
     struct  taglist *   nxt;
     long                count;
-    char                tagname[ 16 ];
+    char                tagname[16];
 } taglist;
 
 static  taglist *   tags = NULL;        // list of found gml tags
@@ -135,14 +136,13 @@ void    add_SCR_tag_research( char * tag )
             wk->count++;
             return;
         }
-        if( !wk->nxt ) {
+        if( wk->nxt == NULL) {
             break;
         }
         wk = wk->nxt;
     }
     new = mem_alloc( sizeof( taglist ) );
     if( wk == NULL ) {
-        wk = new;
         scrkws = new;
     } else {
         wk->nxt = new;
@@ -163,9 +163,8 @@ void    print_SCR_tags_research( void )
 
     printf_research(
         "\nScript controlword / macro list sorted by first occurrence\n\n" );
-    while( wk ) {
+    for( wk = scrkws; wk != NULL; wk = wk->nxt ) {
         printf_research("%6ld  .%s\n", wk->count, wk->tagname );
-        wk= wk->nxt;
     }
 }
 
@@ -186,3 +185,28 @@ void    free_SCR_tags_research( void )
     tags = NULL;
 }
 
+/***************************************************************************/
+/*  testoutput of words belonging to an output line with additional info   */
+/***************************************************************************/
+
+void    test_out_t_line( text_line  * a_line )
+{
+    text_chars  *   tw;
+    char            buf[BUF_SIZE];
+
+    if( a_line == NULL || a_line->first == NULL) {
+        return;
+    }
+
+    tw = a_line->first;
+    out_msg( "\n   y_address:%d     line_height:%d\n", a_line->y_address,
+             a_line->line_height );
+    for( ; tw != NULL; tw = tw->next ) {
+
+        snprintf( buf, buf_size,
+                  "fnt:%d x:%d-%d w:%d cnt:%d type:%x txt:'%.*s'\n",
+                  tw->font_number, tw->x_address, tw->x_address + tw->width,
+                  tw->width, tw->count, tw->type, tw->count, tw->text );
+        out_msg( buf );
+    }
+}

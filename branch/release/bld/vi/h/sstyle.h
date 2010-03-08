@@ -39,14 +39,14 @@
 
 
 /*----- CONSTANTS -----*/
-#define BEYOND_TEXT ( SHRT_MAX )
+#define BEYOND_TEXT     SHRT_MAX
 #define MAX_SS_BLOCKS   200
 
-enum syntax_elements {
+typedef enum syntax_element {
     SE_UNPARSED = -2,   // basically used to flag problems
-    SE_UNUSED = -1, // use to temporarily setup a style
-    SE_TEXT = 0,    // always first
-    SE_WHITESPACE,  // don't mess with order (fonts in .cfg parallel #s)
+    SE_UNUSED = -1,     // use to temporarily setup a style
+    SE_TEXT = 0,        // always first
+    SE_WHITESPACE,      // don't mess with order (fonts in .cfg parallel #s)
     SE_SELECTION,
     SE_EOFTEXT,
     SE_KEYWORD,
@@ -62,56 +62,70 @@ enum syntax_elements {
     SE_COMMENT,
     SE_FLOAT,
     SE_STRING,
-    SE_NUMTYPES,    // always last
-};
+    SE_VARIABLE,
+    SE_REGEXP,
+    SE_NUMTYPES,        // always last
+} syntax_element;
 
 
 /*----- STRUCTURES -----*/
 typedef struct ss_block {
-    signed char type;
-    short   end;
-    short   len;
+    syntax_element  type;
+    short           end;
+    short           len;
 #ifdef __WIN__
     // offset of start of following block
-    int     offset;
+    int             offset;
 #endif
 } ss_block;
 
 typedef struct ss_flags_c {
-    char inCComment:1;
-    char inCPPComment:1;
-    char inString:1;
-    char inPreprocessor:1;
-    char spare:4;
+    unsigned short  inCComment      : 1;
+    unsigned short  inCPPComment    : 1;
+    unsigned short  inString        : 1;
+    unsigned short  inPreprocessor  : 1;
+    unsigned short  inErrorDir      : 1;
+    unsigned short  inIfDir         : 1;
+    unsigned short  inPragmaDir     : 1;
+    unsigned short  inDeclspec      : 1;
+    unsigned short  inDeclspec2     : 1;
+    unsigned short  spare           : 7;
 } ss_flags_c;
 
 typedef struct ss_flags_f {
-    char inString:1;
-    char spare:7;
+    unsigned short  inString    : 1;
+    unsigned short  spare       : 15;
 } ss_flags_f;
 
 typedef struct ss_flags_h {
-    char inHTMLComment:1;
-    char inHTMLKeyword:1;
-    char inAltHTMLKeyword:1;
-    char inString:1;
-    char spare:4;
+    unsigned short  inHTMLComment       : 1;
+    unsigned short  inHTMLKeyword       : 1;
+    unsigned short  inAltHTMLKeyword    : 1;
+    unsigned short  inString            : 1;
+    unsigned short  spare               : 12;
 } ss_flags_h;
 
 typedef struct ss_flags_g {
-    char inGMLComment:1;
-    char inGMLKeyword:1;
-    char inAltGMLKeyword:1;
-    char inString:1;
-    char spare:4;
+    unsigned short  inGMLComment    : 1;
+    unsigned short  inGMLKeyword    : 1;
+    unsigned short  inAltGMLKeyword : 1;
+    unsigned short  inString        : 1;
+    unsigned short  spare           : 12;
 } ss_flags_g;
 
 typedef struct ss_flags_m {
-    char inPreproc:1;
-    char inInlineFile:1;
-    char inMacro:1;
-    char spare:5;
+    unsigned short  inPreproc       : 1;
+    unsigned short  inInlineFile    : 1;
+    unsigned short  inMacro         : 1;
+    unsigned short  spare           : 13;
 } ss_flags_m;
+
+typedef struct ss_flags_p {
+    unsigned short  inString        : 1;
+    unsigned short  beforeRegExp    : 1;
+    unsigned short  doubleRegExp    : 1;
+    unsigned short  spare           : 13;
+} ss_flags_p;
 
 typedef union ss_flags {
     ss_flags_c  c;
@@ -119,23 +133,24 @@ typedef union ss_flags {
     ss_flags_h  h;
     ss_flags_g  g;
     ss_flags_m  m;
+    ss_flags_p  p;
 } ss_flags;
 
 /*----- EXPORTS -----*/
-extern type_style   SEType[ SE_NUMTYPES ];
+extern type_style   SEType[SE_NUMTYPES];
 
 
 /*----- PROTOTYPES -----*/
-void        SSInitLanguageFlags( linenum );
-void        SSInitLanguageFlagsGivenValues( ss_flags * );
-void        SSGetLanguageFlags( ss_flags * );
-bool        SSKillsFlags( char );
-void        SSDifBlock( ss_block *, char *, int, line *, linenum, int * );
-ss_block    *SSNewBlock( void );
-void        SSKillBlock( ss_block * );
-int         SSGetStyle( int, int );
-void        SSInitBeforeConfig( void );
-void        SSInitAfterConfig( void );
-void        SSFini( void );
+void            SSInitLanguageFlags( linenum );
+void            SSInitLanguageFlagsGivenValues( ss_flags * );
+void            SSGetLanguageFlags( ss_flags * );
+bool            SSKillsFlags( char );
+void            SSDifBlock( ss_block *, char *, int, line *, linenum, int * );
+ss_block        *SSNewBlock( void );
+void            SSKillBlock( ss_block * );
+syntax_element  SSGetStyle( int, int );
+void            SSInitBeforeConfig( void );
+void            SSInitAfterConfig( void );
+void            SSFini( void );
 
 #endif

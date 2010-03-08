@@ -24,8 +24,7 @@
 *
 *  ========================================================================
 *
-* Description:  WHEN YOU FIGURE OUT WHAT THIS FILE DOES, PLEASE
-*               DESCRIBE IT HERE!
+* Description:  DDE Spy master include.
 *
 ****************************************************************************/
 
@@ -45,7 +44,7 @@
 #include "toolbr.h"
 #include "mark.h"
 #ifndef NOUSE3D
- #include "ctl3d.h"
+ #include "ctl3dcvr.h"
 #endif
 #include "rcstr.gh"
 #include "ldstr.h"
@@ -55,6 +54,7 @@
 
 #define RCSTR_MAX_LEN   500
 #define DDE_HELP_FILE   "ddespy.hlp"
+#define DDE_CHM_FILE    "ddespy.chm"
 #define HELP_HELP_FILE  "winhelp.hlp"
 #define TRACKING_CLASS  "WDDE_TRACKING_CLASS"
 

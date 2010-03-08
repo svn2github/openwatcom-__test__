@@ -78,9 +78,7 @@ static unsigned DoAccess( void )
         _DBG_Writeln( "GetPacket" );
         len = GetPacket();
         left = len;
-        i = 0;
-        for( ;; ) {
-            if( i >= Out_Mx_Num ) break;
+        for( i = 0; i < Out_Mx_Num && left > 0; ++i ) {
             if( left > Out_Mx_Ptr[i].len ) {
                 piece = Out_Mx_Ptr[i].len;
             } else {
@@ -88,9 +86,7 @@ static unsigned DoAccess( void )
             }
             _DBG_Writeln( "RemovePacket" );
             RemovePacket( piece, Out_Mx_Ptr[i].ptr );
-            i++;
             left -= piece;
-            if( left == 0 ) break;
         }
     } else {
         len = 0;
@@ -107,7 +103,7 @@ unsigned ReqGet_sys_config( void )
 
     if( !TaskLoaded ) {
         ret = GetOutPtr(0);
-        ret->sys.os = OS_PHARLAP;
+        ret->sys.os = OS_IDUNNO;
         ret->sys.osmajor = 0;
         ret->sys.osminor = 0;
         ret->sys.fpu = X86_NO;
@@ -352,24 +348,23 @@ unsigned ReqProg_load( void )
     _DBG_EnterFunc( "AccLoadProg()" );
     ret = GetOutPtr( 0 );
     src = name = GetInPtr( sizeof( prog_load_req ) );
-    rc = FindFilePath( src, (char *)buffer, DosXExtList );
-    endparm = LinkParm + strlen( LinkParm ) + 1;
+    rc = FindFilePath( src, buffer, DosXExtList );
+    endparm = LinkParm;
+    while( *endparm++ != '\0' ) {}      // skip program name
     strcpy( endparm, buffer );
     err = RemoteLink( LinkParm, 0 );
     if( err != NULL ) {
         _DBG_Writeln( "Can't RemoteLink" );
-        TinyWrite( 2, err, strlen( err ) );
+        TinyWrite( TINY_ERR, err, strlen( err ) );
         LoadError = err;
         ret->err = 1;
         len = 0;
     } else {
-        while( *src != '\0' ) ++src;
-        if( rc == 0 ) {
-            ++src;
-            len = GetTotalSize() - (src - name) - sizeof( prog_load_req );
+        if( TINY_OK( rc ) ) {
+            while( *src++ != '\0' ) {}
+            len = GetTotalSize() - ( src - name ) - sizeof( prog_load_req );
             dst = (char *)buffer;
-            while( *dst != '\0' ) ++dst;
-            ++dst;
+            while( *dst++ != '\0' ) {};
             memcpy( dst, src, len );
             dst += len;
             _DBG_Writeln( "StartPacket" );
@@ -383,7 +378,7 @@ unsigned ReqProg_load( void )
             _DBG_Writeln( "GetPacket" );
             len = GetPacket();
             _DBG_Writeln( "RemovePacket" );
-            RemovePacket( sizeof( *ret ), (char*)ret );
+            RemovePacket( sizeof( *ret ), ret );
         } else {
             len = DoAccess();
         }
@@ -401,7 +396,7 @@ unsigned ReqProg_load( void )
                 _DBG_Writeln( "StartPacket" );
                 StartPacket();
                 _DBG_Writeln( "AddPacket" );
-                AddPacket( sizeof( erracc ), (char*)&erracc );
+                AddPacket( sizeof( erracc ), &erracc );
                 _DBG_Writeln( "PutPacket" );
                 PutPacket();
                 _DBG_Writeln( "GetPacket" );
@@ -418,7 +413,7 @@ unsigned ReqProg_load( void )
             _DBG_Writeln( "StartPacket" );
             StartPacket();
             _DBG_Writeln( "AddPacket" );
-            AddPacket( sizeof( killacc ), (char*)&killacc );
+            AddPacket( sizeof( killacc ), &killacc );
             _DBG_Writeln( "PutPacket" );
             PutPacket();
             _DBG_Writeln( "GetPacket" );

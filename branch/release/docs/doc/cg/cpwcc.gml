@@ -1979,6 +1979,41 @@ fixed foo()
 See the chapters entitled :HDREF refid='prg86'. and
 :HDREF refid='prg386'. for more information on pragmas.
 .*
+.note __int8
+.ix 'keywords' '__int8'
+&product supports the
+.kwm __int8
+keyword to define 8-bit integer data objects.
+.exam begin
+static __int8 smallInt;
+.exam end
+.np
+Also supported are signed and unsigned 8-bit integer constants.  The
+.kwm __int8
+data type will be unsigned by default if the compiler is invoked with the -j switch.
+.*
+.note __int16
+.ix 'keywords' '__int16'
+&product supports the
+.kwm __int16
+keyword to define 16-bit integer data objects.
+.exam begin
+static __int16 shortInt;
+.exam end
+.np
+Also supported are signed and unsigned 16-bit integer constants.
+.*
+.note __int32
+.ix 'keywords' '__int32'
+&product supports the
+.kwm __int32
+keyword to define 32-bit integer data objects.
+.exam begin
+static __int32 longInt;
+.exam end
+.np
+Also supported are signed and unsigned 32-bit integer constants.
+.*
 .note __int64
 .ix 'keywords' '__int64'
 &product supports the
@@ -2136,11 +2171,12 @@ where
 .id segment
 is the name of the segment in which the pointer or object is based.
 As shown above, the segment name is always specified as a string.
-There are three special segment names recognized by the compiler:
+There are four special segment names recognized by the compiler:
 .millust begin
 "_CODE"
 "_CONST"
 "_DATA"
+"_STACK"
 .millust end
 .pc
 The
@@ -2152,7 +2188,10 @@ segment is the segment containing constant values.
 The
 .mono "_DATA"
 segment is the default data segment.
-If the segment name is not one of the three recognized names, then a
+The
+.mono "_STACK"
+segment is the segment containing the stack.
+If the segment name is not one of the recognized names, then a
 segment will be created with that name.
 If a segment constant based object is being defined, then it will be
 placed in the named segment.

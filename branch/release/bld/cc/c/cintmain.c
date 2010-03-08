@@ -35,6 +35,7 @@
 #if defined( __DOS__ ) || defined( __OS2__ ) || defined( __NT__ )
   #include <process.h>
 #endif
+#include "errout.h"
 #ifdef __OSI__
   #include "ostype.h"
 #endif
@@ -108,6 +109,13 @@ extern void ConsErrMsg( cmsg_info  *info ){
     FmtCMsg( pre, info );
     fputs( pre, errout );
     fputs( info->msgtxt, errout );
+    fputc( '\n', errout );
+    fflush( errout );
+}
+
+extern void ConsErrMsgVerbatim( char const  *line ){
+// C compiler call back to do a print to stderr
+    fputs( line, errout );
     fputc( '\n', errout );
     fflush( errout );
 }

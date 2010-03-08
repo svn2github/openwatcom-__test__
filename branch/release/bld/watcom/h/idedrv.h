@@ -32,10 +32,16 @@
 #ifndef __IDEDRV_H__
 #define __IDEDRV_H__
 
-#if defined(__UNIX__)
-#define errout  stderr
-#else
-#define errout  stdout
+#if defined( CHAIN_CALLBACK )
+#define IdeDrvExecDLL           _IdeDrvExecDLL
+#define IdeDrvExecDLLArgv       _IdeDrvExecDLLArgv
+#define IdeDrvInit              _IdeDrvInit
+#define IdeDrvPrintError        _IdeDrvPrintError
+#define IdeDrvUnloadDLL         _IdeDrvUnloadDLL
+#define IdeDrvStopRunning       _IdeDrvStopRunning
+#define IdeDrvChainCallbacks    _IdeDrvChainCallbacks
+#define IdeDrvGetCallbacks      _IdeDrvGetCallbacks
+#define IdeDrvSetCallbacks      _IdeDrvSetCallbacks
 #endif
 
 #define __IDEDRV \

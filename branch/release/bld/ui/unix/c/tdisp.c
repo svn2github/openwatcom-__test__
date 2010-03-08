@@ -47,6 +47,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 #include <assert.h>
 #ifdef _AIX
     #define _HAS_NO_CHAR_BIT_FIELDS
@@ -80,9 +81,6 @@
 #include "qnxuiext.h"
 
 #include "tixparse.h"
-#ifndef __WATCOMC__
-#include "clibext.h"
-#endif
 #include "walloca.h"
 
 #ifdef AIX
@@ -862,8 +860,8 @@ static bool intern ti_initconsole( void )
     return( TRUE );
 }
 
-int intern initmonitor( void )
-/****************************/
+bool intern initmonitor( void )
+/*****************************/
 {
     struct sigaction sa;
 
@@ -960,7 +958,7 @@ static int ti_init( void )
 
     tmp= getenv( "TIOPTIMIZE" );
     if( tmp!=NULL ){
-        OptimizeTerminfo= (stricmp( tmp, "no" )!=0);
+        OptimizeTerminfo= (strcasecmp( tmp, "no" )!=0);
     }
 
     // Figure out the number of columns to use

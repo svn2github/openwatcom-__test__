@@ -41,25 +41,14 @@
 #include "wwindow.hpp"
 #include "wkeydefs.hpp"
 
-#define DEFAULT_EDITOR_NAME             "weditviw"
-#define DEFAULT_EDITOR_IS_DLL           TRUE
-#define DEFAULT_EDITOR_PARMS            ""
-
-#define DBCS_DEFAULT_EDITOR_NAME        "notepad"
-#define DBCS_DEFAULT_EDITOR_IS_DLL      FALSE
-#define DBCS_DEFAULT_EDITOR_PARMS       "%f"
-
-#define OS2_DEFAULT_EDITOR_NAME         "epmlink"
-#define OS2_DEFAULT_EDITOR_IS_DLL       TRUE
-#define OS2_DEFAULT_EDITOR_PARMS        ""
-
 #define LOG_HELP_WIDTH 3
 
 //these are used for indexing by MConfig::zapTargetMasks()
 typedef enum HostType {
     #undef pick
-    #define pick(a,b) a,
+    #define pick(enum,type,batchserv,editor,DLL,parms) enum,
     #include "hosttype.h"
+    HOST_UNDEFINED
 } HostType;
 
 WCLASS MTool;
@@ -68,7 +57,7 @@ WCLASS MConfig : public WObject
 {
     Declare( MConfig )
     public:
-        MConfig( WFileName& filename, bool debug=FALSE );
+        MConfig( WFileName& filename, bool debug=FALSE, HostType host=HOST_UNDEFINED );
         ~MConfig();
         bool ok() { return _ok; }
         const WString& errMsg() { return _errMsg; }
@@ -95,6 +84,7 @@ WCLASS MConfig : public WObject
         WFileName& browseMerge() { return _browseMerge; }
         WFileName& batserv() { return _batserv; }
         WFileName& helpFile() { return _helpFile; }
+        WFileName& htmlHelpFile() { return _htmlHelpFile; }
         const char* fileFilters() { return _fileFilters; }
         const MCommand& before() const { return _before; }
         const MCommand& after() const { return _after; }
@@ -103,6 +93,7 @@ WCLASS MConfig : public WObject
         bool debug() { return _debug; }
         WVList& logScanPatterns() { return _logScanPatterns; }
         WVList& logHelpFiles() { return _logHelpFiles; }
+        WVList& logHtmlHelpFiles() { return _logHtmlHelpFiles; }
         int version() { return _version; }
         void setKludge( int k ) { _kludge = k; }
         void kludgeString( WString& str );
@@ -130,6 +121,7 @@ WCLASS MConfig : public WObject
         WFileName       _browseMerge;
         WFileName       _batserv;
         WFileName       _helpFile;
+        WFileName       _htmlHelpFile;
         MCommand        _before;
         MCommand        _after;
         char*           _fileFilters;
@@ -139,6 +131,7 @@ WCLASS MConfig : public WObject
         void configMsgLog( WTokenFile& fil, WString& tok );
         WVList          _logScanPatterns;
         WVList          _logHelpFiles;
+        WVList          _logHtmlHelpFiles;
         void configProject( WTokenFile& fil, WString& tok );
         void addRules( WFileName& srcMask, WFileName& tgtMask, WVList& list, WString& tagMask );
         bool readFile( const WFileName& filename, bool reqd=TRUE );

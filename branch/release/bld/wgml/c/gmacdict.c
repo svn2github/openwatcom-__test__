@@ -25,13 +25,10 @@
 *  ========================================================================
 *
 * Description:  Implements script macros (tables and access routines)
-*               still incomplete
+*
 ****************************************************************************/
 
 #define __STDC_WANT_LIB_EXT1__  1      /* use safer C library              */
-
-#include <stdarg.h>
-#include <errno.h>
 
 #include "wgml.h"
 #include "gvars.h"
@@ -48,6 +45,27 @@ void    init_macro_dict( mac_entry * * dict )
     return;
 }
 
+
+/***************************************************************************/
+/*  add_macro_entry   add macro entry to dictionary                        */
+/***************************************************************************/
+
+void    add_macro_entry( mac_entry * * dict, mac_entry * me )
+{
+    mac_entry   *   wk;
+
+    if( *dict == NULL ) {           // empty dictionary
+        *dict = me;
+    } else {
+        wk = *dict;
+        while( wk->next != NULL ) { // search last entry in dictionary
+            wk = wk->next;
+        }
+        wk->next = me;
+    }
+}
+
+
 /***************************************************************************/
 /*  free_macro_entry_short  free storage for a macro entry                 */
 /*  without chain update                                                   */
@@ -57,13 +75,23 @@ static  void    free_macro_entry_short( mac_entry * me )
 {
     inp_line    *   ml;
     inp_line    *   mln;
+    labelcb     *   cb;
 
     if( me != NULL ) {
+        cb = me->label_cb;
+        if( GlobalFlags.research ) {
+            print_labels( cb );         // print label info
+        }
+        while( cb != NULL ) {
+            me->label_cb = cb->prev;
+            mem_free( cb );
+            cb = me->label_cb;
+        }
         ml = me->macline;
         while( ml != NULL ) {           // free all macro lines
-             mln = ml->next;
-             mem_free( ml );
-             ml = mln;
+            mln = ml->next;
+            mem_free( ml );
+            ml = mln;
         }
         mem_free( me );                 // now the entry itself
     }
@@ -73,15 +101,24 @@ static  void    free_macro_entry_short( mac_entry * me )
 /***************************************************************************/
 /*  free_macro_entry  delete single macroentry with chain update           */
 /***************************************************************************/
-void    free_macro_entry( mac_entry * me, mac_entry * * dict )
+void    free_macro_entry( mac_entry * * dict, mac_entry * me )
 {
     inp_line    *   ml;
     inp_line    *   mln;
     mac_entry   *   wk;
     mac_entry   *   wkn;
-
+    labelcb     *   cb;
 
     if( me != NULL ) {
+        cb = me->label_cb;
+        if( GlobalFlags.research ) {
+            print_labels( cb );         // print label info
+        }
+        while( cb != NULL ) {
+            me->label_cb = cb->prev;
+            mem_free( cb );
+            cb = me->label_cb;
+        }
         ml = me->macline;
         while( ml != NULL ) {           // free all macro lines
              mln = ml->next;
@@ -154,21 +191,28 @@ mac_entry   * find_macro( mac_entry * dict, const char * name )
 /*  print_macro_dict  output all of the macro dictionary                   */
 /***************************************************************************/
 
-void    print_macro_dict( mac_entry * dict )
+void    print_macro_dict( mac_entry * dict, bool with_mac_lines )
 {
     mac_entry           *   wk;
     int                     cnt;
     int                     len;
-    static  const   char    fill[ 10 ] = "         ";
+    inp_line            *   ml;
+    int                     lc;
+    static  const   char    fill[10] = "         ";
+
     cnt = 0;
     wk = dict;
-    out_msg( "\nList of defined macros:\n" );
-    while( wk != NULL ) {
+    out_msg( "\nList of defined macros:\n\n" );
+    for( wk = dict; wk != NULL; wk = wk->next ) {
 
         len =  strlen( wk->name );
         out_msg( "Macro='%s'%sdefined line %d file '%s'\n", wk->name,
-                &fill[ len ], wk->lineno, wk->mac_file_name );
-        wk = wk->next;
+                &fill[len], wk->lineno, wk->mac_file_name );
+        if( with_mac_lines ) {
+            for( ml = wk->macline, lc = 1; ml != NULL; ml = ml->next, lc++ ) {
+                out_msg("%+.3d %s\n", lc, ml->value );
+            }
+        }
         cnt++;
     }
     out_msg( "\nTotal macros defined: %d\n", cnt );

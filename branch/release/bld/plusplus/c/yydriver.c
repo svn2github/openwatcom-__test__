@@ -651,6 +651,7 @@ static SCOPE checkColonColon( PTREE id, SCOPE scope, SCOPE not_nested,
             CErr2p( ERR_CLASS_NOT_DEFINED, name );
             id_type = NULL;
         } else {
+            id_type = class_type;
             scope = class_type->u.c.scope;
             id_scope = scope;
         }
@@ -2850,6 +2851,8 @@ DECL_INFO *ReparseFunctionDeclaration( REWRITE *defn )
 
     newExprStack( &decl_state, Y_FUNCTION_DECL_SPECIAL );
     syncLocation();
+    pushDefaultDeclSpec( &decl_state );
+
     /* do parse */
     for(;;) {
         do {

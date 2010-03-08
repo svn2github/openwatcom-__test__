@@ -209,6 +209,7 @@ positive_tests = &
     bool01.$(ext) &
     bool02.$(ext) &
     bool03.$(ext) &
+    bool04.$(ext) &
     cdisp1.$(ext) &
     cdisp2.$(ext) &
     cdisp3.$(ext) &
@@ -505,6 +506,7 @@ positive_tests = &
     inline04.$(ext) &
     inline05.$(ext) &
     inline06.$(ext) &
+    int01.$(ext) &
     intel01.$(ext) &
     io01.$(ext) &
     io02.$(ext) &
@@ -694,6 +696,7 @@ positive_tests = &
     over12.$(ext) &
     over13.$(ext) &
     over14.$(ext) &
+    over15.$(ext) &
     pack1.$(ext) &
     pack2.$(ext) &
     pack3.$(ext) &

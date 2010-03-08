@@ -1306,7 +1306,11 @@ void TemplateFunctionAttachDefn( DECL_INFO *dinfo )
     r = dinfo->body;
     dinfo->body = NULL;
     fn_templ = sym->u.defn;
-    DbgAssert( fn_templ != NULL );
+    if( fn_templ == NULL ) {
+        CErr2p( ERR_UNMATCHED_FUNCTION_TEMPLATE_DEFN, sym );
+        RewriteFree( r );
+        return;
+    }
     DbgAssert( ScopeType( GetCurrScope(), SCOPE_TEMPLATE_DECL ) );
 
     if( fn_templ->decl_scope != GetCurrScope() ) {
@@ -1462,7 +1466,7 @@ static DECL_INFO *attemptGen( arg_list *args, SYMBOL fn_templ,
                                       num_explicit );
         }
 
-        if( ( fn_type != NULL) && bound ) {
+        if( ( fn_type != NULL ) && bound ) {
             /* just reparse the function declaration once more to get
              * the bound type */
             save_scope = GetCurrScope();
@@ -1475,6 +1479,26 @@ static DECL_INFO *attemptGen( arg_list *args, SYMBOL fn_templ,
                 VerifySpecialFunction( ScopeNearestNonTemplate( parm_scope ),
                                        dinfo );
                 *templ_parm_scope = parm_scope;
+
+                if( dinfo->name == CppConstructorName() ) {
+                    // we need a special check here so we don't run
+                    // into an infinite recursion when generating a
+                    // copy-constructor taking it's own class type as
+                    // the parameter
+                    TYPE fn_type;
+
+                    fn_type = FunctionDeclarationType( dinfo->sym->sym_type );
+                    if( fn_type->u.f.args->num_args == 1 ) {
+                        TYPE fn_arg = fn_type->u.f.args->type_list[ 0 ];
+
+                        if( ( fn_type->of->id == TYP_POINTER ) &&
+                            ( fn_arg == fn_type->of->of ) ) {
+                            FreeDeclInfo( dinfo );
+                            fn_type = NULL;
+                            dinfo = NULL;
+                        }
+                    }
+                }
             }
 
             ScopeAdjustUsing( GetCurrScope(), save_scope );

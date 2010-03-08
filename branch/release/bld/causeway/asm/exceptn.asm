@@ -1,6 +1,6 @@
         .386P
 
-_Excep  segment para public 'code' use16
+_Excep  segment para public 'Exception code' use16
         assume cs:_Excep, ds:_Excep, es:nothing
 ExcepStart      label byte
 
@@ -879,7 +879,7 @@ exc20_Use16Bit678:
         ;
         mov     ebp,esp         ;make stack addresable.
         ;
-        ;Now modify origional CS:EIP,SS:ESP values and return control
+        ;Now modify original CS:EIP,SS:ESP values and return control
         ;to this code via interupt structure to restore stacks.
         ;
         test    BYTE PTR SystemFlags,1
@@ -941,18 +941,17 @@ DebugSegmentDPMI proc near
         mov     ax,fs
         movzx   eax,ax
         lsl     eax,eax
-        cmp     eax,(size PSP_Struc)+(size EPSP_Struc.EPSP_Struc)
+        cmp     eax,size EPSP_Struc
         pop     eax
         jc      exc21_9
         ;
         mov     dx,ax
-        cmp     ax,WORD PTR fs:[EPSP_Struc.EPSP_SegBase]        ;inside application selector space?
+        cmp     ax,WORD PTR fs:[EPSP_Struc.EPSP_SegBase]    ;inside application selector space?
         jc      exc21_9
-        mov     cx,WORD PTR fs:[EPSP_Struc.EPSP_SegSize]
-;       shl     cx,3            ;8 bytes per selector.
-        add     cx,WORD PTR fs:[EPSP_Struc.EPSP_SegBase]        ;add in base selector.
+        mov     cx,WORD PTR fs:[EPSP_Struc.EPSP_SegSize]    ;8 bytes per selector.
+        add     cx,WORD PTR fs:[EPSP_Struc.EPSP_SegBase]    ;add in base selector.
         cmp     ax,cx
-        jnc     exc21_9         ;outside application startup selectors.
+        jnc     exc21_9                                     ;outside application startup selectors.
         mov     bx,dx
         push    cx
         push    dx
@@ -963,12 +962,12 @@ DebugSegmentDPMI proc near
         mov     ax,dx
         pop     dx
         pop     cx
-        sub     eax,DWORD PTR fs:[EPSP_Struc.EPSP_MemBase]      ;get offset within application.
+        sub     eax,DWORD PTR fs:[EPSP_Struc.EPSP_MemBase]  ;get offset within application.
         mov     ebx,eax
 exc21_9:
         pop     fs
         pop     ds
-        mov     [edi],ebx               ;store generated value.
+        mov     [edi],ebx                                   ;store generated value.
         assume ds:_Excep
         ret
 DebugSegmentDPMI endp
@@ -1857,8 +1856,8 @@ exc22_LookLoop:
         push    esi
         mov     ebp,ResNum              ;get number of entries.
         mov     edi,esi
-        add     esi,ResHead+ResNum
-        add     edi,ResHead
+        add     esi,size ResHead + ResNum
+        add     edi,size ResHead
 exc22_r0:
         cmp     BYTE PTR es:[edi],Res_PSP
         jz      exc22_r1_0
@@ -1913,7 +1912,6 @@ exc22_Use32It:
         add     edi,2
         mov     b[edi],' '
         inc     edi
-
         inc     TotalSelectors
 
 
@@ -1930,8 +1928,8 @@ exc22_s2:
         push    esi
         mov     ebp,ResNum              ;get number of entries.
         mov     edi,esi
-        add     esi,ResHead+ResNum
-        add     edi,ResHead
+        add     esi,size ResHead + ResNum
+        add     edi,size ResHead
 exc22_s0:
         cmp     BYTE PTR es:[edi],Res_MEM       ;Anything here?
         jnz     exc22_s1
@@ -1961,11 +1959,9 @@ exc22_s1:
         dec     ebp
         jnz     exc22_s0
         pop     esi
-        mov     esi,es:[esi+8]  ;link to next list.
+        mov     esi,es:[esi+ResHead_Next]   ;link to next list.
         or      esi,esi
         jnz     exc22_s2
-
-
         ;
         ;Have a look in the MCB list.
         ;
@@ -2018,7 +2014,7 @@ exc22_r5:
         mov     bx,WORD PTR fs:[EPSP_Struc.EPSP_SegBase]
         cmp     ax,bx
         jc      exc22_r2
-        mov     bx,WORD PTR fs:[EPSP_Struc.EPSP_SegSize]
+        mov     bx,WORD PTR fs:[EPSP_Struc.EPSP_SegSize]    ;8 bytes per selector.
         add     bx,WORD PTR fs:[EPSP_Struc.EPSP_SegBase]
         cmp     ax,bx
         jnc     exc22_r2
@@ -2055,12 +2051,10 @@ exc22_r1:
         dec     ebp
         jnz     exc22_r0
         pop     edi
-        mov     esi,es:[edi+8]  ;link to next list.
+        mov     esi,es:[edi+ResHead_Next]  ;link to next list.
         or      esi,esi
         jnz     exc22_LookLoop
         ;
-
-
         mov     edi,offset TotalSelsNum
         mov     eax,TotalSelectors
         mov     ecx,4
@@ -2070,11 +2064,6 @@ exc22_r1:
         mov     ah,40h
         mov     ebx,d[exc22_Handle]
         int     21h
-
-
-
-
-
         ;
         ;Now do memory blocks.
         ;
@@ -2093,8 +2082,8 @@ exc22_mLookLoop:
         push    esi
         mov     ebp,ResNum              ;get number of entries.
         mov     edi,esi
-        add     esi,ResHead+ResNum
-        add     edi,ResHead
+        add     esi,size ResHead + ResNum
+        add     edi,size ResHead
 exc22_m0:
         cmp     BYTE PTR es:[edi],Res_MEM
         jnz     exc22_m1
@@ -2180,7 +2169,6 @@ exc22_MEM:
         int     21h
         pop     es
         popad
-
         ;
 exc22_m1:
         add     esi,4
@@ -2188,13 +2176,9 @@ exc22_m1:
         dec     ebp
         jnz     exc22_m0
         pop     edi
-        mov     esi,es:[edi+8]  ;link to next list.
+        mov     esi,es:[edi+ResHead_Next]   ;link to next list.
         or      esi,esi
         jnz     exc22_mLookLoop
-
-
-
-
         ;
         ;Now print MCB controlled blocks.
         ;
@@ -2300,12 +2284,6 @@ exc22_nomcbdis:
         mov     ah,40h
         mov     ebx,d[exc22_Handle]
         int     21h
-
-
-
-
-
-
         ;
         ;Now do lock details.
         ;
@@ -2320,8 +2298,8 @@ exc22_lLookLoop:
         push    esi
         mov     ebp,ResNum              ;get number of entries.
         mov     edi,esi
-        add     esi,ResHead+ResNum
-        add     edi,ResHead
+        add     esi,size ResHead + ResNum
+        add     edi,size ResHead
 exc22_l0:
         cmp     BYTE PTR es:[edi],Res_LOCK
         jnz     exc22_l1
@@ -2359,11 +2337,9 @@ exc22_l1:
         dec     ebp
         jnz     exc22_l0
         pop     edi
-        mov     esi,es:[edi+8]  ;link to next list.
+        mov     esi,es:[edi+ResHead_Next]   ;link to next list.
         or      esi,esi
         jnz     exc22_lLookLoop
-
-
         ;
         ;Now do DOS memory details.
         ;
@@ -2378,8 +2354,8 @@ exc22_dmLookLoop:
         push    esi
         mov     ebp,ResNum              ;get number of entries.
         mov     edi,esi
-        add     esi,ResHead+ResNum
-        add     edi,ResHead
+        add     esi,size ResHead + ResNum
+        add     edi,size ResHead
 exc22_dm0:
         cmp     BYTE PTR es:[edi],Res_DOSMEM
         jnz     exc22_dm1
@@ -2429,16 +2405,12 @@ exc22_dm1:
         dec     ebp
         jnz     exc22_dm0
         pop     edi
-        mov     esi,es:[edi+8]  ;link to next list.
+        mov     esi,es:[edi+ResHead_Next]   ;link to next list.
         or      esi,esi
         jnz     exc22_dmLookLoop
-
-
-
-
+        ;
         cmp     DWORD PTR fs:[EPSP_Struc.EPSP_INTMem],0
         jz      exc22_r8
-
         ;
         ;Now do protected mode int details.
         ;
@@ -2612,9 +2584,6 @@ exc22_ri1:
         add     esi,4
         inc     ebx
         loop    exc22_ri0
-
-
-
         ;
         ;Now do call-back details.
         ;
@@ -2629,8 +2598,8 @@ exc22_cbLookLoop:
         push    esi
         mov     ebp,ResNum              ;get number of entries.
         mov     edi,esi
-        add     esi,ResHead+ResNum
-        add     edi,ResHead
+        add     esi,size ResHead + ResNum
+        add     edi,size ResHead
 exc22_cb0:
         cmp     BYTE PTR es:[edi],Res_CALLBACK
         jnz     exc22_cb1
@@ -2676,10 +2645,9 @@ exc22_cb1:
         dec     ebp
         jnz     exc22_cb0
         pop     edi
-        mov     esi,es:[edi+8]  ;link to next list.
+        mov     esi,es:[edi+ResHead_Next]   ;link to next list.
         or      esi,esi
         jnz     exc22_cbLookLoop
-
         ;
         ;Print mouse event target details.
         ;
@@ -2693,7 +2661,6 @@ exc22_cb1:
         mov     ecx,eax
         or      ecx,ebx
         jz      exc22_r8
-
         push    eax
         push    ebx
         mov     edx,offset MouseEHeader

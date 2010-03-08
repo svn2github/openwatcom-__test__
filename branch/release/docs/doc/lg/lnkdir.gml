@@ -6,6 +6,14 @@
 .if &*$$fnd. ne 0 .do begin
 .   .sr *$$sys=&*$$sys., DOS
 .do end
+.se *$$fnd=&'wordpos('zdos',&*,3)
+.if &*$$fnd. ne 0 .do begin
+.   .sr *$$sys=&*$$sys., ZDOS
+.do end
+.se *$$fnd=&'wordpos('raw',&*,3)
+.if &*$$fnd. ne 0 .do begin
+.   .sr *$$sys=&*$$sys., RAW
+.do end
 .se *$$fnd=&'wordpos('elf',&*,3)
 .if &*$$fnd. ne 0 .do begin
 .   .sr *$$sys=&*$$sys., ELF
@@ -135,6 +143,7 @@
 .dir forcevector        ldforcev.gml    dos
 .do end
 .dir format             ldformat.gml    all
+.dir fullheader         opfullh.gml     dos
 .dir heapsize           opheap.gml      os2 qnx win16 win32
 .dir help               ophelp.gml      netware
 .dir hshift             ophshift.gml    dos os2 qnx win16
@@ -183,7 +192,7 @@
 .do end
 .dir objalign           opobjali.gml    elf win32
 .dir oldlibrary         opoldlib.gml    os2 win16 win32
-.dir offset             opoffset.gml    elf os2 pharlap qnx win32
+.dir offset             opoffset.gml    elf os2 pharlap qnx win32 raw
 .dir oneautodata        oponeaut.gml    os2 win16
 .dir option             ldoption.gml    all
 .dir optlib             ldoptlib.gml    all
@@ -205,6 +214,7 @@
 .dir redefsok           opredefs.gml    all
 .dir reentrant          opreentr.gml    netware
 .dir reference          ldrefere.gml    all
+.dir resource           ldresour.gml    win32
 .dir resource           opresour.gml    os2 qnx win16 win32
 .dir runtime            ldruntim.gml    pharlap win32 elf
 .dir rwreloccheck       oprwrelo.gml    win16

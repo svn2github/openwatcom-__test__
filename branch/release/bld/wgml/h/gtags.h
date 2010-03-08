@@ -25,108 +25,112 @@
 *  ========================================================================
 *
 * Description:  WGML GML tags definition header.
-*               only uncommented tags are processed so far
+*               only tags with a routinename other than gml_dummy
+*               are processed so far (not always complete)
 *
+*    layout tags are defined in gtagslay.h
+*
+*    :cmt :imbed :include   are defined here and in layout tags identically
+*    other tags for example :abstract are defined differently
 ****************************************************************************/
 
-#ifndef pick
-    #error macro pick not defined
+#ifndef pickg
+    #error macro pickg not defined
 #endif
-//       tagname     tagname  routinename     flags
-//                   length
+//       tagname  tagname  routinename     flags
+//                length
 
-//pick( "ABSTRACT",   8,      gml_abstract,
-//pick( "ADDRESS",    7,      gml_address,
-//pick( "ALINE",      5,      gml_aline,
-//pick( "APPENDIX",   8,      gml_appendix,
-//pick( "AUTHOR",     6,      gml_author,
-//pick( "BACKM",      5,      gml_backm,
-//pick( "BINCLUDE",   8,      gml_binclude,
-//pick( "BODY",       5,      gml_body,
-//pick( "CIT",        3,      gml_cit,
-  pick( "CMT",        3,      gml_cmt,        tag_only        )
-//pick( "DATE",       4,      gml_date,
-//pick( "DD",         2,      gml_dd,
-//pick( "DDHD",       4,      gml_ddhd,
-//pick( "DL",         2,      gml_dl,
-//pick( "DOCNUM",     6,      gml_docnum,
-//pick( "DT",         2,      gml_dt,
-//pick( "DTHD",       4,      gml_dthd,
-//pick( "EADDRESS",   8,      gml_eaddress,
-//pick( "ECIT",       4,      gml_ecit,
-//pick( "EDL",        3,      gml_edl,
-//pick( "EFIG",       4,      gml_efig,
-//pick( "EFN",        3,      gml_efn,
-//pick( "EGDOC",      5,      gml_egdoc,
-//pick( "EGL",        3,      gml_egl,
-//pick( "EHP0",       4,      gml_ehp0,
-//pick( "EHP1",       4,      gml_ehp1,
-//pick( "EHP2",       4,      gml_ehp2,
-//pick( "EHP3",       4,      gml_ehp3,
-//pick( "ELAYOUT",    7,      gml_elayout,
-//pick( "ELQ",        3,      gml_elq,
-//pick( "EOL",        3,      gml_eol,
-//pick( "EPSC",       4,      gml_epsc,
-//pick( "EQ",         2,      gml_eq,
-//pick( "ESF",        3,      gml_esf,
-//pick( "ESL",        3,      gml_esl,
-//pick( "ETITLEP",    7,      gml_etitlep,
-//pick( "EUL",        3,      gml_eul,
-//pick( "EXMP",       4,      gml_exmp,
-//pick( "FIG",        3,      gml_fig,
-//pick( "FIGCAP",     6,      gml_figcap,
-//pick( "FIGDESC",    7,      gml_figdesc,
-//pick( "FIGLIST",    7,      gml_figlist,
-//pick( "FIGREF",     6,      gml_figref,
-//pick( "FN",         2,      gml_fn,
-//pick( "FNREF",      5,      gml_fnref,
-//pick( "FRONTM",     6,      gml_frontm,
-//pick( "GDOC",       4,      gml_gdoc,
-//pick( "GL",         2,      gml_gl,
-//pick( "GD",         2,      gml_gd,
-//pick( "GRAPHIC",    7,      gml_graphic,
-//pick( "GT",         2,      gml_gt,
-//pick( "H0",         2,      gml_h0,
-//pick( "H1",         2,      gml_h1,
-//pick( "H2",         2,      gml_h2,
-//pick( "H3",         2,      gml_h3,
-//pick( "H4",         2,      gml_h4,
-//pick( "H5",         2,      gml_h5,
-//pick( "H6",         2,      gml_h6,
-//pick( "HDREF",      5,      gml_hdref,
-//pick( "HP0",        3,      gml_hp0,
-//pick( "HP1",        3,      gml_hp1,
-//pick( "HP2",        3,      gml_hp2,
-//pick( "HP3",        3,      gml_hp3,
-//pick( "I1",         2,      gml_i1,
-//pick( "I2",         2,      gml_i2,
-//pick( "I3",         2,      gml_i3,
-//pick( "IH1",        3,      gml_ih1,
-//pick( "IH2",        3,      gml_ih2,
-//pick( "IH3",        3,      gml_ih3,
-  pick( "IMBED",      5,      gml_include,    tag_is_basic    )
-  pick( "INCLUDE",    7,      gml_include,    tag_is_basic    )
-//pick( "INDEX",      5,      gml_index,
-//pick( "IREF",       4,      gml_iref,
-//pick( "LAYOUT",     6,      gml_layout,
-//pick( "LI",         2,      gml_li,
-//pick( "LIREF",      5,      gml_liref,
-//pick( "LP",         2,      gml_lp,
-//pick( "LQ",         2,      gml_lq,
-//pick( "NOTE",       4,      gml_note,
-//pick( "OL",         2,      gml_ol,
-//pick( "P",          1,      gml_p,
-//pick( "PC",         2,      gml_pc,
-//pick( "PREFACE",    8,      gml_preface,
-//pick( "PSC",        3,      gml_psc,
-//pick( "Q",          1,      gml_q,
-  pick( "SET",        3,      gml_set,        tag_is_basic    )
-//pick( "SF",         2,      gml_sf,
-//pick( "SL",         2,      gml_sl,
-//pick( "TITLE",      5,      gml_title,
-//pick( "TITLEP",     6,      gml_titlep,
-//pick( "TOC",        3,      gml_toc,
-//pick( "UL",         2,      gml_ul,
-//pick( "XMP",        3,      gml_xmp,
+  pickg( ABSTRACT, 8,      gml_abstract,   tag_out_txt )
+  pickg( ADDRESS,  7,      gml_address,    tag_out_txt )
+  pickg( ALINE,    5,      gml_aline,      tag_out_txt )
+  pickg( APPENDIX, 8,      gml_appendix,   tag_out_txt )
+  pickg( AUTHOR,   6,      gml_author,     tag_out_txt )
+  pickg( BACKM,    5,      gml_backm,      tag_out_txt )
+  pickg( BINCLUDE, 8,      gml_dummy,      0 )
+  pickg( BODY,     4,      gml_body,       tag_out_txt )
+  pickg( CIT,      3,      gml_dummy,      tag_out_txt )
+  pickg( CMT,      3,      gml_cmt,        tag_only )
+  pickg( DATE,     4,      gml_date,       tag_out_txt )
+  pickg( DD,       2,      gml_dummy,      tag_out_txt )
+  pickg( DDHD,     4,      gml_dummy,      tag_out_txt )
+  pickg( DL,       2,      gml_dummy,      tag_out_txt )
+  pickg( DOCNUM,   6,      gml_docnum,     tag_out_txt )
+  pickg( DT,       2,      gml_dummy,      tag_out_txt )
+  pickg( DTHD,     4,      gml_dummy,      tag_out_txt )
+  pickg( EADDRESS, 8,      gml_eaddress,   tag_out_txt )
+  pickg( ECIT,     4,      gml_dummy,      tag_out_txt )
+  pickg( EDL,      3,      gml_dummy,      tag_out_txt )
+  pickg( EFIG,     4,      gml_dummy,      tag_out_txt )
+  pickg( EFN,      3,      gml_dummy,      tag_out_txt )
+  pickg( EGDOC,    5,      gml_egdoc,      tag_out_txt )
+  pickg( EGL,      3,      gml_dummy,      tag_out_txt )
+  pickg( EHP0,     4,      gml_ehpx,       tag_out_txt )
+  pickg( EHP1,     4,      gml_ehpx,       tag_out_txt )
+  pickg( EHP2,     4,      gml_ehpx,       tag_out_txt )
+  pickg( EHP3,     4,      gml_ehpx,       tag_out_txt )
+  pickg( ELQ,      3,      gml_dummy,      tag_out_txt )
+  pickg( EOL,      3,      gml_dummy,      tag_out_txt )
+  pickg( EPSC,     4,      gml_dummy,      tag_out_txt )
+  pickg( EQ,       2,      gml_dummy,      tag_out_txt )
+  pickg( ESF,      3,      gml_dummy,      tag_out_txt )
+  pickg( ESL,      3,      gml_dummy,      tag_out_txt )
+  pickg( ETITLEP,  7,      gml_etitlep,    tag_out_txt )
+  pickg( EUL,      3,      gml_dummy,      tag_out_txt )
+  pickg( EXMP,     4,      gml_dummy,      tag_out_txt )
+  pickg( FIG,      3,      gml_dummy,      tag_out_txt )
+  pickg( FIGCAP,   6,      gml_dummy,      tag_out_txt )
+  pickg( FIGDESC,  7,      gml_dummy,      tag_out_txt )
+  pickg( FIGLIST,  7,      gml_figlist,    tag_out_txt )
+  pickg( FIGREF,   6,      gml_dummy,      tag_out_txt )
+  pickg( FN,       2,      gml_dummy,      tag_out_txt )
+  pickg( FNREF,    5,      gml_dummy,      tag_out_txt )
+  pickg( FRONTM,   6,      gml_frontm,     tag_out_txt )
+  pickg( GDOC,     4,      gml_gdoc,       tag_out_txt )
+  pickg( GL,       2,      gml_dummy,      tag_out_txt )
+  pickg( GD,       2,      gml_dummy,      tag_out_txt )
+  pickg( GRAPHIC,  7,      gml_dummy,      tag_out_txt )
+  pickg( GT,       2,      gml_dummy,      tag_out_txt )
+  pickg( H0,       2,      gml_dummy,      tag_out_txt )
+  pickg( H1,       2,      gml_dummy,      tag_out_txt )
+  pickg( H2,       2,      gml_dummy,      tag_out_txt )
+  pickg( H3,       2,      gml_dummy,      tag_out_txt )
+  pickg( H4,       2,      gml_dummy,      tag_out_txt )
+  pickg( H5,       2,      gml_dummy,      tag_out_txt )
+  pickg( H6,       2,      gml_dummy,      tag_out_txt )
+  pickg( HDREF,    5,      gml_dummy,      tag_out_txt )
+  pickg( HP0,      3,      gml_hp0,        tag_out_txt )
+  pickg( HP1,      3,      gml_hp1,        tag_out_txt )
+  pickg( HP2,      3,      gml_hp2,        tag_out_txt )
+  pickg( HP3,      3,      gml_hp3,        tag_out_txt )
+  pickg( I1,       2,      gml_dummy,      tag_out_txt )
+  pickg( I2,       2,      gml_dummy,      tag_out_txt )
+  pickg( I3,       2,      gml_dummy,      tag_out_txt )
+  pickg( IH1,      3,      gml_dummy,      tag_out_txt )
+  pickg( IH2,      3,      gml_dummy,      tag_out_txt )
+  pickg( IH3,      3,      gml_dummy,      tag_out_txt )
+  pickg( IMBED,    5,      gml_include,    tag_is_basic    )
+  pickg( INCLUDE,  7,      gml_include,    tag_is_basic    )
+  pickg( INDEX,    5,      gml_index,      tag_out_txt )
+  pickg( IREF,     4,      gml_dummy,      tag_out_txt )
+  pickg( LAYOUT,   6,      gml_layout,     0 )
+  pickg( LI,       2,      gml_dummy,      tag_out_txt )
+  pickg( LIREF,    5,      gml_dummy,      tag_out_txt )
+  pickg( LP,       2,      gml_dummy,      tag_out_txt )
+  pickg( LQ,       2,      gml_dummy,      tag_out_txt )
+  pickg( NOTE,     4,      gml_note,       tag_out_txt )
+  pickg( OL,       2,      gml_dummy,      tag_out_txt )
+  pickg( P,        1,      gml_p,          tag_out_txt )
+  pickg( PC,       2,      gml_pc,         tag_out_txt )
+  pickg( PREFACE,  8,      gml_preface,    tag_out_txt )
+  pickg( PSC,      3,      gml_dummy,      tag_out_txt )
+  pickg( Q,        1,      gml_dummy,      tag_out_txt )
+  pickg( SET,      3,      gml_set,        tag_is_basic    )
+  pickg( SF,       2,      gml_dummy,      tag_out_txt )
+  pickg( SL,       2,      gml_dummy,      tag_out_txt )
+  pickg( TITLE,    5,      gml_title,      tag_out_txt )
+  pickg( TITLEP,   6,      gml_titlep,     tag_out_txt )
+  pickg( TOC,      3,      gml_toc,        tag_out_txt )
+  pickg( UL,       2,      gml_dummy,      tag_out_txt )
+  pickg( XMP,      3,      gml_dummy,      tag_out_txt )
 
-
+#undef  pickg

@@ -12,21 +12,17 @@
 
 :include readonly.sp
 
-#ifndef __cplusplus
-#error The header stack requires C++
-#endif
+:include cpponly.sp
 
-#ifndef _VECTOR_INCLUDED
-    #include <vector>
+#ifndef _DEQUE_INCLUDED
+ #include <deque>
 #endif
 
 namespace std {
 /*===================================================================
  * stack template adaptor
  */
-//standard says the following should be class Container = deque< Type > 
-//deque hasn't been written yet
-template< class Type, class Container = vector< Type > >
+template< class Type, class Container = deque< Type > >
 class stack{
 public:
     typedef typename Container::value_type  value_type;
@@ -89,6 +85,6 @@ bool operator<=( stack< Type, Container > const & x,
     return( x.c <= y.c );
 }
 
-} // End of namespace std.
+} // namespace std
 
 #endif

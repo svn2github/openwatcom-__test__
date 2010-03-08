@@ -63,13 +63,17 @@ extra_c_flags += -D_CGDLL
 
 extra_c_flags_386 = -3r
 
+!ifdef cc_dll
+idedlldriver_c_flags_dos = -DCAUSEWAY
+!endif
 !ifndef bootstrap
 !ifeq release 1
 extra_c_flags_cscan_386 = -5r
 extra_c_flags_cscan    = $(extra_c_flags_cscan_$(host_cpu))
 !endif
 !endif
-extra_c_flags_idedll   = -bd
+extra_c_flags_ideentry = -bd $(idedlldriver_c_flags_$(host_os))
+extra_c_flags_idedrv   = $(idedlldriver_c_flags_$(host_os))
 !ifdef __LINUX__
 extra_c_flags_intlload = -D__header=\"fesupp.h\"
 !else
@@ -128,11 +132,7 @@ depends_dll = $(pre_obj_deps) $(comp_objs_dll) $(external_dependencies)
 depends_drv = $(pre_obj_deps) $(drv_objs)
 
 # systems where version resources must be added to .DLL
-build_rc_nt_386 = 1
-
-!ifdef build_rc_$(host_os)_$(host_cpu)
-rc_objs = cc.rc
-!endif
+version_res_nt_386 = version.res
 
 !ifdef bootstrap
 
@@ -140,7 +140,7 @@ exe_objs += clibext.obj
 
 !endif
 
-inc_dirs  = -I. -I"../h" $(cg_inc_dirs) $(asminline_inc_dirs)
+inc_dirs  = -I. -I"../h/$(target_cpu)" -I"../h" $(cg_inc_dirs) $(asminline_inc_dirs)
 inc_dirs += -I"$(dwarf_dir)/dw/h" -I"$(comp_cfg_dir)/h" -I"$(fe_misc_dir)/h"
 
 .c: ../c;$(asminline_c);$(watcom_dir)/c;$(fe_misc_dir)/c
@@ -172,10 +172,10 @@ $(exe_name).exe: $(depends_exe) exe.lnk
 
 !endif
 
-$(dll_name).dll : $(depends_dll) $(rc_objs) dll.lnk
+$(dll_name).dll : $(depends_dll) $(version_res_$(host_os)_$(host_cpu)) dll.lnk
         $(linker) name $@ @dll.lnk
-!ifdef build_rc_$(host_os)_$(host_cpu)
-        $(rc) $(rc_flags) $(inc_dirs_sys) cc.rc $@
+!ifdef version_res_$(host_os)_$(host_cpu)
+        $(rc) -k $(version_res_$(host_os)_$(host_cpu)) $@
 !endif
 
 
@@ -186,6 +186,9 @@ drv.lnk : $(__MAKEFILES__)
         @%write $@ $(lflags)
         @for %i in ($(drv_objs)) do @%append $@ file %i
         @%append $@ lib $(dll_name).lib
+!ifeq host_os dos
+        @%append $@ lib cwdll.lib
+!endif
 
 exe.lnk : $(__MAKEFILES__)
         @%write $@ $(lflags)
@@ -283,8 +286,9 @@ $(intname)01.int : ./intlbin.exe errors01.int usage01.int
 patch_level=0
 !endif
 
-cc.rc : ./genverrc.exe ../rc/r_$(host_os)$(host_cpu).rc
-        $[@ $]@ $@ $$ $(dll_name) $(patch_level)
+version.res : ./genverrc.exe ../rc/r_$(host_os)$(host_cpu).rc
+        $[@ $]@ version.rc $$ $(dll_name) $(patch_level)
+        $(rc) $(rc_flags) $(inc_path) version.rc -fo=$^@
 
 ./mkopcod1.exe: $(wasm_dir)/mkopcod1.c $(wasm_dir)/mkopcode.h $(cl_objs)
         $(bld_cl) -I"$(wasm_dir)/h" $[@ $(wcl_util_opts) $(cl_libs) $(cl_objs)

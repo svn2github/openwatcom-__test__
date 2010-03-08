@@ -51,6 +51,7 @@ int IsPatch = 0;
 extern int SkipDialogs;
 extern bool CancelSetup;
 extern vhandle UnInstall;
+
 typedef enum {
     Stack_Push,
     Stack_Pop,
@@ -110,13 +111,11 @@ static bool SetupOperations()
     }
 
     // Generate batch file
-#if defined( __NT__ ) || defined( __WINDOWS__ )
     if( GetVariableIntVal( "GenerateBatchFile" ) == 1 ) {
         if( !GenerateBatchFile( uninstall ) ) {
             return( FALSE );
         }
     }
-#endif
 
     // Create program group (folder)
     if( GetVariableIntVal( "DoCreateIcons" ) == 1 ||
@@ -256,9 +255,9 @@ bool DirParamStack( char **inf_name, char **tmp_path, DIR_PARAM_STACK_OPS functi
 extern bool DoMainLoop( dlg_state * state )
 /*****************************************/
 {
-    char                *diag_list[MAX_DIAGS + 1];
-    char                *diags;
-    char                *dstdir;
+    const char          *diag_list[MAX_DIAGS + 1];
+    const char          *diags;
+    const char          *dstdir;
     int                 dstlen;
     bool                got_disk_sizes = FALSE;
     int                 i;
@@ -464,7 +463,7 @@ extern void GUImain( void )
     FreeGlobalVarList( TRUE );
     FreeDefaultDialogs();
     FreeAllStructs();
-    FreeDirParams( &inf_name, &tmp_path );
+    FreeDirParams( &inf_name, &tmp_path, &arc_name );
     CloseDownProgram();
 }
 

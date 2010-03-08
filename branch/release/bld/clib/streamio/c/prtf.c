@@ -31,7 +31,7 @@
 
 #define __LONG_LONG_SUPPORT__
 
-#if !defined( __NETWARE__ ) && !defined( __UNIX__ )
+#if !defined( __NETWARE__ ) && !defined( __UNIX__ ) && !defined(__RDOS__)
     #define USE_MBCS_TRANSLATION
 #endif
 
@@ -461,6 +461,9 @@ static int far_strlen( FAR_STRING s, int precision )
 
 static int far_other_strlen( FAR_STRING s, int precision )
 {
+#ifdef __RDOS__
+    return( 0 );  // RDOS doesn't support unicode
+#else
     int                 len = 0;
     _FAR_OTHER_STRING   ptr = (_FAR_OTHER_STRING)s;
 
@@ -491,6 +494,7 @@ static int far_other_strlen( FAR_STRING s, int precision )
         ++len;
 
     return( len );
+#endif
 #endif
 }
 
@@ -574,11 +578,11 @@ static void FixedPoint_Format( CHAR_TYPE *buf, long value, SPECS __SLIB *specs )
 static void float_format( CHAR_TYPE *buffer, my_va_list *pargs, SPECS __SLIB *specs )
 {
 #ifdef __WIDECHAR__
-    char                mbBuffer[BUF_SIZE*MB_CUR_MAX];
+    unsigned char       mbBuffer[BUF_SIZE*MB_CUR_MAX];
     _mbcs_SPECS         mbSpecs;
     int                 count;
     size_t              rc;
-    char                *p;
+    unsigned char       *p;
 #endif // __WIDECHAR__
 
 #ifdef __WIDECHAR__
@@ -605,7 +609,7 @@ static void float_format( CHAR_TYPE *buffer, my_va_list *pargs, SPECS __SLIB *sp
 #endif
 
 #ifdef __WIDECHAR__
-    EFG_PRINTF( mbBuffer, pargs, &mbSpecs );
+    EFG_PRINTF( (char *)mbBuffer, pargs, &mbSpecs );
 #else
     EFG_PRINTF( buffer, pargs, specs );
 #endif
@@ -618,7 +622,7 @@ static void float_format( CHAR_TYPE *buffer, my_va_list *pargs, SPECS __SLIB *sp
      */
     p = mbBuffer;
     for( count = 0; count < BUF_SIZE; count++ ) {
-        rc = mbtowc( &(buffer[count]), p, MB_CUR_MAX );
+        rc = mbtowc( &(buffer[count]), (char *)p, MB_CUR_MAX );
         if( rc == -1 ) {
             buffer[count] = L'?';
         }

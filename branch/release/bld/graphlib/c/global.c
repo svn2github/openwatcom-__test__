@@ -73,7 +73,7 @@ char                    _HaveMask = 0;              // is there a fill mask?
 short                   _Transparent = 1;           // fill transparency
 short                   _PaRf_x = 0;                // pattern reference x-coord
 short                   _PaRf_y = 0;                // pattern reference y-coord
-unsigned short          _LineStyle = 0xffff;        // current line style
+unsigned short          _LineStyle = SOLID_LINE;    // current line style
 short                   _StyleWrap = 0;             // flag for continuous style
 short                   _PlotAct = 0;               // plotting action
 
@@ -96,8 +96,8 @@ unsigned char           _IsDBCS;                    // is this a DBCS system
 dbcs_pair               _DBCSPairs[ 5 ];            // range of DBCS chars
 
 #if defined( _SUPERVGA )
-char                    _VGAPage;                   // SuperVGA page number
-char                    _VGAGran;                   // SuperVGA page granularity
+unsigned char           _VGAPage;                   // SuperVGA page number
+unsigned char           _VGAGran;                   // SuperVGA page granularity
 short                   _SVGAType;                  // type of SuperVGA
 void                    ( _FARC *_SetVGAPage )( short );  // function to set SVGA page
 short                   _VGAStride;                 // SuperVGA mode stride

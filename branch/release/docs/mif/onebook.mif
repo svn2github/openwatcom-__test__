@@ -2,7 +2,7 @@ proj_name = docs
 
 !ifdef __UNIX__
 SL=/
-CPYCMD=cp
+CPYCMD=cp -f
 RENCMD=mv
 LOWERC=echo
 !else
@@ -46,6 +46,7 @@ dosemu_wgml_batch=wgml.bat
 # define target and platform help compilers
 #
 hc_nt = $(%WIN95HC)
+hc_hh = $(%HHC)
 hc_win = whc
 hc_os2 = $(%OS2HC)
 hc_dos = hcdos
@@ -75,7 +76,10 @@ dep_os2 = $(hbook).h
 dep_os2 = $(hbook).h $(hbook).inf $(hbook).hlp
 !endif
 dep_dos = $(hbook).h $(hbook).ihp
-dep_html = $(hbook).html
+dep_html = $(hbook).htm
+!ifneq hc_hh
+dep_htmlhelp = $(hbook).chm $(hbook).chi
+!endif
 dep_ps = $(hbook).ps
 !ifdef hc_pdf
 dep_pdf = $(hbook).pdf
@@ -204,19 +208,41 @@ $(hbook).ib $(hbook).h : $(book_objs) $(proj_objs)
 
 ####################################################
 #
-# make html help files
+# make HTML files
 #
 ####################################################
 !else ifeq dotarget html
 
-.EXTENSIONS: .html
+.EXTENSIONS: .htm
 
-$(hbook).html $(hbook).h : $(book_objs) $(proj_objs)
+$(hbook).htm $(hbook).h : $(book_objs) $(proj_objs)
 !ifdef book_bmroot
     $(CPYCMD) $(book_bmroot)$(SL)*.bmp $^:. > $(nulldevice)
 !endif
     @%make compile_gml_to_xxx
 
+
+####################################################
+#
+# make HTML Help files
+#
+####################################################
+!else ifeq dotarget htmlhelp
+
+.EXTENSIONS: .chm .chi
+
+$(hbook).chm $(hbook).chi : ../html/$(hbook).htm
+    @if not exist $(hbook) mkdir $(hbook)
+!ifdef book_bmroot
+    $(CPYCMD) $(book_bmroot)$(SL)*.bmp $(hbook) > $(nulldevice)
+!endif
+    awk -f ../splithtm.awk -v dir=$(hbook) ../html/$(hbook).htm
+    awk -f ../makehhc.awk ../html/$(hbook).htm >$(hbook)/$(hbook).hhc
+    awk -f ../makehhk.awk ../html/$(hbook).mix >$(hbook)/$(hbook).hhk
+    awk -f ../makehhp.awk -v hhcfile=$(hbook).hhc -v hhkfile=$(hbook).hhk ../html/$(hbook).htm >$(hbook)/$(hbook).hhp
+    -$(hc_hh) $(hbook)/$(hbook).hhp
+    $(CPYCMD) $(hbook)\$(hbook).chm $^:. > $(nulldevice)
+    $(CPYCMD) $(hbook)\$(hbook).chi $^:. > $(nulldevice)
 
 ####################################################
 #
@@ -227,17 +253,22 @@ $(hbook).html $(hbook).h : $(book_objs) $(proj_objs)
 
 .EXTENSIONS: .ps .bmp
 
-$(hbook).ps : $(book_objs) $(book_objs_ps) $(proj_objs)
-    @set GMLINC=$(book_incs);$(gml_incs);$(whelp_incs)
+$(hbook).ps : make_tmp $(book_objs) $(book_objs_ps) $(proj_objs)
+    @set GMLINC=tmp;$(book_incs);$(whelp_incs);$(gml_incs)
 !ifeq docs_verbose 1
-    @echo GMLINC=$(book_incs);$(gml_incs);$(whelp_incs)
+    @echo GMLINC=tmp;$(book_incs);$(whelp_incs);$(gml_incs)
 !endif
     %make prepare_wgml_opts
     -$(wgml) "$(book_src) ( file $(optfile_wgml)"
 
+make_tmp: .symbolic
+    @if not exist tmp mkdir tmp
+
 .bmp: $(book_bmroot)
+.ps: tmp
+
 .bmp.ps:
-    bmp2eps -c $< $^@
+    bmp2eps -c $< tmp$(SL)$^@
 
 ####################################################
 #
@@ -274,7 +305,7 @@ $(hbook).pdf : $(hbook).ps
 
 $(hbook).inf : $(hbook).ipf
     set IPFCARTWORK=$(book_incs)
-    $(hc_os2) $(hbook).ipf /inf
+    $(hc_os2) -inf $(hbook).ipf
     $(LOWERC) $@ $@        # change case to lower
 
 !ifdef book_os2_help
@@ -345,6 +376,11 @@ prepare_wgml_opts : .PROCEDURE
     %make $(dosemu_wgml_batch)
 !endif
     @%create $(optfile_wgml)
+!ifeq hbook cpplib
+    @%append $(optfile_wgml) ( setsymbol target DOS
+!else ifeq hbook guitool
+    @%append $(optfile_wgml) ( setsymbol allinone 1
+!endif
 #---------------------------------------
 # settings for Post Script documentation
 #---------------------------------------
@@ -421,11 +457,6 @@ prepare_wgml_opts : .PROCEDURE
 # add default windowing for OS/2
 #    @%append $(optfile_wgml) ( setsymbol defwinos2 1
     @%append $(optfile_wgml) ( setsymbol book $(hbook)
-!endif
-!ifeq hbook cpplib
-    @%append $(optfile_wgml) ( setsymbol target DOS
-!else ifeq hbook guitool
-    @%append $(optfile_wgml) ( setsymbol allinone 1
 !endif
 #
 # details about wgml processing

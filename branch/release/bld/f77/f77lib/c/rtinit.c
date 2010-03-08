@@ -38,6 +38,7 @@
 #include "fapptype.h"
 #include "fthread.h"
 #include "rtinit.h"
+#include "rtdata.h"
 #include "errrtns.h"
 #include "_defwin.h"    /* for _WindowsStdout() declaration */
 
@@ -160,10 +161,9 @@ XI( __fthread_data_size, __InitThreadDataSize, INIT_PRIORITY_THREAD )
 
 #endif
 
-// Alternative Stack Activation for Alpha NT
-#if defined( __AXP__ ) || defined( __PPC__ )
+// Alternative Stack Activation for non-Intel
+#if !defined( _M_IX86 )
 
-extern  unsigned        __ASTACKSIZ;    /* alternate stack size */
 #define F77_ALT_STACK_SIZE      8*1024
 
 static void     __InitAlternateStack( void ) {
@@ -175,4 +175,3 @@ static void     __InitAlternateStack( void ) {
 AXI( __InitAlternateStack, INIT_PRIORITY_LIBRARY );
 
 #endif
-

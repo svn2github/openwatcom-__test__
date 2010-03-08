@@ -51,6 +51,13 @@ typedef enum {
     WL_LTYPE_OMF
 } lib_type;
 
+typedef enum {
+    AR_FMT_NONE,
+    AR_FMT_COFF,
+    AR_FMT_GNU,
+    AR_FMT_BSD
+} ar_format;
+
 typedef struct {
     // user options
     char            *input_name;
@@ -73,6 +80,7 @@ typedef struct {
     unsigned        strip_line       :1;
     unsigned        strip_expdef     :1;
     unsigned        strip_dependency :1;
+    unsigned        strip_library    :1;
     unsigned        verbose          :1;
     unsigned        update           :1; //update older files only
     unsigned        no_c_warn        :1; //no create lib warning
@@ -88,6 +96,7 @@ typedef struct {
     processor_type  processor;
     file_type       filetype;
     lib_type        libtype;
+    ar_format       ar_libformat;
 } options_def;
 
 

@@ -93,6 +93,8 @@
     #define BAN_VER_STR "1.7" _BETA_
 #elif _BANVER == 1280
     #define BAN_VER_STR "1.8" _BETA_
+#elif _BANVER == 1290
+    #define BAN_VER_STR "1.9" _BETA_
 #else
     #error **** Specified Banner version not supported ****
     #define BAN_VER_STR "12.0" _BETA_
@@ -163,3 +165,9 @@
 #define _WJDUMP_VERSION_        JAVA_BAN_VER_STR
 #define _JLIB_VERSION_          JAVA_BAN_VER_STR
 #define _JAVAC_VERSION_         JAVA_BAN_VER_STR
+
+/*
+ * Versions of Microsoft tools with OW clones are compatible
+ */
+#define _MS_CL_VERSION_         "13.0.0"
+#define _MS_LINK_VERSION_       "7.0.0"

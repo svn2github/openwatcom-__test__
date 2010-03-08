@@ -290,7 +290,7 @@ typedef struct ialias_list {
         char                *real_name;
         int                 alias_name_len; /* for pre-compiled header */
     };
-    int             delimiter;
+    bool            is_lib;
     char            alias_name[1];
 } *IALIASPTR;
 
@@ -691,12 +691,6 @@ struct global_comp_flags {  // things that live across compiles
     unsigned cc_reuse               : 1;    /* in a reusable version batch, dll*/
     unsigned cc_first_use           : 1;    /* first time thru           */
 };
-
-#if defined( __UNIX__ )
-    #define errout  stderr
-#else
-    #define errout  stdout
-#endif
 
 /* Target System types */
 enum {

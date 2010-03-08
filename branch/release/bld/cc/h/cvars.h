@@ -54,7 +54,6 @@
 
 typedef char        *MACADDR_T; /* contains actual pointer to block of memory */
 typedef char        *SEGADDR_T; /* contains actual pointer to block of memory */
-typedef const char  *MPTR_T;    /* first parm to MacroCopy */
 typedef void        *VOIDPTR;
 
 #include "macro.h"
@@ -108,7 +107,9 @@ global  char    *SrcFName;      /* source file name without suffix */
 global  char    *DefFName;      /* .def file name (prototypes) */
 global  char    *WholeFName;    /* whole file name with suffix */
 global  char    *ForceInclude;
+#if _CPU == 370
 global  char    *AuxName;
+#endif
 global  struct  fname_list *FNames;     /* list of file names processed */
 global  struct  rdir_list *RDirNames;  /* list of read only directorys */
 global  struct  ialias_list *IAliasNames;  /* list of include aliases */
@@ -356,6 +357,11 @@ struct user_seg;
 
 global struct user_seg  *UserSegments;
 
+global  struct extref_info {
+    struct  extref_info *next;
+    SYM_HANDLE          symbol;
+} *ExtrefInfo;
+
 #if defined(__386__) && defined(__FLAT__) && defined(__WATCOMC__)
 
 extern  int     far_strcmp( char *, char *, int );
@@ -399,7 +405,7 @@ global  unsigned DefDataSegment;  /* #pragma data_seg("segname","class") */
 global  struct textsegment *DefCodeSegment; /* #pragma code_seg("seg","c") */
 
 global  unsigned        UnrollCount;    /* #pragma unroll(#); */
-global  unsigned char   InitialMacroFlag;
+global  macro_flags     InitialMacroFlag;
 global  unsigned char   Stack87;
 global  char            *ErrorFileName;
 
@@ -413,7 +419,8 @@ global struct  undef_names {
 extern  void    SetDBChar(int);                 /* casian */
 
 extern  struct aux_entry *AuxLookup( char * );  /* caux.c */
-extern  void    PragmaFini( void );             /* caux.c */
+extern  void    PragmaAuxInit( void );          /* caux.c */
+extern  void    PragmaAuxFini( void );          /* caux.c */
 
 extern  int     ChkCompatibleFunction( TYPEPTR typ1, TYPEPTR typ2, int topLevelCheck ); /*ccheck*/
 extern  int     ChkCompatibleLanguage( type_modifiers typ1, type_modifiers typ2 ); /*ccheck*/
@@ -433,13 +440,13 @@ extern  void    FrontEndInit( bool reuse );
 extern  int     FrontEnd(char **);
 extern  void    FrontEndFini( void );
 extern  void    CppComment(int);
-extern  int     CppPrinting(void);
+extern  bool    CppPrinting(void);
 extern  void    CppPutc(int);
 extern  void    CppPrtf(char *,...);
 extern  void    SetCppWidth(unsigned);
-extern  void    PrtChar(int);
-extern  void    PrtToken(void);
-extern  int     OpenSrcFile(char *,int);
+extern  void    CppPrtChar(int);
+extern  void    CppPrtToken(void);
+extern  bool    OpenSrcFile(const char *,bool);
 extern  void    OpenDefFile(void);
 extern  FILE    *OpenBrowseFile(void);
 extern  void    CloseFiles(void);
@@ -461,14 +468,14 @@ extern  int     FListSrcQue(void);
 extern  void    SrcFileReadOnlyDir( char const *dir );
 extern  void    SrcFileReadOnlyFile( char const *file );
 extern  bool    SrcFileInRDir( FNAMEPTR flist );
-extern  void    SrcFileIncludeAlias( const char *alias_name, const char *real_name, int delimiter );
+extern  void    SrcFileIncludeAlias( const char *alias_name, const char *real_name, bool is_lib );
 extern  int     SrcFileTime(char const *,time_t *);
 extern  void    SetSrcFNameOnce( void );
 extern  void    GetNextToken(void);
-extern  void    EmitLine(unsigned,char *);
-extern  void    EmitPoundLine(unsigned,char *,int);
+extern  void    EmitLine(unsigned,const char *);
+extern  void    EmitPoundLine(unsigned,const char *,int);
 
-extern  void    AddIncFileList( char *filename );
+extern  void    AddIncFileList( const char *filename );
 extern  void    FreeIncFileList( void );
 
 // cdata.c
@@ -497,7 +504,8 @@ extern  void    SetSegSymHandle( SYM_HANDLE sym_handle, int segment );
 extern  void    InitDataQuads(void);            /* cdinit */
 extern  void    FreeDataQuads(void);            /* cdinit */
 extern  int     DataQuadsAvailable(void);       /* cdinit */
-extern  int     StartDataQuadAccess(void);      /* cdinit */
+extern  void *  StartDataQuadAccess( void );    /* cdinit */
+extern  void    EndDataQuadAccess( void * );    /* cdinit */
 extern  DATA_QUAD *NextDataQuad(void);          /* cdinit */
 extern  void    InitSymData(TYPEPTR,TYPEPTR,int);       /* cdinit */
 extern  void    StaticInit(SYMPTR,SYM_HANDLE);  /* cdinit */
@@ -518,7 +526,7 @@ extern  void    FreeEnums(void);                /* cenum */
 //cerror.c
 extern  void    CErr1(int);
 extern  void    CErr2(int,int);
-extern  void    CErr2p(int,char *);
+extern  void    CErr2p(int,const char *);
 extern  void    CErr(int,...);
 extern  void    SetErrLoc(source_loc *);
 extern  void    InitErrLoc(void);
@@ -615,8 +623,9 @@ extern  hw_reg_set *SegPeggedReg(unsigned);
 extern  void    SetSegment(SYMPTR);
 extern  void    SetSegAlign(SYMPTR);
 extern  void    AssignSeg(SYMPTR);
-// cintmain
+// cintmain.c
 extern void     ConsErrMsg( cmsg_info  *info );
+extern void     ConsErrMsgVerbatim( char const  *line );
 extern void     ConsMsg( char const  *line );
 extern void     BannerMsg( char const  *line );
 extern void     DebugMsg( char const  *line );
@@ -643,10 +652,10 @@ extern  void    CppStackFini(void);
 //cmacadd.c
 extern  void    AllocMacroSegment(unsigned);
 extern  void    FreeMacroSegments(void);
-extern  void    MacLkAdd( MEPTR mentry, int len, enum macro_flags flags );
-extern  void    MacroAdd( MEPTR mentry, char *buf, int len, enum macro_flags flags );
+extern  void    MacLkAdd( MEPTR mentry, int len, macro_flags flags );
+extern  void    MacroAdd( MEPTR mentry, char *buf, int len, macro_flags flags );
 extern  int     MacroCompare(MEPTR,MEPTR);
-extern  void    MacroCopy(MPTR_T,MACADDR_T,unsigned);
+extern  void    MacroCopy(void *,MACADDR_T,unsigned);
 extern  MEPTR   MacroLookup(const char *);
 extern  void    MacroOverflow(unsigned,unsigned);
 extern  SYM_HASHPTR SymHashAlloc(unsigned);
@@ -656,6 +665,7 @@ extern  TREEPTR AddOp(TREEPTR,TOKEN,TREEPTR);
 extern  TREEPTR InitAsgn( TYPEPTR,TREEPTR );
 extern  TREEPTR AsgnOp(TREEPTR,TOKEN,TREEPTR);
 extern  TREEPTR BinOp(TREEPTR,TOKEN,TREEPTR);
+extern  bool    IsPtrConvSafe( TREEPTR, TYPEPTR, TYPEPTR );
 extern  TREEPTR CnvOp(TREEPTR,TYPEPTR,int);
 extern  TREEPTR FlowOp(TREEPTR,opr_code,TREEPTR);
 extern  TREEPTR IntOp(TREEPTR,TOKEN,TREEPTR);
@@ -665,6 +675,7 @@ extern  TYPEPTR TernType(TREEPTR,TREEPTR);
 extern  TYPEPTR TypeOf(TREEPTR);
 extern  TREEPTR UComplement(TREEPTR);
 extern  TREEPTR UMinus(TREEPTR);
+extern  DATA_TYPE BinExprType(TYPEPTR,TYPEPTR);
 extern  DATA_TYPE DataTypeOf(TYPEPTR);
 extern  int     FuncPtr(TYPEPTR);
 extern  TREEPTR FixupAss( TREEPTR opnd, TYPEPTR newtyp );
@@ -694,6 +705,7 @@ extern  void    GenCOptions(char **);           /* coptions */
 extern  void    MergeInclude(void);             /* coptions */
 
 extern  void    CPragmaInit( void );            /* cpragma */
+extern  void    CPragmaFini( void );            /* cpragma */
 extern  int     SetToggleFlag( char const *name, int const value ); /* cpragma */
 extern  void    CPragma(void);                  /* cpragma */
 extern  struct textsegment *LkSegName(char *,char *);   /* cpragma */
@@ -731,7 +743,7 @@ extern  int     ESCChar( int, const unsigned char **, bool * );  /* cscan */
 extern  void    SkipAhead( void );              /* cscan */
 extern  TOKEN   ScanToken( void );              /* cscan */
 extern  void    ReScanInit( char * );           /* cscan */
-extern  int     ReScanBuffer( void );           /* cscan */
+extern  int     InReScanMode( void );           /* cscan */
 extern  int     ReScanToken( void );            /* cscan */
 extern  char    *ReScanPos( void );             /* cscan */
 extern  TOKEN   KwLookup( const char *, int );  /* cscan */
@@ -830,9 +842,9 @@ extern  char    *ftoa( FLOATVAL * );                    /* ftoa */
 extern  unsigned int JIS2Unicode( unsigned );           /* jis2unic */
 
 // pchdr.c
-extern  int     UsePreCompiledHeader( char * );
+extern  int     UsePreCompiledHeader( const char * );
 extern  void    InitBuildPreCompiledHeader( void );
-extern  void    BuildPreCompiledHeader( char * );
+extern  void    BuildPreCompiledHeader( const char * );
 extern  void    FreePreCompiledHeader( void );
 
 extern  void    CBanner( void );                        /* watcom */

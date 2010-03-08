@@ -31,28 +31,29 @@
 
 #include <string.h>
 #include "gdefn.h"
+#include "fontsupp.h"
 #if !defined( _DEFAULT_WINDOWS )
 #include "dotfunc.h"
 
 
 typedef _Packed struct font_entry {
-    short               type;       // 0 == bitmap, 1 == vector
-    short               ascent;     // distance from top to baseline (in pixels)
-    short               width;      // character width in pixels, 0 == proportional
-    short               height;     // character height in pixels
-    short               avgwidth;   // average character width
-    short               firstchar;
-    short               lastchar;
-    char                filename[ 81 ];
-    char                facename[ 32 ];
-    char                filler;
-    short               version;
-    char _WCI86FAR      *glyph_table;
-    char _WCI86FAR      *bitmap_table;
-    long                start_offset;
-    long                glyph_offset;
-    long                bitmap_offset;
-    unsigned short      bitmap_size;
+    short                   type;       // 0 == bitmap, 1 == vector
+    short                   ascent;     // distance from top to baseline (in pixels)
+    short                   width;      // character width in pixels, 0 == proportional
+    short                   height;     // character height in pixels
+    short                   avgwidth;   // average character width
+    short                   firstchar;
+    short                   lastchar;
+    char                    filename[ 81 ];
+    char                    facename[ 32 ];
+    char                    filler;
+    short                   version;
+    char _WCI86FAR          *glyph_table;
+    char _WCI86FAR          *bitmap_table;
+    long                    start_offset;
+    long                    glyph_offset;
+    long                    bitmap_offset;
+    unsigned short          bitmap_size;
     struct font_entry _WCI86FAR  *link;
 } FONT_ENTRY;
 
@@ -78,8 +79,8 @@ typedef _Packed struct windows_font {
     char                dfPitchAndFamily;
     short               dfAvgWidth;
     short               dfMaxWidth;
-    char                dfFirstChar;
-    char                dfLastChar;
+    unsigned char       dfFirstChar;
+    unsigned char       dfLastChar;
     char                dfDefaultChar;
     char                dfBreakChar;
     short               dfWidthBytes;
@@ -406,7 +407,7 @@ static short GlyphWidth( FONT_ENTRY _WCI86FAR *curr )
 }
 
 
-short _WCI86FAR _CGRAPH _registerfonts( char _WCI86FAR *font_path )
+_WCRTLINK short _WCI86FAR _CGRAPH _registerfonts( char _WCI86FAR *font_path )
 //=======================================================
 
 {
@@ -498,7 +499,7 @@ short _WCI86FAR _CGRAPH _registerfonts( char _WCI86FAR *font_path )
 Entry( _REGISTERFONTS, _registerfonts ) // alternate entry-point
 
 
-void _WCI86FAR _CGRAPH _unregisterfonts( void )
+_WCRTLINK void _WCI86FAR _CGRAPH _unregisterfonts( void )
 //========================================
 
 {
@@ -645,7 +646,7 @@ This function tells if the current font is a stock font.*/
 }
 
 
-short _WCI86FAR _CGRAPH _registerfonts( char _WCI86FAR *font_path )
+_WCRTLINK short _WCI86FAR _CGRAPH _registerfonts( char _WCI86FAR *font_path )
 //=======================================================
 
 {
@@ -658,7 +659,7 @@ short _WCI86FAR _CGRAPH _registerfonts( char _WCI86FAR *font_path )
 Entry( _REGISTERFONTS, _registerfonts ) // alternate entry-point
 
 
-void _WCI86FAR _CGRAPH _unregisterfonts( void )
+_WCRTLINK void _WCI86FAR _CGRAPH _unregisterfonts( void )
 //========================================
 
 {
@@ -703,7 +704,7 @@ static PFONTMETRICS getfonts( WPI_PRES dc, PLONG fnts, char* facename )
 #endif
 
 
-short _WCI86FAR _CGRAPH _setfont( char _WCI86FAR *opt )
+_WCRTLINK short _WCI86FAR _CGRAPH _setfont( char _WCI86FAR *opt )
 //===========================================
 
 {
@@ -928,13 +929,13 @@ Entry( _SETFONT, _setfont ) // alternate entry-point
 
 
 #if !defined( _DEFAULT_WINDOWS )
-static short _charwidth( char ch )
+static short _charwidth( short ch )
 //================================
 
 {
     short               width;
     short               glyph_width;
-    short _WCI86FAR          *glyph;
+    short _WCI86FAR     *glyph;
 
     if( ch >= _CurFont->firstchar && ch <= _CurFont->lastchar ) {
         ch -= _CurFont->firstchar;
@@ -957,7 +958,7 @@ static short _charwidth( char ch )
 #endif
 
 
-short _WCI86FAR _CGRAPH _getfontinfo( struct _fontinfo _WCI86FAR *font )
+_WCRTLINK short _WCI86FAR _CGRAPH _getfontinfo( struct _fontinfo _WCI86FAR *font )
 //============================================================
 
 {
@@ -1006,7 +1007,7 @@ short _WCI86FAR _CGRAPH _getfontinfo( struct _fontinfo _WCI86FAR *font )
 Entry( _GETFONTINFO, _getfontinfo ) // alternate entry-point
 
 
-short _WCI86FAR _CGRAPH _getgtextextent( char _WCI86FAR *text )
+_WCRTLINK short _WCI86FAR _CGRAPH _getgtextextent( char _WCI86FAR *text )
 //============================================================
 
 /*  Calculates the width of 'text' in pixels.  */
@@ -1026,7 +1027,7 @@ short _WCI86FAR _CGRAPH _getgtextextent( char _WCI86FAR *text )
 #else
     width = 0;
     while( *text != '\0' ) {
-        width += _charwidth( *text );
+        width += _charwidth( (unsigned char)*text );
         ++text;
     }
 #endif
@@ -1036,7 +1037,7 @@ short _WCI86FAR _CGRAPH _getgtextextent( char _WCI86FAR *text )
 Entry( _GETGTEXTEXTENT, _getgtextextent ) // alternate entry-point
 
 
-struct xycoord _WCI86FAR _CGRAPH _getgtextvector( void )
+_WCRTLINK struct xycoord _WCI86FAR _CGRAPH _getgtextvector( void )
 //=================================================
 
 {
@@ -1050,7 +1051,7 @@ struct xycoord _WCI86FAR _CGRAPH _getgtextvector( void )
 Entry( _GETGTEXTVECTOR, _getgtextvector ) // alternate entry-point
 
 
-struct xycoord _WCI86FAR _CGRAPH _setgtextvector( short x, short y )
+_WCRTLINK struct xycoord _WCI86FAR _CGRAPH _setgtextvector( short x, short y )
 //=============================================================
 
 {
@@ -1112,12 +1113,12 @@ static void _outdot( short x, short y )
 }
 
 
-char _WCI86FAR *_getbitmap( char ch, short _WCI86FAR *width )
+char _WCI86FAR *_getbitmap( short ch, short _WCI86FAR *width )
 //=================================================
 
 {
     long                offset;
-    short _WCI86FAR          *glyph;
+    short _WCI86FAR     *glyph;
 
     ch -= _CurFont->firstchar;
     glyph = (short _WCI86FAR *) ( _CurFont->glyph_table + ch * GlyphWidth( _CurFont ) );
@@ -1132,15 +1133,15 @@ char _WCI86FAR *_getbitmap( char ch, short _WCI86FAR *width )
 }
 
 
-static struct xycoord _outbitchar( short x0, short y0, char ch )
+static struct xycoord _outbitchar( short x0, short y0, short ch )
 //==============================================================
 
 {
     short               x, y;
     short               width;
     short               height;
-    char                mask;
-    char _WCI86FAR           *bits;
+    int                 mask;
+    char _WCI86FAR      *bits;
     short               column;
     short               row;
     struct xycoord      pos;
@@ -1174,7 +1175,7 @@ static struct xycoord _outbitchar( short x0, short y0, char ch )
 }
 
 
-static struct xycoord _outstrokechar( float x0, float y0, char ch )
+static struct xycoord _outstrokechar( float x0, float y0, short ch )
 //=================================================================
 
 {
@@ -1231,7 +1232,7 @@ static struct xycoord _outstrokechar( float x0, float y0, char ch )
 #endif
 
 
-void _WCI86FAR _CGRAPH _outgtext( char _WCI86FAR *str )
+_WCRTLINK void _WCI86FAR _CGRAPH _outgtext( char _WCI86FAR *str )
 //===========================================
 
 {
@@ -1253,7 +1254,7 @@ void _WCI86FAR _CGRAPH _outgtext( char _WCI86FAR *str )
     int                 escape;
   #endif
 #else
-    char                ch;
+    short               ch;
 #endif
     struct xycoord      pos;
 
@@ -1340,7 +1341,7 @@ void _WCI86FAR _CGRAPH _outgtext( char _WCI86FAR *str )
 
 #else
     while( *str != '\0' ) {
-        ch = *str;
+        ch = (unsigned char)*str;
         if( ch >= _CurFont->firstchar && ch <= _CurFont->lastchar ) {
             if( _CurFont->type == _BITMAP ) {
                 pos = _outbitchar( pos.xcoord, pos.ycoord, ch );

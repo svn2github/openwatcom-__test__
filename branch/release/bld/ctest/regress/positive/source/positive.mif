@@ -18,6 +18,7 @@ no_br_except30 = no
 #
 # special options
 #
+opt_bool01 = -za99
 opt_cmdln01 = /d+XXX=0+1
 opt_cmdln02 = /d+ /dXXX=0+1
 opt_cmdln03 = /dX /DXX /uXX /DXXX /uXXX /UXXX /dXXX /DXXXX /uXXXX /DXXXX /uXXXX
@@ -93,6 +94,7 @@ positive_tests = &
     bf01.$(exe) &
     bf02.$(exe) &
     bf03.$(exe) &
+    bool01.$(exe) &
     callc01.$(exe) &
     cmp01.$(exe) &
     cmp02.$(exe) &
@@ -107,6 +109,7 @@ positive_tests = &
     expr02.$(exe) &
     far1601.$(exe) &
     float01.$(exe) &
+    float02.$(exe) &
     float03.$(exe) &
     float04.$(exe) &
     i64cmp.$(exe) &
@@ -143,6 +146,7 @@ positive_tests = &
     init23.$(exe) &
     inline01.$(exe) &
     inline04.$(exe) &
+    int01.$(exe) &
     intel01.$(exe) &
     opt01.$(exe) &
     opt02.$(exe) &

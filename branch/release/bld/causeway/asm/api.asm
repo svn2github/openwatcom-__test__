@@ -1,6 +1,6 @@
         .386P
 
-_apiCode        segment para 'API CODE' use32
+_apiCode        segment para 'API code' use32
         assume cs:_apiCode, ds:_apiCode
 _apiCodeStart   label byte
 
@@ -15,28 +15,14 @@ apiDDSeg        dw ?
 ;
 apiNewHeader    NewHeaderStruc <>       ;make space for a header.
 ;
-apiExeSignature db ?    ;00 Identifier text.
-        db ?    ;01 /
-apiExeLength    dw ?    ;02 Length of file MOD 512
-        dw ?    ;04 Length of file in 512 byte blocks.
-apiExeRelocNum  dw ?    ;06 Number of relocation items.
-apiExeHeaderSize        dw ?    ;08 Length of header in 16 byte paragraphs.
-apiExeMinAlloc  dw ?    ;0A Minimum number of para's needed above program.
-apiExeMaxAlloc  dw ?    ;0C Maximum number of para's needed above program.
-apiExeStackSeg  dw ?    ;0E Segment displacement of stack module.
-apiExeEntrySP   dw ?    ;10 value for SP at entry.
-apiExeCheckSum  dw ?    ;12 Check sum...
-apiExeEntryIP   dw ?    ;14 Contents of IP at entry.
-apiExeEntryCS   dw ?    ;16 Segment displacement of CS at entry.
-apiExeRelocFirst        dw ?    ;18 First relocation item offset.
-apiExeOverlayNum        db ?    ;1A Overlay number.
-;
 LastResource    dd 0,0
 ;
 PatchTable      dd 16 dup (0)
 
 mcbLastChunk    dd 0
 ExecMCount      dd 0
+
+nullCmdl        db 0
 
 ;*******************************************************************************
 ;Put carry into return carry.
@@ -119,8 +105,8 @@ cwAPIpatch      proc    near
         push    es
         push    fs
         push    gs
-        pushad          ;/
-        mov     ebp,esp         ;Make registers addressable.
+        pushad
+        mov     ebp,esp                         ;Make registers addressable.
 ;
 ;Check if we're allowed to interfere.
 ;
@@ -166,17 +152,17 @@ api1_GotCall:
 ;
         mov     esi,Int_Flags32
         assume ds:nothing
-        test    BYTE PTR cs:apiSystemFlags,1    ;/
+        test    BYTE PTR cs:apiSystemFlags,1
         assume ds:_apiCode
-        jz      api1_32bit0             ;/
-        movzx   ebp,bp          ;/
+        jz      api1_32bit0
+        movzx   ebp,bp
         mov     esi,Int_Flags16
 api1_32Bit0:
         and     BYTE PTR ss:[ebp+esi],not 1     ;clear carry.
-        cld                     ;Default direction.
+        cld                                     ;Default direction.
         test    WORD PTR ss:[ebp+esi],1 shl 9   ;Were interrupts enabled?
         jz      api1_NoInts
-        sti                     ;Turn interrupts back on.
+        sti                                     ;Turn interrupts back on.
 ;
 ;Call the function handler.
 ;
@@ -184,7 +170,7 @@ api1_NoInts:
         assume ds:nothing
         call    DWORD PTR cs:[edi]              ;Pass control to handler.
         assume ds:_apiCode
-        popad                   ;\
+        popad
         pop     gs
         pop     fs
         pop     es
@@ -195,13 +181,13 @@ api1_NoInts:
         jz      api1_32Bit1
         iret
 api1_32Bit1:
-        iretd                   ;Return to caller.
+        iretd                                   ;Return to caller.
 ;
 ;Not an internal function or anything we want to interfere with so pass control
-;to origional handler.
+;to original handler.
 ;
 api1_Nope:
-        popad                   ;Restore registers.
+        popad                                   ;Restore registers.
         pop     gs
         pop     fs
         pop     es
@@ -216,83 +202,84 @@ api1_n32:
 ;
 OldIntSys       df 0
 ;
-APICallTable    dd cwAPI_Info           ;00
-        dd cwAPI_IntXX          ;01
-        dd cwAPI_FarCallReal    ;02
-        dd cwAPI_GetSel         ;03
-        dd cwAPI_RelSel         ;04
-        dd cwAPI_CodeSel                ;05
-        dd cwAPI_AliasSel               ;06
-        dd cwAPI_GetSelDet              ;07
+APICallTable    dd cwAPI_Info       ;00
+        dd cwAPI_IntXX              ;01
+        dd cwAPI_FarCallReal        ;02
+        dd cwAPI_GetSel             ;03
+        dd cwAPI_RelSel             ;04
+        dd cwAPI_CodeSel            ;05
+        dd cwAPI_AliasSel           ;06
+        dd cwAPI_GetSelDet          ;07
         ;
-        dd cwAPI_GetSelDet32    ;08
-        dd cwAPI_SetSelDet              ;09
-        dd cwAPI_SetSelDet32    ;0A
-        dd cwAPI_GetMem         ;0B
-        dd cwAPI_GetMem32               ;0C
-        dd cwAPI_ResMem         ;0D
-        dd cwAPI_ResMem32               ;0E
-        dd cwAPI_RelMem         ;0F
+        dd cwAPI_GetSelDet32        ;08
+        dd cwAPI_SetSelDet          ;09
+        dd cwAPI_SetSelDet32        ;0A
+        dd cwAPI_GetMem             ;0B
+        dd cwAPI_GetMem32           ;0C
+        dd cwAPI_ResMem             ;0D
+        dd cwAPI_ResMem32           ;0E
+        dd cwAPI_RelMem             ;0F
         ;
-        dd cwAPI_GetMemLinear   ;10
-        dd cwAPI_GetMemLinear32 ;11
-        dd cwAPI_ResMemLinear   ;12
-        dd cwAPI_ResMemLinear32 ;13
-        dd cwAPI_RelMemLinear   ;14
-        dd cwAPI_RelMemLinear32 ;15
-        dd cwAPI_GetMemNear     ;16
-        dd cwAPI_ResMemNear     ;17
+        dd cwAPI_GetMemLinear       ;10
+        dd cwAPI_GetMemLinear32     ;11
+        dd cwAPI_ResMemLinear       ;12
+        dd cwAPI_ResMemLinear32     ;13
+        dd cwAPI_RelMemLinear       ;14
+        dd cwAPI_RelMemLinear32     ;15
+        dd cwAPI_GetMemNear         ;16
+        dd cwAPI_ResMemNear         ;17
         ;
-        dd cwAPI_RelMemNear     ;18
-        dd cwAPI_Linear2Near    ;19
-        dd cwAPI_Near2Linear    ;1A
-        dd cwAPI_LockMem                ;1B
-        dd cwAPI_LockMem32              ;1C
-        dd cwAPI_UnLockMem              ;1D
-        dd cwAPI_UnLockMem32    ;1E
-        dd cwAPI_LockMemNear    ;1F
+        dd cwAPI_RelMemNear         ;18
+        dd cwAPI_Linear2Near        ;19
+        dd cwAPI_Near2Linear        ;1A
+        dd cwAPI_LockMem            ;1B
+        dd cwAPI_LockMem32          ;1C
+        dd cwAPI_UnLockMem          ;1D
+        dd cwAPI_UnLockMem32        ;1E
+        dd cwAPI_LockMemNear        ;1F
         ;
-        dd cwAPI_UnLockMemNear  ;20
-        dd cwAPI_GetMemDOS              ;21
-        dd cwAPI_ResMemDOS              ;22
-        dd cwAPI_RelMemDOS              ;23
-        dd cwAPI_Exec           ;24
-        dd cwAPI_GetDOSTrans    ;25
-        dd cwAPI_SetDOSTrans    ;26
-        dd cwAPI_GetMCBSize     ;27
+        dd cwAPI_UnLockMemNear      ;20
+        dd cwAPI_GetMemDOS          ;21
+        dd cwAPI_ResMemDOS          ;22
+        dd cwAPI_RelMemDOS          ;23
+        dd cwAPI_Exec               ;24
+        dd cwAPI_GetDOSTrans        ;25
+        dd cwAPI_SetDOSTrans        ;26
+        dd cwAPI_GetMCBSize         ;27
         ;
-        dd cwAPI_SetMCBSize     ;28
-        dd cwAPI_GetSels                ;29
-        dd cwAPI_cwLoad         ;2A
-        dd cwAPI_cwcInfo                ;2B
-        dd cwAPI_GetMemSO               ;2C
-        dd cwAPI_ResMemSO               ;2D
-        dd cwAPI_RelMemSO               ;2E
-        dd cwAPI_UserDump               ;2F
+        dd cwAPI_SetMCBSize         ;28
+        dd cwAPI_GetSels            ;29
+        dd cwAPI_cwLoad             ;2A
+        dd cwAPI_cwcInfo            ;2B
+        dd cwAPI_GetMemSO           ;2C
+        dd cwAPI_ResMemSO           ;2D
+        dd cwAPI_RelMemSO           ;2E
+        dd cwAPI_UserDump           ;2F
 
-;       dd 16 dup (0)           ;30-3F
-        dd      cwAPI_SetDump   ; 30
-        dd      cwAPI_UserErrTerm       ; 31
-        dd      cwAPI_CWErrName ; 32
-        dd 13 dup (0)           ;33-3F
+;       dd 16 dup (0)               ;30-3F
+        dd cwAPI_SetDump            ;30
+        dd cwAPI_UserErrTerm        ;31
+        dd cwAPI_CWErrName          ;32
+        dd 13 dup (0)               ;33-3F
 
-        dd 16 dup (0)           ;40-4F
-        dd 16 dup (0)           ;50-5F
-        dd 16 dup (0)           ;60-6F
-        dd 16 dup (0)           ;70-7F
+        dd 16 dup (0)               ;40-4F
+        dd 16 dup (0)               ;50-5F
+        dd 16 dup (0)               ;60-6F
+        dd 16 dup (0)               ;70-7F
         ;
-        dd 16*7 dup (0)         ;80-EF
+        dd 16*7 dup (0)             ;80-EF
         ;
-        dd 8 dup (0)            ;F0-F7
+        dd 7 dup (0)                ;F0-F6
+        dd cwAPI_DbgNtfModLoad      ;F7
         ;
-        dd 0                    ;F8
-        dd cwAPI_ID                             ;F9
-        dd cwAPI_GetPatch               ;FA
-        dd cwAPI_cwcLoad                ;FB
-        dd cwAPI_LinearCheck    ;FC
-        dd cwAPI_ExecDebug              ;FD
-        dd cwAPI_Cleanup                ;FE
-        dd 0                    ;FF
+        dd cwAPI_DbgNtfModUnload    ;F8
+        dd cwAPI_ID                 ;F9
+        dd cwAPI_GetPatch           ;FA
+        dd cwAPI_cwcLoad            ;FB
+        dd cwAPI_LinearCheck        ;FC
+        dd cwAPI_ExecDebug          ;FD
+        dd cwAPI_Cleanup            ;FE
+        dd 0                        ;FF
 ;
 apiExtraCallTable label byte
         dw 0600h
@@ -447,14 +434,14 @@ dpmiAPI_RelCallBack endp
 cwAPI_UserErrTerm       PROC    NEAR
         mov     ds,cs:apiDSeg
         assume ds:_cwMain
-        mov     UserTermFlag,0  ; initialize flag
+        mov     UserTermFlag,0          ; initialize flag
         mov     dx,[ebp+Int_DS]
         lsl     ax,dx
         jnz     uetret                  ; invalid selector
-        mov     al,[ebp+Int_CL] ; get bitness flag
+        mov     al,[ebp+Int_CL]         ; get bitness flag
         test    al,al
         setne   al                      ; 0 if 0, 1 if nonzero
-        inc     ax                              ; 1 if 16-bit, 2 if 32-bit
+        inc     ax                      ; 1 if 16-bit, 2 if 32-bit
         mov     UserTermFlag,al
         cmp     al,1                    ; see if 16-bit
         jne     uet32                   ; no
@@ -522,18 +509,18 @@ cwAPI_CWErrName PROC    NEAR
         mov     edx,[ebp+Int_EDX]
         test    BYTE PTR cs:apiSystemFlags,1
         jz      cen2
-        movzx   edx,dx  ; 16-bit, zero high word of edx
+        movzx   edx,dx                  ; 16-bit, zero high word of edx
 
 cen2:
         mov     ax,[ebp+Int_CX]
         mov     es,ax
         mov     ebx,OFFSET NewCWErrName ; ds:ebx -> destination, es:edx -> source
-        mov     cx,80           ; don't allow more than 80 chars in file name
+        mov     cx,80                   ; don't allow more than 80 chars in file name
 
 cenloop:
         mov     al,es:[edx]
         test    al,al
-        je      centerm         ; at null terminator
+        je      centerm                 ; at null terminator
         mov     ds:[ebx],al
         inc     edx
         inc     ebx
@@ -589,7 +576,7 @@ api9_0:
         movzx   edx,cx
         add     edx,edi
         jc      udfail
-        dec     edx                             ; make relative 0
+        dec     edx                     ; make relative 0
         xor     eax,eax
         mov     ax,es
         lsl     eax,eax
@@ -605,8 +592,8 @@ aflag:
         mov     DebugAsciiFlag,al
         test    al,al
         je      udret                   ; if not ASCII then no fill
-        mov     al,[ebp+Int_BH] ; check fill flag
-        test    al,al           ; no fill, carry flag reset by default
+        mov     al,[ebp+Int_BH]         ; check fill flag
+        test    al,al                   ; no fill, carry flag reset by default
         je      udret
 
 ; fill the allocation with value in dx to count specified in cx
@@ -634,17 +621,38 @@ aflag:
         mov     es:[edi],al
 
 udsuccess:
-        clc                                     ; flag success
+        clc                             ; flag success
         jmp     udret
 
 udfail:
         mov     DebugUserCount,0
-        stc                                     ; flag failure
+        stc                             ; flag failure
 
 udret:
         cwAPI_C2C
         ret
 cwAPI_UserDump  ENDP
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+;
+;Notify Debugger of new module loaded.
+;
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+cwAPI_DbgNtfModLoad proc    near
+        ret
+cwAPI_DbgNtfModLoad endp
+
+
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+;
+;Notify Debugger of module unloading.
+;
+;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+cwAPI_DbgNtfModUnload   proc    near
+        ret
+cwAPI_DbgNtfModUnload   endp
+
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ;
@@ -838,19 +846,19 @@ medUse32Bit8:
 
 medUse16Bit8:
         mov     ax,ss:[ebp+ebx]
-        and     ax,1111110011111111b    ;clear Trap and INT flag.
-        mov     es:RealRegsStruc.Real_Flags[edi],ax     ; explicitly set flags on DPMI 300h call
+        and     ax,1111110011111111b                ;clear Trap and INT flag.
+        mov     es:RealRegsStruc.Real_Flags[edi],ax ; explicitly set flags on DPMI 300h call
 
         assume ds:_apiCode
         jmp     api15_DoneStack0
 api15_NoStack0:
-        mov     es:RealRegsStruc.Real_SP[edi],0 ;use DPMI provided stack.
+        mov     es:RealRegsStruc.Real_SP[edi],0     ;use DPMI provided stack.
         mov     es:RealRegsStruc.Real_SS[edi],0
 api15_DoneStack0:
-        xor     cx,cx           ;No stack parameters.
-        mov     bh,ch           ;no flags.
+        xor     cx,cx                               ;No stack parameters.
+        mov     bh,ch                               ;no flags.
 
-        mov     bl,ss:[ebp+Int_BL]      ; MED 05/23/96
+        mov     bl,ss:[ebp+Int_BL]
 
         mov     ax,0300h
         cwAPI_CallOld
@@ -877,8 +885,8 @@ api15_Use32Bit8:
         mov     ebx,Int_Flags32
 api15_Use16Bit8:
         mov     ax,ss:[ebp+ebx]
-        and     ax,0000011000000000b            ;retain IF.
-        and     es:RealRegsStruc.Real_Flags[edi],1111100111111111b      ;lose IF.
+        and     ax,0000011000000000b                ;retain IF.
+        and     es:RealRegsStruc.Real_Flags[edi],1111100111111111b  ;lose IF.
         or      es:RealRegsStruc.Real_Flags[edi],ax
         ret
 cwAPI_IntXX     endp
@@ -925,8 +933,8 @@ api16_NoStack1:
         mov     es:RealRegsStruc.Real_SP[edi],0 ;use DPMI provided stack.
         mov     es:RealRegsStruc.Real_SS[edi],0
 api16_DoneStack2:
-        xor     cx,cx           ;No stack parameters.
-        xor     bx,bx           ;no flags.
+        xor     cx,cx                           ;No stack parameters.
+        xor     bx,bx                           ;no flags.
         mov     ax,0301h
         cwAPI_CallOld
         cwAPI_C2C
@@ -953,7 +961,7 @@ api16_Use32Bit8:
 api16_Use16Bit8:
         mov     ax,ss:[ebp+ebx]
         and     ax,0000011000000000b            ;retain IF.
-        and     es:RealRegsStruc.Real_Flags[edi],1111100111111111b      ;lose IF.
+        and     es:RealRegsStruc.Real_Flags[edi],1111100111111111b  ;lose IF.
         or      es:RealRegsStruc.Real_Flags[edi],ax
         ret
 cwAPI_FarCallReal endp
@@ -1312,7 +1320,7 @@ cwAPI_GetMemSO  proc    near
         jc      api27_8
         mov     edx,esi
         jecxz   api27_0
-        dec     ecx             ;limit=length-1
+        dec     ecx                     ;limit=length-1
 api27_0:
         sys     SetSelDet32
         xor     dx,dx
@@ -1332,7 +1340,7 @@ api27_1:
         mov     bx,es:[edi+mcbChunkSel] ;get chunk selector.
         pop     es
         mov     edx,esi
-        sub     edx,edi         ;get blocks offset.
+        sub     edx,edi                 ;get blocks offset.
 ;
 api27_7:
         mov     [ebp+Int_SI],bx
@@ -1372,7 +1380,7 @@ cwAPI_GetMem32  proc near
         jc      api28_0
         mov     edx,esi
         jecxz   api28_3
-        dec     ecx             ;limit=length-1
+        dec     ecx                     ;limit=length-1
         sys     SetSelDet32
 api28_3:
         mov     [ebp+Int_BX],bx
@@ -1416,7 +1424,7 @@ cwAPI_ResMem    proc    near
         mov     bx,[ebp+Int_BX]
         mov     cx,[ebp+Int_CX]
         mov     dx,[ebp+Int_DX]
-        shl     ecx,16          ;convert new size to 32-bit.
+        shl     ecx,16                  ;convert new size to 32-bit.
         mov     cx,dx
         push    ecx
         sys     GetSelDet32             ;Get selector base address.
@@ -1460,10 +1468,10 @@ cwAPI_ResMemSO  proc    near
         jc      api30_9
         mov     esi,edx
         movzx   eax,w[ebp+Int_DI]
-        add     esi,eax         ;get memory blocks address.
+        add     esi,eax                 ;get memory blocks address.
         mov     cx,[ebp+Int_CX]
         mov     dx,[ebp+Int_DX]
-        shl     ecx,16          ;convert new size to 32-bit.
+        shl     ecx,16                  ;convert new size to 32-bit.
         mov     cx,dx
         call    mcbResMemLinear32       ;re-size the memory.
         jc      api30_9
@@ -1497,15 +1505,15 @@ api30_1:
         mov     bx,es:[edi+mcbChunkSel] ;get chunk selector.
         pop     es
         mov     edx,esi
-        sub     edx,edi         ;get blocks offset.
+        sub     edx,edi                 ;get blocks offset.
 ;
 ;Check if the old block had it's own selector.
 ;
-        cmp     w[ebp+Int_DI],0 ;offset of zero?
+        cmp     w[ebp+Int_DI],0         ;offset of zero?
         jnz     api30_7
         push    bx
         mov     bx,w[ebp+Int_SI]
-        sys     RelSel          ;release the selector.
+        sys     RelSel                  ;release the selector.
         pop     bx
 ;
 api30_7:
@@ -1574,7 +1582,7 @@ cwAPI_RelMem    proc    near
         mov     es,[ebp+Int_ES]
         mov     fs,[ebp+Int_FS]
         mov     gs,[ebp+Int_GS]
-        sys     RelSel          ;release the selector.
+        sys     RelSel                  ;release the selector.
         mov     [ebp+Int_DS],ds
         mov     [ebp+Int_ES],es
         mov     [ebp+Int_FS],fs
@@ -1635,15 +1643,15 @@ api33_3:
         jc      api33_9
         mov     esi,edx
         movzx   eax,w[ebp+Int_DI]
-        add     esi,eax         ;get memory blocks address.
+        add     esi,eax                 ;get memory blocks address.
         call    mcbRelMemLinear32       ;release the memory.
 ;
 ;Check if block had it's own selector.
 ;
-        cmp     w[ebp+Int_DI],0 ;offset of zero?
+        cmp     w[ebp+Int_DI],0         ;offset of zero?
         jnz     api33_4
         mov     bx,w[ebp+Int_SI]
-        sys     RelSel          ;release the selector.
+        sys     RelSel                  ;release the selector.
 ;
 api33_4:
         clc
@@ -2725,12 +2733,12 @@ api61_GotSel:
         push    bx
         mov     ecx,d[api61_SelectorSize]
         mov     esi,d[api61_SelectorBase]
-        mov     ax,ds           ;need RPL to base DPL on.
+        mov     ax,ds                       ;need RPL to base DPL on.
         lar     ax,ax
         and     ah,DescPL3
         or      ah,DescPresent+DescMemory+DescRWData
         ;
-        mov     dx,apiSystemFlags       ;use default setting.
+        mov     dx,apiSystemFlags           ;use default setting.
         shr     dx,14
         mov     al,dl
         xor     al,1
@@ -2738,22 +2746,22 @@ api61_GotSel:
         and     al,1
         shl     al,6
         ;
-        cmp     ecx,0fffffh     ; see if we need to set g bit
+        cmp     ecx,0fffffh                 ; see if we need to set g bit
         jc      api61_3
         jz      api61_3
-        shr     ecx,12          ; div by 4096
-        or      al,80h          ; set g bit
+        shr     ecx,12                      ; div by 4096
+        or      al,80h                      ; set g bit
 api61_3:
-        mov     w[DescriptorBuffer],cx  ;store low word of limit.
+        mov     w[DescriptorBuffer],cx      ;store low word of limit.
         shr     ecx,16
         or      cl,al
-        mov     b[DescriptorBuffer+6],cl        ;store high bits of limit and gran/code size bits.
-        mov     w[DescriptorBuffer+2],si        ;store low word of linear base.
+        mov     b[DescriptorBuffer+6],cl    ;store high bits of limit and gran/code size bits.
+        mov     w[DescriptorBuffer+2],si    ;store low word of linear base.
         shr     esi,16
         mov     bx,si
-        mov     b[DescriptorBuffer+4],bl        ;store mid byte of linear base.
-        mov     b[DescriptorBuffer+7],bh        ;store high byte of linear base.
-        mov     b[DescriptorBuffer+5],ah        ;store pp/dpl/dt/type bits.
+        mov     b[DescriptorBuffer+4],bl    ;store mid byte of linear base.
+        mov     b[DescriptorBuffer+7],bh    ;store high byte of linear base.
+        mov     b[DescriptorBuffer+5],ah    ;store pp/dpl/dt/type bits.
         pop     bx
         ;
         ;Write new descriptor table entry.
@@ -2937,22 +2945,22 @@ _SizeSelector   proc near
         mov     al,0
         mov     ecx,d[api63_SelectorSize]
         mov     esi,d[api63_SelectorBase]
-        cmp     ecx,0fffffh     ; see if we need to set g bit
+        cmp     ecx,0fffffh                     ; see if we need to set g bit
         jc      api63_2
         jz      api63_2
-        shr     ecx,12          ; div by 4096
-        or      al,80h          ; set g bit
+        shr     ecx,12                          ; div by 4096
+        or      al,80h                          ; set g bit
 api63_2:
-        mov     w[DescriptorBuffer+0],cx                ;store low word of limit.
+        mov     w[DescriptorBuffer+0],cx        ;store low word of limit.
         shr     ecx,16
         or      cl,al
         and     b[DescriptorBuffer+6],01110000b ;lose limit & G bit.
-        or      b[DescriptorBuffer+6],cl                ;store high bits of limit and G bit.
-        mov     w[DescriptorBuffer+2],si                ;store low word of linear base.
+        or      b[DescriptorBuffer+6],cl        ;store high bits of limit and G bit.
+        mov     w[DescriptorBuffer+2],si        ;store low word of linear base.
         shr     esi,16
         mov     bx,si
-        mov     b[DescriptorBuffer+4],bl                ;store mid byte of linear base.
-        mov     b[DescriptorBuffer+7],bh                ;store high byte of linear base.
+        mov     b[DescriptorBuffer+4],bl        ;store mid byte of linear base.
+        mov     b[DescriptorBuffer+7],bh        ;store high byte of linear base.
         pop     bx
         ;
         ;Write new descriptor table entry.
@@ -3105,10 +3113,10 @@ _CodeSelector   proc near
         or      al,DescERCode
         and     DescriptorBuffer+5,10010000b
         or      DescriptorBuffer+5,al   ;
-        and     DescriptorBuffer+6,255-(1 shl 6) ;clear code size bit.
+        and     DescriptorBuffer+6,255-(1 shl 6)    ;clear code size bit.
         and     cl,1
         shl     cl,6
-        or      DescriptorBuffer+6,cl   ;code size bit.
+        or      DescriptorBuffer+6,cl               ;code size bit.
         ;
         mov     ax,000ch
         push    ds
@@ -3164,10 +3172,10 @@ _DSizeSelector  proc near
         pop     bx
         pop     cx
         ;
-        and     DescriptorBuffer+6,255-(1 shl 6) ;clear code size bit.
+        and     DescriptorBuffer+6,255-(1 shl 6)    ;clear code size bit.
         and     cl,1
         shl     cl,6
-        or      DescriptorBuffer+6,cl   ;code size bit.
+        or      DescriptorBuffer+6,cl               ;code size bit.
         ;
         mov     ax,000ch
         push    ds
@@ -3197,13 +3205,13 @@ mcbChunkSize    equ     10      ;size of this chunk.
 mcbChunkSel     equ     12      ;chunk's selector.
 mcbChunkLen     equ     16      ;length of chunk control entry.
 
-mcbID   equ     0       ;ID for corruption checking.
-mcbLast equ     1       ;previous MCB pointer status.
+mcbID           equ     0       ;ID for corruption checking.
+mcbLast         equ     1       ;previous MCB pointer status.
 mcbLastSize     equ     2       ;pointer to previous MCB.
 mcbFreeUsed     equ     4       ;free or used status.
-mcbNext equ     5       ;next MCB pointer status.
+mcbNext         equ     5       ;next MCB pointer status.
 mcbNextSize     equ     6       ;pointer to next MCB.
-mcbLen  equ     8       ;length of an MCB entry.
+mcbLen          equ     8       ;length of an MCB entry.
 
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -3345,20 +3353,20 @@ mGML32_0:
         cmp     DWORD PTR fs:[EPSP_Struc.EPSP_mcbHead],0
         jnz     mGML32_10
         mov     ebx,DWORD PTR fs:[EPSP_Struc.EPSP_mcbMaxAlloc]
-        add     ebx,mcbChunkLen+mcbLen  ;chunk size.
-        call    _GetMemory              ;allocate it.
-        jc      mGML32_9                ;oops, appear to be out of memory.
+        add     ebx,mcbChunkLen+mcbLen              ;chunk size.
+        call    _GetMemory                          ;allocate it.
+        jc      mGML32_9                            ;oops, appear to be out of memory.
         mov     DWORD PTR fs:[EPSP_Struc.EPSP_mcbHead],esi
 ;
 ;Initialise this chunk.
 ;
         mov     es,RealSegment
-        sub     ebx,mcbChunkLen+mcbLen  ;chunk size.
+        sub     ebx,mcbChunkLen+mcbLen              ;chunk size.
         mov     WORD PTR es:[esi+mcbChunkSize],bx
-        mov     DWORD PTR es:[esi+mcbChunkNext],0       ;set forward link address.
-        mov     DWORD PTR es:[esi+mcbChunkLast],0       ;store back link address.
+        mov     DWORD PTR es:[esi+mcbChunkNext],0   ;set forward link address.
+        mov     DWORD PTR es:[esi+mcbChunkLast],0   ;store back link address.
         mov     eax,DWORD PTR fs:[EPSP_Struc.EPSP_mcbMaxAlloc]
-        mov     WORD PTR es:[esi+mcbBiggest],ax ;set biggest chunk size.
+        mov     WORD PTR es:[esi+mcbBiggest],ax     ;set biggest chunk size.
         sys     GetSel
         jc      mGML32_9
         mov     WORD PTR es:[esi+mcbChunkSel],bx
@@ -3370,61 +3378,61 @@ mGML32_0:
         sys     SetSelDet32
         pop     ecx
         pop     edx
-        add     esi,mcbChunkLen ;skip chunk link info.
-        mov     BYTE PTR es:[esi+mcbID],"C"     ;set ID byte.
-        mov     BYTE PTR es:[esi+mcbLast],"D"   ;mark it as last block in back link.
-        mov     WORD PTR es:[esi+mcbLastSize],0 ;clear back link entry.
-        mov     BYTE PTR es:[esi+mcbFreeUsed],"J"       ;mark it as a free block,
-        mov     BYTE PTR es:[esi+mcbNext],"D"   ;last block in MCB chain,
+        add     esi,mcbChunkLen                     ;skip chunk link info.
+        mov     BYTE PTR es:[esi+mcbID],"C"         ;set ID byte.
+        mov     BYTE PTR es:[esi+mcbLast],"D"       ;mark it as last block in back link.
+        mov     WORD PTR es:[esi+mcbLastSize],0     ;clear back link entry.
+        mov     BYTE PTR es:[esi+mcbFreeUsed],"J"   ;mark it as a free block,
+        mov     BYTE PTR es:[esi+mcbNext],"D"       ;last block in MCB chain,
         mov     eax,DWORD PTR fs:[EPSP_Struc.EPSP_mcbMaxAlloc]
         mov     WORD PTR es:[esi+mcbNextSize],ax
 ;
 ;Scan through all mcb's in all chunks looking for a big enough block.
 ;
 mGML32_10:
-        mov     es,RealSegment  ;0-4G selector.
-        mov     esi,DWORD PTR fs:[EPSP_Struc.EPSP_mcbHead]      ;start of local allocation trail.
+        mov     es,RealSegment                      ;0-4G selector.
+        mov     esi,DWORD PTR fs:[EPSP_Struc.EPSP_mcbHead]  ;start of local allocation trail.
 mGML32_1:
-        mov     edi,esi         ;keep a copy for chunk chaining.
-        mov     ebp,edi         ;keep a copy for mcbBiggest
+        mov     edi,esi                             ;keep a copy for chunk chaining.
+        mov     ebp,edi                             ;keep a copy for mcbBiggest
         ;
-        cmp     WORD PTR es:[edi+mcbBiggest],cx ;check if this chunk has a big
-        jc      mGML32_6_0              ;enough free block.
+        cmp     WORD PTR es:[edi+mcbBiggest],cx     ;check if this chunk has a big
+        jc      mGML32_6_0                          ;enough free block.
         add     esi,mcbChunkLen
 ;
 ;Find first free and big enough block.
 ;
 mGML32_2:
-        cmp     BYTE PTR es:[esi+mcbFreeUsed],"J"       ;Free block?
+        cmp     BYTE PTR es:[esi+mcbFreeUsed],"J"   ;Free block?
         jz      mGML32_5
 mGML32_6:
-        cmp     BYTE PTR es:[esi+mcbNext],"M"   ;Normal block (not end of chain)?
+        cmp     BYTE PTR es:[esi+mcbNext],"M"       ;Normal block (not end of chain)?
         jz      mGML32_4
 ;
 ;Reached the end of the chain for this chunk so we need to move onto the next
 ;chunk in the chain.
 ;
 mGML32_6_0:
-        cmp     DWORD PTR es:[edi+mcbChunkNext],0       ;already have a link?
+        cmp     DWORD PTR es:[edi+mcbChunkNext],0   ;already have a link?
         jnz     mGML32_3
 ;
 ;Need another chunk to put in the chain so try and allocate it via normal
 ;CauseWay API.
 ;
         mov     ebx,DWORD PTR fs:[EPSP_Struc.EPSP_mcbMaxAlloc]
-        add     ebx,mcbChunkLen+mcbLen  ;chunk size.
+        add     ebx,mcbChunkLen+mcbLen              ;chunk size.
         call    _GetMemory
-        jc      mGML32_9                ;oops, appear to be out of memory.
+        jc      mGML32_9                            ;oops, appear to be out of memory.
 ;
 ;Update current chunk with address of new chunk and initialise new chunk.
 ;
-        sub     ebx,mcbChunkLen+mcbLen  ;chunk size.
+        sub     ebx,mcbChunkLen+mcbLen              ;chunk size.
         mov     WORD PTR es:[esi+mcbChunkSize],bx
         mov     DWORD PTR es:[edi+mcbChunkNext],esi ;store forward link address.
         mov     DWORD PTR es:[esi+mcbChunkLast],edi ;store back link address.
-        mov     DWORD PTR es:[esi+mcbChunkNext],0       ;clear new forward link address.
+        mov     DWORD PTR es:[esi+mcbChunkNext],0   ;clear new forward link address.
         mov     eax,DWORD PTR fs:[EPSP_Struc.EPSP_mcbMaxAlloc]
-        mov     WORD PTR es:[esi+mcbBiggest],ax ;set biggest chunk size.
+        mov     WORD PTR es:[esi+mcbBiggest],ax     ;set biggest chunk size.
         sys     GetSel
         jc      mGML32_9
         mov     WORD PTR es:[esi+mcbChunkSel],bx
@@ -3436,12 +3444,12 @@ mGML32_6_0:
         sys     SetSelDet32
         pop     ecx
         pop     edx
-        add     esi,mcbChunkLen ;skip chunk link info.
-        mov     BYTE PTR es:[esi+mcbID],"C"     ;set ID.
-        mov     BYTE PTR es:[esi+mcbLast],"D"   ;mark it as last block in back link.
-        mov     WORD PTR es:[esi+mcbLastSize],0 ;clear back link entry.
-        mov     BYTE PTR es:[esi+mcbFreeUsed],"J"       ;mark it as a free block,
-        mov     BYTE PTR es:[esi+mcbNext],"D"   ;last block in MCB chain,
+        add     esi,mcbChunkLen                     ;skip chunk link info.
+        mov     BYTE PTR es:[esi+mcbID],"C"         ;set ID.
+        mov     BYTE PTR es:[esi+mcbLast],"D"       ;mark it as last block in back link.
+        mov     WORD PTR es:[esi+mcbLastSize],0     ;clear back link entry.
+        mov     BYTE PTR es:[esi+mcbFreeUsed],"J"   ;mark it as a free block,
+        mov     BYTE PTR es:[esi+mcbNext],"D"       ;last block in MCB chain,
         mov     eax,DWORD PTR fs:[EPSP_Struc.EPSP_mcbMaxAlloc]
         mov     WORD PTR es:[esi+mcbNextSize],ax
 ;
@@ -3449,49 +3457,49 @@ mGML32_6_0:
 ;
 mGML32_3:
         mov     esi,DWORD PTR es:[edi+mcbChunkNext] ;pickup forward link address.
-        jmp     mGML32_1                ;scan this MCB chain.
+        jmp     mGML32_1                            ;scan this MCB chain.
 ;
 ;Move to next MCB.
 ;
 mGML32_4:
-        movzx   eax,WORD PTR es:[esi+mcbNextSize]       ;get block length.
-        add     eax,mcbLen              ;include size of an MCB.
+        movzx   eax,WORD PTR es:[esi+mcbNextSize]   ;get block length.
+        add     eax,mcbLen                          ;include size of an MCB.
         add     esi,eax
         jmp     mGML32_2
 ;
 ;Check if this block is big enough.
 ;
 mGML32_5:
-        cmp     WORD PTR es:[esi+mcbNextSize],cx        ;Big enough block?
+        cmp     WORD PTR es:[esi+mcbNextSize],cx    ;Big enough block?
         jc      mGML32_6
 ;
 ;Found a big enough free block so make use of it.
 ;
-        mov     BYTE PTR es:[esi+mcbFreeUsed],"W"       ;mark it as used.
+        mov     BYTE PTR es:[esi+mcbFreeUsed],"W"   ;mark it as used.
         movzx   ebx,WORD PTR es:[esi+mcbNextSize]
-        sub     ebx,ecx         ;get spare size.
-        cmp     ebx,mcbLen+1            ;smaller than an MCB?
+        sub     ebx,ecx                             ;get spare size.
+        cmp     ebx,mcbLen+1                        ;smaller than an MCB?
         jc      mGML32_8
 ;
 ;Create a new MCB from whats left over.
 ;
-        sub     bx,mcbLen               ;MCB comes out of this size.
-        mov     es:[esi+mcbNextSize],cx ;set allocated block's size.
-        mov     al,BYTE PTR es:[esi+mcbNext]    ;get next status.
-        mov     BYTE PTR es:[esi+mcbNext],"M"   ;make sure its not end of chain now.
+        sub     bx,mcbLen                           ;MCB comes out of this size.
+        mov     es:[esi+mcbNextSize],cx             ;set allocated block's size.
+        mov     al,BYTE PTR es:[esi+mcbNext]        ;get next status.
+        mov     BYTE PTR es:[esi+mcbNext],"M"       ;make sure its not end of chain now.
         mov     edi,esi
         add     edi,ecx
-        add     edi,mcbLen              ;move to where new MCB will be.
+        add     edi,mcbLen                          ;move to where new MCB will be.
         mov     BYTE PTR es:[edi+mcbID],"C"
-        mov     BYTE PTR es:[edi+mcbLast],"M"   ;not last in back link chain.
-        mov     es:[edi+mcbLastSize],cx ;set back link size.
-        mov     BYTE PTR es:[edi+mcbFreeUsed],"J"       ;mark as free,
-        mov     es:[edi+mcbNext],al     ;set end of chain status.
-        mov     es:[edi+mcbNextSize],bx ;and new block size.
+        mov     BYTE PTR es:[edi+mcbLast],"M"       ;not last in back link chain.
+        mov     es:[edi+mcbLastSize],cx             ;set back link size.
+        mov     BYTE PTR es:[edi+mcbFreeUsed],"J"   ;mark as free,
+        mov     es:[edi+mcbNext],al                 ;set end of chain status.
+        mov     es:[edi+mcbNextSize],bx             ;and new block size.
 ;
 ;Check if old block used to be end of chain.
 ;
-        cmp     al,"D"          ;end of chain?
+        cmp     al,"D"                  ;end of chain?
         jz      mGML32_8
 ;
 ;Update back link size of next block.
@@ -3571,7 +3579,7 @@ mcbResMemLinear32 proc near
 ;
         mov     es,RealSegment
         mov     esi,DWORD PTR fs:[EPSP_Struc.EPSP_mcbHead]
-        or      esi,esi         ;check mcb's are active.
+        or      esi,esi                 ;check mcb's are active.
         jz      mRsML32_8
         ;
 mRsML32_0:
@@ -3583,7 +3591,7 @@ mRsML32_0:
         cmp     edi,eax
         jc      mRsML32_2
 mRsML32_1:
-        cmp     DWORD PTR es:[esi+mcbChunkNext],0       ;Next link field set?
+        cmp     DWORD PTR es:[esi+mcbChunkNext],0   ;Next link field set?
         jz      mRsML32_8
         mov     esi,DWORD PTR es:[esi+mcbChunkNext]
         jmp     mRsML32_0
@@ -3627,7 +3635,7 @@ mRsML32_2:
         pop     ds
         pop     esi
 ;
-;Release origional block and return address of new block.
+;Release original block and return address of new block.
 ;
         call    mcbRelMemLinear32
         pop     esi
@@ -3645,7 +3653,7 @@ mRsML32_3:
 ;Block is shrinking so build another MCB at the end of this one.
 ;
         movzx   ebx,WORD PTR es:[esi+mcbNextSize]
-        sub     ebx,ecx         ;get size differance.
+        sub     ebx,ecx                 ;get size differance.
         cmp     ebx,mcbLen+1            ;enough for a new MCB?
         jnc     api70_0
 ;
@@ -3653,14 +3661,14 @@ mRsML32_3:
 ;next block is free and join the new space onto that if it is.
 ;
         cmp     BYTE PTR es:[esi+mcbNext],"M"   ;end of the chain?
-        jnz     mRsML32_7               ;yep, can't be another block.
+        jnz     mRsML32_7                       ;yep, can't be another block.
         mov     edi,esi
         movzx   eax,WORD PTR es:[esi+mcbNextSize]
         add     eax,mcbLen
-        add     edi,eax         ;point to the next block.
-        cmp     BYTE PTR es:[edi+mcbFreeUsed],"J"       ;Free block?
-        jnz     mRsML32_7               ;no, so leave things alone.
-        mov     es:[esi+mcbNextSize],cx ;set new size.
+        add     edi,eax                         ;point to the next block.
+        cmp     BYTE PTR es:[edi+mcbFreeUsed],"J"   ;Free block?
+        jnz     mRsML32_7                       ;no, so leave things alone.
+        mov     es:[esi+mcbNextSize],cx         ;set new size.
         push    esi
         push    ecx
         mov     eax,ecx
@@ -3674,8 +3682,8 @@ mRsML32_3:
         rep     movsb
         pop     ds
         sub     edi,mcbLen
-        add     es:[edi+mcbNextSize],bx ;update block size.
-        sub     es:[edi+mcbLastSize],bx ;update last size.
+        add     es:[edi+mcbNextSize],bx         ;update block size.
+        sub     es:[edi+mcbLastSize],bx         ;update last size.
         pop     ecx
         pop     esi
         cmp     BYTE PTR es:[edi+mcbNext],"M"   ;end of chain?
@@ -3684,23 +3692,23 @@ mRsML32_3:
         add     edi,eax
         add     edi,mcbLen
         mov     es:[edi+mcbLastSize],ax
-        jmp     mRsML32_7               ;leave things as they are.
+        jmp     mRsML32_7                       ;leave things as they are.
         ;
 api70_0:
-        sub     ebx,mcbLen              ;need space for a new MCB.
-        mov     es:[esi+mcbNextSize],cx ;set new size.
-        mov     al,es:[esi+mcbNext]     ;get next status.
+        sub     ebx,mcbLen                      ;need space for a new MCB.
+        mov     es:[esi+mcbNextSize],cx         ;set new size.
+        mov     al,es:[esi+mcbNext]             ;get next status.
         mov     BYTE PTR es:[esi+mcbNext],"M"   ;force not end of chain.
         mov     edi,esi
         add     edi,ecx
-        add     edi,mcbLen              ;move to new MCB.
+        add     edi,mcbLen                      ;move to new MCB.
         mov     BYTE PTR es:[edi+mcbID],"C"     ;set ID.
         mov     BYTE PTR es:[edi+mcbLast],"M"   ;not last in last chain.
-        mov     es:[edi+mcbLastSize],cx ;set last link size.
+        mov     es:[edi+mcbLastSize],cx         ;set last link size.
         mov     BYTE PTR es:[edi+mcbNext],al    ;set next status.
-        mov     BYTE PTR es:[edi+mcbFreeUsed],"J"       ;mark it as free.
-        mov     es:[edi+mcbNextSize],bx ;set next link size.
-        cmp     al,"D"          ;end of chain?
+        mov     BYTE PTR es:[edi+mcbFreeUsed],"J"   ;mark it as free.
+        mov     es:[edi+mcbNextSize],bx         ;set next link size.
+        cmp     al,"D"                          ;end of chain?
         jz      mRsML32_7
 ;
 ;Update last link size of next MCB.
@@ -3708,53 +3716,53 @@ api70_0:
         movzx   eax,WORD PTR es:[edi+mcbNextSize]
         mov     ebx,edi
         add     ebx,eax
-        add     ebx,mcbLen              ;move to next block.
+        add     ebx,mcbLen                      ;move to next block.
         mov     es:[ebx+mcbLastSize],ax
 ;
 ;Check if next block is free and join it to the newly created block if it is,
 ;
-        cmp     BYTE PTR es:[ebx+mcbFreeUsed],"J"       ;Free block?
+        cmp     BYTE PTR es:[ebx+mcbFreeUsed],"J"   ;Free block?
         jnz     mRsML32_7
 ;
 ;Join next block to this one.
 ;
-        movzx   eax,WORD PTR es:[ebx+mcbNextSize]       ;get block's size.
-        add     eax,mcbLen              ;include size of an mcb.
+        movzx   eax,WORD PTR es:[ebx+mcbNextSize]   ;get block's size.
+        add     eax,mcbLen                          ;include size of an mcb.
         add     es:[edi+mcbNextSize],ax
         mov     al,es:[ebx+mcbNext]
-        mov     es:[edi+mcbNext],al     ;copy next status.
-        cmp     al,"D"          ;end of chain?
+        mov     es:[edi+mcbNext],al                 ;copy next status.
+        cmp     al,"D"                              ;end of chain?
         jz      mRsML32_7
 ;
 ;Update next blocks last link size.
 ;
         movzx   eax,WORD PTR es:[edi+mcbNextSize]
         add     edi,eax
-        add     edi,mcbLen              ;move to next block.
+        add     edi,mcbLen                          ;move to next block.
         mov     es:[edi+mcbLastSize],ax
         jmp     mRsML32_7
 ;
 ;Need to expand the block so check out the block above this one.
 ;
 mRsML32_4:
-        cmp     BYTE PTR es:[esi+mcbNext],"D"   ;end of the chain?
+        cmp     BYTE PTR es:[esi+mcbNext],"D"       ;end of the chain?
         jz      mRsML32_6
         mov     edi,esi
         movzx   eax,WORD PTR es:[esi+mcbNextSize]
-        add     eax,mcbLen              ;move to next block.
+        add     eax,mcbLen                          ;move to next block.
         add     edi,eax
-        cmp     BYTE PTR es:[edi+mcbFreeUsed],"J"       ;This block free?
+        cmp     BYTE PTR es:[edi+mcbFreeUsed],"J"   ;This block free?
         jnz     mRsML32_6
         mov     ebx,ecx
-        sub     bx,WORD PTR es:[esi+mcbNextSize]        ;Get size needed.
+        sub     bx,WORD PTR es:[esi+mcbNextSize]    ;Get size needed.
         movzx   eax,WORD PTR es:[edi+mcbNextSize]
         add     eax,mcbLen
-        cmp     eax,ebx         ;Big enough block?
+        cmp     eax,ebx                             ;Big enough block?
         jc      mRsML32_6
 ;
 ;Next block is big enough, is it big enough to leave a free block behind still?
 ;
-        sub     eax,ebx         ;Get size differance.
+        sub     eax,ebx                             ;Get size differance.
         cmp     eax,mcbLen+1
         jnc     mRsML32_5
 ;
@@ -3762,10 +3770,10 @@ mRsML32_4:
 ;
         movzx   eax,WORD PTR es:[edi+mcbNextSize]
         add     eax,mcbLen
-        add     es:[esi+mcbNextSize],ax ;update block size.
-        mov     al,es:[edi+mcbNext]     ;get next status.
+        add     es:[esi+mcbNextSize],ax             ;update block size.
+        mov     al,es:[edi+mcbNext]                 ;get next status.
         mov     es:[esi+mcbNext],al
-        cmp     al,"D"          ;end of the chain?
+        cmp     al,"D"                              ;end of the chain?
         jz      mRsML32_7
         movzx   eax,WORD PTR es:[esi+mcbNextSize]
         mov     edi,esi
@@ -3777,24 +3785,24 @@ mRsML32_4:
 ;Create a new MCB in the right place.
 ;
 mRsML32_5:
-        mov     al,es:[edi+mcbNext]     ;Get next status.
-        movzx   ebx,WORD PTR es:[edi+mcbNextSize]       ;Get size of this block.
+        mov     al,es:[edi+mcbNext]                 ;Get next status.
+        movzx   ebx,WORD PTR es:[edi+mcbNextSize]   ;Get size of this block.
         add     bx,WORD PTR es:[esi+mcbNextSize]
-        mov     es:[esi+mcbNextSize],cx ;set new size of this block.
-        sub     ebx,ecx         ;get size remaining.
+        mov     es:[esi+mcbNextSize],cx             ;set new size of this block.
+        sub     ebx,ecx                             ;get size remaining.
         mov     edi,esi
         add     edi,ecx
         add     edi,mcbLen
-        mov     BYTE PTR es:[edi+mcbID],"C"     ;set ID.
-        mov     BYTE PTR es:[edi+mcbLast],"M"   ;not last in last chain.
-        mov     es:[edi+mcbLastSize],cx ;last link size.
-        mov     BYTE PTR es:[edi+mcbFreeUsed],"J"       ;mark it as free again.
-        mov     es:[edi+mcbNext],al     ;set next status.
-        mov     es:[edi+mcbNextSize],bx ;set next link size.
-        cmp     al,"D"          ;end of the chain?
+        mov     BYTE PTR es:[edi+mcbID],"C"         ;set ID.
+        mov     BYTE PTR es:[edi+mcbLast],"M"       ;not last in last chain.
+        mov     es:[edi+mcbLastSize],cx             ;last link size.
+        mov     BYTE PTR es:[edi+mcbFreeUsed],"J"   ;mark it as free again.
+        mov     es:[edi+mcbNext],al                 ;set next status.
+        mov     es:[edi+mcbNextSize],bx             ;set next link size.
+        cmp     al,"D"                              ;end of the chain?
         jz      mRsML32_7
         add     edi,ebx
-        add     edi,mcbLen              ;move to next block.
+        add     edi,mcbLen                          ;move to next block.
         mov     es:[edi+mcbLastSize],bx
         jmp     mRsML32_7
 ;
@@ -3822,7 +3830,7 @@ mRsML32_6:
         rep     movsb
         pop     ds
         pop     esi
-        call    mcbRelMemLinear32       ;release origional block.
+        call    mcbRelMemLinear32                   ;release original block.
         pop     esi
         pop     ecx
         clc
@@ -3861,7 +3869,7 @@ mRsML32_11:
         call    mcbGetMemLinear32
         jc      mRsML32_9
 ;
-;Copy origional block contents.
+;Copy original block contents.
 ;
         push    esi
         push    edi
@@ -3876,7 +3884,7 @@ mRsML32_11:
         rep     movsb
         pop     ds
         pop     esi
-        call    _RelMemory              ;release origional block.
+        call    _RelMemory                  ;release original block.
         pop     esi
 ;
 ;Return to caller.
@@ -3919,7 +3927,7 @@ mcbRelMemLinear32 proc near
 ;
         mov     es,RealSegment
         mov     esi,DWORD PTR fs:[EPSP_Struc.EPSP_mcbHead]
-        or      esi,esi         ;check mcb's are active.
+        or      esi,esi                             ;check mcb's are active.
         jz      mRML32_8
         ;
 mRML32_0:
@@ -3927,11 +3935,11 @@ mRML32_0:
         jc      mRML32_1
         movzx   eax,WORD PTR es:[esi+mcbChunkSize]
         add     eax,esi
-        add     eax,mcbChunkLen+mcbLen  ;chunk size.
+        add     eax,mcbChunkLen+mcbLen              ;chunk size.
         cmp     edi,eax
         jc      mRML32_2
 mRML32_1:
-        cmp     DWORD PTR es:[esi+mcbChunkNext],0       ;Next link field set?
+        cmp     DWORD PTR es:[esi+mcbChunkNext],0   ;Next link field set?
         jz      mRML32_8
         mov     esi,DWORD PTR es:[esi+mcbChunkNext]
         jmp     mRML32_0
@@ -3942,25 +3950,25 @@ mRML32_2:
         xchg    edi,esi
         mov     ebp,edi
         sub     esi,mcbLen
-        mov     BYTE PTR es:[esi+mcbFreeUsed],"J"       ;mark it as free.
+        mov     BYTE PTR es:[esi+mcbFreeUsed],"J"   ;mark it as free.
 ;
 ;Check if next block is free and join it to this one if it is.
 ;
 mRML32_11:
-        cmp     BYTE PTR es:[esi+mcbNext],"D"   ;last block in chain?
+        cmp     BYTE PTR es:[esi+mcbNext],"D"       ;last block in chain?
         jz      mRML32_3
         movzx   eax,WORD PTR es:[esi+mcbNextSize]
         mov     ebx,esi
         add     eax,mcbLen
         add     ebx,eax
-        cmp     BYTE PTR es:[ebx+mcbFreeUsed],"J"       ;free block?
+        cmp     BYTE PTR es:[ebx+mcbFreeUsed],"J"   ;free block?
         jnz     mRML32_3
         movzx   eax,WORD PTR es:[ebx+mcbNextSize]
         add     eax,mcbLen
-        add     es:[esi+mcbNextSize],ax ;update block size.
+        add     es:[esi+mcbNextSize],ax             ;update block size.
         mov     al,es:[ebx+mcbNext]
-        mov     es:[esi+mcbNext],al     ;copy next status.
-        cmp     al,"D"          ;last block in chain?
+        mov     es:[esi+mcbNext],al                 ;copy next status.
+        cmp     al,"D"                              ;last block in chain?
         jz      mRML32_3
 ;
 ;Update next blocks last block pointer.
@@ -3983,30 +3991,30 @@ mRML32_3:
 ;
 ;Un-link and release this chunk, its not being used.
 ;
-        mov     esi,edi         ;Get chunk address.
+        mov     esi,edi                             ;Get chunk address.
         mov     edi,es:[esi+mcbChunkLast]
         mov     eax,es:[esi+mcbChunkNext]
-        or      edi,edi         ;First chunk?
+        or      edi,edi                             ;First chunk?
         jnz     mRML32_5
-        mov     DWORD PTR fs:[EPSP_Struc.EPSP_mcbHead],eax      ;Set new head chunk, 0 is valid.
+        mov     DWORD PTR fs:[EPSP_Struc.EPSP_mcbHead],eax  ;Set new head chunk, 0 is valid.
         jmp     mRML32_6
 mRML32_5:
-        mov     es:[edi+mcbChunkNext],eax       ;link to next chunk.
+        mov     es:[edi+mcbChunkNext],eax           ;link to next chunk.
 mRML32_6:
         xchg    eax,edi
-        or      edi,edi         ;is there a next chunk?
+        or      edi,edi                             ;is there a next chunk?
         jz      mRML32_7
-        mov     es:[edi+mcbChunkLast],eax       ;link to last chunk.
+        mov     es:[edi+mcbChunkLast],eax           ;link to last chunk.
 mRML32_7:
         mov     bx,es:[esi+mcbChunkSel]
-        sys     RelSel          ;release this selector.
-        call    _RelMemory              ;release this memory for real.
-        jmp     mRML32_9                ;exit, we're all done.
+        sys     RelSel                              ;release this selector.
+        call    _RelMemory                          ;release this memory for real.
+        jmp     mRML32_9                            ;exit, we're all done.
 ;
 ;Check if previous block is free and join this one to it if it is.
 ;
 mRML32_4:
-        cmp     BYTE PTR es:[esi+mcbLast],"M"   ;last block in last chain?
+        cmp     BYTE PTR es:[esi+mcbLast],"M"       ;last block in last chain?
         jnz     mRML32_10
 ;
 ;Move back to previous block, see if its free and let the next block join code
@@ -4111,10 +4119,10 @@ _GetMemory      proc    near
         ;
         cmp     ebx,-2
         jz      api73_Special
-        cmp     ebx,-1          ;special value to get memory free?
+        cmp     ebx,-1                  ;special value to get memory free?
         jnz     api73_NotSpecial
 api73_Special:
-        call    _GetMemoryMax   ;call free memory code.
+        call    _GetMemoryMax           ;call free memory code.
         stc
         pop     d[api73_BlockHandle]
         pop     d[api73_BlockBase]
@@ -4140,7 +4148,7 @@ api73_NotSpecial:
         mov     d[api73_BlockBase],ebx  ;store linear base address.
         shl     esi,16
         mov     si,di
-        mov     d[api73_BlockHandle],esi        ;store access handle.
+        mov     d[api73_BlockHandle],esi    ;store access handle.
         ;
         mov     ax,Res_MEM
         mov     edx,ebx
@@ -4187,7 +4195,7 @@ _GetMemoryMax proc near
         ;
 
 COMMENT ! MED 02/15/96
-        cmp     ebx,-1          ;normal max reporting?
+        cmp     ebx,-1                  ;normal max reporting?
         jz      api74_normal
 
         push    ds
@@ -4215,15 +4223,15 @@ COMMENT ! MED 02/15/96
         cmp     VMMHandle,0
         jz      api74_500_1
         mov     dl,VMMName              ;get drive letter for this media.
-        sub     dl,'A'          ;make it real.
-        inc     dl              ;adjust for current type select.
-        mov     ah,36h          ;get free space.
-        int     21h             ;/
+        sub     dl,'A'                  ;make it real.
+        inc     dl                      ;adjust for current type select.
+        mov     ah,36h                  ;get free space.
+        int     21h
         xor     edx,edx
-        cmp     ax,-1           ;invalid drive?
+        cmp     ax,-1                   ;invalid drive?
         jz      api74_500_1
-        mul     cx              ;Get bytes per cluster.
-        mul     bx              ;Get bytes available.
+        mul     cx                      ;Get bytes per cluster.
+        mul     bx                      ;Get bytes available.
         shl     edx,16
         mov     dx,ax
         add     edx,SwapFileLength      ;include current size.
@@ -4327,7 +4335,7 @@ _ResMemory      proc    near
         mov     di,si
         shr     esi,16
         mov     cx,bx
-        shr     ebx,16          ;set block size.
+        shr     ebx,16                  ;set block size.
         mov     ax,0503h                ;release the block.
         cwAPI_CallOld
         jc      api75_9
@@ -4464,7 +4472,7 @@ RegisterResource proc near
         ;
         cmp     ResourceTracking,0
         jz      api77_9
-        cmp     DWORD PTR fs:[EPSP_Struc.EPSP_Resource],0       ;allocated memory for list yet?
+        cmp     DWORD PTR fs:[EPSP_Struc.EPSP_Resource],0   ;allocated memory for list yet?
         jnz     api77_0
         ;
         ;Allocate initial resource list space.
@@ -4482,24 +4490,24 @@ api77_0:
         ;Search list for free slot.
         ;
         cld
-        mov     ebp,ecx         ;Copy value 2.
-        mov     ah,al           ;Copy type.
+        mov     ebp,ecx                 ;Copy value 2.
+        mov     ah,al                   ;Copy type.
         mov     esi,DWORD PTR fs:[EPSP_Struc.EPSP_Resource]
 api77_FreeLoop:
         mov     edi,esi
-        add     edi,ResHead             ;point to types.
+        add     edi,size ResHead        ;point to types.
         mov     ecx,ResCount            ;get number of entries.
 api77_2:
         or      ecx,ecx
         jz      api77_2_0
         js      api77_2_0
         xor     al,al
-        repne   scasb           ;Find NULL entry.
+        repne   scasb                   ;Find NULL entry.
         jz      api77_3
 api77_2_0:
-        cmp     DWORD PTR es:[esi+8],0  ;link field setup?
+        cmp     DWORD PTR es:[esi+ResHead_Next],0   ;link field setup?
         jz      api77_Extend
-        mov     esi,es:[esi+8]  ;link to next block.
+        mov     esi,es:[esi+ResHead_Next]   ;link to next block.
         jmp     api77_FreeLoop
         ;
 api77_Extend:
@@ -4509,8 +4517,8 @@ api77_Extend:
         call    api77_GetAndInit
         pop     ecx
         jc      api77_90
-        mov     es:[esi+4],ecx  ;store back link address.
-        mov     es:[ecx+8],esi  ;store forward link address.
+        mov     es:[esi+ResHead_Prev],ecx   ;store back link address.
+        mov     es:[ecx+ResHead_Next],esi   ;store forward link address.
         jmp     api77_FreeLoop
 ;
 ;Check if enough entries are free.
@@ -4537,12 +4545,12 @@ api77_dosmem:
         jnz     api77_2
         dec     edi
         mov     ecx,edi
-        sub     ecx,ResHead             ;Get offset from list start.
+        sub     ecx,size ResHead        ;Get offset from list start.
         sub     ecx,esi
         shl     ecx,2
-        add     ecx,ResNum+ResHead
+        add     ecx,size ResHead + ResNum
         add     ecx,esi
-        mov     BYTE PTR es:[edi],ah            ;Store type.
+        mov     BYTE PTR es:[edi],ah    ;Store type.
         mov     DWORD PTR es:[ecx],edx
         inc     edi
         add     ecx,4
@@ -4554,16 +4562,16 @@ api77_dosmem:
 ;Check for 3 free entries for callback.
 ;
 api77_callback:
-        cmp     WORD PTR es:[edi],0             ;2 more entries?
+        cmp     WORD PTR es:[edi],0     ;2 more entries?
         jnz     api77_2
         dec     edi
         mov     ecx,edi
-        sub     ecx,ResHead             ;Get offset from list start.
+        sub     ecx,size ResHead        ;Get offset from list start.
         sub     ecx,esi
         shl     ecx,2
-        add     ecx,ResNum+ResHead
+        add     ecx,size ResHead + ResNum
         add     ecx,esi
-        mov     BYTE PTR es:[edi],ah            ;Store type.
+        mov     BYTE PTR es:[edi],ah    ;Store type.
         mov     DWORD PTR es:[ecx],edx
         inc     edi
         add     ecx,4
@@ -4579,16 +4587,16 @@ api77_callback:
 ;Check for 3 free entries for memory.
 ;
 api77_mem:
-        cmp     WORD PTR es:[edi],0             ;2 more entries?
+        cmp     WORD PTR es:[edi],0     ;2 more entries?
         jnz     api77_2
         dec     edi
         mov     ecx,edi
-        sub     ecx,ResHead             ;Get offset from list start.
+        sub     ecx,size ResHead        ;Get offset from list start.
         sub     ecx,esi
         shl     ecx,2
-        add     ecx,ResNum+ResHead
+        add     ecx,size ResHead + ResNum
         add     ecx,esi
-        mov     BYTE PTR es:[edi],ah            ;Store type.
+        mov     BYTE PTR es:[edi],ah    ;Store type.
         mov     DWORD PTR es:[ecx],edx
         inc     edi
         add     ecx,4
@@ -4608,12 +4616,12 @@ api77_lock:
         jnz     api77_2
         dec     edi
         mov     ecx,edi
-        sub     ecx,ResHead             ;Get offset from list start.
+        sub     ecx,size ResHead        ;Get offset from list start.
         sub     ecx,esi
         shl     ecx,2
-        add     ecx,ResNum+ResHead
+        add     ecx,size ResHead + ResNum
         add     ecx,esi
-        mov     BYTE PTR es:[edi],ah            ;Store type.
+        mov     BYTE PTR es:[edi],ah    ;Store type.
         mov     DWORD PTR es:[ecx],edx
         inc     edi
         add     ecx,4
@@ -4628,12 +4636,12 @@ api77_psp:
 api77_sel:
         dec     edi
         mov     ecx,edi
-        sub     ecx,ResHead             ;Get offset from list start.
+        sub     ecx,size ResHead        ;Get offset from list start.
         sub     ecx,esi
         shl     ecx,2
-        add     ecx,ResNum+ResHead
+        add     ecx,size ResHead + ResNum
         add     ecx,esi
-        mov     BYTE PTR es:[edi],ah            ;Store type.
+        mov     BYTE PTR es:[edi],ah    ;Store type.
         mov     DWORD PTR es:[ecx],edx
         jmp     api77_9
         ;
@@ -4656,7 +4664,7 @@ api77_GetAndInit:
         push    ecx
         push    edx
         push    ebp
-        mov     cx,4096
+        mov     cx,ResSize
         xor     bx,bx
         mov     ax,0501h                ;Allocate memory block.
         cwAPI_CallOld
@@ -4670,8 +4678,8 @@ api77_GetAndInit:
         xor     eax,eax
         mov     ecx,ResSize/4
         cld
-        rep     stosd           ;init memory.
-        mov     DWORD PTR es:[esi+12],ebx       ;store the handle.
+        rep     stosd                       ;init memory.
+        mov     DWORD PTR es:[esi+ResHead_Handle],ebx   ;store the handle.
         clc
 api77_GAIerror:
         pop     ebp
@@ -4712,24 +4720,24 @@ ReleaseResource proc near
         mov     esi,DWORD PTR fs:[EPSP_Struc.EPSP_Resource]
 api78_LookLoop:
         mov     edi,esi
-        add     edi,ResHead+ResNum
+        add     edi,size ResHead + ResNum
         mov     ecx,ResNum              ;get number of entries.
 api78_2:
         repne   scasd
         jz      api78_0
-        mov     esi,es:[esi+8]  ;link to next list.
+        mov     esi,es:[esi+ResHead_Next]   ;link to next list.
         or      esi,esi
         jz      api78_9
         jmp     api78_LookLoop
         ;
 api78_0:
         mov     ebx,edi
-        sub     ebx,4+ResHead+ResNum
+        sub     ebx,size ResHead + ResNum + 4
         sub     ebx,esi
         shr     ebx,2
         add     ebx,esi
-        add     ebx,ResHead
-        cmp     BYTE PTR es:[ebx],dl            ;Right type?
+        add     ebx,size ResHead
+        cmp     BYTE PTR es:[ebx],dl    ;Right type?
         jz      api78_1
         cmp     dl,Res_SEL              ;Selector?
         jnz     api78_2
@@ -4851,20 +4859,20 @@ api78_ChainPSP0:
 api78_ChainPSP1:
         popad
         ;
-        mov     ah,50h
-        int     21h             ;set new PSP.
+        mov     ah,50h                  ;set PSP
+        int     21h                     ;set new PSP.
         ;
         ;Search for PSP's and release them first.
         ;
-        mov     esi,fs:[EPSP_Struc.EPSP_Resource]       ;Get resource pointer.
+        mov     esi,fs:[EPSP_Struc.EPSP_Resource]   ;Get resource pointer.
 api78_fPSP0:
         or      esi,esi
         jz      api78_NoPSPSearch
         mov     ebp,ResNum
         mov     edi,esi
-        add     edi,16
+        add     edi,size ResHead
         mov     edx,esi
-        add     edx,ResHead+ResNum
+        add     edx,size ResHead + ResNum
 api78_fPSP1:
         cmp     BYTE PTR es:[edi],Res_PSP
         jnz     api78_fPSP2
@@ -4877,7 +4885,7 @@ api78_fPSP2:
         add     edx,4
         dec     ebp
         jnz     api78_fPSP1
-        mov     esi,es:[esi+8]  ;link to next list.
+        mov     esi,es:[esi+ResHead_Next]   ;link to next list.
         jmp     api78_fPSP0
         ;
 api78_NoPSPSearch:
@@ -4899,16 +4907,16 @@ api78_psp_1:
         or      esi,esi
         jz      api78_psp_9
 api78_psp_2:
-        cmp     DWORD PTR es:[esi+8],0  ;Found last entry in chain?
+        cmp     DWORD PTR es:[esi+ResHead_Next],0   ;Found last entry in chain?
         jz      api78_psp_3
-        mov     esi,DWORD PTR es:[esi+8]
+        mov     esi,DWORD PTR es:[esi+ResHead_Next]
         jmp     api78_psp_2
 api78_psp_3:
         mov     ebp,ResNum
         mov     edi,esi
-        add     edi,16
+        add     edi,size ResHead
         mov     edx,esi
-        add     edx,ResHead+ResNum
+        add     edx,size ResHead + ResNum
 api78_psp_4:
         cmp     BYTE PTR es:[edi],Res_NULL
         jz      api78_psp_5
@@ -5064,13 +5072,13 @@ api78_psp_5:
         add     edx,4
         dec     ebp
         jnz     api78_psp_4
-        mov     eax,DWORD PTR es:[esi+4]        ;get back link pointer.
+        mov     eax,DWORD PTR es:[esi+ResHead_Prev]    ;get back link pointer.
         push    eax
         push    esi
-        mov     esi,es:[esi+12] ;get memory handle.
+        mov     esi,es:[esi+ResHead_Handle] ;get memory handle.
         mov     di,si
         shr     esi,16
-        mov     ax,0502h                ;release the block.
+        mov     ax,0502h                    ;release the block.
         cwAPI_CallOld
         pop     esi
         push    ebx
@@ -5080,8 +5088,8 @@ api78_psp_5:
         shr     esi,16
         mov     bx,si
         xor     si,si
-        mov     di,4096
-        mov     ax,0703h                ;discard the block.
+        mov     di,ResSize
+        mov     ax,0703h                    ;discard the block.
         cwAPI_CallOld
         pop     edi
         pop     ecx
@@ -5089,15 +5097,15 @@ api78_psp_5:
         pop     esi
         or      esi,esi
         jz      api78_psp_9
-        mov     DWORD PTR es:[esi+8],0  ;make sure link pointer is clear
+        mov     DWORD PTR es:[esi+ResHead_Next],0   ;make sure link pointer is clear
         jmp     api78_psp_3
 api78_psp_9:
         ;
         ;Switch back to the old PSP
         ;
         pop     bx
-        mov     ah,50h
-        int     21h             ;go back to old PSP.
+        mov     ah,50h                      ;set PSP
+        int     21h                         ;go back to old PSP.
         ;
 api78_9:
         popad
@@ -5154,22 +5162,22 @@ FindResource    proc    near
 api79_LookLoop:
         mov     ecx,ResNum              ;get number of entries.
         mov     edi,esi
-        add     edi,ResHead+ResNum
+        add     edi,size ResHead + ResNum
         cld
 api79_0:
         repne   scasd
         jz      api79_1
-        mov     esi,es:[esi+8]  ;link to next list.
+        mov     esi,es:[esi+ResHead_Next]   ;link to next list.
         or      esi,esi
         jnz     api79_LookLoop
         stc
         jmp     api79_9
 api79_1:
         mov     ebp,edi
-        sub     ebp,4+ResHead+ResNum
+        sub     ebp,size ResHead + ResNum + 4
         sub     ebp,esi
         shr     ebp,2
-        add     ebp,ResHead
+        add     ebp,size ResHead
         add     ebp,esi
         cmp     es:[ebp],dl
         jnz     api79_0
@@ -5219,9 +5227,7 @@ FindResource    endp
 
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-SaveExecState   proc    near
-        push    es
-        push    ds
+SaveExecState   proc    near    uses ds es eax ebx ecx edx edi esi
         assume ds:nothing
         mov     ds,cs:apiDSeg
         assume ds:_cwMain
@@ -5238,66 +5244,39 @@ SaveExecState   proc    near
 ;
 ;Get protected mode interrupt vectors.
 ;
-        mov     bl,0
-        mov     bp,256
+        xor     ebx,ebx
 api80_GetPVect:
-        push    bx
-        push    edi
-        push    bp
-        push    es
         sys     GetVect
-        pop     es
-        pop     bp
-        pop     edi
-        pop     bx
         mov     DWORD PTR es:[edi],edx
         mov     WORD PTR es:[edi+4],cx
         add     edi,6
-        inc     bl
-        dec     bp
-        jnz     api80_GetPVect
+        inc     ebx
+        cmp     ebx,256
+        jb      api80_GetPVect
 ;
 ;Get protected mode exception vectors.
 ;
-        mov     bp,32
-        mov     bl,0
+        xor     ebx,ebx
 api80_GetEVect:
-        push    bx
-        push    edi
-        push    bp
-        push    es
         sys     GetEVect
-        pop     es
-        pop     bp
-        pop     edi
-        pop     bx
         mov     DWORD PTR es:[edi],edx
         mov     WORD PTR es:[edi+4],cx
         add     edi,6
-        inc     bl
-        dec     bp
-        jnz     api80_GetEVect
+        inc     ebx
+        cmp     ebx,32
+        jb      api80_GetEVect
 ;
 ;Get real mode interrupt vectors.
 ;
-        mov     bp,256
-        mov     bl,0
+        xor     ebx,ebx
 api80_GetRVect:
-        push    bx
-        push    edi
-        push    bp
-        push    es
         sys     GetRVect
-        pop     es
-        pop     bp
-        pop     edi
-        pop     bx
         mov     WORD PTR es:[edi],dx
         mov     WORD PTR es:[edi+2],cx
         add     edi,4
-        inc     bl
-        dec     bp
-        jnz     api80_GetRVect
+        inc     ebx
+        cmp     ebx,256
+        jb      api80_GetRVect
 ;
 ;Get memory for DPMI state buffer.
 ;
@@ -5324,17 +5303,13 @@ api80_DPMISave32:
 api80_NoDPMISave:
         clc
 api80_9:
-        pop     ds
         assume ds:_apiCode
-        pop     es
         ret
 SaveExecState   endp
 
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-LoadExecState   proc    near
-        push    es
-        push    ds
+LoadExecState   proc    near    uses ds es eax ebx ecx edx edi
         assume ds:nothing
         mov     ds,cs:apiDSeg
         assume ds:_cwMain
@@ -5346,111 +5321,60 @@ LoadExecState   proc    near
         or      edi,edi
         jz      api81_NoIntRel
         mov     es,RealSegment
-        mov     bl,0
-        mov     bp,256
+        xor     ebx,ebx
 api81_SetPVect:
-        push    bx
-        push    edi
-        push    bp
-        push    es
         sys     GetVect
-        push    ecx
-        push    edx
-        mov     edx,DWORD PTR es:[edi]
-        mov     cx,WORD PTR es:[edi+4]
+        xchg    edx,DWORD PTR es:[edi]
+        xchg    cx,WORD PTR es:[edi+4]
         sys     SetVect
-        pop     edx
-        pop     ecx
         cmp     edx,DWORD PTR es:[edi]
-        jnz     api81_Pdiff
+        jnz     api81_Pdone
         cmp     cx,WORD PTR es:[edi+4]
-        jnz     api81_Pdiff
+        jnz     api81_Pdone
         mov     WORD PTR es:[edi+4],-1
-        jmp     api81_Pdone
-api81_Pdiff:
-        mov     DWORD PTR es:[edi],edx
-        mov     WORD PTR es:[edi+4],cx
 api81_Pdone:
-        pop     es
-        pop     bp
-        pop     edi
-        pop     bx
         add     edi,6
-        inc     bl
-        dec     bp
-        jnz     api81_SetPVect
+        inc     ebx
+        cmp     ebx,256
+        jb      api81_SetPVect
 ;
 ;Set protected mode exception vectors.
 ;
-        mov     bp,32
-        mov     bl,0
+        xor     ebx,ebx
 api81_SetEVect:
-        push    bx
-        push    edi
-        push    bp
-        push    es
         sys     GetEVect
-        push    ecx
-        push    edx
-        mov     edx,DWORD PTR es:[edi]
-        mov     cx,WORD PTR es:[edi+4]
+        xchg    edx,DWORD PTR es:[edi]
+        xchg    cx,WORD PTR es:[edi+4]
         sys     SetEVect
-        pop     edx
-        pop     ecx
         cmp     edx,es:[edi]
-        jnz     api81_Ediff
+        jnz     api81_Edone
         cmp     cx,es:[edi+4]
-        jnz     api81_Ediff
+        jnz     api81_Edone
         mov     WORD PTR es:[edi+4],-1
-        jmp     api81_Edone
-api81_Ediff:
-        mov     es:[edi],edx
-        mov     es:[edi+4],cx
 api81_Edone:
-        pop     es
-        pop     bp
-        pop     edi
-        pop     bx
         add     edi,6
-        inc     bl
-        dec     bp
-        jnz     api81_SetEVect
+        inc     ebx
+        cmp     ebx,32
+        jb      api81_SetEVect
 ;
 ;Set real mode interrupt vectors.
 ;
-        mov     bp,256
-        mov     bl,0
+        xor     ebx,ebx
 api81_SetRVect:
-        push    bx
-        push    edi
-        push    bp
-        push    es
         sys     GetRVect
-        push    cx
-        push    dx
-        mov     dx,WORD PTR es:[edi]
-        mov     cx,WORD PTR es:[edi+2]
+        xchg    dx,WORD PTR es:[edi]
+        xchg    cx,WORD PTR es:[edi+2]
         sys     SetRVect
-        pop     dx
-        pop     cx
         cmp     dx,es:[edi]
-        jnz     api81_Rdiff
+        jnz     api81_Rdone
         cmp     cx,es:[edi+2]
-        jnz     api81_Rdiff
+        jnz     api81_Rdone
         mov     WORD PTR es:[edi+2],-1
-        jmp     api81_Rdone
-api81_Rdiff:
-        mov     es:[edi],dx
-        mov     es:[edi+2],cx
 api81_Rdone:
-        pop     es
-        pop     bp
-        pop     edi
-        pop     bx
         add     edi,4
-        inc     bl
-        dec     bp
-        jnz     api81_SetRVect
+        inc     ebx
+        cmp     ebx,256
+        jb      api81_SetRVect
 ;
 ;Restore DPMI stack state.
 ;
@@ -5471,9 +5395,8 @@ api81_NoIntRel:
 api81_SaveDPMI32:
         call    f[DPMIStateAddr]
 api81_NoDPMIRel:
-        pop     ds
+        clc
         assume ds:_apiCode
-        pop     es
         ret
 LoadExecState   endp
 
@@ -5512,11 +5435,16 @@ CreatePSP       proc    near
         mov     w[api82_Command+4],es
         mov     w[api82_Environment],cx
         ;
+        cmp     w[api82_Command+4],0
+        jnz     api82_CmdlOK
+        mov     w[api82_Command+4],cs
+        mov     d[api82_Command],offset nullCmdl
+api82_CmdlOK:
         mov     w[api82_PSP],0
 ;
 ;Allocate PSP memory.
 ;
-        mov     ecx,(size PSP_Struc)+(size EPSP_Struc.EPSP_Struc)
+        mov     ecx,size EPSP_Struc
         sys     GetMemLinear32
         jc      api82_error             ;Not enough memory.
         push    ds
@@ -5532,7 +5460,7 @@ CreatePSP       proc    near
         jmp     api82_error
 api82_memOK:
         mov     edx,esi
-        mov     ecx,(size PSP_Struc)+(size EPSP_Struc.EPSP_Struc)
+        mov     ecx,size EPSP_Struc
         sys     SetSelDet32
         pop     ResourceTracking
         assume ds:_apiCode
@@ -5587,13 +5515,14 @@ api82_memOK2:
         mov     fs,fs:PSPSegment
         assume fs:nothing
         mov     es,bx
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_Resource],0       ;Clear memory fields.
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_INTMem],0
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_DPMIMem],0
-        mov     WORD PTR es:[EPSP_Struc.EPSP_Parent],fs ;set parent PSP.
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_DTA],80h  ;Use default PSP DTA.
+        xor     edx,edx
+        mov     DWORD PTR es:[EPSP_Struc.EPSP_Resource],edx ;Clear memory fields.
+        mov     DWORD PTR es:[EPSP_Struc.EPSP_INTMem],edx
+        mov     DWORD PTR es:[EPSP_Struc.EPSP_DPMIMem],edx
+        mov     WORD PTR es:[EPSP_Struc.EPSP_Parent],fs     ;set parent PSP.
+        mov     DWORD PTR es:[EPSP_Struc.EPSP_DTA],80h      ;Use default PSP DTA.
         mov     WORD PTR es:[EPSP_Struc.EPSP_DTA+4],es
-        mov     ax,WORD PTR fs:[EPSP_Struc.EPSP_TransProt]      ;inherit current transfer buffer.
+        mov     ax,WORD PTR fs:[EPSP_Struc.EPSP_TransProt]  ;inherit current transfer buffer.
         mov     WORD PTR es:[EPSP_Struc.EPSP_TransProt],ax
         mov     ax,WORD PTR fs:[EPSP_Struc.EPSP_TransReal]
         mov     WORD PTR es:[EPSP_Struc.EPSP_TransReal],ax
@@ -5601,19 +5530,19 @@ api82_memOK2:
         mov     DWORD PTR es:[EPSP_Struc.EPSP_TransSize],eax
         mov     eax,DWORD PTR fs:[EPSP_Struc.EPSP_mcbMaxAlloc]
         mov     DWORD PTR es:[EPSP_Struc.EPSP_mcbMaxAlloc],eax
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_mcbHead],0
-        cmp     d[api82_Flags],2                ;cwLoad?
+        mov     DWORD PTR es:[EPSP_Struc.EPSP_mcbHead],edx
+        cmp     d[api82_Flags],2                            ;cwLoad?
         jz      api82_NoNext
         mov     WORD PTR fs:[EPSP_Struc.EPSP_Next],es
 api82_NoNext:
-        mov     WORD PTR es:[EPSP_Struc.EPSP_Next],0
-        mov     WORD PTR es:[PSP_Struc.PSP_Environment],0
-        mov     WORD PTR es:[EPSP_Struc.EPSP_SegBase],0
-        mov     WORD PTR es:[EPSP_Struc.EPSP_SegSize],0
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_Exports],0
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_Imports],0
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_Links],0
-        mov     WORD PTR es:[EPSP_Struc.EPSP_EntryCSEIP+4],0
+        mov     WORD PTR es:[EPSP_Struc.EPSP_Next],dx
+        mov     WORD PTR es:[PSP_Struc.PSP_Environment],dx
+        mov     WORD PTR es:[EPSP_Struc.EPSP_SegBase],dx
+        mov     WORD PTR es:[EPSP_Struc.EPSP_SegSize],dx
+        mov     DWORD PTR es:[EPSP_Struc.EPSP_Exports],edx
+        mov     DWORD PTR es:[EPSP_Struc.EPSP_Imports],edx
+        mov     DWORD PTR es:[EPSP_Struc.EPSP_Links],edx
+        mov     WORD PTR es:[EPSP_Struc.EPSP_EntryCSEIP+4],dx
         mov     WORD PTR es:[EPSP_Struc.EPSP_PSPSel],es
         pop     fs
 ;
@@ -5637,18 +5566,72 @@ api82_ChainPSP1:
         mov     es:EPSP_Struc.EPSP_NextPSP[edx],0
         pop     es
 ;
+;Save full file name into EPSP.
+;
+        push    ds
+        lds     esi,f[api82_Name]
+        mov     edi,EPSP_Struc.EPSP_FileName
+        mov     BYTE PTR es:[edi],0
+        cmp     b[esi],0
+        jz      api82_SkipCopy
+        mov     al,b[esi+1]
+        cmp     al,":"                  ;drive specification?
+        jnz     api82_GetDrive
+        lodsb
+        stosb
+        mov     dl,al                   ;dl - zero based drive number (0=A,...)
+        or      dl,20h
+        sub     dl,'a'
+        movsb
+        jmp     api82_CheckPath
+api82_GetDrive:
+        mov     ah,19h                  ;get current disc
+        int     21h
+        mov     dl,al                   ;dl - zero based drive number (0=A,...)
+        add     al,'A'                  ;make it a character
+        stosb
+        mov     al,":"
+        stosb
+api82_CheckPath:
+        mov     al,b[esi]
+        cmp     al,"\"                  ;path specification?
+        jz      api82_CopyName
+        mov     al,"\"                  ;store leading \
+        stosb
+        mov     BYTE PTR es:[edi],0
+        inc     dl                      ;dl - drive number is 1 based (1=A,...)
+        xchg    esi,edi
+        mov     ah,47h                  ;get current directory without
+        push    ds                      ;leading and trailing \
+        push    es
+        pop     ds
+        int     21h                     ;get text
+api82_cp1:
+        lodsb
+        or      al,al
+        jnz     api82_cp1
+        dec     esi
+        xchg    esi,edi
+        pop     ds
+        mov     al,"\"                  ;store trailing \
+        stosb
+api82_CopyName:
+        lodsb
+        stosb
+        or      al,al
+        jnz     api82_CopyName
+api82_SkipCopy:
+        pop     ds
+;
 ;Switch to this PSP.
 ;
-        cmp     d[api82_Flags],2                ;cwLoad?
+        cmp     d[api82_Flags],2        ;cwLoad?
         jz      api82_NoPSwitch0
-        mov     ah,50h
-        int     21h             ;set new PSP.
+        mov     ah,50h                  ;set PSP
+        int     21h                     ;set new PSP.
 ;
 ;Set new DTA address.
 ;
-api82_NoPSwitch0:
-        cmp     d[api82_Flags],2
-        jz      api82_NoDTA
         push    ds
         lds     edx,FWORD PTR es:[EPSP_Struc.EPSP_DTA]
         mov     ah,1ah
@@ -5657,17 +5640,12 @@ api82_NoPSwitch0:
 ;
 ;Preserve current state.
 ;
-api82_NoDTA:
-        cmp     d[api82_Flags],2
-        jz      api82_NoSave
-        call    SaveExecState   ;do old state save.
+        call    SaveExecState           ;do old state save.
         jc      api82_error             ;Not enough memory.
+api82_NoPSwitch0:
 ;
 ;Build command line.
 ;
-api82_NoSave:
-        cmp     w[api82_Command+4],0
-        jz      api82_NoCommand
         mov     es,w[api82_PSP]
         mov     edi,80h
         mov     DWORD PTR es:[edi],0
@@ -5682,9 +5660,8 @@ api82_NoSave:
 ;
 ;Check what's needed with the environment selector.
 ;
-api82_NoCommand:
-        cmp     d[api82_Flags],2                ;cwLoad?
-        jz      api82_CopyEnv   ;NoEnv
+        cmp     d[api82_Flags],2        ;cwLoad?
+        jz      api82_CopyEnv           ;NoEnv
         mov     ax,w[api82_Environment]
         or      ax,ax
         jz      api82_ParentEnv
@@ -5699,8 +5676,9 @@ api82_CopyEnv:
         push    es
         mov     es,apiDSeg
         assume es:_cwMain
-        mov     ax,es:PSPSegment
+        mov     es,es:PSPSegment
         assume es:nothing
+        mov     ax,WORD PTR es:[PSP_Struc.PSP_Environment]  ;Get parents environment.
         mov     es,w[api82_PSP]
         mov     WORD PTR es:[PSP_Struc.PSP_Environment],ax
         pop     es
@@ -5714,23 +5692,23 @@ api82_ParentEnv:
         assume es:_cwMain
         mov     es,es:PSPSegment
         assume es:nothing
-        mov     es,WORD PTR es:[EPSP_Struc.EPSP_Parent] ;Get parent PSP.
-        mov     es,WORD PTR es:[PSP_Struc.PSP_Environment]      ;Get parents environment.
+        mov     es,WORD PTR es:[EPSP_Struc.EPSP_Parent]     ;Get parent PSP.
+        mov     es,WORD PTR es:[PSP_Struc.PSP_Environment]  ;Get parents environment.
 ;
 ;Find out how long current environment is.
 ;
         xor     esi,esi
 api82_gp2:
         mov     al,es:[esi]             ;Get a byte.
-        inc     esi             ;/
-        or      al,al           ;End of a string?
+        inc     esi
+        or      al,al                   ;End of a string?
         jnz     api82_gp2               ;keep looking.
         mov     al,es:[esi]             ;Double zero?
-        or      al,al           ;/
+        or      al,al
         jnz     api82_gp2               ;keep looking.
-        add     esi,3           ;Skip last 0 and word count.
+        add     esi,3                   ;Skip last 0 and word count.
         mov     ecx,esi
-        add     ecx,256         ;allow for exec name length.
+        add     ecx,256                 ;allow for exec name length.
         sys     GetMem32
         jc      api82_error
         mov     ax,es
@@ -5739,13 +5717,13 @@ api82_gp2:
         mov     es,es:PSPSegment
         assume es:nothing
         mov     WORD PTR es:[PSP_Struc.PSP_Environment],bx
-        mov     ecx,esi         ;get length again.
+        mov     ecx,esi                 ;get length again.
         push    ds
         mov     ds,ax
         mov     es,bx
         xor     esi,esi
         xor     edi,edi
-        rep     movsb           ;copy current strings.
+        rep     movsb                   ;copy current strings.
         pop     ds
 ;
 ;Add execution path and name to environment strings.
@@ -5756,82 +5734,27 @@ api82_GotEnv:
         mov     es,es:PSPSegment
         assume es:nothing
         mov     es,WORD PTR es:[PSP_Struc.PSP_Environment]
-        xor     esi,esi
+        xor     edi,edi
 api82_gp0:
-        mov     al,es:[esi]             ;Get a byte.
-        inc     esi             ;/
-        or      al,al           ;End of a string?
+        mov     al,es:[edi]             ;Get a byte.
+        inc     edi
+        or      al,al                   ;End of a string?
         jnz     api82_gp0               ;keep looking.
-        mov     al,es:[esi]             ;Double zero?
-        or      al,al           ;/
-        jnz     api82_gp0               ;keep looking.
-        add     esi,3           ;Skip last 0 and word count.
-        mov     ebp,esi
-;
-;Now build the file name.
-;
-        push    ds
-        lds     esi,f[api82_Name]
-        mov     al,b[esi+1]
-        pop     ds
-        mov     edi,ebp
-        cmp     al,":"          ;drive specification?
-        jz      api82_NoGetPath
-        push    edi
-        mov     ah,19h  ;get current disc
-        int     21h
-        mov     dl,al
-        add     al,'A'  ;make it a character
-        pop     esi
-        mov     es:[esi],al
-        inc     esi
-        mov     BYTE PTR es:[esi],":"
-        inc     esi
-        ;
-        push    ds
-        push    esi
-        lds     esi,f[api82_Name]
-        mov     al,b[esi]
-        pop     esi
-        pop     ds
-        mov     edi,esi
-        cmp     al,"\"
-        jz      api82_NoGetPath
-        ;
-        mov     BYTE PTR es:[esi],"\"
-        inc     esi
-        mov     BYTE PTR es:[esi],0
-        mov     ah,47h  ;get current directory
-        xor     dl,dl   ;default drive
-        push    ds
-        push    es
-        pop     ds
-        int     21h     ;get text
-        pop     ds
-        mov     esi,ebp
-        push    ds
-        push    es
-        pop     ds
-api82_gp1:
-        lodsb
+        mov     al,es:[edi]             ;Double zero?
         or      al,al
-        jnz     api82_gp1
-        pop     ds
-        dec     esi
-        mov     edi,esi
-        mov     al,"\"
-        stosb
+        jnz     api82_gp0               ;keep looking.
+        add     edi,3                   ;Skip last 0 and word count.
 ;
-;Append EXE file name to EDI.
+;Now copy the file name from EPSP to the environment.
 ;
-api82_NoGetPath:
         push    ds
-        lds     esi,f[api82_Name]
-api82_gp3:
+        mov     ds,w[api82_PSP]
+        mov     esi,EPSP_Struc.EPSP_FileName
+api82_cp2:
         lodsb
         stosb
         or      al,al
-        jnz     api82_gp3
+        jnz     api82_cp2
         pop     ds
 ;
 ;Return to caller.
@@ -5902,8 +5825,8 @@ api83_YesRelRes:
         mov     bx,WORD PTR es:[EPSP_Struc.EPSP_Parent]
         cmp     d[api83_Flags],2
         jz      api83_NoPRel
-        mov     ah,50h
-        int     21h             ;restore old PSP.
+        mov     ah,50h                  ;set PSP
+        int     21h                     ;restore old PSP.
 api83_NoPRel:
         mov     bx,es
         sys     RelMem
@@ -5989,10 +5912,10 @@ api84_6:
         ;
 api84_imp1:
         mov     ebx,esi
-        mov     edx,es:EPSP_Struc.EPSP_Exports[edi]     ;Point to export memory.
-        or      edx,edx         ;Any exports?
+        mov     edx,es:EPSP_Struc.EPSP_Exports[edi] ;Point to export memory.
+        or      edx,edx                 ;Any exports?
         jz      api84_imp3
-        mov     edx,es:[edx+4]  ;Point to module name.
+        mov     edx,es:[edx+4]          ;Point to module name.
         mov     ecx,ebp
         cmp     cl,es:[edx]             ;Right name length?
         jnz     api84_imp3
@@ -6011,7 +5934,7 @@ api84_imp2:
         ;
 api84_imp3:
         mov     edi,es:EPSP_Struc.EPSP_NextPSP[edi]
-        or      edi,edi         ;check there is something else to look at.
+        or      edi,edi                 ;check there is something else to look at.
         jnz     api84_imp1
         pop     esi
 ;
@@ -6037,13 +5960,13 @@ api84_imp3:
         pop     edx
 api84_imp3_0:
         mov     al,es:[esi]             ;Get a byte.
-        inc     esi             ;/
-        or      al,al           ;End of a string?
+        inc     esi
+        or      al,al                   ;End of a string?
         jnz     api84_imp3_0            ;keep looking.
         mov     al,es:[esi]             ;Double zero?
-        or      al,al           ;/
+        or      al,al
         jnz     api84_imp3_0            ;keep looking.
-        add     esi,3           ;Skip last 0 and word count.
+        add     esi,3                   ;Skip last 0 and word count.
         ;
         ;Copy up to last "\"
         ;
@@ -6143,26 +6066,26 @@ api84_8:
         mov     ds,apiDSeg
         assume ds:_cwMain
         push    PSPSegment
-        mov     ah,51h
+        mov     ah,51h                  ;get PSP
         int     21h
         push    bx
         mov     bx,BasePSP
-        mov     ah,50h
+        mov     ah,50h                  ;set PSP
         int     21h
 ;
         assume ds:nothing
         mov     ds,cs:apiDDSeg
         assume ds:_apiCode
         mov     edx,offset DLLNameSpace
-        sys     cwLoad          ;call ourselves.
+        sys     cwLoad                  ;call ourselves.
 ;
-;Go back to origional PSP
+;Go back to original PSP
 ;
         assume ds:nothing
         mov     ds,cs:apiDSeg
         assume ds:_cwMain
         pop     bx
-        mov     ah,50h
+        mov     ah,50h                  ;set PSP
         int     21h
         pop     PSPSegment
         assume ds:nothing
@@ -6171,18 +6094,22 @@ api84_8:
         pop     ExecMCount
         jc      api84_error
 ;
-        mov     bx,si           ;get the PSP
+        mov     bx,si                   ;get the PSP
         push    ecx
         push    edx
         sys     GetSelDet32             ;need a 32-bit address for it.
         mov     edi,edx
         pop     edx
         pop     ecx
+        mov     WORD PTR es:[edi+EPSP_Struc.EPSP_EntryCSEIP+4],cx
+        mov     DWORD PTR es:[edi+EPSP_Struc.EPSP_EntryCSEIP],edx
+;
+;Notify debugger of new module loaded.
+;
+        sys DbgNtfModLoad
 ;
 ;Call DLL's initialisation code.
 ;
-        mov     WORD PTR es:[edi+EPSP_Struc.EPSP_EntryCSEIP+4],cx
-        mov     DWORD PTR es:[edi+EPSP_Struc.EPSP_EntryCSEIP],edx
         or      cx,cx
         jz      api84_imp5
         xor     eax,eax
@@ -6268,6 +6195,10 @@ UnFindModule    proc    near
         dec     es:EPSP_Struc.EPSP_Links[edi]
         jnz     api85_8
 ;
+;Notify debugger of module unloading.
+;
+        sys DbgNtfModUnload
+;
 ;Get this PSP's selector.
 ;
         mov     fs,es:EPSP_Struc.EPSP_PSPSel[edi]
@@ -6308,7 +6239,7 @@ api85_imp5:
         assume ds:_cwMain
         push    PSPSegment
         mov     bx,BasePSP
-        mov     ah,50h
+        mov     ah,50h                  ;set PSP
         int     21h
 ;
 ;Release module.
@@ -6316,7 +6247,7 @@ api85_imp5:
         mov     bx,fs
         sys     RelSel
 ;
-;Go back to origional PSP
+;Go back to original PSP
 ;
         pop     PSPSegment
         assume ds:_apiCode
@@ -6365,14 +6296,14 @@ SearchModule    proc    near
 ; MED 01/05/96
         push    eax
         push    es
-        mov     ah,2fh  ; get DTA in es:ebx
+        mov     ah,2fh                  ; get DTA in es:ebx
         int     21h
         mov     DWORD PTR EntryDTAAddress,ebx
         mov     WORD PTR EntryDTAAddress+4,es
         pop     es
 
         mov     edx,OFFSET TemporaryDTA
-        mov     ah,1ah  ; set DTA in ds:edx
+        mov     ah,1ah                  ; set DTA in ds:edx
         int     21h
         pop     eax
 
@@ -6419,7 +6350,7 @@ api86_2:
         add     edi,d[api86_Length]     ;point to end of path string.
         mov     BYTE PTR es:[edi],"*"
         inc     edi
-        movsd                   ;copy extension.
+        movsd                           ;copy extension.
         mov     BYTE PTR es:[edi],0
 ;
 ;Work through all files with the right extension.
@@ -6427,7 +6358,7 @@ api86_2:
         push    ds
         lds     edx,f[api86_Path]
         xor     cx,cx
-        mov     ah,4eh          ;find first file
+        mov     ah,4eh                  ;find first file
         int     21h
         pop     ds
         jc      api86_2
@@ -6448,7 +6379,7 @@ api86_4:
         mov     eax,d[api86_Length]     ;point to end of path string.
         lds     esi,f[api86_Path]
         add     esi,eax
-        lea     edi,[edi+1eh]   ;point to file name.
+        lea     edi,[edi+1eh]           ;point to file name.
         mov     ecx,13
         cld
 api86_5:
@@ -6514,22 +6445,22 @@ api86_MZ:
 
 ; MED 04/26/96
         cmp     WORD PTR [api86_ID+2],0
-        je      medexe4 ; not rounded if no modulo
+        je      medexe4                 ; not rounded if no modulo
 
-        dec     ax              ;lose 1 cos its rounded up
+        dec     ax                      ;lose 1 cos its rounded up
 
 medexe4:
-        add     ax,ax           ;mult by 2
+        add     ax,ax                   ;mult by 2
         mov     dh,0
         mov     dl,ah
         mov     ah,al
-        mov     al,dh           ;mult by 256=*512
-        add     ax,w[api86_ID+2]                ;add length mod 512
-        adc     dx,0            ;add any carry to dx
+        mov     al,dh                   ;mult by 256=*512
+        add     ax,w[api86_ID+2]        ;add length mod 512
+        adc     dx,0                    ;add any carry to dx
         mov     cx,ax
-        sub     cx,1bh          ;account for the header.
+        sub     cx,1bh                  ;account for the header.
         sbb     dx,0
-        xchg    cx,dx           ;swap round for DOS.
+        xchg    cx,dx                   ;swap round for DOS.
         mov     ax,4201h                ;set new file offset.
         int     21h
         jmp     api86_11
@@ -6541,11 +6472,11 @@ api86_LE:
         mov     dx,cx
         shr     ecx,16
         mov     ax,4200h
-        int     21h             ;move to LE offset.
+        int     21h                     ;move to LE offset.
         mov     edx,offset api86_ID
         mov     ecx,4
         mov     ah,3fh
-        int     21h             ;read LE offset.
+        int     21h                     ;read LE offset.
         jc      api86_7
         cmp     ax,4
         jnz     api86_7
@@ -6555,11 +6486,11 @@ api86_LE:
         mov     dx,cx
         shr     ecx,16
         mov     ax,4200h
-        int     21h             ;point to LE section.
+        int     21h                     ;point to LE section.
         mov     edx,offset api86_ID+4
         mov     ah,3fh
         mov     ecx,2
-        int     21h             ;read ID string.
+        int     21h                     ;read ID string.
         jc      api86_7
         cmp     ax,2
         jnz     api86_7
@@ -6584,11 +6515,11 @@ medle1:
         mov     dx,cx
         shr     ecx,16
         mov     ax,4201h
-        int     21h             ;move to module name offset.
+        int     21h                     ;move to module name offset.
         mov     edx,offset api86_ID+4
         mov     ecx,4
         mov     ah,3fh
-        int     21h             ;read module name offset.
+        int     21h                     ;read module name offset.
         jc      api86_7
         cmp     ax,4
         jnz     api86_7
@@ -6597,11 +6528,11 @@ medle1:
         mov     dx,cx
         shr     ecx,16
         mov     ax,4200h
-        int     21h             ;move to module name.
+        int     21h                     ;move to module name.
         mov     edx,offset api86_ID
         mov     ecx,256
         mov     ah,3fh
-        int     21h             ;read the module name.
+        int     21h                     ;read the module name.
         ;
         ;See if this module has right name.
         ;
@@ -6643,38 +6574,22 @@ api86_3P:
         jc      api86_7
         cmp     ax,cx
         jnz     api86_7
-;       sub     d[NewHeaderStruc.NewSize+api86_ID],size NewHeaderStruc
-TempAddress     =       NewHeaderStruc.NewSize
-TempAddress     =       TempAddress+api86_ID
-        sub     DWORD PTR [TempAddress],size NewHeaderStruc
-
+        sub     d[api86_ID+NewHeaderStruc.NewSize],size NewHeaderStruc
         ;
         ;Check this file has exports.
         ;
-;       cmp     d[NewHeaderStruc.NewExports+api86_ID],0
-TempAddress     =       NewHeaderStruc.NewExports
-TempAddress     =       TempAddress+api86_ID
-        cmp     DWORD PTR [TempAddress],0
-
+        cmp     d[api86_ID+NewHeaderStruc.NewExports],0
         jz      api86_3p6
         ;
         ;Skip segment definitions.
         ;
-;       movzx   edx,w[NewHeaderStruc.NewSegments+api86_ID]
-TempAddress     =       NewHeaderStruc.NewSegments
-TempAddress     =       TempAddress+api86_ID
-        movzx   edx,WORD PTR [TempAddress]
-
+        movzx   edx,w[api86_ID+NewHeaderStruc.NewSegments]
         shl     edx,3
         sys     cwcInfo
         jc      api86_3p0
         mov     edx,eax
 api86_3p0:
-;       sub     DWORD PTR [NewHeaderStruc.NewSize+api86_ID],edx
-TempAddress     =       NewHeaderStruc.NewSize
-TempAddress     =       TempAddress+api86_ID
-        sub     DWORD PTR [TempAddress],edx
-
+        sub     DWORD PTR [api86_ID+NewHeaderStruc.NewSize],edx
         mov     cx,dx
         shr     edx,16
         xchg    cx,dx
@@ -6683,7 +6598,7 @@ TempAddress     =       TempAddress+api86_ID
         ;
         ;Skip relocations.
         ;
-        mov     edx,d[NewHeaderStruc.NewRelocs+api86_ID]
+        mov     edx,d[api86_ID+NewHeaderStruc.NewRelocs]
         shl     edx,2
         or      edx,edx
         jz      api86_3p1
@@ -6691,11 +6606,7 @@ TempAddress     =       TempAddress+api86_ID
         jc      api86_3p1
         mov     edx,eax
 api86_3p1:
-;       sub     d[NewHeaderStruc.NewSize+api86_ID],edx
-TempAddress     =       NewHeaderStruc.NewSize
-TempAddress     =       TempAddress+api86_ID
-        sub     DWORD PTR[TempAddress],edx
-
+        sub     d[api86_ID+NewHeaderStruc.NewSize],edx
         mov     cx,dx
         shr     edx,16
         xchg    cx,dx
@@ -6704,9 +6615,9 @@ TempAddress     =       TempAddress+api86_ID
         ;
         ;Load export details.
         ;
-        mov     ecx,d[NewHeaderStruc.NewExports+api86_ID]
+        mov     ecx,d[api86_ID+NewHeaderStruc.NewExports]
         sys     GetMemLinear32
-        jc      api86_7         ;treat memory error as no file.
+        jc      api86_7                 ;treat memory error as no file.
         mov     edx,ecx
         push    ds
         mov     ds,apiDSeg
@@ -6720,11 +6631,7 @@ TempAddress     =       TempAddress+api86_ID
         assume ds:nothing
         mov     ds,cs:apiDDSeg
         assume ds:_apiCode
-;       sub     d[NewHeaderStruc.NewSize+api86_ID],ecx
-TempAddress     =       NewHeaderStruc.NewSize
-TempAddress     =       TempAddress+api86_ID
-        sub     DWORD PTR[TempAddress],ecx
-
+        sub     d[api86_ID+NewHeaderStruc.NewSize],ecx
         pop     ds
 
         push    es
@@ -6741,11 +6648,7 @@ api86_3p2:
         assume ds:nothing
         mov     ds,cs:apiDDSeg
         assume ds:_apiCode
-;       sub     d[NewHeaderStruc.NewSize+api86_ID],edx
-TempAddress     =       NewHeaderStruc.NewSize
-TempAddress     =       TempAddress+api86_ID
-        sub     DWORD PTR [TempAddress],edx
-
+        sub     d[api86_ID+NewHeaderStruc.NewSize],edx
         pop     ds
 
         mov     ecx,edx
@@ -6768,7 +6671,7 @@ api86_3p4:
         push    ds
         lds     edx,f[api86_Name]       ;point to name we're looking for.
         mov     edi,esi
-        add     edi,es:[edi+4]  ;get offset of module name.
+        add     edi,es:[edi+4]          ;get offset of module name.
         movzx   ecx,BYTE PTR es:[edi]
         cmp     cl,[edx]                ;right length?
         jnz     api86_3p7
@@ -6800,7 +6703,7 @@ api86_3p7:
         pop     ds
         sys     RelMemLinear32
 api86_3p6:
-        mov     edx,d[NewHeaderStruc.NewSize+api86_ID]
+        mov     edx,d[api86_ID+NewHeaderStruc.NewSize]
         mov     cx,dx
         shr     edx,16
         xchg    cx,dx
@@ -6833,7 +6736,7 @@ api86_10:
         pushf
         push    ds
         lds     edx,EntryDTAAddress
-        mov     ah,1ah  ; set DTA in ds:edx
+        mov     ah,1ah                  ; set DTA in ds:edx
         int     21h
         pop     ds
         popf
@@ -6868,7 +6771,7 @@ api86_Masks:
         db 0
 ; temporary DTA storage so PSP isn't munged, MED 01/03/96
 TemporaryDTA    DB      80h DUP (?)
-EntryDTAAddress DF      0       ; Entry DTA address
+EntryDTAAddress DF      0               ; Entry DTA address
 
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 ;
@@ -6935,7 +6838,7 @@ ENDIF
         push    ebp
         ;
         mov     edx,es:[edi]            ;get number of exports.
-        add     edi,4+4         ;skip entry count and module name.
+        add     edi,4+4                 ;skip entry count and module name.
         ;
 api87_imp11:
         push    edi
@@ -7184,7 +7087,7 @@ api88_MZ:
         mov     edx,offset api88_Temp
         mov     ecx,2
         mov     ah,3fh
-        int     21h             ;Fetch LE offset.
+        int     21h                     ;Fetch LE offset.
         jc      api88_file_error
         cmp     ax,cx
         jnz     api88_file_error
@@ -7201,7 +7104,7 @@ api88_MZ:
         mov     edx,offset api88_Temp
         mov     ecx,4
         mov     ah,3fh
-        int     21h             ;Fetch LE offset.
+        int     21h                     ;Fetch LE offset.
         jc      api88_file_error
         cmp     ax,cx
         jnz     api88_file_error
@@ -7236,20 +7139,20 @@ api88_MZ2:
 
 ; MED 04/26/96
         cmp     WORD PTR [api88_Temp],0
-        je      medexe5 ; not rounded if no modulo
+        je      medexe5                 ; not rounded if no modulo
 
-        dec     ax              ;lose 1 cos its rounded up
+        dec     ax                      ;lose 1 cos its rounded up
 
 medexe5:
-        add     ax,ax           ;mult by 2
+        add     ax,ax                   ;mult by 2
         mov     dh,0
         mov     dl,ah
         mov     ah,al
-        mov     al,dh           ;mult by 256=*512
-        add     ax,w[api88_Temp]                ;add length mod 512
-        adc     dx,0            ;add any carry to dx
+        mov     al,dh                   ;mult by 256=*512
+        add     ax,w[api88_Temp]        ;add length mod 512
+        adc     dx,0                    ;add any carry to dx
         mov     cx,ax
-        xchg    cx,dx           ;swap round for DOS.
+        xchg    cx,dx                   ;swap round for DOS.
         mov     ax,4200h                ;set absolute position.
         mov     bx,w[api88_Handle]
         int     21h
@@ -7374,1445 +7277,6 @@ api88_ExecAdd:
 _Exec   endp
 
 
-;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-;
-;Load, relocate and execute the application code. 3P format loader.
-;
-;On Entry:
-;
-;EBX    - Mode.
-;       0 - Normal EXEC.
-;       1 - Load for debug.
-;       2 - Load for overlay.
-;DS:EDX - File name.
-;ES:ESI - Command line.
-;CX     - Environment selector, 0 to use existing copy.
-;
-;On Exit:
-;
-;Carry set on error and AX = error code else,
-;
-;If Mode=0
-;
-;AL = ErrorLevel (returned by child's terminate)
-;
-;If Mode=1
-;
-;CX:EDX - Entry CS:EIP
-;BX:EAX - Entry SS:ESP
-;SI     - PSP.
-;DI     - Auto DS.
-;EBP    - Segment definition memory.
-;
-;If Mode=2
-;
-;CX:EDX - Entry CS:EIP
-;BX:EAX - Entry SS:ESP
-;SI     - PSP.
-;
-;Error codes:
-;
-;1      - DOS file access error.
-;2      - Not a 3P file.
-;3      - Not enough memory.
-;
-Load3P  proc    near
-        mov     ax,ds
-        push    ds
-        push    es
-        push    fs
-        push    gs
-        assume ds:nothing
-        mov     ds,cs:apiDDSeg
-        assume ds:_apiCode
-        ;
-        push    w[api89_SegSS]
-        push    d[api89_SegMem]
-        push    w[api89_EntryDS]
-        push    d[api89_ExpMem]
-        push    d[api89_EntryEIP]
-        push    w[api89_SegCS]
-        push    d[api89_EntryESP]
-        push    d[api89_SegMem]
-        push    d[api89_RelocMem]
-        push    d[api89_ProgBase]
-        push    d[api89_Segs]
-        push    w[api89_PSP]
-        push    d[api89_AutoOffset]
-        push    d[api89_Command]
-        push    w[api89_Command+4]
-        push    d[api89_Flags]
-        push    d[api89_Name]
-        push    w[api89_Name+4]
-        push    w[api89_Environment]
-        push    d[api89_SystemFlags]
-        push    d[api89_ModLink]
-        push    d[api89_ImpMem]
-        push    d[api89_ImpCnt]
-        push    d[api89_3PStart]
-        ;
-        mov     d[api89_Name],edx
-        mov     w[api89_Name+4],ax
-        mov     d[api89_Flags],ebx
-        mov     d[api89_Command],esi
-        mov     w[api89_Command+4],es
-        mov     w[api89_Environment],cx
-        ;
-        mov     w[api89_PSP],0
-        mov     w[api89_Handle],0
-        mov     d[api89_SegMem],0
-        mov     d[api89_RelocMem],0
-        mov     d[api89_AutoOffset],0
-        mov     d[api89_ExpMem],0
-        mov     d[api89_ModLink],0
-        mov     d[api89_ImpMem],0
-;
-;Try and open the file.
-;
-        push    ds
-        lds     edx,f[api89_Name]
-        mov     ax,3d00h                ;open, read only.
-        int     21h
-        pop     ds
-        jc      api89_no_file_error
-        mov     w[api89_Handle],ax      ;store the handle.
-;
-;Check for just a 3P file with no extender.
-;
-api89_Look3P:
-        mov     bx,w[api89_Handle]
-        mov     edx,offset apiNewHeader ;somewhere to put the info.
-        mov     ecx,size NewHeaderStruc ;size of it.
-        mov     ah,3fh
-        int     21h
-        jc      api89_file_error
-        cmp     ax,size NewHeaderStruc  ;did we read right amount?
-        jnz     api89_file_error
-        ;
-        cmp     w[apiNewHeader],'ZM'
-        jnz     api89_CheckNew
-        ;
-        ;Move back to EXE details.
-        ;
-        mov     bx,w[api89_Handle]
-        mov     dx,-(size NewHeaderStruc)
-        mov     cx,-1
-        mov     ax,4201h
-        int     21h             ;move back to start of the header.
-        ;
-        mov     bx,w[api89_Handle]
-        mov     edx,offset apiExeSignature ;somewhere to put the info.
-        mov     ecx,1bh         ;size of it.
-        mov     ah,3fh
-        int     21h
-        jc      api89_file_error
-        cmp     ax,1bh          ;did we read right amount?
-        jnz     api89_file_error
-        ;
-        mov     ax,w[apiExeLength+2]    ;get length in 512 byte blocks
-
-; MED 01/17/96
-        cmp     WORD PTR [apiExeLength],0
-        je      medexe3         ; not rounded if no modulo
-
-        dec     ax              ;lose 1 cos its rounded up
-
-medexe3:
-        add     ax,ax           ;mult by 2
-        mov     dh,0
-        mov     dl,ah
-        mov     ah,al
-        mov     al,dh           ;mult by 256=*512
-        add     ax,w[apiExeLength]      ;add length mod 512
-        adc     dx,0            ;add any carry to dx
-        mov     cx,ax
-        xchg    cx,dx           ;swap round for DOS.
-        mov     ax,4200h                ;set absolute position.
-        int     21h
-        jmp     api89_Look3P
-        ;
-api89_CheckNew:
-        cmp     w[apiNewHeader],'P3'    ;ID ok?
-        jnz     api89_file_error
-;
-;Check if this is the right module.
-;
-        cmp     ExecMCount,0
-        jz      api89_emc0
-        dec     ExecMCount
-
-;       mov     edx,d[apiNewHeader+NewHeaderStruc.NewSize]
-TempAddress     =       NewHeaderStruc.NewSize
-TempAddress     =       TempAddress+api86_ID
-        mov     edx,d[TempAddress]
-
-        sub     edx,size NewHeaderStruc
-        mov     cx,dx
-        shr     edx,16
-        xchg    cx,dx
-        mov     ax,4201h
-        int     21h
-        jmp     api89_Look3P
-;
-;Get file offset and store it.
-;
-api89_emc0:
-        mov     bx,w[api89_Handle]
-        xor     cx,cx
-        xor     dx,dx
-        mov     ax,4201h
-        int     21h
-        shl     edx,16
-        mov     dx,ax
-        mov     d[api89_3PStart],edx
-;
-;Close the file again.
-;
-        mov     bx,w[api89_Handle]
-        mov     ah,3eh
-        int     21h
-        mov     w[api89_Handle],0
-;
-;Create a new PSP.
-;
-        push    ds
-        mov     ebx,d[api89_Flags]
-        mov     cx,w[api89_Environment]
-        les     esi,f[api89_command]
-        lds     edx,f[api89_name]
-        call    CreatePSP
-        pop     ds
-        mov     w[api89_PSP],bx
-        jc      api89_mem_error
-;
-;Open the input file again.
-;
-        push    ds
-        lds     edx,f[api89_Name]
-        mov     ax,3d00h                ;open, read only.
-        int     21h
-        pop     ds
-        jc      api89_file_error
-        mov     w[api89_Handle],ax      ;store the handle.
-;
-;Move past 3P header again.
-;
-        mov     edx,d[api89_3PStart]
-        mov     cx,dx
-        shr     edx,16
-        xchg    dx,cx
-        mov     ax,4200h
-        mov     bx,w[api89_Handle]
-        int     21h
-;
-;Grab flags.
-;
-        mov     esi,offset apiNewHeader
-        mov     eax,NewHeaderStruc.NewFlags[esi]
-        mov     d[api89_SystemFlags],eax
-        test    b[api89_SystemFlags+3],128      ;compressed?
-        jz      api89_noret
-        cmp     d[api89_Flags],1                ;debug load?
-        jnz     api89_noret
-        jmp     api89_file_error
-;
-;Setup auto stack stuff if its needed.
-;
-api89_noret:
-        mov     esi,offset apiNewHeader
-        cmp     NewHeaderStruc.NewEntryESP[esi],0       ;Need an automatic stack?
-        jnz     api89_NotAutoESP
-        mov     eax,NewHeaderStruc.NewAutoStack[esi]    ;Get auto stack size.
-        or      eax,eax
-        jnz     api89_GotAutoSize
-        mov     eax,1024
-api89_GotAutoSize:
-        mov     NewHeaderStruc.NewEntryESP[esi],eax     ;Setup ESP value.
-        mov     ebx,NewHeaderStruc.NewAlloc[esi]
-        add     NewHeaderStruc.NewAlloc[esi],eax        ;update memory size needed.
-        mov     d[api89_AutoOffset],ebx ;store it for later.
-;
-;Get EXPORT memory.
-;
-api89_NotAutoESP:
-        mov     esi,offset apiNewHeader
-        mov     ecx,NewHeaderStruc.NewExports[esi]
-        or      ecx,ecx
-        jz      api89_NoExports0
-        sys     GetMemLinear32
-        jc      api89_mem_error
-        mov     d[api89_ExpMem],esi
-;
-;Get IMPORT module link table memory.
-;
-api89_NoExports0:
-        mov     esi,offset apiNewHeader
-        mov     ecx,NewHeaderStruc.NewImportModCnt[esi]
-        or      ecx,ecx
-        jz      api89_NoImports0
-        shl     ecx,2           ;dword per entry.
-        add     ecx,4           ;allow for count dword.
-        sys     GetMemLinear32
-        jc      api89_mem_error
-        mov     d[api89_ModLink],esi
-        push    es
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,RealSegment
-        assume es:nothing
-        mov     DWORD PTR es:[esi],0            ;clear entry count for now.
-        mov     es,w[api89_PSP]
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_Imports],esi
-        pop     es
-;
-;Get program main memory.
-;
-api89_NoImports0:
-        mov     esi,offset apiNewHeader
-        mov     ecx,NewHeaderStruc.NewAlloc[esi]        ;get memory size required.
-        sys     GetMemLinear32  ;Get segment/selector.
-        jc      api89_mem_error         ;Not enough memory.
-        mov     d[api89_ProgBase],esi
-;
-;Get segment definition memory, selectors and details.
-;
-        mov     esi,offset apiNewHeader
-        movzx   ecx,NewHeaderStruc.NewSegments[esi]     ;get number of segments.
-        cmp     d[api89_AutoOffset],0   ;need auto SS?
-        jz      api89_NoAutoSeg
-        inc     cx              ;one more for the stack.
-api89_NoAutoSeg:
-        push    cx
-        shl     ecx,3           ;8 bytes per entry.
-        sys     GetMemLinear32
-        pop     cx
-        jc      api89_mem_error
-        mov     d[api89_SegMem],esi
-        sys     GetSels
-        jc      api89_mem_error
-        mov     w[api89_Segs],bx                ;store base selector.
-        mov     w[api89_Segs+2],cx      ;store number of selectors.
-;
-;Update programs memory and selector details in PSP and variables.
-;
-        push    es
-        mov     es,w[api89_PSP]
-        mov     ax,w[api89_Segs]                ;get base selector.
-        mov     WORD PTR es:[EPSP_Struc.EPSP_SegBase],ax
-        mov     ax,w[api89_Segs+2]      ;get number of selectors.
-        shl     ax,3
-        mov     WORD PTR es:[EPSP_Struc.EPSP_SegSize],ax
-        mov     eax,d[api89_ProgBase]   ;get memory address.
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_MemBase],eax
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_NearBase],eax
-        mov     edi,offset apiNewHeader
-        mov     eax,NewHeaderStruc.NewAlloc[edi]        ;get memory size.
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_MemSize],eax
-        pop     es
-;
-;Read segment definitions.
-;
-        test    b[api89_SystemFlags+3],128      ;compressed?
-        jz      api89_ncp0
-        mov     bx,w[api89_Handle]
-        push    es
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        mov     edi,d[api89_SegMem]
-        sys     cwcLoad
-        pop     es
-        or      ax,ax
-        jnz     api89_file_error
-        jmp     api89_ncp1
-        ;
-api89_ncp0:
-        mov     esi,offset apiNewHeader
-        movzx   ecx,NewHeaderStruc.NewSegments[esi]     ;get number of segments.
-        shl     ecx,3           ;8 bytes per entry.
-        mov     bx,w[api89_Handle]
-        mov     edx,d[api89_SegMem]
-        push    ecx
-        push    ds
-        mov     ds,apiDSeg
-        assume ds:_cwMain
-        mov     ds,RealSegment
-        call    ReadFile
-        assume ds:_apiCode
-        pop     ds
-        pop     ecx
-        jc      api89_file_error
-        cmp     eax,ecx
-        jnz     api89_file_error
-;
-;Setup a segment definition for auto-stack if needed.
-;
-api89_ncp1:
-        cmp     d[api89_AutoOffset],0
-        jz      api89_NoAutoMake
-        mov     esi,offset apiNewHeader
-        movzx   edi,NewHeaderStruc.NewSegments[esi]     ;get number of segments.
-        mov     NewHeaderStruc.NewEntrySS[esi],di       ;store SS number.
-        shl     edi,3           ;8 bytes per entry.
-        add     edi,d[api89_SegMem]     ;offset to space for new entry.
-        inc     NewHeaderStruc.NewSegments[esi] ;update number of segments.
-        mov     eax,d[api89_AutoOffset]
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        mov     es:[edi],eax            ;setup base.
-        mov     eax,NewHeaderStruc.NewEntryESP[esi]     ;get limit.
-        cmp     eax,100000h
-        jc      api89_NoAutoGBit
-        shr     eax,12
-        or      eax,1 shl 20            ;set G bit.
-api89_NoAutoGBit:
-        or      eax,2 shl 21            ;set class 'stack'
-        mov     es:[edi+4],eax  ;setup limit entry.
-;
-;Get relocation table memory.
-;
-api89_NoAutoMake:
-        mov     esi,offset apiNewHeader
-        mov     ecx,NewHeaderStruc.NewRelocs[esi]       ;get number of relocation entries.
-        or      ecx,ecx
-        jz      api89_NoRelocsMem
-        shl     ecx,2           ;4 bytes per entry.
-        sys     GetMemLinear32
-        jc      api89_mem_error
-        mov     d[api89_RelocMem],esi
-;
-;Read relocation entries.
-;
-        test    b[api89_SystemFlags+3],128      ;compressed?
-        jz      api89_ncp2
-        mov     bx,w[api89_Handle]
-        push    es
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        mov     edi,d[api89_RelocMem]
-        sys     cwcLoad
-        pop     es
-        or      ax,ax
-        jnz     api89_file_error
-        jmp     api89_NoRelocsMem
-        ;
-api89_ncp2:
-        mov     esi,offset apiNewHeader
-        mov     ecx,NewHeaderStruc.NewRelocs[esi]       ;get number of relocation entries.
-        shl     ecx,2           ;4 bytes per entry.
-        mov     bx,w[api89_Handle]
-        mov     edx,d[api89_RelocMem]
-        push    ecx
-        push    ds
-        mov     ds,apiDSeg
-        assume ds:_cwMain
-        mov     ds,RealSegment
-        call    ReadFile
-        assume ds:_apiCode
-        pop     ds
-        pop     ecx
-        jc      api89_file_error
-        cmp     eax,ecx         ;did we get enough?
-        jnz     api89_file_error
-;
-;Read export table.
-;
-api89_NoRelocsMem:
-        mov     esi,offset apiNewHeader
-        mov     ecx,NewHeaderStruc.NewExports[esi]      ;get length of export table.
-        or      ecx,ecx
-        jz      api89_NoExpMem
-        ;
-        test    b[api89_SystemFlags+3],128      ;compressed?
-        jz      api89_ncp3
-        mov     bx,w[api89_Handle]
-        push    es
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        mov     edi,d[api89_ExpMem]
-        sys     cwcLoad
-        pop     es
-        or      ax,ax
-        jnz     api89_file_error
-        jmp     api89_NoExpMem
-        ;
-api89_ncp3:
-        mov     bx,w[api89_Handle]
-        mov     edx,d[api89_ExpMem]
-        push    ecx
-        push    ds
-        mov     ds,apiDSeg
-        assume ds:_cwMain
-        mov     ds,RealSegment
-        call    ReadFile
-        assume ds:_apiCode
-        pop     ds
-        pop     ecx
-        jc      api89_file_error
-        cmp     eax,ecx         ;did we get enough?
-        jnz     api89_file_error
-;
-;Get IMPORT memory.
-;
-api89_NoExpMem:
-        mov     esi,offset apiNewHeader
-        mov     ecx,NewHeaderStruc.NewImports[esi]      ;get size of IMPORT table.
-        or      ecx,ecx
-        jz      api89_NoImpMem1
-        shl     ecx,2           ;4 bytes per entry.
-        sys     GetMemLinear32
-        jc      api89_mem_error
-        mov     d[api89_ImpMem],esi
-;
-;Read IMPORT entries.
-;
-        test    b[api89_SystemFlags+3],128      ;compressed?
-        jz      api89_ncp20
-        mov     bx,w[api89_Handle]
-        push    es
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        mov     edi,d[api89_ImpMem]
-        sys     cwcLoad
-        pop     es
-        or      ax,ax
-        jnz     api89_file_error
-        jmp     api89_NoImpMem1
-        ;
-api89_ncp20:
-        mov     esi,offset apiNewHeader
-        mov     ecx,NewHeaderStruc.NewImports[esi]      ;get size of IMPORT table.
-        mov     bx,w[api89_Handle]
-        mov     edx,d[api89_ImpMem]
-        push    ecx
-        push    ds
-        mov     ds,apiDSeg
-        assume ds:_cwMain
-        mov     ds,RealSegment
-        call    ReadFile
-        assume ds:_apiCode
-        pop     ds
-        pop     ecx
-        jc      api89_file_error
-        cmp     eax,ecx         ;did we get enough?
-        jnz     api89_file_error
-;
-;Read exe image.
-;
-api89_NoImpMem1:
-        mov     esi,offset apiNewHeader
-        test    NewHeaderStruc.NewFlags[esi],1 shl 31   ;compressed?
-        jz      api89_NotComp
-        mov     bx,w[api89_Handle]
-        push    es
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        mov     edi,d[api89_ProgBase]
-        sys     cwcLoad
-        pop     es
-        or      ax,ax
-        jnz     api89_file_error
-        jmp     api89_ImageLoaded
-        ;
-api89_NotComp:
-        test    NewHeaderStruc.NewFlags[esi],1 shl 30
-        jz      api89_LoadAll
-
-        jmp     api89_LoadVMM
-
-api89_LoadAll:
-        mov     edx,d[api89_ProgBase]
-        mov     ecx,NewHeaderStruc.NewLength[esi]       ;get image length.
-        mov     bx,w[api89_Handle]
-        push    ecx
-        push    ds
-        mov     ds,apiDSeg
-        assume ds:_cwMain
-        mov     ds,RealSegment
-        call    ReadFile                ;read the file.
-        assume ds:_apiCode
-        pop     ds
-        pop     ecx
-        jc      api89_file_error                ;problems problems.
-        cmp     eax,ecx         ;did we get right amount?
-        jnz     api89_file_error
-        jmp     api89_ImageLoaded
-;
-;Break the file read up into 8K chunks that suit the relocations.
-;
-api89_LoadVMM:
-        mov     eax,offset apiNewHeader
-        mov     eax,NewHeaderStruc.NewRelocs[eax]       ;get number of relocation entries.
-        mov     d[api89_SL_RelocLeft],eax
-        mov     eax,d[api89_RelocMem]
-        mov     d[api89_SL_RelocPnt],eax
-        mov     eax,offset apiNewHeader
-        mov     eax,NewHeaderStruc.NewLength[eax]
-        mov     d[api89_SL_LoadLeft],eax
-        mov     eax,d[api89_ProgBase]
-        mov     d[api89_SL_LoadPnt],eax
-        mov     d[api89_EntryEIP],0
-        ;
-api89_sl0:
-        ;Anything left to load?
-        ;
-        cmp     d[api89_SL_LoadLeft],0
-        jz      api89_ImageLoaded
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        ;
-        ;Work out how much we should load.
-        ;
-        mov     ecx,d[api89_SL_LoadLeft]
-        cmp     d[api89_SL_RelocLeft],0
-        jz      api89_sl3
-        mov     esi,d[api89_SL_RelocPnt]
-        mov     eax,es:[esi]            ;get fixup address.
-        and     eax,0FFFFFFFh
-        add     eax,4           ;allow for cross page fixup.
-        add     eax,8191
-        and     eax,not 8191            ;get terminal offset.
-        mov     ebx,d[api89_SL_LoadPnt]
-        sub     ebx,d[api89_ProgBase]
-        sub     eax,ebx         ;get relative offset.
-        cmp     eax,ecx
-        jnc     api89_sl1
-        mov     ecx,eax
-        ;
-        ;Load next program chunk.
-        ;
-api89_sl1:
-        or      ecx,ecx
-        jnz     api89_sl3
-
-        mov     eax,d[api89_EntryEIP]
-        or      bx,-1
-        mov     es,bx
-
-api89_sl3:
-
-        mov     edx,d[api89_SL_LoadPnt]
-        mov     bx,w[api89_Handle]
-        push    ecx
-        push    ds
-        mov     ds,apiDSeg
-        assume ds:_cwMain
-        mov     ds,RealSegment
-        call    ReadFile                ;read the file.
-        assume ds:_apiCode
-        pop     ds
-        pop     ecx
-        jc      api89_file_error                ;problems problems.
-        cmp     eax,ecx         ;did we get right amount?
-        jnz     api89_file_error
-        ;
-        ;Update variables.
-        ;
-        add     d[api89_SL_LoadPnt],ecx
-        sub     d[api89_SL_LoadLeft],ecx
-        ;
-        ;Process all fixups in range of what we loaded.
-        ;
-        mov     esi,d[api89_SL_RelocPnt]
-        mov     ecx,d[api89_SL_RelocLeft]
-        mov     fs,w[api89_PSP]
-        ;
-        mov     bx,w[api89_Segs]
-        mov     edi,DWORD PTR fs:[EPSP_Struc.EPSP_MemBase]
-        add     edi,DWORD PTR fs:[EPSP_Struc.EPSP_MemSize]
-        mov     dx,WORD PTR fs:[EPSP_Struc.EPSP_SegSize]
-        shr     dx,3
-api89_SL_RelocLoop:
-        or ecx,ecx
-        jz      api89_SL_DoneRelocs
-        mov     ebp,es:[esi]            ;get linear offset.
-        mov     eax,ebp
-        and     ebp,0FFFFFFFh   ;Lose relocation type.
-        shr     eax,28          ;Get relocation type.
-        add     ebp,d[api89_ProgBase]   ;get linear address.
-        cmp     ebp,edi
-        jnc     api89_file_error2
-        or      al,al
-        jz      api89_SL_Seg16
-        dec     al
-        jz      api89_SL_Offset32
-        jmp     api89_file_error2
-        ;
-api89_SL_Offset32:
-        mov     eax,ebp
-        add     eax,4-1
-        cmp     eax,d[api89_SL_LoadPnt] ;beyond what we loaded?
-        jnc     api89_SL_DoneRelocs
-        mov     eax,es:[ebp]            ;Get offset.
-        add     eax,d[api89_ProgBase]
-        cmp     eax,edi         ;Beyond program?
-        jnc     api89_file_error2
-        mov     eax,d[api89_ProgBase]
-        add     DWORD PTR es:[ebp],eax  ;Do the relocation.
-        jmp     api89_SL_NextReloc
-        ;
-api89_SL_Seg16:
-        mov     eax,ebp
-        add     eax,2-1
-        cmp     eax,d[api89_SL_LoadPnt] ;beyond what we loaded?
-        jnc     api89_SL_DoneRelocs
-        mov     ax,es:[ebp]             ;get selector number.
-        cmp     ax,dx
-        jnc     api89_file_error2
-        shl     ax,3            ;*8 for selector value.
-        add     ax,bx           ;add base selector.
-        mov     es:[ebp],ax             ;set segment selector.
-        ;
-api89_SL_NextReloc:
-        add     esi,4           ;next relocation entry.
-        inc     d[api89_EntryEIP]
-        dec     ecx
-        jnz     api89_SL_RelocLoop
-        ;
-api89_SL_DoneRelocs:
-        mov     d[api89_SL_RelocPnt],esi
-        mov     d[api89_SL_RelocLeft],ecx
-        mov     esi,offset apiNewHeader
-        mov     NewHeaderStruc.NewRelocs[esi],ecx
-        jmp     api89_sl0
-;
-;Close the file now we're done with it.
-;
-api89_ImageLoaded:
-        push    ds
-        push    ds
-        pop     fs
-        pop     es
-        ;
-        mov     bx,w[api89_Handle]      ;grab handle again,
-        mov     w[api89_Handle],0
-        mov     ah,3eh          ;and close it.
-        int     21h
-;
-;Process relocations.
-;
-        mov     esi,offset apiNewHeader
-        mov     ecx,NewHeaderStruc.NewRelocs[esi]       ;get number of relocation entries.
-        or      ecx,ecx
-        jz      api89_DoneReloc
-        mov     esi,d[api89_RelocMem]
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        mov     fs,w[api89_PSP]
-        ;
-        mov     d[api89_EntryEIP],0
-        mov     bx,w[api89_Segs]
-        mov     edi,DWORD PTR fs:[EPSP_Struc.EPSP_MemBase]
-        add     edi,DWORD PTR fs:[EPSP_Struc.EPSP_MemSize]
-        mov     dx,WORD PTR fs:[EPSP_Struc.EPSP_SegSize]
-        shr     dx,3
-api89_RelocLoop:
-        mov     ebp,es:[esi]            ;get linear offset.
-        mov     eax,ebp
-        and     ebp,0FFFFFFFh   ;Lose relocation type.
-        shr     eax,28          ;Get relocation type.
-        add     ebp,d[api89_ProgBase]   ;get linear address.
-        cmp     ebp,edi
-        jnc     api89_file_error2
-        or      al,al
-        jz      api89_Seg16
-        dec     al
-        jz      api89_Offset32
-        jmp     api89_file_error2
-        ;
-api89_Offset32:
-        mov     eax,es:[ebp]            ;Get offset.
-        add     eax,d[api89_ProgBase]
-        cmp     eax,edi         ;Beyond program?
-        jnc     api89_file_error2
-        mov     eax,d[api89_ProgBase]
-        add     DWORD PTR es:[ebp],eax  ;Do the relocation.
-        jmp     api89_NextReloc
-        ;
-api89_Seg16:
-        mov     ax,es:[ebp]             ;get selector number.
-        cmp     ax,dx
-        jnc     api89_file_error2
-        shl     ax,3            ;*8 for selector value.
-        add     ax,bx           ;add base selector.
-        mov     es:[ebp],ax             ;set segment selector.
-        ;
-api89_NextReloc:
-        add     esi,4           ;next relocation entry.
-        inc     d[api89_EntryEIP]
-        dec     ecx
-        jnz     api89_RelocLoop
-        push    ds
-        push    ds
-        pop     fs
-        pop     es
-;
-;Set selector details.
-;
-api89_DoneReloc:
-        mov     esi,offset apiNewHeader
-        movzx   ecx,NewHeaderStruc.NewSegments[esi]     ;get number of segments.
-        mov     esi,d[api89_SegMem]
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        mov     bx,w[api89_Segs]                ;base selector.
-api89_SegLoop:
-        push    ebx
-        push    ecx
-        push    esi
-        ;
-        mov     eax,es:[esi+4]  ;Get limit.
-        mov     ecx,eax
-        and     ecx,0fffffh             ;mask to 20 bits.
-        test    eax,1 shl 20            ;G bit set?
-        jz      api89_NoGBit
-        shl     ecx,12
-        or      ecx,4095
-api89_NoGBit:
-        or      ecx,ecx
-        jz      api89_NoDecLim
-        cmp     ecx,-1
-        jz      api89_NoDecLim
-        dec     ecx
-api89_NoDecLim:
-        mov     edx,es:[esi]            ;get base.
-        ;
-        test    eax,1 shl 27            ;FLAT segment?
-        jz      api89_NotFLATSeg
-        ;
-        push    fs
-        mov     fs,w[api89_PSP]
-        mov     DWORD PTR fs:[EPSP_Struc.EPSP_NearBase],0       ;Make sure NEAR functions work.
-        pop     fs
-        ;
-        add     edx,d[api89_ProgBase]
-        or      ecx,-1          ;Update the limit.
-        xor     edx,edx
-        jmp     api89_DoSegSet
-        ;
-api89_NotFLATSeg:
-        add     edx,d[api89_ProgBase]   ;offset within real memory.
-        ;
-api89_DoSegSet:
-        sys     SetSelDet32
-        mov     cx,w[api89_SystemFlags] ;use default setting.
-        shr     cx,14
-        xor     cl,1
-        or      cl,b[api89_SystemFlags+2]
-        and     cl,1
-        call    _DSizeSelector
-        ;
-        mov     eax,es:[esi+4]  ;Get class.
-        shr     eax,21          ;move type into useful place.
-        and     eax,0fh         ;isolate type.
-        or      eax,eax
-        jz      api89_CodeSeg
-        jmp     api89_SegDone
-        ;
-api89_CodeSeg:
-        mov     eax,es:[esi+4]  ;Get type bits.
-        mov     cx,0            ;Set 16 bit seg.
-        test    eax,1 shl 25
-        jnz     api89_Default
-        mov     cx,1
-        test    eax,1 shl 26            ;32 bit seg?
-        jnz     api89_Default
-        mov     cx,w[api89_SystemFlags] ;use default setting.
-        shr     cx,14
-        and     cx,1            ;get code size
-        xor     cx,1            ;flip it for selector function.
-api89_Default:
-        sys     CodeSel
-        ;
-api89_SegDone:
-        pop     esi
-        pop     ecx
-        pop     ebx
-        add     esi,8           ;next definition.
-        add     ebx,8           ;next selector.
-        dec     ecx
-        jnz     api89_SegLoop
-;
-;Update export table values.
-;
-        cmp     d[api89_ExpMem],0
-        jz      api89_exp9
-        push    es
-        mov     es,w[api89_PSP]
-        mov     esi,d[api89_ExpMem]
-        mov     edi,d[api89_SegMem]
-        mov     DWORD PTR es:[EPSP_Struc.EPSP_Exports],esi
-        mov     dx,es:[EPSP_Struc.EPSP_SegBase]
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-        mov     ecx,es:[esi]
-        mov     ebp,esi
-        add     esi,4
-        ;
-        ;Do module name entry.
-        ;
-        add     es:[esi],ebp            ;turn offset into an address.
-        add     esi,4
-        ;
-        ;Do all other entries.
-        ;
-api89_exp0:
-        add     es:[esi],ebp            ;turn offset into an address.
-        mov     ebx,es:[esi]            ;get address of export entry.
-        movzx   eax,WORD PTR es:[ebx+4] ;get segment def.
-        add     WORD PTR es:[ebx+4],dx  ;update seg
-        shl     eax,3
-        add     eax,edi         ;point into seg defs.
-        test    DWORD PTR es:[eax+4],1 shl 27   ;FLAT seg?
-        jz      api89_exp1
-        mov     eax,d[api89_ProgBase]
-        add     DWORD PTR es:[ebx],eax  ;update to reflect FLAT
-api89_exp1:
-        add     esi,4
-        dec     ecx
-        jnz     api89_exp0
-        pop     es
-api89_exp9:
-;
-;Setup entry regs.
-;
-        mov     esi,offset apiNewHeader
-        ;
-        mov     ebx,NewHeaderStruc.NewEntryEIP[esi]     ;get entry address.
-        movzx   eax,NewHeaderStruc.NewEntryCS[esi]
-        shl     eax,3
-        add     ax,w[api89_Segs]
-        mov     w[api89_SegCS],ax
-        sub     ax,w[api89_Segs]
-        add     eax,d[api89_SegMem]     ;point to this segments entry.
-        test    DWORD PTR es:[eax+4],1 shl 27   ;FLAT segment?
-        jz      api89_NotFLATEIP
-        add     ebx,es:[eax]            ;include segments offset within image.
-        add     ebx,d[api89_ProgBase]
-api89_NotFLATEIP:
-        mov     d[api89_EntryEIP],ebx
-        ;
-        mov     ebx,NewHeaderStruc.NewEntryESP[esi]
-        movzx   eax,NewHeaderStruc.NewEntrySS[esi]
-        shl     eax,3
-        add     ax,w[api89_Segs]
-        mov     w[api89_SegSS],ax
-        sub     ax,w[api89_Segs]
-        add     eax,d[api89_SegMem]     ;point to this segments entry.
-        test    DWORD PTR es:[eax+4],1 shl 27   ;FLAT segment?
-        jz      api89_NotFLATESP
-        add     ebx,es:[eax]            ;include segments offset within image.
-        add     ebx,d[api89_ProgBase]
-api89_NotFLATESP:
-        mov     d[api89_EntryESP],ebx
-        ;
-        push    es
-        mov     es,w[api89_PSP]
-        mov     ax,es
-        pop     es
-        cmp     NewHeaderStruc.NewAutoDS[esi],0
-        jz      api89_NotAUTODS
-        mov     ax,NewHeaderStruc.NewAutoDS[esi]
-        dec     ax
-        shl     ax,3
-        add     ax,w[api89_Segs]
-api89_NotAUTODS:
-        mov     w[api89_EntryDS],ax
-;
-;Convert import module names to pointers to export tables.
-;
-        cmp     d[api89_ImpMem],0       ;any imports?
-        jz      api89_imp9
-        mov     d[api89_ImpCnt],0       ;Clear the counter.
-        mov     es,apiDSeg
-        assume es:_cwMain
-        mov     es,es:RealSegment
-        assume es:nothing
-api89_imp0:
-        mov     esi,d[api89_ImpMem]
-        add     esi,DWORD PTR es:[esi]  ;move to module name list.
-        mov     eax,d[api89_ImpCnt]
-        cmp     eax,DWORD PTR es:[esi]  ;Done all modules?
-        jnc     api89_imp6
-        add     esi,es:[esi+4+eax*4]    ;Point to this module name.
-        ;
-        ;Try and find the module.
-        ;
-        call    FindModule
-        jnc     api89_got_module
-        ;
-        ;Put module's name into command line error message.
-        ;
-        ;ES:ESI is the name string.
-        ;
-        push    ds
-        push    ax
-        mov     ds,apiDSeg
-        assume ds:_cwMain
-        cmp     ax,1
-        jnz     api89_egm1
-        mov     edi,offset ErrorM10_T
-        movzx   ecx,BYTE PTR es:[esi]
-        inc     esi
-        mov     b[edi],'"'
-        inc     edi
-api89_egm0:
-        mov     al,es:[esi]
-        mov     [edi],al
-        inc     esi
-        inc     edi
-        dec     ecx
-        jnz     api89_egm0
-        mov     b[edi+0],'"'
-        mov     b[edi+1],13
-        mov     b[edi+2],10
-        mov     b[edi+3],"$"
-api89_egm1:
-        pop     ax
-        assume ds:_apiCode
-        pop     ds
-        stc
-        jmp     api89_error
-        ;
-api89_got_module:
-        ;Update the module link table and usage count.
-        ;
-        mov     esi,d[api89_ModLink]
-        inc     DWORD PTR es:[esi]              ;update count.
-        mov     eax,d[api89_ImpCnt]
-        mov     es:[esi+4+eax*4],edi    ;store EPSP link pointer.
-        ;
-        ;Move onto next module name.
-        ;
-        inc     d[api89_ImpCnt]
-        jmp     api89_imp0
-;
-;Now it's time to work through the relocations performing the fixups.
-;
-api89_imp6:
-        mov     esi,d[api89_ImpMem]
-        add     esi,DWORD PTR es:[esi+8]        ;move to fixup list.
-        mov     eax,es:[esi]            ;get number of entries.
-        or      eax,eax
-        jz      api89_imp9
-        mov     d[api89_ImpCnt],eax
-        add     esi,4
-api89_imp7:
-        xor     eax,eax
-        mov     al,es:[esi]
-        mov     d[api89_ImpType],eax
-        mov     eax,es:[esi+1]
-        mov     d[api89_ImpFlags],eax
-        add     esi,1+4
-        ;
-        ;Point to the right modules export list.
-        ;
-        mov     ecx,d[api89_ImpFlags]   ;get flags
-        shr     ecx,30
-        xor     eax,eax
-api89_imp8:
-        shl     eax,8
-        mov     al,es:[esi]
-        inc     esi
-        dec     ecx
-        jnz     api89_imp8
-        mov     edi,d[api89_ModLink]
-        mov     edi,es:[edi+4+eax*4]
-        mov     edi,es:EPSP_Struc.EPSP_Exports[edi]
-        ;
-        ;Point to the import name string.
-        ;
-        mov     ecx,d[api89_ImpFlags]
-        shr     ecx,28
-        and     ecx,3
-        xor     eax,eax
-api89_imp10:
-        shl     eax,8
-        mov     al,es:[esi]
-        inc     esi
-        dec     ecx
-        jnz     api89_imp10
-        ;
-        ;Ordinal or string import?
-        ;
-        test    d[api89_ImpType],128    ;ordinal?
-        jz      api89_imp14
-        cmp     es:[edi],eax            ;check number of entries.
-        jc      api89_file_error
-        mov     edi,es:[edi+4+eax*4]
-        jmp     api89_imp11
-        ;
-api89_imp14:
-        mov     ebp,d[api89_ImpMem]
-        add     ebp,es:[ebp+4]  ;point to name list.
-        add     ebp,es:[ebp+4+eax*4]    ;point to name string.
-        ;
-        ;Try and find name string in export list.
-        ;
-        call    FindFunction
-        jc      api89_file_error
-        ;
-api89_imp11:
-        ;Found the right entry, now do the fixup.
-        ;
-        mov     ebx,d[api89_ImpFlags]
-        and     ebx,0FFFFFFFh
-        add     ebx,d[api89_ProgBase]
-        mov     edx,es:[edi]
-        xor     ecx,ecx
-        mov     cx,es:[edi+4]
-        mov     eax,d[api89_ImpType]
-        ;
-        ;Check if this is self relative.
-        ;
-        test    eax,64
-        jz      api89_imp15
-        and     eax,63
-        mov     edx,ebx         ;must be flat.
-        cmp     eax,1
-        jz      api89_imp18
-        mov     edx,d[api89_ImpFlags]
-        and     edx,0FFFFFFFh
-api89_imp18:
-        add     edx,2
-        test    eax,1
-        jz      api89_imp16
-        add     edx,2
-api89_imp16:
-        sub     edx,es:[edi]
-        neg     edx
-api89_imp15:
-        and     eax,63
-        or      eax,eax
-        jz      api89_imp_offset16
-        dec     eax
-        jz      api89_imp_offset32
-        dec     eax
-        jz      api89_imp_pointer16
-        dec     eax
-        jz      api89_imp_pointer32
-        dec     eax
-        jz      api89_imp_base
-        jmp     api89_file_error
-        ;
-        ;Do a 16-bit offset fixup.
-        ;
-api89_imp_offset16:
-        mov es:[ebx],dx
-        jmp     api89_imp17
-        ;
-        ;Do a 32-bit offset fixup.
-        ;
-api89_imp_offset32:
-        mov es:[ebx],edx
-        jmp     api89_imp17
-        ;
-        ;Do a 16-bit pointer fixup.
-        ;
-api89_imp_pointer16:
-        mov        es:[ebx],dx
-        mov     es:[ebx+2],cx
-        jmp     api89_imp17
-        ;
-        ;Do a 32-bit pointer fixup.
-        ;
-api89_imp_pointer32:
-        mov        es:[ebx],edx
-        mov     es:[ebx+4],cx
-        jmp     api89_imp17
-        ;
-        ;Do a base fixup.
-        ;
-api89_imp_base:
-        mov     es:[ebx],cx
-        ;
-api89_imp17:
-        dec     d[api89_ImpCnt]
-        jnz     api89_imp7
-api89_imp9:
-;
-;Lose relocation memory.
-;
-        mov     esi,d[api89_RelocMem]
-        sys     RelMemLinear32  ;release relocation list memory.
-        mov     d[api89_RelocMem],0
-;
-;Lose import memory.
-;
-        mov     esi,d[api89_ImpMem]     ;release IMPORT memory.
-        or      esi,esi
-        jz      api89_NoRelImp9
-        sys     RelMemLinear32
-        mov     d[api89_ImpMem],0
-;
-;Lose segment definitions.
-;
-api89_NoRelImp9:
-        cmp     d[api89_Flags],1
-        jz      api89_NoSegMemRel
-        mov     esi,d[api89_SegMem]
-        sys     RelMemLinear32  ;release segment memory.
-        mov     d[api89_SegMem],0
-;
-;Check if this is an exec or just a load.
-;
-api89_NoSegMemRel:
-        cmp     d[api89_Flags],0
-        jz      api89_Exec
-;
-;Switch back to parents PSP if this is a debug load.
-;
-        cmp     d[api89_Flags],2
-        jz      api89_NoPSwitch2
-        push    fs
-        mov     fs,w[api89_PSP]
-        mov     bx,WORD PTR fs:[EPSP_Struc.EPSP_Parent]
-        pop     fs
-        mov     ah,50h
-        int     21h
-        mov     ebp,d[api89_SegMem]
-;
-;Return program details to caller.
-;
-api89_NoPSwitch2:
-        mov     edx,d[api89_EntryEIP]
-        mov     cx,w[api89_SegCS]
-        mov     eax,d[api89_EntryESP]
-        mov     bx,w[api89_SegSS]
-        mov     si,w[api89_PSP]
-        mov     di,w[api89_EntryDS]
-        clc
-        jmp     api89_exit
-;
-;Run it.
-;
-api89_Exec:
-        mov     eax,d[api89_Flags]
-        mov     ebx,d[api89_EntryEIP]
-        mov     cx,w[api89_SegCS]
-        mov     edx,d[api89_EntryESP]
-        mov     si,w[api89_SegSS]
-        mov     di,w[api89_PSP]
-        mov     bp,w[api89_EntryDS]
-        call    ExecModule
-        clc
-;
-;Shut down anything still hanging around.
-;
-api89_error:
-        pushf
-        push    ax
-;
-;Make sure file is closed.
-;
-        pushf
-        xor     bx,bx
-        xchg    bx,w[api89_Handle]
-        or      bx,bx
-        jz      api89_NoClose
-        mov     ah,3eh
-        int     21h
-;
-;Make sure all work spaces are released.
-;
-api89_NoClose:
-        mov     esi,d[api89_RelocMem]
-        or      esi,esi
-        jz      api89_NoRelRel
-        sys     RelMemLinear32  ;release relocation list memory.
-        mov     d[api89_RelocMem],0
-api89_NoRelRel:
-        mov     esi,d[api89_SegMem]
-        or      esi,esi
-        jz      api89_NoSegRel
-        sys     RelMemLinear32  ;release segment memory.
-        mov     d[api89_SegMem],0
-api89_NoSegRel:
-        mov     esi,d[api89_ImpMem]
-        or      esi,esi
-        jz      api89_NoImpRel
-        sys     RelMemLinear32
-;
-;Restore previous state.
-;
-api89_NoImpRel:
-        popf
-        jnc     api89_RelPSP
-        cmp     w[api89_PSP],0
-        jz      api89_NoRelRes
-;
-;Restore vectors & DPMI state.
-;
-api89_RelPSP:
-        push    ds
-        push    ds
-        push    ds
-        pop     gs
-        pop     fs
-        pop     es
-        mov     eax,d[api89_Flags]
-        mov     bx,w[api89_PSP]
-        call    DeletePSP
-;
-;Return to caller.
-;
-api89_NoRelRes:
-        pop     ax
-        popf
-        ;
-api89_exit:
-        pop     d[api89_3PStart]
-        pop     d[api89_ImpCnt]
-        pop     d[api89_ImpMem]
-        pop     d[api89_ModLink]
-        pop     d[api89_SystemFlags]
-        pop     w[api89_Environment]
-        pop     w[api89_Name+4]
-        pop     d[api89_Name]
-        pop     d[api89_Flags]
-        pop     w[api89_Command+4]
-        pop     d[api89_Command]
-        pop     d[api89_AutoOffset]
-        pop     w[api89_PSP]
-        pop     d[api89_Segs]
-        pop     d[api89_ProgBase]
-        pop     d[api89_RelocMem]
-        pop     d[api89_SegMem]
-        pop     d[api89_EntryESP]
-        pop     w[api89_SegCS]
-        pop     d[api89_EntryEIP]
-        pop     d[api89_ExpMem]
-        pop     w[api89_EntryDS]
-        pop     d[api89_SegMem]
-        pop     w[api89_SegSS]
-        ;
-        pop     gs
-        pop     fs
-        pop     es
-        pop     ds
-        ret
-;
-;Not enough memory error.
-;
-api89_mem_error:
-        mov     ax,3
-        stc
-        jmp     api89_error
-;
-;Couldn't find the file.
-;
-api89_no_file_error:
-        mov        ax,1
-        stc
-        jmp     api89_error
-;
-;Not a 3P file.
-;
-api89_file_error:
-        mov     ax,2
-        stc
-        jmp     api89_error
-;
-;Corrupt file.
-;
-api89_file_error2:
-        mov     eax,d[api89_EntryEIP]   ;Get the relocation number.
-        push    ds
-        assume ds:nothing
-        mov     ds,cs:apiDSeg
-        assume ds:_cwMain
-        mov     b[ErrorM11_0+0]," "
-        mov     b[ErrorM11_0+1]," "
-        mov     b[ErrorM11_0+2]," "
-        mov     ecx,8
-        mov     edi,offset ErrorM11_1
-        call    Bin2HexA
-        assume ds:_apiCode
-        pop     ds
-        mov     ax,2
-        stc
-        jmp     api89_error
-;
-api89_Name:
-        df 0,0
-api89_Environment:
-        dw 0
-api89_SystemFlags:
-        dd ?
-api89_AutoOffset:
-        dd ?
-api89_Command:
-        df ?,0
-api89_Flags:
-        dd 0
-api89_ErrorCode:
-        dw 0            ;error number.
-api89_Handle:
-        dw 0            ;file handle.
-api89_EntryEIP:
-        dd 0
-api89_SegCS:
-        dw 0
-api89_EntryESP:
-        dd 0
-api89_SegSS:
-        dw 0
-api89_SegMem:
-        dd 0
-api89_RelocMem:
-        dd 0
-api89_ProgBase:
-        dd 0
-api89_Segs:
-        dd 0
-api89_PSP:
-        dw 0
-api89_EntryDS:
-        dw 0
-api89_ExpMem:
-        dd 0
-api89_ModLink:
-        dd 0
-api89_ImpMem:
-        dd 0
-api89_ImpCnt:
-        dd 0
-api89_ImpFlags:
-        dd 0
-api89_ImpType:
-        dd 0
-api89_3PStart:
-        dd 0
-api89_SL_RelocPnt:
-        dd 0
-api89_SL_RelocLeft:
-        dd 0
-api89_SL_LoadPnt:
-        dd 0
-api89_SL_LoadLeft:
-        dd 0
-Load3P  endp
-
-
 ;-------------------------------------------------------------------------
 ;
 ;Execute module.
@@ -8862,13 +7326,13 @@ ExecModule      proc    near
         mov     w[api90_OldInt21h+6],0
         mov     eax,d[api90_OldInt21h]
         or      ax,w[api90_OldInt21h+4]
-        or      eax,eax         ;Already patched?
+        or      eax,eax                     ;Already patched?
         jnz     api90_NoPatch21h
         ;
         mov     w[api90_OldInt21h+6],-1
         mov     bl,21h
         sys     GetVect
-        test    BYTE PTR apiSystemFlags,1       ;16/32 bit?
+        test    BYTE PTR apiSystemFlags,1   ;16/32 bit?
         jz      api90_Use32Bit100
         mov     w[api90_OldInt21h+2],cx
         mov     w[api90_OldInt21h],dx
@@ -8880,7 +7344,7 @@ api90_Use16Bit100:
         mov     bl,21h
         mov     cx,cs
         mov     edx,offset api90_Int21Patch
-        sys     SetVect         ;put us in the running.
+        sys     SetVect                     ;put us in the running.
 ;
 ;Patch exception termination handler address.
 ;
@@ -8895,7 +7359,7 @@ api90_NoPatch21h:
         mov     es,w[api90_PSP]
         mov     DWORD PTR es:[EPSP_Struc.EPSP_SSESP],esp
         mov     WORD PTR es:[EPSP_Struc.EPSP_SSESP+4],ss
-        lss     esp,f[api90_EntryESP]   ;fetch new stack address.
+        lss     esp,f[api90_EntryESP]       ;fetch new stack address.
         xor     eax,eax
         mov     ebx,eax
         mov     ecx,eax
@@ -8911,9 +7375,9 @@ api90_NoPatch21h:
         jmp     FWORD PTR cs:[api90_EntryEIP]   ;pass control to program.
         ;
 api90_Int21Patch:
-        cmp     ah,4ch          ;terminate?
+        cmp     ah,4ch                      ;terminate?
         jz      api90_CheckKillIt
-        cmp     ah,31h          ;TSR?
+        cmp     ah,31h                      ;TSR?
         jnz     api90_OldVect
 ;
 ;Clean things up and exit.
@@ -8930,7 +7394,7 @@ api90_Int21Patch:
         mov     RealRegsStruc.Real_EDX[edi],eax
         mov     bl,21h
         sys     IntXX
-        jmp     api90_KillIt            ;just incase!
+        jmp     api90_KillIt                ;just incase!
         ;
 api90_OldVect:
         test    BYTE PTR cs:apiSystemFlags,1    ;16/32?
@@ -8952,7 +7416,7 @@ api90_CheckKillIt:
 ;Clean things up and return to caller.
 ;
 api90_KillIt:
-        mov     ds,cs:apiDDSeg  ;make our data addressable.
+        mov     ds,cs:apiDDSeg              ;make our data addressable.
         assume ds:_apiCode
         mov     w[api90_errorcode],ax
         mov     es,w[api90_PSP]
@@ -8968,11 +7432,11 @@ api90_KillIt:
         pop     gs
         pop     fs
         pop     es
-        sti                     ;turn interupts back on.
+        sti                                 ;turn interupts back on.
         ;
         cmp     w[api90_OldInt21h+6],0
         jz      api90_NoRel21h
-        test    BYTE PTR apiSystemFlags,1       ;16/32?
+        test    BYTE PTR apiSystemFlags,1   ;16/32?
         jz      api90_Use32Bit102
         mov     cx,w[api90_OldInt21h+2]
         movzx   edx,w[api90_OldInt21h]
@@ -8982,7 +7446,7 @@ api90_Use32Bit102:
         mov     edx,d[api90_OldInt21h]
 api90_Use16Bit102:
         mov     bl,21h
-        sys     SetVect         ;restore old handler.
+        sys     SetVect                     ;restore old handler.
 api90_NoRel21h:
         pop     w[api90_OldInt21h+6]
 ;
@@ -8992,7 +7456,7 @@ api90_NoRel21h:
         assume ds:nothing
         mov     ds,cs:apiDSeg
         assume ds:_cwMain
-        mov     ds,w[Int33hExtension+20]        ;Get mouse data segment.
+        mov     ds,w[Int33hExtension+20]    ;Get mouse data segment.
         assume ds:_Int33h
         xor     eax,eax
         xor     ebx,ebx
@@ -9021,7 +7485,7 @@ api90_meventnodum:
         pop     ds
         assume ds:_apiCode
         ;
-;       mov     ax,0            ;reset mouse if present.
+;       mov     ax,0                        ;reset mouse if present.
 ;       int     33h
         mov     ax,w[api90_errorcode]
         ;
@@ -9107,7 +7571,7 @@ Bin2HexA        endp
 ;=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 LosefileHandles proc near
 
-        if      0
+if 0
         push    ds
         push    es
         push    fs
@@ -9120,7 +7584,7 @@ LosefileHandles proc near
         les     di,DWORD PTR fs:[PSP_HandlePtr]
         mov     cx,WORD PTR fs:[PSP_Handles]
 
-        if      0
+  if 0
 api92_RelHandles:
         cmp     BYTE PTR es:[di],255
         jz      api92_NoRelHandle
@@ -9131,7 +7595,7 @@ api92_NoRelHandle:
         inc     di
         dec     cx
         jnz     api92_RelHandles
-        endif
+  endif
 
         mov     ax,fs
         mov     bx,es
@@ -9139,29 +7603,29 @@ api92_NoRelHandle:
         jz      api92_donehandles
         sys     RelMem
 
-        if      0
+  if 0
 ;
 ;Reduce real mode handle count.
 ;
         mov     edi,offset Int21Buffer
-        mov     ax,TotalHandles ;get current count.
+        mov     ax,TotalHandles         ;get current count.
         sub     ax,WORD PTR fs:[PSP_Handles]
-        or      ax,1            ;force bit 0 for DOS bug.
+        or      ax,1                    ;force bit 0 for DOS bug.
         mov     [edi].RealRegsStruc.Real_EAX,6700h
         mov     [edi].RealRegsStruc.Real_EBX,eax
         mov     bl,21h
         push    ds
         pop     es
         sys     IntXX
-        sub     TotalHandles,20 ;update total handle count.
-        endif
+        sub     TotalHandles,20         ;update total handle count.
+  endif
 
 api92_donehandles:
 
         pop     fs
         pop     es
         pop     ds
-        endif
+endif
 
         ret
         assume ds:_apiCode
@@ -9186,7 +7650,7 @@ ReadFile        proc    near
         push    ecx
         push    edx
         push    esi
-        xor     esi,esi         ;reset length read.
+        xor     esi,esi                 ;reset length read.
 api93_0:
         push    ebx
         push    ecx
@@ -9197,18 +7661,18 @@ api93_0:
         mov     ecx,65535               ;as close to 64k as can get.
 api93_1:
         mov     ah,3fh
-        int     21h             ;read from the file.
+        int     21h                     ;read from the file.
         pop     esi
         pop     edx
         pop     ecx
         pop     ebx
-        jc      api93_2         ;DOS error so exit NOW.
-        movzx   eax,ax          ;get length read.
-        add     esi,eax         ;update length read counter.
-        add     edx,eax         ;move memory pointer.
-        sub     ecx,eax         ;update length counter.
-        jz      api93_2         ;read as much as was wanted.
-        or      eax,eax         ;did we read anything?
+        jc      api93_2                 ;DOS error so exit NOW.
+        movzx   eax,ax                  ;get length read.
+        add     esi,eax                 ;update length read counter.
+        add     edx,eax                 ;move memory pointer.
+        sub     ecx,eax                 ;update length counter.
+        jz      api93_2                 ;read as much as was wanted.
+        or      eax,eax                 ;did we read anything?
         jnz     api93_0
 api93_2:
         mov     eax,esi
@@ -9408,7 +7872,7 @@ CtrlBrkEvent    proc    far
         pop     ds
         jz      api96_start32
         ;
-        mov     ax,[si]         ;get stacked offset.
+        mov     ax,[si]                 ;get stacked offset.
         mov     es:RealRegsStruc.Real_IP[di],ax
         mov     ax,2[si]
         mov     es:RealRegsStruc.Real_CS[di],ax
@@ -9419,15 +7883,15 @@ CtrlBrkEvent    proc    far
         ;
 api96_start32:
 ;       mov     ax,[esi]                ;get stacked offset.
-        mov     ax,[si]         ;get stacked offset. MED 01/24/96
+        mov     ax,[si]                 ;get stacked offset. MED 01/24/96
 
         mov     es:RealRegsStruc.Real_IP[edi],ax
 ;       mov     ax,2[esi]
-        mov     ax,2[si]         ; MED 01/24/96
+        mov     ax,2[si]
 
         mov     es:RealRegsStruc.Real_CS[edi],ax
 ;       mov     ax,4[esi]
-        mov     ax,4[si]        ; MED 01/24/96
+        mov     ax,4[si]
 
         mov     es:RealRegsStruc.Real_Flags[edi],ax
         add     es:RealRegsStruc.Real_SP[edi],6
@@ -9464,7 +7928,7 @@ Int1bHandler    proc    far
         pushad
         assume ds:nothing
         ;
-        ;Need to chain to origional real mode handler.
+        ;Need to chain to original real mode handler.
         ;
         mov     es,cs:apiDDSeg
         mov     edi,offset Int1bRegs
@@ -9592,7 +8056,8 @@ CriticalKeys    db 'aArRiIfF'
 CriticalCodes   db 2,2,1,1,0,0,3,3
 Int24Handler    endp
 
-        include loadle/loadle.asm
+        include load3p.asm
+        include loadle.asm
         include decode_c.asm
 
 ;

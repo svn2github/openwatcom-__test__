@@ -30,6 +30,7 @@
 
 
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdio.h>      /* for SEEK_SET, SEEK_CUR, SEEK_END */
 #include <string.h>
@@ -68,7 +69,7 @@ OBJ_RFILE *ObjReadOpen( const char *filename ) {
     OBJ_RFILE   *new;
 
     fh = open( filename, O_RDONLY | O_BINARY );
-    if( fh < 0 ) {
+    if( fh == -1 ) {
         return( NULL );
     }
     new = MemAlloc( sizeof( *new ) );
@@ -228,7 +229,7 @@ OBJ_WFILE *ObjWriteOpen( const char *filename ) {
     OBJ_WFILE    *new;
 
     fh = open( filename, OP_MODE, OP_PERM );
-    if( fh < 0 ) {
+    if( fh == -1 ) {
         return( NULL );
     }
     new = MemAlloc( sizeof( *new ) + OBJ_BUFFER_SIZE );

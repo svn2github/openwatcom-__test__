@@ -87,7 +87,7 @@ represents integers in the range -32768 and 32767.
 represents integers in the range -2147483648 and 2147483647.
 .note
 .id %f
-represents an executable file format such as DOS, WINDOWS, PHARLAP,
+represents an executable file format such as DOS, ZDOS, WINDOWS, PHARLAP,
 NOVELL, OS2, QNX or ELF.
 .endnote
 .np
@@ -151,7 +151,7 @@ For example, you can issue the following command.
 .millust end
 .do end
 .el .do begin
-For example, if you are linking in a DOS environment, you can issue
+For example, if you are linking in a (Z)DOS environment, you can issue
 the following DOS command.
 .millust begin
 C>copy/b *.obj all.obj
@@ -778,7 +778,8 @@ If it is issued, please report this problem.
 .errnote 2068 absolute segment fixup not valid in protected mode
 .np
 A reference to an absolute location is not allowed in protected mode.
-A protected-mode application is one that is being generated for OS/2,
+A protected-mode application is one that is being generated for ZDOS,
+OS/2,
 CauseWay DOS extender,
 Tenberry Software's DOS/4G or DOS/4GW DOS extender,
 FlashTek's DOS extender,
@@ -1603,7 +1604,7 @@ them, it will emit this error message. If there is more than one
 starting address specified and at least one of them is unnamed, it
 will issue message 2030.
 .*
-.errnote 1167 The NLM internal name (%s) has been truncated as it exceeds the maximum size.
+.errnote 1167 NLM internal name (%s) truncated
 .np
 This message is issued when generating a NetWare NLM.
 The output file name as specified by the NAME directive has
@@ -1611,6 +1612,35 @@ specified a long file name (exceeds 8.3). The linker will truncate
 the generated file name by using the first eight characters of the
 specified file name and the first three characters of the file
 extension (if supplied), separated by a period.
+.*
+.errnote 3168 exactly one export must exist for VxD format
+.np
+The Windows VxD format requires exactly one export to be present, but an
+attempt was made to build a VxD module with no exports or more than one export.
+.*
+.errnote 2169 location counter already beyond fixed segment address %a
+.np
+When creating an image using the OUTPUT directive, a segment was specified
+with an address lower than the current location counter. This would overlay
+the segment data with already existing data at the same address, and is not
+allowed.
+.*
+.errnote 1170 directive %s can only occur once
+.np
+A directive was specified more than once on the &lnkname. command line and
+was ignored. Remove the redundant instances of the directive.
+.*
+.errnote 1171 locally defined symbol %s imported
+.np
+An imported symbol (intended to be imported from a DLL) was resolved locally.
+The linker will ignore the symbol defined in a DLL, if provided, and the local
+reference will be used. Ensure that this is the intended behaviour.
+.*
+.errnote 1172 stack size is less than %d bytes.
+.np
+The stack size for an executable specified through OPTION STACK is very small.
+There is a high probability that the program will not work correctly. Consider
+specifying a greater stack size.
 .*
 .if &e'&dohelp eq 0 .do begin
 .endnote

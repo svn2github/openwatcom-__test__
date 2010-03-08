@@ -133,6 +133,11 @@ rt += &
     substr.obj
 
 
+# WORKAROUND: Disable pointer truncation warning for aalloc module; this
+# module for some mysterious reason uses far pointers even on flat model
+# platforms, despite the fact that it can't actually allocate far memory!
+aalloc_postopts = -wcd310
+
 #                        d16 d32 dpm nt nta ntp nov o16 o32 q16 q32 w16 w32 l32
 #===============================================================================
 # both 
@@ -528,3 +533,8 @@ ufns += &
 !include ../../objlist.mif
 
 files = $(rt) $(both) $(dep_rt) $(dep_both) $(ifns) $(xfns) $(math) $(ufns) $(objs)
+
+# BUILD WORKAROUND because of insufficiently smart 1.8 compiler
+!ifeq __VERSION__ 1280
+fmtrtns_postopts = -wcd112
+!endif

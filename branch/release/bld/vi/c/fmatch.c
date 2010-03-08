@@ -29,10 +29,8 @@
 ****************************************************************************/
 
 
-#include <stdio.h>
-#include <string.h>
-#include "walloca.h"
 #include "vi.h"
+#include "walloca.h"
 #include "rxsupp.h"
 
 static regexp  *cRx;
@@ -40,7 +38,7 @@ static regexp  *cRx;
 /*
  * FileMatch - check if a file matches a wild card
  */
-int FileMatch( char *name )
+bool FileMatch( char *name )
 {
     int i;
 
@@ -52,33 +50,22 @@ int FileMatch( char *name )
 
 } /* FileMatch */
 
-extern char *Majick;
-
-static char magicFlag;
-static char caseignFlag;
-static char *majickStr;
-
 /*
  * FileMatchInit - start file matching
  */
-int FileMatchInit( char *wild )
+vi_rc FileMatchInit( char *wild )
 {
     char        *tomatch;
-    int         i,j,len;
+    int         i, j, len;
 
-    magicFlag = EditFlags.Magic;
-    caseignFlag = EditFlags.CaseIgnore;
-    EditFlags.CaseIgnore = TRUE;
-    EditFlags.Magic = FALSE;
-    majickStr = Majick;
-    Majick = ".";
+    RegExpAttrSave( TRUE, "." );
 
     /*
      * compute required size
      */
     j = 3;
     len = strlen( wild );
-    for( i=0; i<len;i++ ) {
+    for( i = 0; i < len; i++ ) {
         if( wild[i] == '?' ) {
             j += 2;
         } else if( wild[i] == '*' ) {
@@ -95,7 +82,7 @@ int FileMatchInit( char *wild )
     tomatch[0] = '^';
     j = 1;
     len = strlen( wild );
-    for( i=0; i<len;i++ ) {
+    for( i = 0; i < len; i++ ) {
         if( wild[i] == '?' ) {
             tomatch[j++] = '\\';
             tomatch[j++] = '.';
@@ -124,9 +111,7 @@ int FileMatchInit( char *wild )
  */
 void FileMatchFini( void )
 {
-    EditFlags.Magic = magicFlag;
-    EditFlags.CaseIgnore = caseignFlag;
-    Majick = majickStr;
+    RegExpAttrRestore();
     MemFree( cRx );
 
 } /* FileMatchFini */

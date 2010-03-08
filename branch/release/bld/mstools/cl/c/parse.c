@@ -111,6 +111,20 @@ void CmdStringParse( OPT_STORAGE *cmdOpts, int *itemsParsed )
             FreeMem( filename );
             CmdStringParse( cmdOpts, itemsParsed );
             PopContext();
+        } else if( ch == '"' ) {                /* quoted option or file name */
+            ch = GetCharContext();
+            if( ch == '-' ) {
+                Quoted = 1;
+                if( OPT_PROCESS( cmdOpts ) != 0 ) {
+                    cmd_line_error();
+                }
+            } else {
+                UngetCharContext();
+                UngetCharContext();
+                filename = CmdScanFileName();
+                AddFile( TYPE_DEFAULT_FILE, filename );
+                FreeMem( filename );
+            }                
         } else {                                /* input file */
             UngetCharContext();
             filename = CmdScanFileName();
@@ -1069,6 +1083,30 @@ static void handle_QIfdiv( OPT_STORAGE *cmdOpts, int x )
     }
 }
 #endif
+
+
+/*
+ * Parse the /TC option.
+ */
+static void handle_TC( OPT_STORAGE *cmdOpts, int x )
+/**************************************************/
+{
+    cmdOpts = cmdOpts;
+    x = x;
+    ForceLanguage( FORCE_C_COMPILE );
+}
+
+
+/*
+ * Parse the /TP option.
+ */
+static void handle_TP( OPT_STORAGE *cmdOpts, int x )
+/**************************************************/
+{
+    cmdOpts = cmdOpts;
+    x = x;
+    ForceLanguage( FORCE_CPP_COMPILE );
+}
 
 
 /*

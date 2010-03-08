@@ -24,9 +24,11 @@
 *
 *  ========================================================================
 *
-* Description:  Declares an enum, structs and functions used by wgml to
-*               parse and interpret the information from .COP files:
-*                   cop_file_type
+* Description:  Declares the items needed to parse and interpret the
+*               information from .COP files:
+*               an enum:
+*                   text_type
+*               the structs:
 *                   cop_device
 *                       box_block
 *                       underscore_block
@@ -62,22 +64,39 @@
 *                       outtrans_block
 *                           translation
 *                       width_block
-*                   get_cop_device()
-*                   get_cop_driver()
-*                   get_cop_font()
-*                   parse_header()
-*
-*               Also these functions for integration with wgml:
+*                   record_buffer
+*                   text_chars
+*                   text_line
+*                   wgml_font
+*               the variables:
+*                   bin_device
+*                   bin_driver
+*                   has_aa_block
+*                   ps_device
+*                   wgml_font_cnt
+*                   wgml_fonts
+*               the functions:
+*                   cop_in_trans()
 *                   cop_setup()
 *                   cop_teardown()
-*                   get_systime()
-*                   set_device()
-*                   set_font()
+*                   cop_text_width()
+*                   cop_ti_table()
+*                   cop_tr_table()
+*                   fb_absoluteaddress()
+*                   fb_dbox()
+*                   fb_document()
+*                   fb_document_page()
+*                   fb_finish()
+*                   fb_hline()
+*                   fb_new_section()
+*                   fb_output_textline()
+*                   fb_position()
+*                   fb_start()
+*                   fb_vline()
 *
-* Note:         The field names are intended to correspond to the field names 
+* Note:         The field names are intended to correspond to the field names
 *               shown in the Wiki. The Wiki structs are named when the structs
 *               defined here are defined; they are not identical.
-*
 ****************************************************************************/
 
 #ifndef COPFILE_H_INCLUDED
@@ -88,28 +107,22 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "gtype.h" // Only needed for set_device2 & set_font2.
-
-/* Enum definition. */
-
-/* This enum is used for the return value of function parse_header(). */
+/* enum definition. */
 
 typedef enum {
-    dir_v4_1_se,        // The file is a same-endian version 4.1 directory file.
-    se_v4_1_not_dir,    // The file is a same-endian version 4.1 device, driver, or font file.
-    not_se_v4_1,        // The file is not same-endian and/or not version 4.1.
-    not_bin_dev,        // The file is not a binary device file at all.
-    file_error          // An error occurred while reading the file.
-} cop_file_type;
+    norm = 0,
+    sup,
+    sub
+} text_type;
 
-/* Structure declarations. */
+/* struct declarations. */
 
 /* These structs are used by more than one of the top-level structs:
  *      intrans_block is used by both cop_device and cop_font
  *      outtrans_block is used by both cop_device and cop_font
  *      code_text is used by both cop_device and cop_driver
  */
- 
+
 /* To hold the data extracted from an IntransBlock struct.
  * intrans_block is a struct for consistency with outtrans_block.
  */
@@ -117,6 +130,8 @@ typedef enum {
 typedef struct {
     uint8_t         table[0x100];
 } intrans_block;
+
+#pragma disable_message( 128 ); // suppress: Warning! W128: 3 padding byte(s) added
 
 /* To hold the data extracted from an OuttransData struct. */
 
@@ -126,7 +141,8 @@ typedef struct {
 } translation;
 
 /* To hold the data extracted from an OuttransBlock struct.
- * The entry for a given character will be NULL if no out-translation is needed.
+ * The entry for a given character will be NULL if no out-translation
+ * was specified.
  */
 
 typedef struct {
@@ -193,7 +209,7 @@ typedef struct {
     char *              font_name;
     char *              font_style;
     uint16_t            font_height;
-    uint16_t            font_space;    
+    uint16_t            font_space;
 } default_font;
 
 /* To hold the data from the DefaultfontBlock struct. */
@@ -274,7 +290,7 @@ typedef struct {
  * of the fact that there can be at most two :FINISH blocks, that wgml will
  * only use the first :VALUE block in a :FINISH block, so that only that one
  * needs to be presented here, and that they must be distinguished because
- * wgml processes at most one of them. 
+ * wgml processes at most one of them.
  */
 
 typedef struct {
@@ -302,13 +318,24 @@ typedef struct {
 
 /* To hold the data from the FontswitchBlock struct.
  * There will be as many fontswitch_blocks as there are distinct values of
- * "type". The other field names do not correspond to the Wiki: they take
- * advantage of the fact that there are at most two CodeBlocks, one from a
- * :STARTVALUE block and the other from an :ENDVALUE block.
+ * "type". The bool fields are used to record information from some of the
+ * 21 flags, as discussed in the Wiki. The other field names do not
+ * correspond to the Wiki: they take advantage of the fact that there are
+ * at most two CodeBlocks, one from a :STARTVALUE block and the other from
+ * an :ENDVALUE block.
  */
 
 typedef struct {
     char *              type;
+    bool                do_always;
+    bool                default_width_flag;
+    bool                font_height_flag;
+    bool                font_outname1_flag;
+    bool                font_outname2_flag;
+    bool                font_resident_flag;
+    bool                font_space_flag;
+    bool                line_height_flag;
+    bool                line_space_flag;
     code_text *         startvalue;
     code_text *         endvalue;
 } fontswitch_block;
@@ -334,22 +361,22 @@ typedef struct {
     code_text *         endvalue;
 } line_proc;
 
-/* To hold the data extracted from a ShortFontstyleBlock struct. 
+/* To hold the data extracted from a ShortFontstyleBlock struct.
  * Only the first two fields are found in the Wiki struct. The next three take
  * advantage of the fact that a :FONTSTYLE block directly defines at most one of
  * each of two sub-blocks, plus any number of :LINEPROC blocks. The number of
- * line_proc instances is given by the value of the field "passes".
+ * line_proc instances is given by the value of the field "line_passes".
  */
 
 typedef struct {
-    uint16_t            passes;
+    uint16_t            line_passes;
     char *              type;
     code_text *         startvalue;
     code_text *         endvalue;
     line_proc *         lineprocs;
 } fontstyle_block;
 
-/* To hold the data extracted from a FontstyleGroup struct. 
+/* To hold the data extracted from a FontstyleGroup struct.
  * This struct bears only a functional relationship to the struct in the Wiki,
  * which must be seen to be believed.
  */
@@ -360,7 +387,7 @@ typedef struct {
 } fontstyle_group;
 
 /* To hold the data extracted from an HlineBlock, a VlineBlock, or a DboxBlock
- * struct. 
+ * struct.
  * This differs from the structs in the Wiki because each of them can contain at
  * most one CodeBlock, as well as the thickness.
  */
@@ -384,7 +411,7 @@ typedef struct {
 /* These are the top-level structs. These are the only structs intended to
  * be created and passed around independently.
  *
- * The comments within the structs refer to the blocks discussed in the Wiki. 
+ * The comments within the structs refer to the blocks discussed in the Wiki.
  *
  * The first two fields are used internally and were used for sizing during
  * development
@@ -393,7 +420,7 @@ typedef struct {
  * freed in one statement.
  */
 
-/* This struct embodies the binary form of the :DEVICE block. 
+/* This struct embodies the binary form of the :DEVICE block.
  *
  * Note that the "FunctionsBlock" is not mentioned. The various "CodeBlock"s
  * are instead provided as part of PauseBlock and DevicefontBlock.
@@ -403,9 +430,9 @@ typedef struct {
     size_t              allocated_size;
     size_t              next_offset;
     /* The Attributes */
-    char *              driver_name;
-    char *              output_name;
-    char *              output_extension;
+    char            *   driver_name;
+    char            *   output_name;
+    char            *   output_extension;
     uint32_t            page_width;
     uint32_t            page_depth;
     uint32_t            horizontal_base_units;
@@ -420,8 +447,8 @@ typedef struct {
     /* UnderscoreBlock */
     underscore_block    underscore;
     /* TranslationBlock */
-    intrans_block  *    intrans;
-    outtrans_block *    outtrans;
+    intrans_block   *   intrans;
+    outtrans_block  *   outtrans;
     /* DefaultfontBlock */
     defaultfont_block   defaultfonts;
     /* PauseBlock */
@@ -439,7 +466,7 @@ typedef struct {
     size_t              allocated_size;
     size_t              next_offset;
     /* The Attributes */
-    char *              rec_spec;
+    char            *   rec_spec;
     char                fill_char;
     /* PageAddressBlock */
     uint8_t             x_positive;
@@ -467,14 +494,21 @@ typedef struct {
     line_block          dbox;
 } cop_driver;
 
-/* This struct embodies the binary form of the :FONT block. */
+#pragma enable_message( 128 ); // reenable: Warning! W128: 3 padding byte(s) added
 
-typedef struct {
+/* This struct embodies the binary form of the :FONT block.
+ * Only the fonts need to be treated as a linked list.
+ */
+
+typedef struct cop_font {
+    struct cop_font *   next_font;
     size_t              allocated_size;
     size_t              next_offset;
+    /* For matching by defined name. */
+    char            *   defined_name;
     /* The Attributes */
-    char *              font_out_name1;
-    char *              font_out_name2;
+    char            *   font_out_name1;
+    char            *   font_out_name2;
     uint32_t            line_height;
     uint32_t            line_space;
     uint32_t            scale_basis;
@@ -482,10 +516,86 @@ typedef struct {
     uint32_t            scale_max;
     uint32_t            char_width;
     /* CharacterDescriptionBlock */
-    intrans_block *     intrans;
-    outtrans_block *    outtrans;
-    width_block *       width;
+    intrans_block   *   intrans;
+    outtrans_block  *   outtrans;
+    width_block     *   width;
 } cop_font;
+
+/* This struct was originally developed for use with the output buffer. It's
+ * use has since expanded. current records the current write position, length
+ * records the number of bytes pointed to by text, and text points to the
+ * bytes to be inserted into the output buffer or otherwise processed.
+ */
+
+typedef struct {
+    size_t              current;
+    size_t              length;
+    uint8_t         *   text;
+} record_buffer;
+
+/* This struct implements the text_chars struct in the Wiki. */
+
+typedef struct text_chars {
+    struct  text_chars  *   next;
+    struct  text_chars  *   prev;
+            uint32_t        x_address;
+            uint32_t        width;
+            uint16_t        count;
+            uint16_t        length;
+            text_type       type;
+            uint8_t         font_number;
+            uint8_t         text[1];
+} text_chars;
+
+/* This struct implements the text_line struct in the Wiki. */
+
+typedef struct text_line {
+    struct  text_line   *   next;
+            uint32_t        line_height;
+            uint32_t        y_address;
+            text_chars  *   first;
+            text_chars  *   last;
+} text_line;
+
+/* This struct implements the wgml_font struct in the Wiki. */
+
+typedef struct {
+    cop_font            *   bin_font;
+    fontswitch_block    *   font_switch;
+    code_text           *   font_pause;
+    fontstyle_block     *   font_style;
+    outtrans_block      *   outtrans;
+    uint32_t                default_width;
+    uint32_t                dv_base;
+    uint32_t                em_base;
+    uint32_t                font_height;
+    uint32_t                font_space;
+    uint32_t                line_height;
+    uint32_t                line_space;
+    uint32_t                spc_width;
+    uint32_t                width_table[0x100];
+    char                    font_resident;
+    uint8_t                 shift_count;
+    char                    shift_height[4];
+} wgml_font;
+
+
+/* Variable declarations. */
+
+#ifndef global
+    #define global  extern
+#endif
+
+global bool             has_aa_block;   // true if device defined :ABSOLUTEADDRESS
+global bool             ps_device;      // true if device is PostScript
+global cop_device   *   bin_device;     // binary device being used
+global cop_driver   *   bin_driver;     // binary driver being used
+global uint16_t         wgml_font_cnt;  // number of available fonts
+global wgml_font    *   wgml_fonts;     // the available fonts
+
+/* Reset so can be reused with other headers. */
+
+#undef global
 
 /* Function declarations. */
 
@@ -493,35 +603,29 @@ typedef struct {
 extern "C" {    /* Use "C" linkage when in C++ mode. */
 #endif
 
-extern cop_device   *   get_cop_device( char const * defined_name );
-extern cop_driver   *   get_cop_driver( char const * defined_name );
-extern cop_font     *   get_cop_font( char const * defined_name );
-extern cop_file_type    parse_header( FILE * in_file );
+/* copfiles.c                          */
 
-/* For integration with wgml. */
+extern uint8_t              cop_in_trans( uint8_t in_char, uint8_t font );
+extern void                 cop_setup( void );
+extern void                 cop_teardown( void );
+extern uint32_t             cop_text_width( uint8_t * text, uint32_t count, uint8_t font );
+extern void                 cop_ti_table( uint8_t * data, uint32_t count );
+extern void                 fb_dbox( uint32_t h_start, uint32_t v_start, uint32_t h_len, uint32_t v_len );
+extern void                 fb_document( void );
+extern void                 fb_document_page( void );
+extern void                 fb_finish( void );
+extern void                 fb_hline( uint32_t h_start, uint32_t v_start, uint32_t h_len );
+extern void                 fb_output_textline( text_line * out_line );
+extern void                 fb_position( uint32_t h_start, uint32_t v_start );
+extern void                 fb_start( void );
+extern void                 fb_vline( uint32_t h_start, uint32_t v_start, uint32_t v_len );
 
-typedef struct  option {
-    char        *   option;             // the option
-    short           optionLenM1;        // length of option - 1
-    short           minLength;          // minimum abbreviation
-    long            value;              // sometimes value to set option to
-    void            (*function)( struct option *optentry );
-    int             parmcount;          // expected number of parms
-} option;
+/* devfuncs.c                          */
+extern void                 fb_absoluteaddress( void );
+extern void                 fb_new_section( uint32_t v_start );
 
-typedef struct cmd_tok {
-    struct cmd_tok  *   nxt;
-    size_t              toklen;
-    bool                bol;
-    char                token[1];       // variable length
-
-} cmd_tok;
-
-extern void cop_setup( void );
-extern void cop_teardown( void );
-extern void get_systime( void );
-extern void set_device2( option * opt, char * opt_scan_ptr, cmd_tok * tokennext );
-extern void set_font2( option * opt, char * opt_scan_ptr, cmd_tok * tokennext );
+/* outbuff.c                           */
+extern void                 cop_tr_table( uint8_t * data, uint32_t count );
 
 #ifdef  __cplusplus
 }   /* End of "C" linkage for C++. */

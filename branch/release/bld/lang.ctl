@@ -21,6 +21,8 @@ echo Bootstrapping compiler using GNU tools...
 [ INCLUDE <DEVDIR>/builder/lang.ctl ]
 [ INCLUDE <DEVDIR>/pmake/prereq.ctl ]
 [ INCLUDE <DEVDIR>/cc/wcl/prereq.ctl ]
+[ INCLUDE <DEVDIR>/wasm/prereq.ctl ]
+[ INCLUDE <DEVDIR>/causeway/prereq.ctl ]
 [ INCLUDE <DEVDIR>/w32loadr/prereq.ctl ]
 [ INCLUDE <DEVDIR>/yacc/prereq.ctl ]
 [ INCLUDE <DEVDIR>/re2c/prereq.ctl ]
@@ -28,6 +30,7 @@ echo Bootstrapping compiler using GNU tools...
 [ INCLUDE <DEVDIR>/whpcvt/prereq.ctl ]
 [ INCLUDE <DEVDIR>/helpcomp/prereq.ctl ]
 [ INCLUDE <DEVDIR>/hcdos/prereq.ctl ]
+[ INCLUDE <DEVDIR>/wipfc/prereq.ctl ]
 [ INCLUDE <DEVDIR>/bmp2eps/prereq.ctl ]
 [ INCLUDE <DEVDIR>/ssl/prereq.ctl ]
 [ INCLUDE <DEVDIR>/wstub/lang.ctl ]
@@ -40,9 +43,6 @@ echo Bootstrapping compiler using GNU tools...
 [ INCLUDE <DEVDIR>/sdk/rc/prereq.ctl ]
 #        Prebuild parsedlg tool for build process
 [ INCLUDE <DEVDIR>/parsedlg/prereq.ctl ]
-#
-#        Prebuild newest WASM version for build process
-[ INCLUDE <DEVDIR>/wasm/prereq.ctl ]
 #
 #        Before building anything for real, create up-to-date header files
 #
@@ -78,6 +78,11 @@ echo Bootstrapping compiler using GNU tools...
 #        DWARF must be done early so that DWARF library users are up-to-date
 [ INCLUDE <DEVDIR>/dwarf/lang.ctl ]
 #
+# Hack for build OW 1.9 by OW 1.8 
+# build new linker which is able to create executable 
+# format not available in OW 1.8 linker (RDOS target)
+[ INCLUDE <DEVDIR>/wl/prereq.ctl ]
+#
 #        Now build Open Watcom libraries
 #
 #        emu libraries must be made before C libraries
@@ -104,7 +109,7 @@ echo Bootstrapping compiler using GNU tools...
 #
 #        Starting with the code generators
 #
-#        WOMP must be done before WASM and F77, now it is not necessary
+#        WOMP must be done before F77, now it is not necessary
 #[ INCLUDE <DEVDIR>/womp/lang.ctl ]
 #        WASM must be done early so that inline assembler users are uptodate
 #        (no longer necessary, can be anywhere)
@@ -171,8 +176,10 @@ echo Bootstrapping compiler using GNU tools...
 [ INCLUDE <DEVDIR>/cvpack/lang.ctl ]
 [ INCLUDE <DEVDIR>/wic/lang.ctl ]
 [ INCLUDE <DEVDIR>/redist/lang.ctl ]
-[ INCLUDE <DEVDIR>/wgml/lang.ctl ]
+#[ INCLUDE <DEVDIR>/wgml/lang.ctl ]
 [ INCLUDE <DEVDIR>/parsedlg/lang.ctl ]
+[ INCLUDE <DEVDIR>/helpcomp/lang.ctl ]
+[ INCLUDE <DEVDIR>/wipfc/lang.ctl ]
 [ INCLUDE <DOC_ROOT>/lang.ctl ]
 #
 #        Do CDSAY to see end time

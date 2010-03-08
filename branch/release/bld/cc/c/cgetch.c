@@ -110,7 +110,7 @@ int GetNextChar( void )
     int c;
 
     c = *SrcFile->src_ptr++;
-    if(( CharSet[c] & C_EX ) == 0 ) {
+    if(( CharSet[ c ] & C_EX ) == 0 ) {
 //      SrcFile->column++;
         CurrChar = c;
         return( c );
@@ -163,7 +163,7 @@ static int getTestCharFromFile( void )
 {
     int c;
 
-    for(;;) {
+    for( ;; ) {
         c = *SrcFile->src_ptr++;
         if( c != '\0' )
             break;
@@ -239,10 +239,10 @@ static int tryBackSlashNewLine( void )
         }
         if( CompFlags.cpp_output ) {            /* 30-may-95 */
             if( CompFlags.in_pragma ) {
-                PrtChar( '\\' );
-                PrtChar( '\n' );
+                CppPrtChar( '\\' );
+                CppPrtChar( '\n' );
             } else if( CompFlags.cpp_line_wanted ) {
-                PrtChar( '\n' );
+                CppPrtChar( '\n' );
             }
         }
         SrcFile->src_line_cnt++;
@@ -290,7 +290,7 @@ int GetCharCheck( int c )
     int nc;
     int nnc;
 
-    if( NextChar == ReScanBuffer ) {
+    if( InReScanMode() ) {
         if( c == '\0' ) {
             CompFlags.rescan_buffer_done = 1;
         }
@@ -327,7 +327,7 @@ int GetCharCheck( int c )
             break;
         default:
 //          SrcFile->column++;
-            if( c > 0x7f && CharSet[c] & C_DB ) {
+            if( c > 0x7f && CharSet[ c ] & C_DB ) {
                 // we should not process the second byte through
                 // normal channels since its value is meaningless
                 // out of context

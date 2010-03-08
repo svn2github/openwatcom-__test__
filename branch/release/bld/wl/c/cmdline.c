@@ -46,9 +46,12 @@
 #include "cmdelf.h"
 #include "cmdphar.h"
 #include "cmddos.h"
+#include "cmdzdos.h"
+#include "cmdraw.h"
 #include "cmdline.h"
 #include "overlays.h"
 #include "fileio.h"
+#include "ideentry.h"
 #include "symtrace.h"
 #include "reloc.h"
 // #include "strtab.h"
@@ -76,6 +79,8 @@ static bool             ProcELFHelp( void );
 static bool             ProcWindowsHelp( void );
 static bool             ProcWinVxdHelp( void );
 static bool             ProcNTHelp( void );
+static bool             ProcZdosHelp( void );
+static bool             ProcRawHelp( void );
 static void             WriteHelp( unsigned first_ln, unsigned last_ln, bool prompt );
 static void             GetExtraCommands( void );
 
@@ -101,6 +106,12 @@ static  parse_entry   FormatHelp[] = {
 #endif
 #ifdef _ELF
     "ELF",          ProcELFHelp,            MK_ALL,     0,
+#endif
+#ifdef _ZDOS
+    "ZDos",         ProcZdosHelp,           MK_ALL,     0,
+#endif
+#ifdef _RAW
+    "Raw",          ProcRawHelp,            MK_ALL,     0,
 #endif
     NULL
 };
@@ -140,7 +151,7 @@ static void ResetCmdFile( void )
     Name = NULL;
     CmdFlags = CF_UNNAMED;
     Path = NULL;
-    memset( &FmtData, 0, sizeof(FmtData) );
+    memset( &FmtData, 0, sizeof( FmtData ) );
     FmtData.base = NO_BASE_SPEC;
     FmtData.objalign = NO_BASE_SPEC;
     FmtData.type = MK_ALL;
@@ -236,7 +247,7 @@ void DoCmdFile( char *fname )
             }
         }
     }
-    if( FmtData.type & (MK_NOVELL | MK_DOS) && LinkFlags & INC_LINK_FLAG ) {
+    if( (FmtData.type & (MK_NOVELL | MK_DOS)) && (LinkFlags & INC_LINK_FLAG) ) {
         LnkMsg( FTL+MSG_FORMAT_BAD_OPTION, "s", "incremental" );
     }
 #ifdef _NOVELL
@@ -260,8 +271,8 @@ void DoCmdFile( char *fname )
     } else {
         MapFlags = 0;   // if main isn't set, don't set anything.
     }
-    if( SymFileName == NULL && (CmdFlags & CF_SEPARATE_SYM ||
-                   (LinkFlags & OLD_DBI_FLAG && FmtData.type & MK_COM)) ) {
+    if( SymFileName == NULL && ( (CmdFlags & CF_SEPARATE_SYM) ||
+                   (LinkFlags & OLD_DBI_FLAG) && (FmtData.type & MK_COM) ) ) {
         SymFileName = FileName( Name, namelen, E_SYM, TRUE );
     }
     if( FmtData.make_implib && FmtData.implibname == NULL ) {
@@ -298,34 +309,36 @@ char *GetNextLink( void )
 
 struct extra_cmd_info {
     unsigned    type;
-    char        prefix[PREFIX_SIZE+1];
+    char        prefix[PREFIX_SIZE + 1];
     bool        retry;
 };
 
 static struct extra_cmd_info ExtraCmds[] = {
-        EXTRA_NAME_DIR, "name    ",     FALSE,
-        EXTRA_OBJ_FILE, "file    ",     TRUE,
-        EXTRA_LIB_FILE, "lib     ",     TRUE,
-        EXTRA_RES_FILE, "opt res=",     FALSE,
-        0,              "\0",           FALSE
+    EXTRA_NAME_DIR, "name    ",     FALSE,
+    EXTRA_OBJ_FILE, "file    ",     TRUE,
+    EXTRA_LIB_FILE, "lib     ",     TRUE,
+    EXTRA_RES_FILE, "opt res=",     FALSE,
+    0,              "\0",           FALSE
 };
 
 static void GetExtraCommands( void )
 /**********************************/
 {
     struct extra_cmd_info const        *cmd;
-    char                                buff[ _MAX_PATH + PREFIX_SIZE ];
+    char                                buff[_MAX_PATH + PREFIX_SIZE];
 
-    cmd = ExtraCmds;
-    while( cmd->prefix[0] != '\0' ) {
-        for(;;) {
+    for( cmd = ExtraCmds; cmd->prefix[0] != '\0'; ++cmd ) {
+        for( ;; ) {
             memcpy( buff, cmd->prefix, PREFIX_SIZE );
-            if( !GetAddtlCommand( cmd->type, buff + PREFIX_SIZE ) ) break;
+            if( !GetAddtlCommand( cmd->type, buff + PREFIX_SIZE ) )
+                break;
             NewCommandSource( NULL, buff, COMMANDLINE );
-            if( Spawn( DoCmdParse ) ) break;
-            if( !cmd->retry ) break;
+            if( Spawn( DoCmdParse ) )
+                break;
+            if( !cmd->retry ) {
+                break;
+            }
         }
-        cmd++;
     }
 
 }
@@ -352,9 +365,7 @@ static void Crash( bool check_file )
         fp = SearchPath( "wlink.hlp" );
         if( fp != NIL_HANDLE ) {
             WLPrtBanner();
-            for( ;; ) {
-                len = QRead( fp, buff, 80, "wlink.hlp" );
-                if( len == 0 ) break;
+            for( ; (len = QRead( fp, buff, 80, "wlink.hlp" )) != 0; ) {
                 buff[len] = '\0';
                 WriteStdOut( buff );
             }
@@ -438,6 +449,12 @@ static void DisplayOptions( void )
 #endif
 #ifdef _ELF
     WriteHelp( MSG_ELF_HELP_0, MSG_ELF_HELP_15, isout );
+#endif
+#ifdef _ZDOS
+    WriteHelp( MSG_ZDOS_HELP_0, MSG_ZDOS_HELP_15, isout );
+#endif
+#ifdef _RAW
+    WriteHelp( MSG_RAW_HELP_0, MSG_RAW_HELP_15, isout );
 #endif
 }
 
@@ -533,6 +550,26 @@ static bool ProcELFHelp( void )
 }
 #endif
 
+#ifdef _ZDOS
+static bool ProcZdosHelp( void )
+/*****************************/
+{
+    WriteGenHelp();
+    WriteHelp( MSG_ZDOS_HELP_0, MSG_ZDOS_HELP_15, CmdFlags & CF_TO_STDOUT );
+    return( TRUE );
+}
+#endif
+
+#ifdef _RAW
+static bool ProcRawHelp( void )
+/*****************************/
+{
+    WriteGenHelp();
+    WriteHelp( MSG_RAW_HELP_0, MSG_RAW_HELP_15, CmdFlags & CF_TO_STDOUT );
+    return( TRUE );
+}
+#endif
+
 static void PressKey( void );
 static void WriteMsg( char msg_buffer[] );
 
@@ -552,7 +589,9 @@ static void WriteHelp( unsigned first_ln, unsigned last_ln, bool prompt )
                 PressKey();
                 WriteMsg( msg_buffer );
                 previous_null = 0;
-            } else break;
+            } else {
+                break;
+            }
         } else if( msg_buffer[0] == '\0' ) {
             previous_null = 1;
         } else {
@@ -684,7 +723,8 @@ static struct select_format PossibleFmt[] = {
 #ifdef _NOVELL
     MK_NOVELL,      "LIBNOV",       SetNovFmt,      FreeNovFmt,
 #endif
-    0 };
+    0,              NULL,           NULL,           NULL
+};
 
 
 void AddFmtLibPaths( void )
@@ -693,22 +733,25 @@ void AddFmtLibPaths( void )
     struct select_format const *check;
     exe_format                  possible;
 
-    if( !(LinkState & FMT_DECIDED) ) return;
-    check = PossibleFmt;
-    for( ;; ) {
-        possible = check->bits;
-        if( possible == 0 ) return;
-        if( (~possible & FmtData.type) == 0 ) break;
-        ++check;
+    if( !(LinkState & FMT_DECIDED) )
+        return;
+    for( check = PossibleFmt; (possible = check->bits) != 0; ++check ) {
+        if( (~possible & FmtData.type) == 0 ) {
+            break;
+        }
     }
-    AddEnvPaths( check->lib_var_name );
+    if( possible != 0 ) {
+        AddEnvPaths( check->lib_var_name );
+    }
 }
 
 static void InitFmt( void (*set)(void) )
 /**************************************/
 {
-    if( LinkState & FMT_INITIALIZED ) return;
-    if( set != NULL ) set();
+    if( LinkState & FMT_INITIALIZED )
+        return;
+    if( set != NULL )
+        set();
     LinkState |= FMT_INITIALIZED;
 }
 
@@ -723,22 +766,21 @@ bool HintFormat( exe_format hint )
     FmtData.type &= hint;
     if( LinkState & FMT_DECIDED )
         return( TRUE );
-    check = PossibleFmt;
-    for( ;; ) {
-        possible = check->bits;
-        if( possible == 0 ) {
-#ifdef _OS2
-            if( (~(MK_OS2|MK_PE|MK_WIN_VXD) & FmtData.type) == 0 ) {
-                /* Windows, OS/2 V1.x, OS/2 V2.x, PE, VxD all
-                   want the same structure */
-                InitFmt( SetOS2Fmt );
-            }
-#endif
-            return( TRUE );
-        }
-        if( (~possible & FmtData.type) == 0 )
+
+    for( check = PossibleFmt; (possible = check->bits) != 0; ++check ) {
+        if( (~possible & FmtData.type) == 0 ) {
             break;
-        ++check;
+        }
+    }
+    if( possible == 0 ) {
+#ifdef _OS2
+        if( (~(MK_OS2|MK_PE|MK_WIN_VXD) & FmtData.type) == 0 ) {
+            /* Windows, OS/2 V1.x, OS/2 V2.x, PE, VxD all
+                want the same structure */
+            InitFmt( SetOS2Fmt );
+        }
+#endif
+        return( TRUE );
     }
     InitFmt( check->set_func );
     LinkState |= FMT_DECIDED;
@@ -757,8 +799,10 @@ void DecideFormat( void )
     if( !(LinkState & FMT_DECIDED) ) {
         possible = FmtData.type;
         allowed = MK_OS2_NE | MK_OS2_LX;
-        if( !(LinkState & FMT_SEEN_IMPORT_CMT) ) allowed = ~allowed;
-        if( (possible & allowed) != 0 ) possible &= allowed;
+        if( !(LinkState & FMT_SEEN_IMPORT_CMT) )
+            allowed = ~allowed;
+        if( (possible & allowed) != 0 )
+            possible &= allowed;
         HintFormat( possible );
         if( !(LinkState & FMT_DECIDED) ) {
             Msg_Get( MSG_FORMAT_NOT_DECIDED, rc_buff );
@@ -773,15 +817,16 @@ void FreeFormatStuff( void )
     struct select_format const *check;
     exe_format                  possible;
 
-    if( !(LinkState & FMT_DECIDED) ) return;
-    check = PossibleFmt;
-    for( ;; ) {
-        possible = check->bits;
-        if( possible == 0 ) return;
-        if( (~possible & FmtData.type) == 0 ) break;
-        ++check;
+    if( !(LinkState & FMT_DECIDED) )
+        return;
+    for( check = PossibleFmt; (possible = check->bits) != 0; ++check ) {
+        if( (~possible & FmtData.type) == 0 ) {
+            break;
+        }
     }
-    if( check->free_func != NULL ) check->free_func();
+    if( possible != 0 && check->free_func != NULL ) {
+        check->free_func();
+    }
 }
 
 void AddCommentLib( char *ptr, unsigned len, lib_priority priority )
@@ -799,9 +844,6 @@ void AddCommentLib( char *ptr, unsigned len, lib_priority priority )
     _LnkFree( ptr );
 }
 
-// we don't need these next two when under workframe
-#ifndef APP
-
 void AddLibPaths( char *name, unsigned len, bool add_to_front )
 /***************************************************************/
 {
@@ -810,7 +852,7 @@ void AddLibPaths( char *name, unsigned len, bool add_to_front )
 
     _ChkAlloc( newpath, sizeof( path_entry ) + len );
     memcpy( newpath->name, name, len );
-    newpath->name[ len ] = '\0';
+    newpath->name[len] = '\0';
     if( add_to_front ) {
         newpath->next = LibPath;
         LibPath = newpath;
@@ -818,15 +860,13 @@ void AddLibPaths( char *name, unsigned len, bool add_to_front )
         LinkList( &LibPath, newpath );
     }
     if( LibPath == newpath ) {
-        libfiles = ObjLibFiles;
-        while( libfiles != NULL ) {
+        for( libfiles = ObjLibFiles; libfiles != NULL; libfiles = libfiles->next_file ) {
             libfiles->file->path_list = LibPath;
-            libfiles = libfiles->next_file;
         }
-        libfiles = Root->files;
-        while( libfiles != NULL && libfiles->file->flags & INSTAT_USE_LIBPATH ) {
-            libfiles->file->path_list = LibPath;
-            libfiles = libfiles->next_file;
+        for( libfiles = Root->files; libfiles != NULL; libfiles = libfiles->next_file ) {
+            if( libfiles->file->flags & INSTAT_USE_LIBPATH ) {
+                libfiles->file->path_list = LibPath;
+            }
         }
     }
 }
@@ -842,8 +882,6 @@ void AddEnvPaths( char *envname )
     len = strlen( val );
     AddLibPaths( val, len, FALSE );
 }
-
-#endif
 
 void ExecSystem( char *name )
 /**********************************/
@@ -881,8 +919,7 @@ static void CleanSystemList( bool check )
     sys = &SysBlocks;
     while( *sys != NULL ) {
         name = (*sys)->name;
-        if( !check
-        || (memcmp( "286", name, 4 ) != 0 && memcmp( "386", name, 4) != 0)){
+        if( !check || memcmp( "286", name, 4 ) != 0 && memcmp( "386", name, 4) != 0 ) {
             next = (*sys)->next;
             _LnkFree( name );
             _LnkFree( *sys );
@@ -1022,20 +1059,19 @@ bool ProcHeapSize( void )
     return( TRUE );
 }
 
-#ifndef APP
-#if defined(_PHARLAP) || defined(_QNXLOAD) || defined(_OS2)
+#if defined(_PHARLAP) || defined(_QNXLOAD) || defined(_OS2) || defined(_RAW)
 bool ProcOffset( void )
 /****************************/
 {
-    if( !GetLong( &FmtData.base ) ) return( FALSE );
-    if( !(FmtData.type & (MK_PHAR_LAP|MK_QNX_FLAT)) ) {
+    if( !GetLong( &FmtData.base ) )
+        return( FALSE );
+    if( !(FmtData.type & (MK_PHAR_LAP|MK_QNX_FLAT|MK_RAW)) ) {
         ChkBase( 64 * 1024 );
     } else if( !(FmtData.type & (MK_OS2_FLAT|MK_PE)) ) {
         ChkBase( 4 * 1024 );
     }
     return( TRUE );
 }
-#endif
 #endif
 
 #ifdef _INT_DEBUG

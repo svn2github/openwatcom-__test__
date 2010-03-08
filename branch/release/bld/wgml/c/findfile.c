@@ -48,14 +48,12 @@
 
 #define __STDC_WANT_LIB_EXT1__ 1
 #include <errno.h>
-#include <setjmp.h> // Required (but not included) by gvars.h.
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "copdir.h"
 #include "copfiles.h"
-#include "gtype.h" // Required (but not included) by gvars.h.
 #include "gvars.h"
 #include "wgml.h"
 
@@ -77,8 +75,8 @@
 /* The count contains the number of entries in directories. */
 
 typedef struct {
-    uint16_t count;
     char * * directories;
+    uint16_t count;
 } directory_list;
 
 /* Local data. */
@@ -155,7 +153,7 @@ static void initialize_directory_list( char const * in_path_list, \
             i = j;
             if( in_path_list[i] == '\0' ) {
                 if( in_path_list[i - 1] == INCLUDE_SEP ) path_count++;
-                if( in_path_list[i - 1] != PATH_SEP[0] ) byte_count++;
+                if( in_path_list[i - 1] != PATH_SEP ) byte_count++;
                 break;
             }
             continue;
@@ -164,9 +162,9 @@ static void initialize_directory_list( char const * in_path_list, \
             if( in_path_list[i - 1] != INCLUDE_SEP ) {
                 path_count++;
                 if( in_path_list[i - 1] == '"' ) {
-                    if( in_path_list[i - 2] != PATH_SEP[0] ) byte_count++;
+                    if( in_path_list[i - 2] != PATH_SEP ) byte_count++;
                 }
-                if( in_path_list[i - 1] != PATH_SEP[0] ) byte_count++;
+                if( in_path_list[i - 1] != PATH_SEP ) byte_count++;
                 continue;
             }
         }
@@ -175,9 +173,9 @@ static void initialize_directory_list( char const * in_path_list, \
     if( in_path_list[i - 1] != INCLUDE_SEP ) {
         path_count++;
         if( in_path_list[i - 1] == '"' ) {
-            if( in_path_list[i - 2] != PATH_SEP[0] ) byte_count++;
+            if( in_path_list[i - 2] != PATH_SEP ) byte_count++;
         }
-        if( in_path_list[i - 1] != PATH_SEP[0] ) byte_count++;
+        if( in_path_list[i - 1] != PATH_SEP ) byte_count++;
     }
 
     /* Initialize local_list. */
@@ -202,7 +200,7 @@ static void initialize_directory_list( char const * in_path_list, \
                 if( in_path_list[i - 1] == INCLUDE_SEP ) {
                     if( ++k < path_count ) array_base[k] = current;
                 }
-                if( in_path_list[i - 1] != PATH_SEP[0] ) *current++ = PATH_SEP[0];
+                if( in_path_list[i - 1] != PATH_SEP ) *current++ = PATH_SEP;
                 *current++ = '\0';
                 break;
             }
@@ -210,11 +208,11 @@ static void initialize_directory_list( char const * in_path_list, \
         }
         if( in_path_list[i] == INCLUDE_SEP ) {
             if( in_path_list[i - 1] != INCLUDE_SEP ) {
-                if( in_path_list[i - 1] != PATH_SEP[0] ) {
+                if( in_path_list[i - 1] != PATH_SEP ) {
                     if( in_path_list[i - 1] == '"' ) {
-                        if( in_path_list[i - 2] != PATH_SEP[0] ) \
-                                                        *current++ = PATH_SEP[0];
-                    } else *current++ = PATH_SEP[0];
+                        if( in_path_list[i - 2] != PATH_SEP ) \
+                                                        *current++ = PATH_SEP;
+                    } else *current++ = PATH_SEP;
                 }
                 *current++ = '\0';
                 if( ++k < path_count ) array_base[k] = current;
@@ -225,9 +223,9 @@ static void initialize_directory_list( char const * in_path_list, \
     }
     if( in_path_list[i - 1] != INCLUDE_SEP ) {
         if( in_path_list[i - 1] == '"' ) {
-            if( in_path_list[i - 2] != PATH_SEP[0] ) *current++ = PATH_SEP[0];
+            if( in_path_list[i - 2] != PATH_SEP ) *current++ = PATH_SEP;
         }
-        if( in_path_list[i - 1] != PATH_SEP[0] ) *current++ = PATH_SEP[0];
+        if( in_path_list[i - 1] != PATH_SEP ) *current++ = PATH_SEP;
         *current++ = '\0';
     }
 
@@ -329,7 +327,7 @@ static int try_open( char * prefix, char * filename )
     }
 
     /* Create the full file name to search for. */
-    
+
     strcpy_s( buff, FILENAME_MAX, prefix );
     strcat_s( buff, FILENAME_MAX, filename );
 
@@ -360,6 +358,7 @@ static int try_open( char * prefix, char * filename )
     try_file_name = mem_alloc( filename_length );
     strcpy_s( try_file_name, filename_length, buff );
     try_fp = fp;
+
     return( 1 );
 }
 
@@ -451,32 +450,36 @@ void ff_setup( void )
 }
 
 /* Function ff_teardown().
- * Releases the memory allocated by ff_setup().
+ * Releases the memory allocated by functions in this module.
  */
 
 void ff_teardown( void )
 {
-
     if( try_file_name != NULL ) {
         mem_free( try_file_name );
+        try_file_name = NULL;
     }
 
     if( try_fp != NULL) {
         fclose( try_fp );
+        try_fp = NULL;
     }
 
     /* directories points to a single block of allocated memory. */
 
     if( gml_inc_dirs.directories != NULL ) {
         mem_free( gml_inc_dirs.directories );
+        gml_inc_dirs.directories = NULL;
     }
 
     if( gml_lib_dirs.directories != NULL) {
         mem_free( gml_lib_dirs.directories );
+        gml_lib_dirs.directories = NULL;
     }
 
     if( path_dirs.directories != NULL ) {
         mem_free( path_dirs.directories );
+        path_dirs.directories = NULL;
     }
 
     return;
@@ -537,7 +540,7 @@ int search_file_in_dirs( char * filename, char * defext, char * altext,
     }
 
     /* Initialize the filename buffers. */
-    
+
     primary_file[0] = '\0';
     alternate_file[0] = '\0';
     default_file[0] = '\0';
@@ -547,7 +550,7 @@ int search_file_in_dirs( char * filename, char * defext, char * altext,
     if( sequence != ds_bin_lib ) {
 
         /* Determine if filename contains path information. */
-        
+
         _splitpath2( filename, buff, &fn_drive, &fn_dir, &fn_name, &fn_ext );
 
         if( fn_drive[0] != '\0' || fn_dir[0] != '\0' ) {
@@ -680,6 +683,7 @@ int search_file_in_dirs( char * filename, char * defext, char * altext,
                             out_msg( "Member name is too long and will not be" \
                                         " searched for:\n%s.cop\n", member_name );
                             mem_free( member_name );
+                            member_name = NULL;
                             err_count++;
                             g_suicide();
                         }
@@ -687,6 +691,7 @@ int search_file_in_dirs( char * filename, char * defext, char * altext,
                         out_msg( "Member name is too long and will not be" \
                                             " searched for:\n%s\n", member_name );
                         mem_free( member_name );
+                        member_name = NULL;
                         err_count++;
                         g_suicide();
                     }
@@ -699,11 +704,11 @@ int search_file_in_dirs( char * filename, char * defext, char * altext,
 
             if( sequence == ds_bin_lib ) {
                 out_msg( "Member file not found in same directory as directory" \
-                                        " file:\n%s%s\n", dir_ptr, member_name );
+                                        " file:\n%s%s\n", dir_ptr, primary_file );
                 err_count++;
                 g_suicide();
             }
-                
+
             if( alternate_file != NULL ) {
                 if( try_open( dir_ptr, alternate_file ) != 0 ) return( 1 );
             }

@@ -4,7 +4,9 @@
 :include crwatcnt.sp
  */
 
-#include <windows.h>
+#ifndef RPC_NO_WINDOWS_H
+    #include <windows.h>
+#endif
 
 #ifndef __RPC_H__
 #define __RPC_H__
@@ -30,6 +32,18 @@ typedef long    RPC_STATUS;
 #define RPCRTAPI    DECLSPEC_IMPORT
 #define RPCNSAPI    DECLSPEC_IMPORT
 
+/* RPC exception handling macros */
+#define RpcEndExcept    }
+#define RpcEndFinally   }
+#define RpcExcept( x )  } __except( x ) {
+#define RpcFinally      } __finally {
+#define RpcTryExcept    __try {
+#define RpcTryFinally   __try {
+
+/* Functions implemented as macros */
+#define RpcAbnormalTermination()    AbnormalTermination()
+#define RpcExceptionCode()          GetExceptionCode()
+
 :include cplusepi.sp
 
 #include <rpcdce.h>
@@ -38,4 +52,3 @@ typedef long    RPC_STATUS;
 #include <rpcasync.h>
 
 #endif /* __RPC_H__ */
-

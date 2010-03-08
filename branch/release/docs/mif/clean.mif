@@ -2,7 +2,7 @@ clean : .procedure
  @if exist *.pdf rm -f *.pdf
  @if exist *.ps rm -f *.ps
  @if exist *.ihp rm -f *.ihp
- @if exist *.html rm -f *.html
+ @if exist *.htm rm -f *.htm
  @if exist *.bmp rm -f *.bmp
  @if exist *.hlp rm -f *.hlp
  @if exist *.cnt rm -f *.cnt
@@ -36,3 +36,11 @@ clean : .procedure
  
 # delete generated DOSEMU batch file
  @if exist *.bat rm -f *.bat
+
+!ifeq dotarget htmlhelp
+ @for %f in ($(books)) do @rm -f %f/*.bmp
+ @for %f in ($(books)) do @rm -f %f/*.htm
+ @for %f in ($(books)) do @rm -f %f/*.hh?
+ @for %f in ($(books)) do @rm -f %f/*.ch?
+ @for %f in ($(books)) do @if exist %f rmdir %f
+!endif

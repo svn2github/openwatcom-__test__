@@ -37,6 +37,8 @@
     #endif
 #elif defined(__NT__)
     #include <windows.h>
+#elif defined(__RDOS__)
+    #include "rdos.h"
 #endif
 #include <string.h>
 #include <stdio.h>
@@ -51,9 +53,7 @@
 #elif defined( __LINUX__ )
     #include <dirent.h>
     #include <unistd.h>
-    #if !defined( __WATCOMC__ ) // Remove when OW clib implements fnmatch
-        #include <fnmatch.h>
-    #endif
+    #include <fnmatch.h>
 #elif defined( __UNIX__ )
     #include <dirent.h>
     #include <unistd.h>
@@ -83,10 +83,10 @@
     #define FILES_ALL   "*.*"
 #endif
 
-#define INDENT_STR      "\xa0"
-#define INDENT_CHAR     '\xa0'
-#define OPENED_DIR_CHAR '-'
-#define UNOPENED_DIR_CHAR '+'
+#define INDENT_STR          " "
+#define INDENT_CHAR         ' '
+#define OPENED_DIR_CHAR     '-'
+#define UNOPENED_DIR_CHAR   '+'
 
 typedef struct {
     open_file_name      *currOFN;
@@ -166,15 +166,15 @@ static bool     ControlsInitialized = FALSE;
 
 static void InitDlgControls( void )
 {
-/*  0 */ dlgControls[ 0 ].text = LIT( File_Name_Colon );
-/*  1 */ dlgControls[ 1 ].text = LIT( Directories_Colon );
-/*  2 */ dlgControls[ 2 ].text = LIT( Empty );
-/*  3 */ dlgControls[ 3 ].text = LIT( Empty );
-/*  6 */ dlgControls[ 6 ].text = LIT( OK );
-/*  7 */ dlgControls[ 7 ].text = LIT( Cancel );
-/*  8 */ dlgControls[ 8 ].text = LIT( List_Files_of_Type_Colon );
+/*  0 */ dlgControls[0].text = LIT( File_Name_Colon );
+/*  1 */ dlgControls[1].text = LIT( Directories_Colon );
+/*  2 */ dlgControls[2].text = LIT( Empty );
+/*  3 */ dlgControls[3].text = LIT( Empty );
+/*  6 */ dlgControls[6].text = LIT( OK );
+/*  7 */ dlgControls[7].text = LIT( Cancel );
+/*  8 */ dlgControls[8].text = LIT( List_Files_of_Type_Colon );
 #if !defined( __UNIX__ ) && !defined( __NETWARE__ )
-/* 10 */ dlgControls[ 10 ].text = LIT( Drives_Colon );
+/* 10 */ dlgControls[10].text = LIT( Drives_Colon );
 #endif
 }
 
@@ -185,7 +185,7 @@ static void copyPart( char *buff, char *p, int len, int maxlen )
             len = maxlen;
         }
         memcpy( buff, p, len );
-        buff[ len ] = 0;
+        buff[len] = 0;
     }
 }
 
@@ -324,6 +324,21 @@ static drive_type getDriveType( int drv )
     }
 
     return ( type );
+}
+#elif defined( __RDOS__ )
+static drive_type getDriveType( int drv )
+{
+    drive_type type;
+    int        CurDrive = RdosGetCurDrive();
+
+    if( RdosSetCurDrive( drv - 'A' ) )
+        type = DRIVE_IS_FIXED;
+    else
+        type = DRIVE_NONE;
+
+    RdosSetCurDrive( CurDrive );
+
+    return( type );
 }
 #else
 extern short CheckRemovable( char );
@@ -535,12 +550,27 @@ static bool goToDir( gui_window *gui, char *dir )
 } /* goToDir */
 
 /*
- * Compare - quicksort comparison
+ * Compare - quicksort comparison with special treatment of indent chars
  */
 /* int Compare( const char  **p1, const char  **p2 ) */
 int Compare( const void  *p1, const void *p2 )
 {
-    return( stricmp( *((char **)p1), *((char **)p2) ));
+    const char  *s1 = *(const char **)p1;
+    const char  *s2 = *(const char **)p2;
+
+    /* skip matching indents */
+    while( *s1 == INDENT_CHAR && *s2 == INDENT_CHAR ) {
+        ++s1;
+        ++s2;
+    }
+    /* indents compare as chars with infinitely high value */
+    if( *s1 == INDENT_CHAR )
+        return( 1 );
+    else if( *s2 == INDENT_CHAR )
+        return( -1 );
+
+    /* use regular string comparison for the rest */
+    return( strcasecmp( s1, s2 ) );
 
 } /* Compare */
 
@@ -669,8 +699,7 @@ static bool setFileList( gui_window *gui, char *ext )
                         isrdonly( dent, path ) ) {
                         continue;
                     }
-#if defined(__QNX__) || (defined( __UNIX__ ) && !defined( __WATCOMC__))
-                    // FIXME: implement fnmatch() for Linux.
+#if defined( __UNIX__ ) || defined( __NETWARE__ )
                     if( fnmatch( ptr, dent->d_name, FNM_PATHNAME ) != 0 ) {
                         continue;
                     }
@@ -902,7 +931,7 @@ static process_rc processFileName( gui_window *gui )
         if( !rc ) {
             if( S_ISDIR( buf.st_mode ) ) {
                 goToDir( gui, txt );
-                if( !initDialog( gui, dlg->fileExtensions[ dlg->currExtIndex ], NULL ) ) {
+                if( !initDialog( gui, dlg->fileExtensions[dlg->currExtIndex], NULL ) ) {
                     return( PROCESS_FAIL );
                 }
                 return( PROCESS_FALSE );
@@ -924,11 +953,12 @@ static process_rc processFileName( gui_window *gui )
         _makepath( path, NULL, NULL, fname, ext );
 
         if( dlg->currOFN->base_file_name != NULL ) {
+            len = strlen( txt );
             if( len >= dlg->currOFN->max_base_file_name ) {
                 len = dlg->currOFN->max_base_file_name-1;
             }
             memcpy( dlg->currOFN->base_file_name, txt, len );
-            dlg->currOFN->base_file_name[ len ] = 0;
+            dlg->currOFN->base_file_name[len] = 0;
         }
         if( dlg->currOFN->file_name != NULL ) {
             getcwd( path, sizeof( path ) );
@@ -944,7 +974,7 @@ static process_rc processFileName( gui_window *gui )
                 len = dlg->currOFN->max_file_name-1;
             }
             memcpy( dlg->currOFN->file_name, path, len );
-            dlg->currOFN->file_name[ len ] = 0;
+            dlg->currOFN->file_name[len] = 0;
         }
         return( PROCESS_TRUE );
     }
@@ -1082,7 +1112,7 @@ extern bool GetFileNameEvent( gui_window *gui, gui_event gui_ev, void *param )
 #if !defined( __UNIX__ ) && !defined( __NETWARE__ )
         InitList( gui, CTL_DRIVES, DRIVE_LIST_INDEX );
 #endif
-        if( !initDialog( gui, dlg->fileExtensions[ dlg->currExtIndex ], dlg->currOFN->file_name ) ) {
+        if( !initDialog( gui, dlg->fileExtensions[dlg->currExtIndex], dlg->currOFN->file_name ) ) {
             dlg->dialogRC = OFN_RC_FAILED_TO_INITIALIZE;
             return( FALSE );
         }

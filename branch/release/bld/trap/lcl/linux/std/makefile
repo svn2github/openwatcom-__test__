@@ -10,16 +10,5 @@ srv     = lcl
 cpu     = x86
 which   = TRAP
 
-extra_objs = &
-        linuxacc.obj &
-        linuxx86.obj &
-        linuxmap.obj &
-        linuxcomm.obj &
-        linuxfile.obj &
-        linuxutl.obj &
-        supp.obj &
-        core.obj &
-        x86cpu.obj
-
-!include $(trap_dir)/lcl/lcl.mif
+!include $(trap_dir)/lcl/linux/trap.mif
 !include $(trap_dir)/master.mif

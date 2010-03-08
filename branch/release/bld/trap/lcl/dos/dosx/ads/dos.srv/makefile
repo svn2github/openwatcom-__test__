@@ -8,11 +8,13 @@ cpu = x86
 name = adshelp
 which = SERVER
 
-extra_objs = $(dosx_serv_objs) adsacc.obj adsintr.obj x86cpu.obj misc7386.obj
+extra_objs = &
+    adsacc.obj &
+    adsintr.obj
 
-extra_c_flags = -dACAD -dDOSXHELP
+extra_c_flags = -DACAD -I$(adsdir)
 
-extra_a_flags = -ms -3s -dACAD
+extra_a_flags = -ms -3s -DACAD
 
 extra_linker = op nocaseexact
 

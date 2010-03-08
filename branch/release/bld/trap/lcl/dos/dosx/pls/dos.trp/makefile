@@ -7,9 +7,7 @@ srv = pls
 cpu = x86
 which = TRAP
 
-extra_c_flags = -dPHARLAP -dDOSXTRAP
-
-extra_objs = $(dosx_trap_objs)
+extra_c_flags = -dPHARLAP
 
 !include $(trap_dir)/lcl/dos/dosx/dosx.mif
 !include $(trap_dir)/master.mif
