@@ -4,10 +4,10 @@
 <assemblyIdentity
     version="1.0.0.0"
     processorArchitecture="X86"
-    name="Microsoft.Windows.setup"
+    name="Microsoft.Windows.wzoom"
     type="win32"
 />
-<description>Open Watcom Setup</description>
+<description>Open Watcom Zoom Utility</description>
 <dependency>
     <dependentAssembly>
         <assemblyIdentity
@@ -20,14 +20,4 @@
         />
     </dependentAssembly>
 </dependency>
-<trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
-    <security>
-        <requestedPrivileges>
-            <requestedExecutionLevel
-                level="highestAvailable"
-                uiAccess="false"
-            />
-        </requestedPrivileges>
-    </security>
-</trustInfo>
 </assembly>
