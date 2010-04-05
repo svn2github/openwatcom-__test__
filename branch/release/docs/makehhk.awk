@@ -21,9 +21,29 @@ function transsym( str ) {
     gsub( /\./, "_", targ )
     gsub( /\|/, "_", targ )
     gsub( /\"/, "_", targ )
+    gsub( /'/, "_", targ )
     gsub( /:/, "_", targ )
+    gsub( /\(/, "L", targ )
+    gsub( /\)/, "R", targ )
+    gsub( /\*/, "T", targ )
+    gsub( /\\/, "B", targ )
+    gsub( /%/, "_", targ )
+    gsub( /~/, "_", targ )
+    gsub( /@/, "A", targ )
+    gsub( /\$/, "_", targ )
+    gsub( /&/, "_", targ )
+    gsub( /!/, "_", targ )
     gsub( /\r/, "", targ )
     return targ
+}
+
+function fname() {
+    if( length( sectid ) ) {
+        fn = sectid
+    } else {
+        fn = prefix file
+    }
+    return fn
 }
 
 /\.helppref / {
@@ -34,21 +54,23 @@ function transsym( str ) {
 }
 
 /\.ixchap / {
+    sectid = ""
     file = $0
     gsub( /\.ixchap /, "", file )
     file = transsym( file )
 }
 
 /\.ixsect / {
+    sectid = ""
     file = $0
     gsub( /\.ixsect /, "", file )
     file = transsym( file )
 }
 
 /\.ixsectid / {
-    file = $0
-    gsub( /\.ixsectid /, "", file )
-    gsub( /\r/, "", file )
+    sectid = $0
+    gsub( /\.ixsectid /, "", sectid )
+    gsub( /\r/, "", sectid )
 }
 
 /\.ixline '(.*)' '(.*)'/ {
@@ -60,11 +82,12 @@ function transsym( str ) {
     gsub( /'[\r]?/, "", name2 )
     print "<LI><OBJECT TYPE=\"text/sitemap\">"
     print "<PARAM NAME=\"Name\" VALUE=\"" name1 "\">"
+    print "<PARAM NAME=\"See also\" VALUE=\"" name1 "\">"
     print "</OBJECT>"
     print "<UL>"
     print "<LI><OBJECT TYPE=\"text/sitemap\">"
     print "<PARAM NAME=\"Name\" VALUE=\"" name2 "\">"
-    print "<PARAM NAME=\"Local\" VALUE=\"" prefix file ".htm\">"
+    print "<PARAM NAME=\"Local\" VALUE=\"" fname() ".htm\">"
     print "</OBJECT>"
     print "</UL>"
     next
@@ -76,7 +99,7 @@ function transsym( str ) {
     gsub( /'[\r]?/, "", name )
     print "<LI><OBJECT TYPE=\"text/sitemap\">"
     print "<PARAM NAME=\"Name\" VALUE=\"" name "\">"
-    print "<PARAM NAME=\"Local\" VALUE=\"" prefix file ".htm\">"
+    print "<PARAM NAME=\"Local\" VALUE=\"" fname() ".htm\">"
     print "</OBJECT>"
 }
 
