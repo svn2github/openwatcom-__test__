@@ -1,68 +1,85 @@
 BEGIN {
-    print "<HTML>";
-    print "<BODY>";
-    print "<UL>";
+    print "<HTML><BODY><UL>"
 }
 
 function transsym( str ) {
-    gsub( / /, "_", file );
-    gsub( /-/, "M", file );
-    gsub( /\//, "D", file );
-    gsub( /\+/, "P", file );
-    gsub( /\[/, "U", file );
-    gsub( /\]/, "V", file );
-    gsub( /</, "X", file );
-    gsub( />/, "Y", file );
-    gsub( /\=/, "E", file );
-    gsub( /{/, "_", file );
-    gsub( /}/, "_", file );
-    gsub( /,/, "_", file );
-    gsub( /\#/, "_", file );
+    targ = str
+    gsub( / /, "_", targ )
+    gsub( /-/, "M", targ )
+    gsub( /\//, "D", targ )
+    gsub( /\+/, "P", targ )
+    gsub( /\[/, "U", targ )
+    gsub( /\]/, "V", targ )
+    gsub( /</, "X", targ )
+    gsub( />/, "Y", targ )
+    gsub( /\=/, "E", targ )
+    gsub( /{/, "_", targ )
+    gsub( /}/, "_", targ )
+    gsub( /,/, "_", targ )
+    gsub( /\#/, "_", targ )
+    gsub( /\?/, "_", targ )
+    gsub( /\./, "_", targ )
+    gsub( /\|/, "_", targ )
+    gsub( /\"/, "_", targ )
+    gsub( /:/, "_", targ )
+    gsub( /\r/, "", targ )
+    return targ
+}
+
+/\.helppref / {
+    prefix = $0
+    gsub( /\.helppref /, "", prefix )
+    if( length( prefix ) )
+       prefix = transsym( prefix ) "_"
 }
 
 /\.ixchap / {
-    file = $0;
-    gsub( /\.ixchap /, "", file );
-    transsym( file );
+    file = $0
+    gsub( /\.ixchap /, "", file )
+    file = transsym( file )
 }
 
 /\.ixsect / {
-    file = $0;
-    gsub( /\.ixsect /, "", file );
-    transsym( file );
+    file = $0
+    gsub( /\.ixsect /, "", file )
+    file = transsym( file )
+}
+
+/\.ixsectid / {
+    file = $0
+    gsub( /\.ixsectid /, "", file )
+    gsub( /\r/, "", file )
 }
 
 /\.ixline '(.*)' '(.*)'/ {
-    name1 = $0;
-    gsub( /.ixline '/, "", name1 );
-    gsub( /' '(.*)'/, "", name1 );
-    name2 = $0;
-    gsub( /.ixline '(.*)' '/, "", name2 );
-    gsub( /'/, "", name2 );
-    print "<LI><OBJECT TYPE=\"text/sitemap\">";
-    print "<PARAM NAME=\"Name\" VALUE=\"" name1 "\">";
-    print "</OBJECT>";
-    print "<UL>";
-    print "<LI><OBJECT TYPE=\"text/sitemap\">";
-    print "<PARAM NAME=\"Name\" VALUE=\"" name2 "\">";
-    print "<PARAM NAME=\"Local\" VALUE=\"" file ".htm\">";
-    print "</OBJECT>";
-    print "</UL>";
-    next;
+    name1 = $0
+    gsub( /\.ixline '/, "", name1 )
+    gsub( /' '(.*)'[\r]?/, "", name1 )
+    name2 = $0
+    gsub( /\.ixline '(.*)' '/, "", name2 )
+    gsub( /'[\r]?/, "", name2 )
+    print "<LI><OBJECT TYPE=\"text/sitemap\">"
+    print "<PARAM NAME=\"Name\" VALUE=\"" name1 "\">"
+    print "</OBJECT>"
+    print "<UL>"
+    print "<LI><OBJECT TYPE=\"text/sitemap\">"
+    print "<PARAM NAME=\"Name\" VALUE=\"" name2 "\">"
+    print "<PARAM NAME=\"Local\" VALUE=\"" prefix file ".htm\">"
+    print "</OBJECT>"
+    print "</UL>"
+    next
 }
 
 /\.ixline '(.*)'/ {
-    name = $0;
-    gsub( /.ixline /, "", name );
-    gsub( /'/, "", name );
-    print "<LI><OBJECT TYPE=\"text/sitemap\">";
-    print "<PARAM NAME=\"Name\" VALUE=\"" name "\">";
-    print "<PARAM NAME=\"Local\" VALUE=\"" file ".htm\">";
-    print "</OBJECT>";
+    name = $0
+    gsub( /\.ixline /, "", name )
+    gsub( /'[\r]?/, "", name )
+    print "<LI><OBJECT TYPE=\"text/sitemap\">"
+    print "<PARAM NAME=\"Name\" VALUE=\"" name "\">"
+    print "<PARAM NAME=\"Local\" VALUE=\"" prefix file ".htm\">"
+    print "</OBJECT>"
 }
 
 END {
-    print "</UL>";
-    print "</BODY>";
-    print "</UL>";
+    print "</UL></BODY></HTML>"
 }

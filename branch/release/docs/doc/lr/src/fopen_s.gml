@@ -1,5 +1,5 @@
 .func begin
-.funct   fopen_s TR 24371
+.funct   fopen_s TR 24731
 .funct_w _wfopen_s
 .func gen
 #define __STDC_WANT_LIB_EXT1__ 1
@@ -189,7 +189,7 @@ argument) causes all subsequent writes to the file to be forced to the
 current end-of-file, regardless of previous calls to the
 .kw fseek
 function.
-.ix '&StrIo' fseek
+.ix '&StrIo' 'fseek'
 When a file is opened with update mode (
 .ct .id +
 as the second or later character of the
